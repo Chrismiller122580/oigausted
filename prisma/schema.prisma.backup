@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  // url line removed - Prisma now reads from prisma.config.ts
 }
 
 model User {
@@ -19,8 +19,6 @@ model User {
   accounts      Account[]
   sessions      Session[]
   gigs          Gig[]
-  ordersAsBuyer Order[] @relation("BuyerOrders")
-  ordersAsSeller Order[] @relation("SellerOrders")
 }
 
 model Account {
@@ -56,24 +54,6 @@ model Gig {
   category    String
   sellerId    String
   seller      User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  orders      Order[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-}
-
-model Order {
-  id            String   @id @default(uuid())
-  gigId         String
-  buyerId       String
-  sellerId      String
-  amount        Float    // total paid by buyer
-  platformFee   Float    // company earnings (12%)
-  sellerPayout  Float    // 88% to seller
-  status        String   @default("pending") // pending, completed, refunded
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  gig           Gig      @relation(fields: [gigId], references: [id])
-  buyer         User     @relation("BuyerOrders", fields: [buyerId], references: [id])
-  seller        User     @relation("SellerOrders", fields: [sellerId], references: [id])
 }
