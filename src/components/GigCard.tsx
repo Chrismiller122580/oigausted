@@ -22,30 +22,37 @@ interface GigProps {
 
 export function GigCard({ gig }: { gig: GigProps }) {
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <CardHeader className="p-4 pb-2">
+    <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-200 hover:border-yellow-500 group">
+      <CardHeader className="p-6 pb-3">
         <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-lg line-clamp-2">{gig.title}</CardTitle>
-            <CardDescription className="text-sm">{gig.category}</CardDescription>
+          <div className="flex-1">
+            <CardTitle className="text-lg leading-tight line-clamp-2 group-hover:text-yellow-600 transition-colors">
+              {gig.title}
+            </CardTitle>
+            <CardDescription className="text-sm mt-1 text-yellow-600 font-medium">
+              {gig.category}
+            </CardDescription>
           </div>
-          <span className="text-xl font-bold text-primary whitespace-nowrap">
-            ${gig.price.toLocaleString("es-CO")}
-          </span>
+          <div className="text-right ml-4">
+            <span className="text-2xl font-bold text-yellow-600">
+              ${gig.price.toLocaleString("es-CO")}
+            </span>
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <p className="text-sm text-muted-foreground line-clamp-3">
-          {gig.description}
-        </p>
+
+      <CardContent className="p-6 pt-2">
+        <p className="text-sm text-muted-foreground line-clamp-3">{gig.description}</p>
       </CardContent>
-      <CardFooter className="p-4 pt-2 flex justify-between items-center border-t">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="font-medium">{gig.seller}</span>
-          <span className="text-yellow-500"> {gig.rating}</span>
-          <span className="text-muted-foreground">({gig.reviews})</span>
+
+      <CardFooter className="p-6 pt-4 border-t flex justify-between items-center">
+        <div>
+          <span className="font-medium text-sm">{gig.seller}</span>
+          <div className="flex items-center gap-1 text-amber-500 text-sm">
+            ★ {gig.rating} <span className="text-muted-foreground">({gig.reviews})</span>
+          </div>
         </div>
-        <Button variant="secondary" size="sm" asChild>
+        <Button asChild className="bg-yellow-600 hover:bg-yellow-700 text-white">
           <Link href={`/gigs/${gig.id}`}>Ver Gig</Link>
         </Button>
       </CardFooter>
