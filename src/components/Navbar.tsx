@@ -28,7 +28,7 @@ export function Navbar() {
           <Link href="/admin/earnings" className="hover:text-yellow-600 transition-colors">Ganancias</Link>
         </nav>
 
-        {/* Right side buttons */}
+        {/* Right side */}
         <div className="flex items-center gap-3">
           {session ? (
             <>
