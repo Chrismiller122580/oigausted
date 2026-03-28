@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card"
 import Link from "next/link"
 import { useState } from "react"
+import { X } from "lucide-react"
 
 interface GigProps {
   id: string
@@ -24,38 +25,36 @@ interface GigProps {
 }
 
 export function GigCard({ gig }: { gig: GigProps }) {
-  const [isBuying, setIsBuying] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
 
-  const handleBuyClick = () => {
-    setShowConfirm(true)
-  }
+  const handleBuyClick = () => setShowModal(true)
 
-  const handleConfirmBuy = async () => {
-    setShowConfirm(false)
-    setIsBuying(true)
-
+  const handlePayment = async (method: string) => {
+    setIsProcessing(true)
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gigId: gig.id,
-          buyerId: "demo-buyer-id", // TODO: replace with real user ID later
+          buyerId: "demo-buyer-id",
+          paymentMethod: method,
         }),
       })
 
       const data = await res.json()
 
       if (data.success) {
-        alert(`¡Compra exitosa! Plataforma ganó $${data.companyEarnings.toLocaleString("es-CO")}`)
+        alert(`✅ Pago exitoso con ${method.toUpperCase()}!\nPlataforma ganó $${data.companyEarnings.toLocaleString("es-CO")}`)
+        setShowModal(false)
       } else {
-        alert("Error al procesar la compra")
+        alert("Error al procesar el pago")
       }
     } catch (error) {
       alert("Error de conexión")
     } finally {
-      setIsBuying(false)
+      setIsProcessing(false)
     }
   }
 
@@ -107,25 +106,53 @@ export function GigCard({ gig }: { gig: GigProps }) {
         </CardFooter>
       </Card>
 
-      {/* Confirmation Modal */}
-      {showConfirm && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
-            <h3 className="text-2xl font-bold mb-4">Confirmar Compra</h3>
-            <p className="text-muted-foreground mb-6">
-              ¿Estás seguro de comprar "<strong>{gig.title}</strong>" por ${gig.price.toLocaleString("es-CO")}?
-            </p>
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>
-                Cancelar
-              </Button>
-              <Button 
-                className="flex-1 bg-yellow-600 hover:bg-yellow-700" 
-                onClick={handleConfirmBuy}
-                disabled={isBuying}
-              >
-                {isBuying ? "Procesando..." : "Confirmar Compra"}
-              </Button>
+      {/* Simple Confirmation Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden">
+            <div className="p-6 border-b flex justify-between items-center">
+              <h3 className="text-xl font-bold">Confirmar Compra</h3>
+              <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-700">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-8">
+              <p className="text-sm text-muted-foreground mb-2">Estás comprando</p>
+              <p className="font-semibold text-lg mb-6">{gig.title}</p>
+              <p className="text-3xl font-bold text-yellow-600 mb-8">
+                ${gig.price.toLocaleString("es-CO")}
+              </p>
+
+              <div className="space-y-3">
+                <Button 
+                  className="w-full py-6 text-lg"
+                  onClick={() => handlePayment("Tarjeta")}
+                  disabled={isProcessing}
+                >
+                  Pagar con Tarjeta
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full py-6 text-lg"
+                  onClick={() => handlePayment("PSE")}
+                  disabled={isProcessing}
+                >
+                  Pagar con PSE
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full py-6 text-lg"
+                  onClick={() => handlePayment("Nequi")}
+                  disabled={isProcessing}
+                >
+                  Pagar con Nequi
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-6 border-t bg-gray-50 text-center text-xs text-muted-foreground">
+              Plataforma cobra 12% de comisión • Seguro con Wompi
             </div>
           </div>
         </div>

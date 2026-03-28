@@ -1,11 +1,21 @@
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { 
+  Search, 
+  Users, 
+  CreditCard, 
+  Star, 
+  Coffee, 
+  MapPin, 
+  Music, 
+  Palette 
+} from "lucide-react"
 
 export default function Home() {
   return (
     <div className="flex flex-col">
-      {/* Hero Section - More inviting */}
-      <section className="relative w-full py-20 md:py-32 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 text-white overflow-hidden">
+      {/* Hero Section */}
+      <section className="relative w-full py-24 md:py-32 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 text-white overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(#ffffff33_1px,transparent_1px)] [background-size:20px_20px]"></div>
         
         <div className="container px-6 relative z-10">
@@ -24,8 +34,11 @@ export default function Home() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white text-black hover:bg-white/90 text-lg px-10 py-7 rounded-full font-semibold" asChild>
-                <Link href="/gigs">Explorar Gigs Ahora</Link>
+              <Button size="lg" className="bg-white text-black hover:bg-white/90 text-lg px-10 py-7 rounded-full font-semibold flex items-center gap-3" asChild>
+                <Link href="/gigs">
+                  <Search className="w-5 h-5" />
+                  Explorar Gigs Ahora
+                </Link>
               </Button>
               <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 text-lg px-10 py-7 rounded-full font-semibold" asChild>
                 <Link href="/create-gig">Publicar tu Gig Gratis</Link>
@@ -42,14 +55,14 @@ export default function Home() {
       {/* Trust signals */}
       <div className="bg-white py-6 border-b">
         <div className="container flex flex-wrap justify-center gap-x-12 gap-y-4 text-sm text-muted-foreground">
-          <div>✅ Pagos seguros en COP</div>
-          <div>✅ Soporte en español</div>
-          <div>✅ Talento local verificado</div>
-          <div>✅ Economía Naranja impulsada</div>
+          <div className="flex items-center gap-2"><CreditCard className="w-4 h-4" /> Pagos seguros en COP</div>
+          <div className="flex items-center gap-2"><Users className="w-4 h-4" /> Soporte en español</div>
+          <div className="flex items-center gap-2"><Star className="w-4 h-4" /> Talento local verificado</div>
+          <div className="flex items-center gap-2"><Coffee className="w-4 h-4" /> Economía Naranja impulsada</div>
         </div>
       </div>
 
-      {/* Categories */}
+      {/* Categories with Icons */}
       <section className="py-16 bg-gray-50">
         <div className="container px-6">
           <h2 className="text-3xl font-bold text-center mb-12">
@@ -57,17 +70,25 @@ export default function Home() {
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
             {[
-              "Diseño Gráfico", "Desarrollo Web", "Marketing Digital", 
-              "Asistente Virtual", "Turismo & Experiencias", "Producción Musical",
-              "Traducción", "Fotografía", "Redes Sociales", 
-              "Consultoría Agro", "Legal & Tributario", "Otros Servicios"
+              { name: "Diseño Gráfico", icon: Palette },
+              { name: "Desarrollo Web", icon: Users },
+              { name: "Marketing Digital", icon: Star },
+              { name: "Asistente Virtual", icon: Users },
+              { name: "Turismo & Experiencias", icon: MapPin },
+              { name: "Producción Musical", icon: Music },
+              { name: "Traducción", icon: Users },
+              { name: "Fotografía", icon: Palette },
+              { name: "Redes Sociales", icon: Star },
+              { name: "Consultoría Agro", icon: Coffee },
+              { name: "Legal & Tributario", icon: Users },
+              { name: "Otros Servicios", icon: Star },
             ].map((cat, index) => (
               <div
                 key={index}
-                className="group bg-white border rounded-2xl p-8 text-center hover:border-yellow-500 hover:shadow-xl transition-all duration-300 cursor-pointer"
+                className="group bg-white border rounded-2xl p-8 text-center hover:border-yellow-500 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col items-center"
               >
-                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🎨</div>
-                <h3 className="font-semibold text-lg">{cat}</h3>
+                <cat.icon className="w-12 h-12 text-yellow-600 mb-4 group-hover:scale-110 transition-transform" />
+                <h3 className="font-semibold text-lg">{cat.name}</h3>
               </div>
             ))}
           </div>
