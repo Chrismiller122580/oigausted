@@ -1,6 +1,17 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Search, Users, CreditCard, Star, MapPin, Palette, Music } from "lucide-react"
+import { Palette, Users, Star, MapPin, Music, Coffee } from "lucide-react"
+
+const categories = [
+  { name: "Diseño Gráfico", icon: Palette, slug: "Diseño Gráfico" },
+  { name: "Desarrollo Web", icon: Users, slug: "Desarrollo Web" },
+  { name: "Marketing Digital", icon: Star, slug: "Marketing Digital" },
+  { name: "Fotografía", icon: MapPin, slug: "Fotografía" },
+  { name: "Producción Musical", icon: Music, slug: "Producción Musical" },
+  { name: "Turismo", icon: MapPin, slug: "Turismo" },
+  { name: "Asistente Virtual", icon: Users, slug: "Asistente Virtual" },
+  { name: "Otros Servicios", icon: Coffee, slug: "Otros Servicios" },
+]
 
 export default function Home() {
   return (
@@ -15,8 +26,7 @@ export default function Home() {
             ¡Oiga Usted!
           </h1>
           <p className="text-2xl md:text-3xl max-w-3xl mx-auto mb-10">
-            La plataforma de gigs y servicios locales más confiable de Colombia. 
-            Encuentra talento o vende tus habilidades fácil y rápido.
+            La plataforma de gigs y servicios locales más confiable de Colombia.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" className="bg-white text-black hover:bg-white/90 text-lg px-10 py-7">
@@ -29,25 +39,22 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Categories */}
+      {/* Categories - Now Clickable */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-12">Categorías Populares</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">Explora por Categoría</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { name: "Diseño Gráfico", icon: Palette },
-              { name: "Desarrollo Web", icon: Users },
-              { name: "Marketing Digital", icon: Star },
-              { name: "Fotografía", icon: MapPin },
-              { name: "Producción Musical", icon: Music },
-              { name: "Turismo", icon: MapPin },
-              { name: "Asistente Virtual", icon: Users },
-              { name: "Otros Servicios", icon: Star },
-            ].map((cat, i) => (
-              <div key={i} className="border rounded-2xl p-8 text-center hover:border-yellow-500 hover:shadow transition-all group">
-                <cat.icon className="w-12 h-12 mx-auto mb-4 text-yellow-600 group-hover:scale-110 transition" />
-                <h3 className="font-semibold">{cat.name}</h3>
-              </div>
+            {categories.map((cat, i) => (
+              <Link 
+                key={i} 
+                href={`/gigs?category=${encodeURIComponent(cat.slug)}`}
+                className="group border rounded-2xl p-8 text-center hover:border-yellow-500 hover:shadow-xl transition-all duration-300 flex flex-col items-center"
+              >
+                <cat.icon className="w-12 h-12 mx-auto mb-4 text-yellow-600 group-hover:scale-110 transition-transform" />
+                <h3 className="font-semibold text-lg group-hover:text-yellow-600 transition-colors">
+                  {cat.name}
+                </h3>
+              </Link>
             ))}
           </div>
         </div>

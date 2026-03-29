@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { useSearchParams } from "next/navigation"
 
 interface Gig {
   id: string
@@ -14,14 +15,28 @@ interface Gig {
 
 export default function GigsPage() {
   const [gigs, setGigs] = useState<Gig[]>([])
+  const [filteredGigs, setFilteredGigs] = useState<Gig[]>([])
   const [selectedGig, setSelectedGig] = useState<Gig | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("")
 
+  const searchParams = useSearchParams()
+  const categoryFilter = searchParams.get("category")
+
   useEffect(() => {
     const saved = localStorage.getItem("oigausted-gigs")
-    if (saved) setGigs(JSON.parse(saved))
-  }, [])
+    if (saved) {
+      const parsed: Gig[] = JSON.parse(saved)
+      setGigs(parsed)
+      
+      if (categoryFilter) {
+        const filtered = parsed.filter(g => g.category === categoryFilter)
+        setFilteredGigs(filtered)
+      } else {
+        setFilteredGigs(parsed)
+      }
+    }
+  }, [categoryFilter])
 
   const openBuyModal = (gig: Gig) => {
     setSelectedGig(gig)
@@ -34,15 +49,31 @@ export default function GigsPage() {
       alert("Por favor selecciona un método de pago")
       return
     }
-    alert(`✅ ¡Compra simulada exitosamente con ${paymentMethod}!\n\nGracias por comprar "${selectedGig?.title}". En producción conectaríamos con Wompi.`)
+    alert(`✅ ¡Compra simulada exitosamente con ${paymentMethod}!\n\nGracias por comprar "${selectedGig?.title}".`)
     setShowModal(false)
     setSelectedGig(null)
+  }
+
+  const clearFilter = () => {
+    window.location.href = "/gigs"
   }
 
   return (
     <div className="container mx-auto py-12 px-6">
       <div className="flex justify-between items-center mb-10">
-        <h1 className="text-4xl font-bold">Gigs en Colombia</h1>
+        <div>
+          <h1 className="text-4xl font-bold">
+            {categoryFilter ? `Gigs de ${categoryFilter}` : "Todos los Gigs"}
+          </h1>
+          {categoryFilter && (
+            <button 
+              onClick={clearFilter}
+              className="text-sm text-yellow-600 hover:underline mt-1"
+            >
+              Ver todos los gigs →
+            </button>
+          )}
+        </div>
         <Link 
           href="/create-gig"
           className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 rounded-full font-medium"
@@ -51,14 +82,14 @@ export default function GigsPage() {
         </Link>
       </div>
 
-      {gigs.length === 0 ? (
+      {filteredGigs.length === 0 ? (
         <div className="text-center py-20 border-2 border-dashed rounded-3xl border-gray-300 bg-gray-50">
           <p className="text-6xl mb-6">🌴</p>
-          <p className="text-2xl text-gray-500">Aún no hay gigs publicados</p>
+          <p className="text-2xl text-gray-500">No hay gigs en esta categoría</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {gigs.map((gig) => (
+          {filteredGigs.map((gig) => (
             <div key={gig.id} className="bg-white border rounded-2xl p-6 hover:shadow-lg transition-all">
               <h3 className="font-semibold text-xl mb-3">{gig.title}</h3>
               <p className="text-gray-600 text-sm mb-4 line-clamp-4">{gig.description}</p>
@@ -84,11 +115,10 @@ export default function GigsPage() {
         </div>
       )}
 
-      {/* Nice Buy Modal */}
+      {/* Buy Modal */}
       {showModal && selectedGig && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden">
-            {/* Modal Header */}
             <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-8">
               <h2 className="text-2xl font-bold">Confirmar Compra</h2>
               <p className="mt-2 opacity-90">{selectedGig.title}</p>
