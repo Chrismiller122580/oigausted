@@ -12,14 +12,15 @@ export default function CreateGigPage() {
     title: "",
     description: "",
     category: "Diseño Gráfico",
-    price: ""
+    price: "",
+    deliveryDays: "3"
   })
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.title || !form.description || !form.price) {
-      alert("Por favor llena todos los campos")
+    if (!form.title || !form.description || !form.price || !form.deliveryDays) {
+      alert("Por favor completa todos los campos")
       return
     }
 
@@ -30,18 +31,18 @@ export default function CreateGigPage() {
       title: form.title.trim(),
       description: form.description.trim(),
       category: form.category,
-      price: parseFloat(form.price)
+      price: parseFloat(form.price),
+      deliveryDays: parseInt(form.deliveryDays)
     }
 
-    // Save to localStorage
     const existing = JSON.parse(localStorage.getItem("oigausted-gigs") || "[]")
     localStorage.setItem("oigausted-gigs", JSON.stringify([newGig, ...existing]))
 
-    alert(`✅ ¡Gig "${form.title}" creado exitosamente!`)
+    alert(`🎉 ¡Gig "${form.title}" publicado exitosamente!\n\nSerá visible en la página de gigs.`)
 
     setTimeout(() => {
       router.push("/gigs")
-    }, 1000)
+    }, 1500)
   }
 
   return (
@@ -50,7 +51,7 @@ export default function CreateGigPage() {
 
       <form onSubmit={handleSubmit} className="bg-white border rounded-3xl p-10 space-y-8">
         <div>
-          <Label>Título</Label>
+          <Label>Título del Gig</Label>
           <Input
             value={form.title}
             onChange={(e) => setForm({...form, title: e.target.value})}
@@ -65,12 +66,12 @@ export default function CreateGigPage() {
             rows={5}
             value={form.description}
             onChange={(e) => setForm({...form, description: e.target.value})}
-            placeholder="Describe tu servicio..."
+            placeholder="Describe tu servicio con detalle..."
             required
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <Label>Categoría</Label>
             <select 
@@ -82,6 +83,7 @@ export default function CreateGigPage() {
               <option>Desarrollo Web</option>
               <option>Marketing Digital</option>
               <option>Fotografía</option>
+              <option>Producción Musical</option>
               <option>Otros Servicios</option>
             </select>
           </div>
@@ -96,6 +98,18 @@ export default function CreateGigPage() {
               required
             />
           </div>
+
+          <div>
+            <Label>Días de entrega</Label>
+            <Input
+              type="number"
+              value={form.deliveryDays}
+              onChange={(e) => setForm({...form, deliveryDays: e.target.value})}
+              placeholder="3"
+              min="1"
+              required
+            />
+          </div>
         </div>
 
         <Button 
@@ -103,7 +117,7 @@ export default function CreateGigPage() {
           disabled={loading}
           className="w-full py-7 text-lg bg-yellow-600 hover:bg-yellow-700"
         >
-          {loading ? "Publicando..." : "Publicar Gig"}
+          {loading ? "Publicando..." : "Publicar Gig Ahora"}
         </Button>
       </form>
     </div>

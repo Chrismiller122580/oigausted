@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 interface Gig {
   id: string
@@ -8,15 +9,35 @@ interface Gig {
   description: string
   price: number
   category: string
+  deliveryDays: number
 }
 
 export default function GigsPage() {
   const [gigs, setGigs] = useState<Gig[]>([])
+  const [selectedGig, setSelectedGig] = useState<Gig | null>(null)
+  const [showModal, setShowModal] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState("")
 
   useEffect(() => {
     const saved = localStorage.getItem("oigausted-gigs")
     if (saved) setGigs(JSON.parse(saved))
   }, [])
+
+  const openBuyModal = (gig: Gig) => {
+    setSelectedGig(gig)
+    setShowModal(true)
+    setPaymentMethod("")
+  }
+
+  const handleBuy = () => {
+    if (!paymentMethod) {
+      alert("Por favor selecciona un método de pago")
+      return
+    }
+    alert(`✅ ¡Compra simulada exitosamente con ${paymentMethod}!\n\nGracias por comprar "${selectedGig?.title}". En producción conectaríamos con Wompi.`)
+    setShowModal(false)
+    setSelectedGig(null)
+  }
 
   return (
     <div className="container mx-auto py-12 px-6">
@@ -33,25 +54,91 @@ export default function GigsPage() {
       {gigs.length === 0 ? (
         <div className="text-center py-20 border-2 border-dashed rounded-3xl border-gray-300 bg-gray-50">
           <p className="text-6xl mb-6">🌴</p>
-          <p className="text-2xl text-gray-500 mb-2">Aún no hay gigs</p>
-          <p className="text-gray-400">¡Publica el primero!</p>
+          <p className="text-2xl text-gray-500">Aún no hay gigs publicados</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {gigs.map((gig) => (
-            <div key={gig.id} className="bg-white border rounded-2xl p-6 hover:shadow-lg">
-              <h3 className="font-semibold text-xl mb-3 line-clamp-2">{gig.title}</h3>
-              <p className="text-gray-600 text-sm mb-6 line-clamp-4">{gig.description}</p>
-              <div className="flex justify-between items-center pt-4 border-t">
-                <span className="text-3xl font-bold text-yellow-600">
+            <div key={gig.id} className="bg-white border rounded-2xl p-6 hover:shadow-lg transition-all">
+              <h3 className="font-semibold text-xl mb-3">{gig.title}</h3>
+              <p className="text-gray-600 text-sm mb-4 line-clamp-4">{gig.description}</p>
+              
+              <div className="flex justify-between text-sm text-gray-500 mb-6">
+                <span>Entrega en {gig.deliveryDays} días</span>
+                <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">{gig.category}</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="text-3xl font-bold text-yellow-600">
                   ${gig.price.toLocaleString("es-CO")}
-                </span>
-                <span className="text-xs bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">
-                  {gig.category}
-                </span>
+                </div>
+                <button 
+                  onClick={() => openBuyModal(gig)}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium"
+                >
+                  Comprar Ahora
+                </button>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Nice Buy Modal */}
+      {showModal && selectedGig && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-8">
+              <h2 className="text-2xl font-bold">Confirmar Compra</h2>
+              <p className="mt-2 opacity-90">{selectedGig.title}</p>
+            </div>
+
+            <div className="p-8">
+              <div className="mb-8">
+                <p className="text-4xl font-bold text-yellow-600">
+                  ${selectedGig.price.toLocaleString("es-CO")}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">Entrega en {selectedGig.deliveryDays} días</p>
+              </div>
+
+              <div className="space-y-3 mb-10">
+                {["Tarjeta de Crédito / Débito", "PSE (Transferencia Bancaria)", "Nequi", "Daviplata"].map((method) => (
+                  <button
+                    key={method}
+                    onClick={() => setPaymentMethod(method)}
+                    className={`w-full text-left px-6 py-4 rounded-2xl border-2 transition-all text-sm font-medium ${
+                      paymentMethod === method 
+                        ? 'border-yellow-600 bg-yellow-50 text-yellow-700' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {method}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex gap-4">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 py-6"
+                  onClick={() => {
+                    setShowModal(false)
+                    setSelectedGig(null)
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={handleBuy}
+                  disabled={!paymentMethod}
+                  className="flex-1 py-6 bg-yellow-600 hover:bg-yellow-700"
+                >
+                  Confirmar Compra
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
