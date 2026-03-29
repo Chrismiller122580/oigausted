@@ -1,7 +1,5 @@
-import { defineConfig } from 'prisma/config'
+import { defineConfig } from '@prisma/config'
 
 export default defineConfig({
-  db: {
-    url: 'file:./dev.db',
-  },
+  // For Prisma 7, the database URL is typically handled via .env
 })
