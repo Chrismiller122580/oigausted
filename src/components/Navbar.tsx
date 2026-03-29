@@ -13,12 +13,10 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between">
-        {/* Logo */}
         <Link href="/" className="flex items-center space-x-2 font-bold text-2xl text-yellow-600">
           OigaUsted
         </Link>
 
-        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
           <Link href="/gigs" className="hover:text-yellow-600 transition-colors">Explorar Gigs</Link>
           <Link href="/create-gig" className="hover:text-yellow-600 transition-colors">Publicar Gig</Link>
@@ -26,7 +24,6 @@ export function Navbar() {
           <Link href="/admin/earnings" className="hover:text-yellow-600 transition-colors">Ganancias</Link>
         </nav>
 
-        {/* Right side buttons */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" asChild>
             <Link href="/login">Iniciar Sesión</Link>
@@ -35,7 +32,6 @@ export function Navbar() {
             <Link href="/login">Registrarse</Link>
           </Button>
 
-          {/* Mobile Menu Button */}
           <Button 
             variant="ghost" 
             size="icon" 
@@ -47,7 +43,6 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden border-t bg-white">
           <div className="container py-6 flex flex-col gap-6 text-lg">
