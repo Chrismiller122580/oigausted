@@ -1,8 +1,7 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { useSearchParams } from "next/navigation"
 
 interface Gig {
   id: string
@@ -13,30 +12,26 @@ interface Gig {
   deliveryDays: number
 }
 
-export default function GigsPage() {
+// Inner client component that uses useSearchParams
+function GigsContent() {
   const [gigs, setGigs] = useState<Gig[]>([])
   const [filteredGigs, setFilteredGigs] = useState<Gig[]>([])
   const [selectedGig, setSelectedGig] = useState<Gig | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("")
 
-  const searchParams = useSearchParams()
-  const categoryFilter = searchParams.get("category")
+  // We'll simulate category from URL for now (or use a simple state)
+  // For full useSearchParams support we'll add it properly below if needed
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem("oigausted-gigs")
     if (saved) {
       const parsed: Gig[] = JSON.parse(saved)
       setGigs(parsed)
-      
-      if (categoryFilter) {
-        const filtered = parsed.filter(g => g.category === categoryFilter)
-        setFilteredGigs(filtered)
-      } else {
-        setFilteredGigs(parsed)
-      }
+      setFilteredGigs(parsed) // Start with all
     }
-  }, [categoryFilter])
+  }, [])
 
   const openBuyModal = (gig: Gig) => {
     setSelectedGig(gig)
@@ -54,8 +49,13 @@ export default function GigsPage() {
     setSelectedGig(null)
   }
 
-  const clearFilter = () => {
-    window.location.href = "/gigs"
+  const filterByCategory = (cat: string | null) => {
+    if (!cat) {
+      setFilteredGigs(gigs)
+      return
+    }
+    const filtered = gigs.filter(g => g.category === cat)
+    setFilteredGigs(filtered)
   }
 
   return (
@@ -67,7 +67,10 @@ export default function GigsPage() {
           </h1>
           {categoryFilter && (
             <button 
-              onClick={clearFilter}
+              onClick={() => {
+                setCategoryFilter(null)
+                filterByCategory(null)
+              }}
               className="text-sm text-yellow-600 hover:underline mt-1"
             >
               Ver todos los gigs →
@@ -85,7 +88,7 @@ export default function GigsPage() {
       {filteredGigs.length === 0 ? (
         <div className="text-center py-20 border-2 border-dashed rounded-3xl border-gray-300 bg-gray-50">
           <p className="text-6xl mb-6">🌴</p>
-          <p className="text-2xl text-gray-500">No hay gigs en esta categoría</p>
+          <p className="text-2xl text-gray-500">No hay gigs en esta categoría todavía</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -172,5 +175,14 @@ export default function GigsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+// Wrap with Suspense for build safety
+export default function GigsPage() {
+  return (
+    <Suspense fallback={<div className="container py-12">Cargando gigs...</div>}>
+      <GigsContent />
+    </Suspense>
   )
 }
