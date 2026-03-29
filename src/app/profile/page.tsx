@@ -1,35 +1,159 @@
 "use client"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
+interface Gig {
+  id: string
+  title: string
+  price: number
+  category: string
+}
+
+interface Order {
+  id: string
+  gigTitle: string
+  price: number
+  status: string
+  createdAt: string
+}
+
 export default function ProfilePage() {
+  const [myGigs, setMyGigs] = useState<Gig[]>([])
+  const [myOrders, setMyOrders] = useState<Order[]>([])
+  const [stats, setStats] = useState({
+    gigsPublished: 0,
+    ordersBought: 0,
+    totalSpent: 0
+  })
+
+  useEffect(() => {
+    // Load My Gigs
+    const savedGigsStr = localStorage.getItem("oigausted-gigs")
+    let gigs: Gig[] = []
+    if (savedGigsStr) {
+      gigs = JSON.parse(savedGigsStr)
+      setMyGigs(gigs)
+    }
+
+    // Load My Orders
+    const savedOrdersStr = localStorage.getItem("oigausted-orders")
+    let orders: Order[] = []
+    if (savedOrdersStr) {
+      orders = JSON.parse(savedOrdersStr)
+      setMyOrders(orders)
+    }
+
+    // Calculate stats
+    const totalSpent = orders.reduce((sum, order) => sum + order.price, 0)
+
+    setStats({
+      gigsPublished: gigs.length,
+      ordersBought: orders.length,
+      totalSpent
+    })
+  }, [])
+
   return (
-    <div className="container mx-auto py-12 px-6 max-w-2xl">
-      <div className="text-center mb-12">
-        <div className="w-24 h-24 bg-yellow-600 text-white rounded-full mx-auto flex items-center justify-center text-4xl mb-4">
+    <div className="container mx-auto py-12 px-6 max-w-5xl">
+      <div className="flex flex-col md:flex-row gap-8 items-start mb-12">
+        <div className="w-28 h-28 bg-gradient-to-br from-yellow-500 to-orange-500 text-white rounded-3xl flex items-center justify-center text-6xl flex-shrink-0">
           👤
         </div>
-        <h1 className="text-4xl font-bold">Mi Perfil</h1>
-        <p className="text-gray-600 mt-2">Demo User • Bucaramanga</p>
-      </div>
-
-      <div className="grid gap-6">
-        <div className="bg-white border rounded-3xl p-8">
-          <h3 className="font-semibold text-lg mb-6">Acciones Rápidas</h3>
-          <div className="space-y-3">
-            <Button asChild className="w-full justify-start" variant="outline">
-              <Link href="/create-gig">Publicar Nuevo Gig</Link>
-            </Button>
-            <Button asChild className="w-full justify-start" variant="outline">
-              <Link href="/gigs">Ver Mis Gigs Publicados</Link>
-            </Button>
+        <div>
+          <h1 className="text-4xl font-bold">Mi Perfil</h1>
+          <p className="text-gray-600 mt-2">Chris Miller • Bucaramanga, Colombia</p>
+          
+          <div className="flex gap-8 mt-10">
+            <div>
+              <p className="text-4xl font-bold text-yellow-600">{stats.gigsPublished}</p>
+              <p className="text-sm text-gray-500">Gigs Publicados</p>
+            </div>
+            <div>
+              <p className="text-4xl font-bold text-yellow-600">{stats.ordersBought}</p>
+              <p className="text-sm text-gray-500">Órdenes Compradas</p>
+            </div>
+            <div>
+              <p className="text-4xl font-bold text-yellow-600">
+                ${stats.totalSpent.toLocaleString("es-CO")}
+              </p>
+              <p className="text-sm text-gray-500">Total Gastado</p>
+            </div>
           </div>
         </div>
+      </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* My Gigs */}
         <div className="bg-white border rounded-3xl p-8">
-          <h3 className="font-semibold text-lg mb-4">Mis Compras</h3>
-          <p className="text-gray-500">Aún no tienes compras. ¡Explora gigs!</p>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold">Mis Gigs Publicados</h2>
+            <Link href="/create-gig">
+              <Button>+ Nuevo Gig</Button>
+            </Link>
+          </div>
+
+          {myGigs.length === 0 ? (
+            <p className="text-gray-500 py-12 text-center">Aún no has publicado ningún gig.</p>
+          ) : (
+            <div className="space-y-4">
+              {myGigs.map((gig) => (
+                <div key={gig.id} className="border rounded-2xl p-5 flex justify-between items-center hover:bg-gray-50">
+                  <div>
+                    <h3 className="font-medium">{gig.title}</h3>
+                    <p className="text-sm text-gray-500">{gig.category}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-yellow-600">${gig.price.toLocaleString("es-CO")}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* My Orders */}
+        <div className="bg-white border rounded-3xl p-8">
+          <h2 className="text-2xl font-semibold mb-6">Mis Órdenes</h2>
+
+          {myOrders.length === 0 ? (
+            <p className="text-gray-500 py-12 text-center">Aún no has comprado ningún gig.</p>
+          ) : (
+            <div className="space-y-4">
+              {myOrders.map((order) => (
+                <Link 
+                  key={order.id} 
+                  href={`/orders/${order.id}`}
+                  className="block border rounded-2xl p-5 hover:shadow-md transition-all hover:border-yellow-300"
+                >
+                  <div className="flex justify-between">
+                    <div>
+                      <h3 className="font-medium">{order.gigTitle}</h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {new Date(order.createdAt).toLocaleDateString("es-CO")}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-yellow-600">${order.price.toLocaleString("es-CO")}</p>
+                      <span className={`inline-block mt-2 px-4 py-1 text-xs rounded-full ${
+                        order.status === "Completed" ? "bg-green-100 text-green-700" : 
+                        order.status === "In Progress" ? "bg-blue-100 text-blue-700" : "bg-yellow-100 text-yellow-700"
+                      }`}>
+                        {order.status}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-12 text-center">
+        <Button variant="outline" asChild>
+          <Link href="/gigs">Explorar más Gigs</Link>
+        </Button>
       </div>
     </div>
   )
