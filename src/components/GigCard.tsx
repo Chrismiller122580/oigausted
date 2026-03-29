@@ -46,7 +46,7 @@ export function GigCard({ gig }: { gig: GigProps }) {
       const data = await res.json()
 
       if (data.success) {
-        alert(`✅ Pago exitoso con ${method.toUpperCase()}!\nPlataforma ganó $${data.companyEarnings.toLocaleString("es-CO")}`)
+        alert(`✅ Pago exitoso con ${method.toUpperCase()}!`)
         setShowModal(false)
       } else {
         alert("Error al procesar el pago")
@@ -106,7 +106,6 @@ export function GigCard({ gig }: { gig: GigProps }) {
         </CardFooter>
       </Card>
 
-      {/* Simple Confirmation Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden">
