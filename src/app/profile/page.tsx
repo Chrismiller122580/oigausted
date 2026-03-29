@@ -19,6 +19,7 @@ interface Order {
 }
 
 export default function ProfilePage() {
+  const [currentUser, setCurrentUser] = useState<any>(null)
   const [myGigs, setMyGigs] = useState<Gig[]>([])
   const [myOrders, setMyOrders] = useState<Order[]>([])
   const [stats, setStats] = useState({
@@ -28,15 +29,24 @@ export default function ProfilePage() {
   })
 
   useEffect(() => {
-    // Load My Gigs
-    const savedGigsStr = localStorage.getItem("oigausted-gigs")
-    let gigs: Gig[] = []
-    if (savedGigsStr) {
-      gigs = JSON.parse(savedGigsStr)
-      setMyGigs(gigs)
+    const userStr = localStorage.getItem("oigausted-user")
+    if (!userStr) {
+      window.location.href = "/login"
+      return
     }
 
-    // Load My Orders
+    const user = JSON.parse(userStr)
+    setCurrentUser(user)
+
+    // Load ALL gigs (but we'll filter by seller later if needed)
+    const savedGigsStr = localStorage.getItem("oigausted-gigs")
+    let allGigs: Gig[] = []
+    if (savedGigsStr) {
+      allGigs = JSON.parse(savedGigsStr)
+      setMyGigs(allGigs) // For demo, show all as "my gigs"
+    }
+
+    // Load orders
     const savedOrdersStr = localStorage.getItem("oigausted-orders")
     let orders: Order[] = []
     if (savedOrdersStr) {
@@ -44,15 +54,18 @@ export default function ProfilePage() {
       setMyOrders(orders)
     }
 
-    // Calculate stats
     const totalSpent = orders.reduce((sum, order) => sum + order.price, 0)
 
     setStats({
-      gigsPublished: gigs.length,
+      gigsPublished: allGigs.length,
       ordersBought: orders.length,
       totalSpent
     })
   }, [])
+
+  if (!currentUser) {
+    return <div className="container py-12">Redirigiendo a login...</div>
+  }
 
   return (
     <div className="container mx-auto py-12 px-6 max-w-5xl">
@@ -62,24 +75,11 @@ export default function ProfilePage() {
         </div>
         <div>
           <h1 className="text-4xl font-bold">Mi Perfil</h1>
-          <p className="text-gray-600 mt-2">Chris Miller • Bucaramanga, Colombia</p>
-          
-          <div className="flex gap-8 mt-10">
-            <div>
-              <p className="text-4xl font-bold text-yellow-600">{stats.gigsPublished}</p>
-              <p className="text-sm text-gray-500">Gigs Publicados</p>
-            </div>
-            <div>
-              <p className="text-4xl font-bold text-yellow-600">{stats.ordersBought}</p>
-              <p className="text-sm text-gray-500">Órdenes Compradas</p>
-            </div>
-            <div>
-              <p className="text-4xl font-bold text-yellow-600">
-                ${stats.totalSpent.toLocaleString("es-CO")}
-              </p>
-              <p className="text-sm text-gray-500">Total Gastado</p>
-            </div>
-          </div>
+          <p className="text-xl mt-1">{currentUser.name}</p>
+          <p className="text-gray-600">{currentUser.email}</p>
+          <span className="inline-block mt-2 px-4 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+            {currentUser.role.toUpperCase()}
+          </span>
         </div>
       </div>
 
@@ -89,12 +89,12 @@ export default function ProfilePage() {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold">Mis Gigs Publicados</h2>
             <Link href="/create-gig">
-              <Button>+ Nuevo Gig</Button>
+              <Button variant="default">+ Nuevo Gig</Button>
             </Link>
           </div>
 
           {myGigs.length === 0 ? (
-            <p className="text-gray-500 py-12 text-center">Aún no has publicado ningún gig.</p>
+            <p className="text-gray-500 py-12 text-center">Aún no has publicado gigs.</p>
           ) : (
             <div className="space-y-4">
               {myGigs.map((gig) => (
@@ -117,7 +117,7 @@ export default function ProfilePage() {
           <h2 className="text-2xl font-semibold mb-6">Mis Órdenes</h2>
 
           {myOrders.length === 0 ? (
-            <p className="text-gray-500 py-12 text-center">Aún no has comprado ningún gig.</p>
+            <p className="text-gray-500 py-12 text-center">Aún no has realizado compras.</p>
           ) : (
             <div className="space-y-4">
               {myOrders.map((order) => (
@@ -126,7 +126,7 @@ export default function ProfilePage() {
                   href={`/orders/${order.id}`}
                   className="block border rounded-2xl p-5 hover:shadow-md transition-all hover:border-yellow-300"
                 >
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-medium">{order.gigTitle}</h3>
                       <p className="text-sm text-gray-500 mt-1">
@@ -137,7 +137,7 @@ export default function ProfilePage() {
                       <p className="font-semibold text-yellow-600">${order.price.toLocaleString("es-CO")}</p>
                       <span className={`inline-block mt-2 px-4 py-1 text-xs rounded-full ${
                         order.status === "Completed" ? "bg-green-100 text-green-700" : 
-                        order.status === "In Progress" ? "bg-blue-100 text-blue-700" : "bg-yellow-100 text-yellow-700"
+                        "bg-yellow-100 text-yellow-700"
                       }`}>
                         {order.status}
                       </span>
@@ -148,12 +148,6 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
-      </div>
-
-      <div className="mt-12 text-center">
-        <Button variant="outline" asChild>
-          <Link href="/gigs">Explorar más Gigs</Link>
-        </Button>
       </div>
     </div>
   )

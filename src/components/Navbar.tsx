@@ -1,15 +1,22 @@
 "use client"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import { Menu, X, LogOut } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Menu, X, LogOut, User } from "lucide-react"
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem("oigausted-user")
+    if (savedUser) setUser(JSON.parse(savedUser))
+  }, [])
 
   const handleLogout = () => {
     if (confirm("¿Cerrar sesión?")) {
-      localStorage.clear()
+      localStorage.removeItem("oigausted-user")
+      setUser(null)
       window.location.reload()
     }
   }
@@ -21,25 +28,38 @@ export function Navbar() {
           OigaUsted
         </Link>
 
-        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
           <Link href="/gigs" className="hover:text-yellow-600 transition-colors">Explorar Gigs</Link>
           <Link href="/create-gig" className="hover:text-yellow-600 transition-colors">Publicar Gig</Link>
           <Link href="/profile" className="hover:text-yellow-600 transition-colors">Mi Perfil</Link>
-          <Link href="/admin/earnings" className="hover:text-yellow-600 transition-colors">Ganancias</Link>
+          {user?.role === "admin" && (
+            <Link href="/admin/earnings" className="hover:text-yellow-600 transition-colors">Ganancias</Link>
+          )}
         </nav>
 
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="hidden md:flex items-center gap-2">
-            <LogOut size={16} />
-            Salir
-          </Button>
+          {user ? (
+            <>
+              <div className="hidden md:flex items-center gap-2 text-sm">
+                <User size={16} />
+                <span>{user.name}</span>
+                <span className="text-xs bg-yellow-100 px-2 py-1 rounded-full">({user.role})</span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="flex items-center gap-2">
+                <LogOut size={16} />
+                Salir
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/login">Iniciar Sesión</Link>
+            </Button>
+          )}
 
           <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700" asChild>
             <Link href="/create-gig">Publicar Gig</Link>
           </Button>
 
-          {/* Mobile menu button */}
           <Button
             variant="ghost"
             size="icon"
@@ -58,8 +78,10 @@ export function Navbar() {
             <Link href="/gigs" onClick={() => setIsMenuOpen(false)}>Explorar Gigs</Link>
             <Link href="/create-gig" onClick={() => setIsMenuOpen(false)}>Publicar Gig</Link>
             <Link href="/profile" onClick={() => setIsMenuOpen(false)}>Mi Perfil</Link>
-            <Link href="/admin/earnings" onClick={() => setIsMenuOpen(false)}>Ganancias</Link>
-            <button onClick={handleLogout} className="text-left text-red-600">Cerrar Sesión</button>
+            {user?.role === "admin" && (
+              <Link href="/admin/earnings" onClick={() => setIsMenuOpen(false)}>Ganancias</Link>
+            )}
+            {user && <button onClick={handleLogout} className="text-left text-red-600">Cerrar Sesión</button>}
           </div>
         </div>
       )}

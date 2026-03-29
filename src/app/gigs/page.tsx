@@ -12,31 +12,35 @@ interface Gig {
   deliveryDays: number
 }
 
-interface Order {
-  id: string
-  gigId: string
-  gigTitle: string
-  price: number
-  status: "Pending" | "In Progress" | "Review" | "Completed"
-  buyer: string
-  seller: string
-  createdAt: string
-  messages: { from: string; text: string; time: string }[]
-  files: { name: string; url: string }[]
-  addOns: { name: string; price: number }[]
-  progress: number // 0-100
-}
-
 export default function GigsPage() {
   const [gigs, setGigs] = useState<Gig[]>([])
+  const [filteredGigs, setFilteredGigs] = useState<Gig[]>([])
   const [selectedGig, setSelectedGig] = useState<Gig | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("")
+  const [currentUser, setCurrentUser] = useState<any>(null)
 
   useEffect(() => {
+    const userStr = localStorage.getItem("oigausted-user")
+    if (userStr) setCurrentUser(JSON.parse(userStr))
+
     const saved = localStorage.getItem("oigausted-gigs")
-    if (saved) setGigs(JSON.parse(saved))
+    if (saved) {
+      const parsed: Gig[] = JSON.parse(saved)
+      setGigs(parsed)
+      setFilteredGigs(parsed)
+    }
   }, [])
+
+  const deleteGig = (id: string) => {
+    if (!confirm("¿Eliminar este gig permanentemente?")) return
+
+    const updatedGigs = gigs.filter(g => g.id !== id)
+    localStorage.setItem("oigausted-gigs", JSON.stringify(updatedGigs))
+    setGigs(updatedGigs)
+    setFilteredGigs(updatedGigs)
+    alert("Gig eliminado correctamente")
+  }
 
   const openBuyModal = (gig: Gig) => {
     setSelectedGig(gig)
@@ -47,14 +51,13 @@ export default function GigsPage() {
   const handleBuy = () => {
     if (!paymentMethod || !selectedGig) return
 
-    // Create new Order
-    const newOrder: Order = {
+    const newOrder = {
       id: Date.now().toString(),
       gigId: selectedGig.id,
       gigTitle: selectedGig.title,
       price: selectedGig.price,
       status: "Pending",
-      buyer: "Tú (Comprador)",
+      buyer: currentUser?.name || "Comprador",
       seller: "Demo Vendedor",
       createdAt: new Date().toISOString(),
       messages: [],
@@ -63,16 +66,12 @@ export default function GigsPage() {
       progress: 25
     }
 
-    // Save order
-    const existingOrders: Order[] = JSON.parse(localStorage.getItem("oigausted-orders") || "[]")
+    const existingOrders = JSON.parse(localStorage.getItem("oigausted-orders") || "[]")
     localStorage.setItem("oigausted-orders", JSON.stringify([newOrder, ...existingOrders]))
 
-    alert(`✅ ¡Orden creada exitosamente!\nMétodo: ${paymentMethod}\nAhora puedes ver el progreso en /orders`)
-
+    alert(`✅ Orden creada con ${paymentMethod}`)
     setShowModal(false)
     setSelectedGig(null)
-
-    // Redirect to the new order detail
     window.location.href = `/orders/${newOrder.id}`
   }
 
@@ -85,21 +84,32 @@ export default function GigsPage() {
         </Link>
       </div>
 
-      {gigs.length === 0 ? (
+      {filteredGigs.length === 0 ? (
         <div className="text-center py-20 border-2 border-dashed rounded-3xl border-gray-300 bg-gray-50">
           <p className="text-6xl mb-6">🌴</p>
           <p className="text-2xl text-gray-500">Aún no hay gigs publicados</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {gigs.map((gig) => (
-            <div key={gig.id} className="bg-white border rounded-2xl p-6 hover:shadow-lg transition-all">
+          {filteredGigs.map((gig) => (
+            <div key={gig.id} className="bg-white border rounded-2xl p-6 hover:shadow-lg transition-all relative">
+              {currentUser?.role === "admin" && (
+                <button
+                  onClick={() => deleteGig(gig.id)}
+                  className="absolute top-4 right-4 text-red-500 hover:text-red-700 text-xl"
+                >
+                  ✕
+                </button>
+              )}
+
               <h3 className="font-semibold text-xl mb-3">{gig.title}</h3>
               <p className="text-gray-600 text-sm mb-4 line-clamp-4">{gig.description}</p>
+              
               <div className="flex justify-between text-sm text-gray-500 mb-6">
                 <span>Entrega en {gig.deliveryDays} días</span>
                 <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">{gig.category}</span>
               </div>
+
               <div className="flex items-center justify-between">
                 <div className="text-3xl font-bold text-yellow-600">
                   ${gig.price.toLocaleString("es-CO")}
@@ -133,7 +143,7 @@ export default function GigsPage() {
               </div>
 
               <div className="space-y-3 mb-10">
-                {["Tarjeta de Crédito / Débito", "PSE", "Nequi", "Daviplata"].map((method) => (
+                {["Tarjeta de Crédito / Débito", "PSE (Transferencia Bancaria)", "Nequi", "Daviplata"].map((method) => (
                   <button
                     key={method}
                     onClick={() => setPaymentMethod(method)}
