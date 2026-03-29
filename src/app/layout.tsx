@@ -5,8 +5,8 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "OigaUsted - Gigs Colombia",
-  description: "La plataforma de gigs y servicios locales más confiable de Colombia",
+  title: "OigaUsted",
+  description: "Gigs Colombia",
 }
 
 export default function RootLayout({
@@ -17,13 +17,12 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={inter.className}>
-        <nav className="border-b bg-white p-4">
-          <div className="container flex justify-between items-center">
-            <a href="/" className="font-bold text-2xl text-yellow-600">OigaUsted</a>
-            <div className="flex gap-6">
+        <nav className="bg-white border-b p-4">
+          <div className="max-w-6xl mx-auto flex justify-between items-center">
+            <a href="/" className="text-2xl font-bold text-yellow-600">OigaUsted</a>
+            <div className="flex gap-6 text-sm">
               <a href="/gigs" className="hover:text-yellow-600">Gigs</a>
               <a href="/create-gig" className="hover:text-yellow-600">Publicar</a>
-              <a href="/profile" className="hover:text-yellow-600">Perfil</a>
             </div>
           </div>
         </nav>
