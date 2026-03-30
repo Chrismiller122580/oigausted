@@ -55,6 +55,13 @@ export default function OrderDetailPage() {
     setNewMessage("")
   }
 
+  const markAsReceived = () => {
+    if (!order) return
+    const updated = { ...order, status: "Completed", progress: 100 }
+    saveOrder(updated)
+    showToast("¡Pedido marcado como recibido! Gracias por tu compra.", "success")
+  }
+
   const updateProgress = (newProgress: number) => {
     if (!order) return
     const updated = { 
@@ -115,12 +122,17 @@ export default function OrderDetailPage() {
             </Button>
           ))}
         </div>
+        {order.status !== "Completed" && (
+          <Button onClick={markAsReceived} className="mt-6 w-full bg-green-600 hover:bg-green-700">
+            Marcar como Recibido
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Chat - Fixed alignment */}
+        {/* Chat */}
         <div className="lg:col-span-7 bg-white border rounded-3xl p-8">
-          <h3 className="font-semibold mb-6">Chat con el vendedor</h3>
+          <h3 className="font-semibold mb-6">Chat entre Comprador y Vendedor</h3>
           <div className="h-96 overflow-y-auto border rounded-2xl p-6 space-y-6 bg-gray-50 mb-6">
             {order.messages.length === 0 ? (
               <p className="text-center text-gray-400 py-12">El chat está vacío. Envía el primer mensaje.</p>
@@ -132,8 +144,9 @@ export default function OrderDetailPage() {
                       ? "bg-yellow-600 text-white" 
                       : "bg-white border"
                   }`}>
-                    <p className="text-xs opacity-70 mb-1">{msg.from} • {msg.time}</p>
+                    <p className="text-xs opacity-70 mb-1 font-medium">{msg.from}</p>
                     <p className="text-[15px]">{msg.text}</p>
+                    <p className="text-[10px] opacity-60 mt-1">{msg.time}</p>
                   </div>
                 </div>
               ))
@@ -147,7 +160,7 @@ export default function OrderDetailPage() {
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
               className="flex-1 border rounded-3xl px-6 py-4 focus:outline-none focus:border-yellow-600 text-[15px]"
-              placeholder="Escribe un mensaje al vendedor..."
+              placeholder="Escribe un mensaje..."
             />
             <Button onClick={sendMessage} className="px-8">Enviar</Button>
           </div>

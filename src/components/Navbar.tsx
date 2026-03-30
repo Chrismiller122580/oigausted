@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
-import { Menu, X, LogOut, User } from "lucide-react"
+import { Menu, X, LogOut, User, Repeat } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export function Navbar() {
@@ -21,8 +21,17 @@ export function Navbar() {
     if (confirm("¿Cerrar sesión?")) {
       localStorage.removeItem("oigausted-user")
       setUser(null)
-      router.push("/login")   // ← Redirect to login page
+      router.push("/login")
     }
+  }
+
+  const switchRole = () => {
+    if (!user) return
+    const newRole = user.role === "buyer" ? "seller" : user.role === "seller" ? "buyer" : user.role
+    const updatedUser = { ...user, role: newRole }
+    localStorage.setItem("oigausted-user", JSON.stringify(updatedUser))
+    setUser(updatedUser)
+    window.location.reload()
   }
 
   return (
@@ -44,11 +53,23 @@ export function Navbar() {
 
         <div className="flex items-center gap-3">
           {user ? (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <div className="hidden md:flex items-center gap-2 text-sm">
                 <User size={16} />
                 <span>{user.name}</span>
+                <span className="text-xs bg-yellow-100 px-2 py-1 rounded-full">({user.role})</span>
               </div>
+
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={switchRole}
+                className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
+              >
+                <Repeat size={16} />
+                Cambiar Rol
+              </Button>
+
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -80,7 +101,6 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden border-t bg-white">
           <div className="container mx-auto px-6 py-6 flex flex-col gap-6 text-lg">
@@ -90,12 +110,14 @@ export function Navbar() {
             {user && <Link href="/seller" onClick={() => setIsMenuOpen(false)}>Vendedor</Link>}
             {user?.role === "admin" && <Link href="/admin/earnings" onClick={() => setIsMenuOpen(false)}>Ganancias</Link>}
             {user && (
-              <button 
-                onClick={handleLogout} 
-                className="text-left text-red-600 flex items-center gap-2"
-              >
-                <LogOut size={20} /> Cerrar Sesión
-              </button>
+              <>
+                <button onClick={switchRole} className="text-left text-blue-600 flex items-center gap-2">
+                  <Repeat size={20} /> Cambiar Rol
+                </button>
+                <button onClick={handleLogout} className="text-left text-red-600 flex items-center gap-2">
+                  <LogOut size={20} /> Cerrar Sesión
+                </button>
+              </>
             )}
           </div>
         </div>
