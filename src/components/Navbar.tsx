@@ -2,72 +2,29 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Menu, X, LogOut, User, Repeat, HelpCircle } from "lucide-react"
+import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [user, setUser] = useState<any>(null)
+  const { data: session, status } = useSession()
   const router = useRouter()
 
-  // Load user state reliably
-  const loadUser = () => {
-    const saved = localStorage.getItem("oigausted-user")
-    if (saved) {
-      try {
-        setUser(JSON.parse(saved))
-      } catch (e) {
-        setUser(null)
-      }
-    } else {
-      setUser(null)
-    }
-  }
-
-  useEffect(() => {
-    loadUser()
-
-    // Listen for storage changes (role switches, logout from other tabs)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "oigausted-user") {
-        loadUser()
-      }
-    }
-
-    window.addEventListener("storage", handleStorageChange)
-    // Also poll every second as fallback for same-tab changes
-    const interval = setInterval(loadUser, 1000)
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange)
-      clearInterval(interval)
-    }
-  }, [])
+  const user = session?.user
 
   const handleLogout = () => {
     if (confirm("¿Cerrar sesión?")) {
-      localStorage.removeItem("oigausted-user")
-      setUser(null)
-      router.push("/login")
+      signOut({ callbackUrl: "/login" })
     }
   }
 
-  const switchRole = () => {
-    if (!user) return
-    const newRole = user.role === "buyer" ? "seller" : "buyer"
-    const updated = { ...user, role: newRole }
-    localStorage.setItem("oigausted-user", JSON.stringify(updated))
-    setUser(updated)
-    window.location.reload()
-  }
-
-  const isLoggedIn = !!user
+  const isLoggedIn = status === "authenticated"
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md">
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
         <Link href="/" className="flex items-center gap-3">
           <Image 
             src="/logo.png" 
@@ -102,7 +59,7 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-3">
-          {isLoggedIn ? (
+          {isLoggedIn && user ? (
             <div className="flex items-center gap-4">
               <div className="hidden md:flex items-center gap-2 text-sm">
                 <User size={16} />
@@ -111,12 +68,7 @@ export function Navbar() {
               </div>
 
               {user.role !== "admin" && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={switchRole}
-                  className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
-                >
+                <Button variant="ghost" size="sm" className="flex items-center gap-2 text-blue-600">
                   <Repeat size={16} />
                   Cambiar Rol
                 </Button>

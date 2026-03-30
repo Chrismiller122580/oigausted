@@ -1,68 +1,63 @@
 "use client"
-import { useState } from "react"
+import { signIn, useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ToastProvider"
 
 export default function LoginPage() {
+  const { data: session, status } = useSession()
   const router = useRouter()
   const { showToast } = useToast()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const role = (session.user as any).role || "buyer"
+      if (role === "admin") router.push("/admin")
+      else if (role === "seller") router.push("/seller")
+      else router.push("/profile")
+    }
+  }, [session, status, router])
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    setLoading(true)
 
-    const demoUsers = [
-      { email: "chris@demo.com", password: "123", name: "Chris Miller", role: "admin" },
-      { email: "buyer@demo.com", password: "123", name: "Juan Comprador", role: "buyer" },
-      { email: "seller@demo.com", password: "123", name: "Maria Vendedora", role: "seller" },
-    ]
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    })
 
-    const user = demoUsers.find(u => u.email === email && u.password === password)
-
-    if (user) {
-      const userData = {
-        id: Date.now().toString(),
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        isLoggedIn: true
-      }
-      localStorage.setItem("oigausted-user", JSON.stringify(userData))
-
-      showToast(`✅ Bienvenido ${user.name} (${user.role})`, "success")
-
-      // Redirect admin to admin dashboard, others to home
-      if (user.role === "admin") {
-        router.push("/admin")
-      } else {
-        router.push("/")
-      }
+    if (result?.ok) {
+      showToast("Inicio de sesión exitoso", "success")
     } else {
-      showToast("❌ Credenciales incorrectas. Prueba chris@demo.com / 123", "error")
+      showToast("Email o contraseña incorrectos", "error")
     }
 
-    setIsLoading(false)
+    setLoading(false)
+  }
+
+  if (status === "loading") {
+    return <div className="min-h-screen flex items-center justify-center">Cargando...</div>
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white border rounded-3xl p-10 w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold">Iniciar Sesión</h1>
-          <p className="text-gray-600 mt-2">Accede a tu cuenta de OigaUsted</p>
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-10">
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-yellow-600">OigaUsted</h1>
+          <p className="text-gray-600 mt-3">Inicia sesión para continuar</p>
         </div>
-        
+
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <Label htmlFor="email">Correo electrónico</Label>
+            <label className="block text-sm font-medium mb-2">Email</label>
             <Input
-              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -72,9 +67,8 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <Label htmlFor="password">Contraseña</Label>
+            <label className="block text-sm font-medium mb-2">Contraseña</label>
             <Input
-              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -83,13 +77,17 @@ export default function LoginPage() {
             />
           </div>
 
-          <Button type="submit" className="w-full py-6 text-lg" disabled={isLoading}>
-            {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
+          <Button 
+            type="submit" 
+            className="w-full py-6 text-lg" 
+            disabled={loading}
+          >
+            {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
           </Button>
         </form>
 
         <div className="mt-8 text-center text-sm text-gray-500">
-          Usuarios de prueba:<br />
+          Demo accounts:<br />
           chris@demo.com / 123 → Admin<br />
           buyer@demo.com / 123 → Buyer<br />
           seller@demo.com / 123 → Seller

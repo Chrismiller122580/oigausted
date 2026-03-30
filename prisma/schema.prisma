@@ -4,56 +4,40 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  // url removed for Prisma 7 compatibility
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id            String    @id @default(uuid())
+  id            String   @id @default(uuid())
   name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  role          String    @default("buyer")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  accounts      Account[]
-  sessions      Session[]
-  gigs          Gig[]
-}
+  email         String?  @unique
+  role          String   @default("buyer")
 
-model Account {
-  id                 String  @id @default(uuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
-  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(uuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gigs          Gig[]                     // gigs this user sells
+  ordersAsBuyer Order[]  @relation("BuyerOrders")
+  ordersAsSeller Order[] @relation("SellerOrders")
 }
 
 model Gig {
   id          String   @id @default(uuid())
   title       String
-  description String
   price       Float
-  category    String
   sellerId    String
-  seller      User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  seller      User     @relation(fields: [sellerId], references: [id])
+  orders      Order[]   // one gig can have many orders
+}
+
+model Order {
+  id          String   @id @default(uuid())
+  price       Float
+  status      String   @default("Pending")
+
+  buyerId     String
+  sellerId    String
+  gigId       String
+
+  buyer       User     @relation("BuyerOrders", fields: [buyerId], references: [id])
+  seller      User     @relation("SellerOrders", fields: [sellerId], references: [id])
+  gig         Gig      @relation(fields: [gigId], references: [id])
 }
