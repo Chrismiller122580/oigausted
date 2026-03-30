@@ -16,8 +16,6 @@ interface Order {
   gigTitle: string
   price: number
   status: string
-  buyerId?: string
-  sellerId?: string
   createdAt: string
 }
 
@@ -43,33 +41,31 @@ export default function ProfilePage() {
 
     // Load gigs created by this user
     const savedGigsStr = localStorage.getItem("oigausted-gigs")
-    let allGigs: Gig[] = []
+    let userGigs: Gig[] = []
     if (savedGigsStr) {
-      allGigs = JSON.parse(savedGigsStr)
-      // Filter gigs by seller (for demo we use current user as seller)
-      const userGigs = allGigs.filter(g => !g.sellerId || g.sellerId === user.id)
+      const allGigs: Gig[] = JSON.parse(savedGigsStr)
+      userGigs = allGigs.filter(g => g.sellerId === user.id)
       setMyGigs(userGigs)
     }
 
-    // Load orders for this user (as buyer)
+    // Load orders (as buyer)
     const savedOrdersStr = localStorage.getItem("oigausted-orders")
     let orders: Order[] = []
     if (savedOrdersStr) {
       orders = JSON.parse(savedOrdersStr)
-      // For demo, show all orders as "my orders"
       setMyOrders(orders)
     }
 
     const totalSpent = orders.reduce((sum, order) => sum + order.price, 0)
 
     setStats({
-      gigsPublished: myGigs.length,
+      gigsPublished: userGigs.length,
       ordersBought: orders.length,
       totalSpent
     })
   }, [])
 
-  if (!currentUser) return <div className="container py-12">Cargando perfil...</div>
+  if (!currentUser) return <div className="container py-12">Redirigiendo...</div>
 
   return (
     <div className="container mx-auto py-12 px-6 max-w-5xl">
@@ -88,7 +84,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* My Gigs (as seller) */}
+        {/* My Gigs (only own) */}
         <div className="bg-white border rounded-3xl p-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold">Mis Gigs Publicados</h2>
@@ -116,7 +112,7 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* My Orders (as buyer) */}
+        {/* My Orders */}
         <div className="bg-white border rounded-3xl p-8">
           <h2 className="text-2xl font-semibold mb-6">Mis Órdenes</h2>
 

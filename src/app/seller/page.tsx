@@ -27,7 +27,6 @@ export default function SellerDashboard() {
     const user = JSON.parse(userStr)
     setCurrentUser(user)
 
-    // Load gigs created by this user
     const savedGigsStr = localStorage.getItem("oigausted-gigs")
     if (savedGigsStr) {
       const allGigs: Gig[] = JSON.parse(savedGigsStr)
