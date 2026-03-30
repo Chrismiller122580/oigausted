@@ -4,6 +4,24 @@ import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient()
 
+// Extend the default session and JWT types to include role
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string
+      email: string
+      name?: string
+      role: string
+    }
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    role: string
+  }
+}
+
 const handler = NextAuth({
   providers: [
     CredentialsProvider({
@@ -17,7 +35,6 @@ const handler = NextAuth({
           return null
         }
 
-        // Simple demo users (no real password hashing yet)
         const demoUsers = [
           { email: "chris@demo.com", password: "123", name: "Chris Miller", role: "admin" },
           { email: "buyer@demo.com", password: "123", name: "Juan Comprador", role: "buyer" },
@@ -29,11 +46,15 @@ const handler = NextAuth({
         )
 
         if (user) {
-          // Save or update user in database (for future use)
+          // Upsert user in database
           await prisma.user.upsert({
             where: { email: user.email },
             update: { name: user.name, role: user.role },
-            create: { email: user.email, name: user.name, role: user.role }
+            create: { 
+              email: user.email, 
+              name: user.name, 
+              role: user.role 
+            }
           })
 
           return {
@@ -51,7 +72,7 @@ const handler = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role
+        token.role = (user as any).role
       }
       return token
     },
