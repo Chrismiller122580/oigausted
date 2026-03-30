@@ -17,29 +17,36 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero */}
-      <section className="bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 text-white py-24">
-        <div className="container mx-auto px-6 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur px-5 py-2 rounded-full mb-6">
+      <section className="bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 text-white py-24 md:py-32 relative overflow-hidden">
+        <div className="container mx-auto px-6 text-center relative z-10">
+          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur px-5 py-2 rounded-full mb-6 text-sm font-medium">
             🇨🇴 Hecho en Colombia • Para Colombia
           </div>
-          <h1 className="text-6xl md:text-7xl font-bold tracking-tighter mb-6">
+
+          <h1 className="text-6xl md:text-7xl font-bold tracking-tighter leading-tight mb-6">
             ¡Oiga Usted!
           </h1>
-          <p className="text-2xl md:text-3xl max-w-3xl mx-auto mb-10">
-            La plataforma de gigs y servicios locales más confiable de Colombia.
+          
+          <p className="text-xl md:text-2xl text-white/90 max-w-2xl mx-auto mb-10">
+            La plataforma de gigs y servicios locales más confiable de Colombia. 
+            Encuentra talento o vende tus habilidades en un clic.
           </p>
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" className="bg-white text-black hover:bg-white/90 text-lg px-10 py-7">
-              <Link href="/gigs">Explorar Gigs</Link>
+              <Link href="/gigs">Explorar Gigs Ahora</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white/10 text-lg px-10 py-7">
               <Link href="/create-gig">Publicar mi Gig</Link>
             </Button>
           </div>
         </div>
+
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(#ffffff33_1px,transparent_1px)] [background-size:20px_20px]"></div>
       </section>
 
-      {/* Categories - Now Clickable */}
+      {/* Categories */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-6">
           <h2 className="text-3xl font-bold text-center mb-12">Explora por Categoría</h2>

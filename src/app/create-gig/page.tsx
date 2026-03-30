@@ -5,9 +5,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ToastProvider"
 
 export default function CreateGigPage() {
   const router = useRouter()
+  const { showToast } = useToast()
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [form, setForm] = useState({
     title: "",
@@ -26,11 +28,11 @@ export default function CreateGigPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.title || !form.description || !form.price || !form.deliveryDays) {
-      alert("Por favor completa todos los campos")
+      showToast("Por favor completa todos los campos", "error")
       return
     }
     if (!currentUser) {
-      alert("Debes iniciar sesión para publicar un gig")
+      showToast("Debes iniciar sesión para publicar un gig", "error")
       router.push("/login")
       return
     }
@@ -51,11 +53,11 @@ export default function CreateGigPage() {
     const existing = JSON.parse(localStorage.getItem("oigausted-gigs") || "[]")
     localStorage.setItem("oigausted-gigs", JSON.stringify([newGig, ...existing]))
 
-    alert(`✅ ¡Gig "${form.title}" publicado exitosamente!`)
+    showToast(`✅ Gig "${form.title}" publicado exitosamente!`, "success")
 
     setTimeout(() => {
       router.push("/gigs")
-    }, 1000)
+    }, 1200)
   }
 
   return (
