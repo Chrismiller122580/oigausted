@@ -3,6 +3,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
 import { Menu, X, LogOut, User } from "lucide-react"
+import Image from "next/image"
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -26,8 +27,16 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md">
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center space-x-2 font-bold text-2xl text-yellow-600">
-          OigaUsted
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-3">
+          <Image 
+            src="/logo.png" 
+            alt="OigaUsted" 
+            width={140} 
+            height={50} 
+            className="h-10 w-auto"
+            priority
+          />
         </Link>
 
         {/* Desktop Navigation */}
@@ -68,7 +77,6 @@ export function Navbar() {
             <Link href="/create-gig">Publicar Gig</Link>
           </Button>
 
-          {/* Mobile menu button */}
           <Button
             variant="ghost"
             size="icon"

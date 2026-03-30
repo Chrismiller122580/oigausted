@@ -15,6 +15,7 @@ interface Gig {
 export default function GigsPage() {
   const [gigs, setGigs] = useState<Gig[]>([])
   const [filteredGigs, setFilteredGigs] = useState<Gig[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
   const [selectedGig, setSelectedGig] = useState<Gig | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("")
@@ -32,13 +33,27 @@ export default function GigsPage() {
     }
   }, [])
 
+  // Live search + filter
+  useEffect(() => {
+    let result = gigs
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      result = result.filter(gig => 
+        gig.title.toLowerCase().includes(term) || 
+        gig.description.toLowerCase().includes(term)
+      )
+    }
+
+    setFilteredGigs(result)
+  }, [gigs, searchTerm])
+
   const deleteGig = (id: string) => {
     if (!confirm("¿Eliminar este gig permanentemente?")) return
 
     const updatedGigs = gigs.filter(g => g.id !== id)
     localStorage.setItem("oigausted-gigs", JSON.stringify(updatedGigs))
     setGigs(updatedGigs)
-    setFilteredGigs(updatedGigs)
     alert("Gig eliminado correctamente")
   }
 
@@ -77,17 +92,32 @@ export default function GigsPage() {
 
   return (
     <div className="container mx-auto py-12 px-6">
-      <div className="flex justify-between items-center mb-10">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <h1 className="text-4xl font-bold">Gigs en Colombia</h1>
-        <Link href="/create-gig" className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 rounded-full font-medium">
-          + Publicar Gig
-        </Link>
+        
+        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar gigs por título o descripción..."
+              className="w-full border border-gray-300 rounded-full pl-12 py-3 focus:outline-none focus:border-yellow-600"
+            />
+            <span className="absolute left-5 top-3.5 text-gray-400">🔍</span>
+          </div>
+          <Link href="/create-gig" className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 rounded-full font-medium whitespace-nowrap">
+            + Publicar Gig
+          </Link>
+        </div>
       </div>
 
       {filteredGigs.length === 0 ? (
         <div className="text-center py-20 border-2 border-dashed rounded-3xl border-gray-300 bg-gray-50">
           <p className="text-6xl mb-6">🌴</p>
-          <p className="text-2xl text-gray-500">Aún no hay gigs publicados</p>
+          <p className="text-2xl text-gray-500">
+            {searchTerm ? "No se encontraron gigs con ese término" : "Aún no hay gigs publicados"}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
