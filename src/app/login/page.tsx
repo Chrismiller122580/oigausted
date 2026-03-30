@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ToastProvider"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { showToast } = useToast()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -15,7 +17,6 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simple demo users
     const demoUsers = [
       { email: "chris@demo.com", password: "123", name: "Chris Miller", role: "admin" },
       { email: "buyer@demo.com", password: "123", name: "Juan Comprador", role: "buyer" },
@@ -33,19 +34,29 @@ export default function LoginPage() {
         isLoggedIn: true
       }
       localStorage.setItem("oigausted-user", JSON.stringify(userData))
-      alert(`✅ Bienvenido ${user.name} (${user.role})`)
-      router.push("/")
+
+      showToast(`✅ Bienvenido ${user.name} (${user.role})`, "success")
+
+      // Redirect admin to admin dashboard, others to home
+      if (user.role === "admin") {
+        router.push("/admin")
+      } else {
+        router.push("/")
+      }
     } else {
-      alert("❌ Credenciales incorrectas. Prueba: chris@demo.com / 123")
+      showToast("❌ Credenciales incorrectas. Prueba chris@demo.com / 123", "error")
     }
 
     setIsLoading(false)
   }
 
   return (
-    <div className="container mx-auto max-w-md py-20 px-6">
-      <div className="bg-white border rounded-3xl p-10">
-        <h1 className="text-3xl font-bold text-center mb-8">Iniciar Sesión</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="bg-white border rounded-3xl p-10 w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold">Iniciar Sesión</h1>
+          <p className="text-gray-600 mt-2">Accede a tu cuenta de OigaUsted</p>
+        </div>
         
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
@@ -73,15 +84,15 @@ export default function LoginPage() {
           </div>
 
           <Button type="submit" className="w-full py-6 text-lg" disabled={isLoading}>
-            {isLoading ? "Iniciando..." : "Iniciar Sesión"}
+            {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
           </Button>
         </form>
 
         <div className="mt-8 text-center text-sm text-gray-500">
           Usuarios de prueba:<br />
           chris@demo.com / 123 → Admin<br />
-          buyer@demo.com / 123 → Comprador<br />
-          seller@demo.com / 123 → Vendedor
+          buyer@demo.com / 123 → Buyer<br />
+          seller@demo.com / 123 → Seller
         </div>
       </div>
     </div>

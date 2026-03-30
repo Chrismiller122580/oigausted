@@ -10,22 +10,11 @@ export function Navbar() {
   const [user, setUser] = useState<any>(null)
   const router = useRouter()
 
-  // Force refresh user state on mount and when localStorage changes
   useEffect(() => {
-    const loadUser = () => {
-      const savedUser = localStorage.getItem("oigausted-user")
-      if (savedUser) {
-        setUser(JSON.parse(savedUser))
-      } else {
-        setUser(null)
-      }
+    const savedUser = localStorage.getItem("oigausted-user")
+    if (savedUser) {
+      setUser(JSON.parse(savedUser))
     }
-
-    loadUser()
-
-    // Listen for storage changes (for multi-tab support)
-    window.addEventListener("storage", loadUser)
-    return () => window.removeEventListener("storage", loadUser)
   }, [])
 
   const handleLogout = () => {
@@ -42,7 +31,7 @@ export function Navbar() {
     const updatedUser = { ...user, role: newRole }
     localStorage.setItem("oigausted-user", JSON.stringify(updatedUser))
     setUser(updatedUser)
-    window.location.reload() // Force full refresh for consistency
+    window.location.reload()
   }
 
   return (
@@ -53,12 +42,26 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-          <Link href="/gigs" className="hover:text-yellow-600 transition-colors">Explorar Gigs</Link>
-          <Link href="/create-gig" className="hover:text-yellow-600 transition-colors">Publicar Gig</Link>
-          <Link href="/profile" className="hover:text-yellow-600 transition-colors">Mi Perfil</Link>
-          {user && <Link href="/seller" className="hover:text-yellow-600 transition-colors">Vendedor</Link>}
+          {/* Regular user links */}
+          {user?.role !== "admin" && (
+            <>
+              <Link href="/gigs" className="hover:text-yellow-600 transition-colors">Explorar Gigs</Link>
+              <Link href="/create-gig" className="hover:text-yellow-600 transition-colors">Publicar Gig</Link>
+            </>
+          )}
+
+          {/* Admin links */}
           {user?.role === "admin" && (
-            <Link href="/admin/earnings" className="hover:text-yellow-600 transition-colors">Ganancias</Link>
+            <>
+              <Link href="/admin" className="hover:text-yellow-600 transition-colors font-semibold">Dashboard</Link>
+              <Link href="/admin/users" className="hover:text-yellow-600 transition-colors">Usuarios</Link>
+            </>
+          )}
+
+          <Link href="/profile" className="hover:text-yellow-600 transition-colors">Mi Perfil</Link>
+          
+          {user && user.role !== "admin" && (
+            <Link href="/seller" className="hover:text-yellow-600 transition-colors">Vendedor</Link>
           )}
         </nav>
 
@@ -71,15 +74,17 @@ export function Navbar() {
                 <span className="text-xs bg-yellow-100 px-2 py-1 rounded-full">({user.role})</span>
               </div>
 
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={switchRole}
-                className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
-              >
-                <Repeat size={16} />
-                Cambiar Rol
-              </Button>
+              {user.role !== "admin" && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={switchRole}
+                  className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
+                >
+                  <Repeat size={16} />
+                  Cambiar Rol
+                </Button>
+              )}
 
               <Button 
                 variant="ghost" 
@@ -97,9 +102,12 @@ export function Navbar() {
             </Button>
           )}
 
-          <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700" asChild>
-            <Link href="/create-gig">Publicar Gig</Link>
-          </Button>
+          {/* Only show "Publicar Gig" for non-admins */}
+          {user?.role !== "admin" && (
+            <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700" asChild>
+              <Link href="/create-gig">Publicar Gig</Link>
+            </Button>
+          )}
 
           <Button
             variant="ghost"
@@ -115,20 +123,24 @@ export function Navbar() {
       {isMenuOpen && (
         <div className="md:hidden border-t bg-white">
           <div className="container mx-auto px-6 py-6 flex flex-col gap-6 text-lg">
-            <Link href="/gigs" onClick={() => setIsMenuOpen(false)}>Explorar Gigs</Link>
-            <Link href="/create-gig" onClick={() => setIsMenuOpen(false)}>Publicar Gig</Link>
-            <Link href="/profile" onClick={() => setIsMenuOpen(false)}>Mi Perfil</Link>
-            {user && <Link href="/seller" onClick={() => setIsMenuOpen(false)}>Vendedor</Link>}
-            {user?.role === "admin" && <Link href="/admin/earnings" onClick={() => setIsMenuOpen(false)}>Ganancias</Link>}
-            {user && (
+            {user?.role !== "admin" && (
               <>
-                <button onClick={switchRole} className="text-left text-blue-600 flex items-center gap-2">
-                  <Repeat size={20} /> Cambiar Rol
-                </button>
-                <button onClick={handleLogout} className="text-left text-red-600 flex items-center gap-2">
-                  <LogOut size={20} /> Cerrar Sesión
-                </button>
+                <Link href="/gigs" onClick={() => setIsMenuOpen(false)}>Explorar Gigs</Link>
+                <Link href="/create-gig" onClick={() => setIsMenuOpen(false)}>Publicar Gig</Link>
               </>
+            )}
+            {user?.role === "admin" && (
+              <>
+                <Link href="/admin" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
+                <Link href="/admin/users" onClick={() => setIsMenuOpen(false)}>Usuarios</Link>
+              </>
+            )}
+            <Link href="/profile" onClick={() => setIsMenuOpen(false)}>Mi Perfil</Link>
+            {user && user.role !== "admin" && <Link href="/seller" onClick={() => setIsMenuOpen(false)}>Vendedor</Link>}
+            {user && (
+              <button onClick={handleLogout} className="text-left text-red-600 flex items-center gap-2">
+                <LogOut size={20} /> Cerrar Sesión
+              </button>
             )}
           </div>
         </div>
