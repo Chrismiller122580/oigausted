@@ -10,11 +10,22 @@ export function Navbar() {
   const [user, setUser] = useState<any>(null)
   const router = useRouter()
 
+  // Force refresh user state on mount and when localStorage changes
   useEffect(() => {
-    const savedUser = localStorage.getItem("oigausted-user")
-    if (savedUser) {
-      setUser(JSON.parse(savedUser))
+    const loadUser = () => {
+      const savedUser = localStorage.getItem("oigausted-user")
+      if (savedUser) {
+        setUser(JSON.parse(savedUser))
+      } else {
+        setUser(null)
+      }
     }
+
+    loadUser()
+
+    // Listen for storage changes (for multi-tab support)
+    window.addEventListener("storage", loadUser)
+    return () => window.removeEventListener("storage", loadUser)
   }, [])
 
   const handleLogout = () => {
@@ -27,11 +38,11 @@ export function Navbar() {
 
   const switchRole = () => {
     if (!user) return
-    const newRole = user.role === "buyer" ? "seller" : user.role === "seller" ? "buyer" : user.role
+    const newRole = user.role === "buyer" ? "seller" : "buyer"
     const updatedUser = { ...user, role: newRole }
     localStorage.setItem("oigausted-user", JSON.stringify(updatedUser))
     setUser(updatedUser)
-    window.location.reload()
+    window.location.reload() // Force full refresh for consistency
   }
 
   return (
@@ -53,7 +64,7 @@ export function Navbar() {
 
         <div className="flex items-center gap-3">
           {user ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <div className="hidden md:flex items-center gap-2 text-sm">
                 <User size={16} />
                 <span>{user.name}</span>

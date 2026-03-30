@@ -35,7 +35,6 @@ export default function GigsPage() {
     }
   }, [])
 
-  // Live search
   useEffect(() => {
     let result = gigs
     if (searchTerm) {
@@ -129,7 +128,6 @@ export default function GigsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredGigs.map((gig) => (
             <div key={gig.id} className="bg-white border rounded-2xl p-6 hover:shadow-lg transition-all relative">
-              {/* Delete button - visible to admin OR the seller who created it */}
               {canDeleteGig(gig) && (
                 <button
                   onClick={() => deleteGig(gig.id)}
@@ -146,6 +144,11 @@ export default function GigsPage() {
                 <span>Entrega en {gig.deliveryDays} días</span>
                 <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">{gig.category}</span>
               </div>
+
+              {/* Show Seller Name */}
+              {gig.sellerName && (
+                <p className="text-xs text-gray-500 mb-4">Vendido por: <span className="font-medium">{gig.sellerName}</span></p>
+              )}
 
               <div className="flex items-center justify-between">
                 <div className="text-3xl font-bold text-yellow-600">
