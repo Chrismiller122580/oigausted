@@ -57,14 +57,20 @@ export default function OrderDetailPage() {
 
   const markAsReceived = () => {
     if (!order) return
-    const updated = { ...order, status: "Completed", progress: 100 }
+
+    const updated: Order = {
+      ...order,
+      status: "Completed",
+      progress: 100
+    }
+
     saveOrder(updated)
     showToast("¡Pedido marcado como recibido! Gracias por tu compra.", "success")
   }
 
   const updateProgress = (newProgress: number) => {
     if (!order) return
-    const updated = { 
+    const updated: Order = { 
       ...order, 
       progress: newProgress,
       status: newProgress === 100 ? "Completed" : order.status 
@@ -75,7 +81,7 @@ export default function OrderDetailPage() {
 
   const changeStatus = (newStatus: Order["status"]) => {
     if (!order) return
-    const updated = { ...order, status: newStatus }
+    const updated: Order = { ...order, status: newStatus }
     if (newStatus === "Completed") updated.progress = 100
     saveOrder(updated)
     showToast(`Estado cambiado a ${newStatus}`, "success")
@@ -122,8 +128,12 @@ export default function OrderDetailPage() {
             </Button>
           ))}
         </div>
+
         {order.status !== "Completed" && (
-          <Button onClick={markAsReceived} className="mt-6 w-full bg-green-600 hover:bg-green-700">
+          <Button 
+            onClick={markAsReceived} 
+            className="mt-6 w-full bg-green-600 hover:bg-green-700"
+          >
             Marcar como Recibido
           </Button>
         )}
