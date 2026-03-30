@@ -11,10 +11,37 @@ export function Navbar() {
   const [user, setUser] = useState<any>(null)
   const router = useRouter()
 
+  // Load user state reliably
+  const loadUser = () => {
+    const saved = localStorage.getItem("oigausted-user")
+    if (saved) {
+      try {
+        setUser(JSON.parse(saved))
+      } catch (e) {
+        setUser(null)
+      }
+    } else {
+      setUser(null)
+    }
+  }
+
   useEffect(() => {
-    const savedUser = localStorage.getItem("oigausted-user")
-    if (savedUser) {
-      setUser(JSON.parse(savedUser))
+    loadUser()
+
+    // Listen for storage changes (role switches, logout from other tabs)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "oigausted-user") {
+        loadUser()
+      }
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+    // Also poll every second as fallback for same-tab changes
+    const interval = setInterval(loadUser, 1000)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+      clearInterval(interval)
     }
   }, [])
 
@@ -35,10 +62,12 @@ export function Navbar() {
     window.location.reload()
   }
 
+  const isLoggedIn = !!user
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md">
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo with Next.js Image for better handling */}
+        {/* Logo */}
         <Link href="/" className="flex items-center gap-3">
           <Image 
             src="/logo.png" 
@@ -47,15 +76,6 @@ export function Navbar() {
             height={40}
             className="h-9 w-auto object-contain"
             priority
-            onError={(e) => {
-              // Fallback to text if image fails to load
-              const target = e.currentTarget as HTMLImageElement
-              target.style.display = 'none'
-              const fallback = document.createElement('span')
-              fallback.textContent = 'OigaUsted'
-              fallback.className = 'font-bold text-2xl text-yellow-600'
-              target.parentNode?.appendChild(fallback)
-            }}
           />
         </Link>
 
@@ -82,7 +102,7 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-3">
-          {user ? (
+          {isLoggedIn ? (
             <div className="flex items-center gap-4">
               <div className="hidden md:flex items-center gap-2 text-sm">
                 <User size={16} />
