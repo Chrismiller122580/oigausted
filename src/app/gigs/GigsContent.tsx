@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Star } from "lucide-react"
@@ -21,8 +21,12 @@ interface Gig {
 export default function GigsContent() {
   const searchParams = useSearchParams()
   const categoryFilter = searchParams.get("category")
+  const router = useRouter()
+  const { showToast } = useToast()
   const [gigs, setGigs] = useState<Gig[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedGig, setSelectedGig] = useState<Gig | null>(null)
+  const [showBuyModal, setShowBuyModal] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem("oigausted-gigs")
@@ -40,6 +44,41 @@ export default function GigsContent() {
 
     return matchesSearch && matchesCategory
   })
+
+  const buyGig = (gig: Gig) => {
+    setSelectedGig(gig)
+    setShowBuyModal(true)
+  }
+
+  const confirmPurchase = () => {
+    if (!selectedGig) return
+
+    const newOrder = {
+      id: Date.now().toString(),
+      gigTitle: selectedGig.title,
+      price: selectedGig.price,
+      status: "Pending",
+      progress: 0,
+      buyer: "Tú (Comprador)",
+      seller: selectedGig.seller,
+      messages: [],
+      paidToSeller: false,
+      createdAt: new Date().toISOString()
+    }
+
+    const savedOrders = localStorage.getItem("oigausted-orders") || "[]"
+    const orders = JSON.parse(savedOrders)
+    orders.unshift(newOrder)
+    localStorage.setItem("oigausted-orders", JSON.stringify(orders))
+
+    setShowBuyModal(false)
+    showToast("¡Compra realizada! Redirigiendo a tu pedido...", "success")
+
+    // Auto-redirect to the new order
+    setTimeout(() => {
+      router.push(`/orders/${newOrder.id}`)
+    }, 800)
+  }
 
   const renderStars = (rating: number = 0) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -98,8 +137,8 @@ export default function GigsContent() {
                     <p className="text-3xl font-bold text-green-600">${gig.price}</p>
                     <p className="text-xs text-gray-500">COP</p>
                   </div>
-                  <Button asChild size="sm">
-                    <Link href={`/orders/new?gigId=${gig.id}`}>Comprar Ahora</Link>
+                  <Button size="sm" onClick={() => buyGig(gig)}>
+                    Comprar Ahora
                   </Button>
                 </div>
               </div>
@@ -109,6 +148,29 @@ export default function GigsContent() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Buy Confirmation Modal */}
+      {showBuyModal && selectedGig && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden">
+            <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-8 text-center">
+              <h2 className="text-2xl font-bold">Confirmar Compra</h2>
+              <p className="mt-2 opacity-90">{selectedGig.title}</p>
+            </div>
+            <div className="p-8">
+              <p className="text-lg font-medium mb-6">¿Estás seguro de comprar este gig por <span className="text-green-600">${selectedGig.price}</span>?</p>
+              <div className="flex gap-4">
+                <Button variant="outline" className="flex-1" onClick={() => setShowBuyModal(false)}>
+                  Cancelar
+                </Button>
+                <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={confirmPurchase}>
+                  Sí, Comprar Ahora
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

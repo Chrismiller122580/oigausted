@@ -1,5 +1,6 @@
 "use client"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
 import { Menu, X, LogOut, User, Repeat, HelpCircle } from "lucide-react"
@@ -12,7 +13,9 @@ export function Navbar() {
 
   useEffect(() => {
     const savedUser = localStorage.getItem("oigausted-user")
-    if (savedUser) setUser(JSON.parse(savedUser))
+    if (savedUser) {
+      setUser(JSON.parse(savedUser))
+    }
   }, [])
 
   const handleLogout = () => {
@@ -35,8 +38,25 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md">
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+        {/* Logo with Next.js Image for better handling */}
         <Link href="/" className="flex items-center gap-3">
-          <img src="/logo.png" alt="OigaUsted" className="h-9 w-auto" />
+          <Image 
+            src="/logo.png" 
+            alt="OigaUsted" 
+            width={140} 
+            height={40}
+            className="h-9 w-auto object-contain"
+            priority
+            onError={(e) => {
+              // Fallback to text if image fails to load
+              const target = e.currentTarget as HTMLImageElement
+              target.style.display = 'none'
+              const fallback = document.createElement('span')
+              fallback.textContent = 'OigaUsted'
+              fallback.className = 'font-bold text-2xl text-yellow-600'
+              target.parentNode?.appendChild(fallback)
+            }}
+          />
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
@@ -71,13 +91,25 @@ export function Navbar() {
               </div>
 
               {user.role !== "admin" && (
-                <Button variant="ghost" size="sm" onClick={switchRole} className="flex items-center gap-2 text-blue-600">
-                  <Repeat size={16} /> Cambiar Rol
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={switchRole}
+                  className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
+                >
+                  <Repeat size={16} />
+                  Cambiar Rol
                 </Button>
               )}
 
-              <Button variant="ghost" size="sm" onClick={handleLogout} className="flex items-center gap-2 text-red-600">
-                <LogOut size={16} /> Cerrar Sesión
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleLogout} 
+                className="flex items-center gap-2 text-red-600 hover:text-red-700"
+              >
+                <LogOut size={16} />
+                Cerrar Sesión
               </Button>
             </div>
           ) : (
@@ -92,12 +124,18 @@ export function Navbar() {
             </Button>
           )}
 
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </Button>
         </div>
       </div>
 
+      {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden border-t bg-white">
           <div className="container py-6 flex flex-col gap-6 text-lg">
@@ -114,10 +152,17 @@ export function Navbar() {
               </>
             )}
             <Link href="/profile" onClick={() => setIsMenuOpen(false)}>Mi Perfil</Link>
-            {user && user.role !== "admin" && <Link href="/seller" onClick={() => setIsMenuOpen(false)}>Vendedor</Link>}
-            <Link href="#" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2">Ayuda</Link>
+            {user && user.role !== "admin" && (
+              <Link href="/seller" onClick={() => setIsMenuOpen(false)}>Vendedor</Link>
+            )}
+            <Link href="#" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2">
+              <HelpCircle size={20} /> Ayuda
+            </Link>
             {user && (
-              <button onClick={handleLogout} className="text-left text-red-600 flex items-center gap-2">
+              <button 
+                onClick={handleLogout} 
+                className="text-left text-red-600 flex items-center gap-2"
+              >
                 <LogOut size={20} /> Cerrar Sesión
               </button>
             )}
