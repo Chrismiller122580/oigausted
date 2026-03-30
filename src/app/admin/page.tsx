@@ -19,6 +19,7 @@ interface Order {
   createdAt: string
   buyer?: string
   seller?: string
+  paidToSeller?: boolean
 }
 
 export default function AdminDashboard() {
@@ -28,8 +29,8 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([])
   const [orders, setOrders] = useState<Order[]>([])
   const [commissionRate, setCommissionRate] = useState(12)
-
   const [totalRevenue, setTotalRevenue] = useState(0)
+  const [pendingPayouts, setPendingPayouts] = useState(0)
 
   useEffect(() => {
     const userStr = localStorage.getItem("oigausted-user")
@@ -47,13 +48,17 @@ export default function AdminDashboard() {
       return
     }
 
-    // Load orders for revenue calculation
+    // Load orders
     const savedOrders = localStorage.getItem("oigausted-orders")
     if (savedOrders) {
       const parsedOrders: Order[] = JSON.parse(savedOrders)
       setOrders(parsedOrders)
+
       const revenue = parsedOrders.reduce((sum, o) => sum + (o.price * commissionRate / 100), 0)
       setTotalRevenue(revenue)
+
+      const pending = parsedOrders.filter(o => o.status === "Completed" && !o.paidToSeller).length
+      setPendingPayouts(pending)
     }
 
     // Simulate users
@@ -64,20 +69,25 @@ export default function AdminDashboard() {
     ])
   }, [router, showToast, commissionRate])
 
+  const markAsPaid = (orderId: string) => {
+    const updatedOrders = orders.map(order => 
+      order.id === orderId ? { ...order, paidToSeller: true } : order
+    )
+    setOrders(updatedOrders)
+    localStorage.setItem("oigausted-orders", JSON.stringify(updatedOrders))
+    showToast("Pago al vendedor marcado como realizado", "success")
+  }
+
   const changeCommission = (newRate: number) => {
     setCommissionRate(newRate)
     showToast(`Comisión actualizada a ${newRate}%`, "success")
   }
 
-  const changeUserRole = (userId: string, newRole: string) => {
-    const updatedUsers = users.map(u => u.id === userId ? { ...u, role: newRole } : u)
-    setUsers(updatedUsers)
-    showToast(`Rol cambiado a ${newRole}`, "success")
-  }
-
   if (!currentUser || currentUser.role !== "admin") {
     return <div className="container py-12 text-center">Acceso denegado.</div>
   }
+
+  const completedOrders = orders.filter(o => o.status === "Completed")
 
   return (
     <div className="container mx-auto py-12 px-6">
@@ -100,12 +110,12 @@ export default function AdminDashboard() {
           <p className="text-4xl font-bold mt-2">124</p>
         </div>
         <div className="bg-white border rounded-3xl p-8 text-center">
-          <p className="text-sm text-gray-500">Usuarios Totales</p>
+          <p className="text-sm text-gray-500">Usuarios</p>
           <p className="text-4xl font-bold mt-2">{users.length}</p>
         </div>
         <div className="bg-white border rounded-3xl p-8 text-center">
-          <p className="text-sm text-gray-500">Órdenes Activas</p>
-          <p className="text-4xl font-bold mt-2">{orders.length}</p>
+          <p className="text-sm text-gray-500">Pendientes de Pago</p>
+          <p className="text-4xl font-bold text-orange-600 mt-2">{pendingPayouts}</p>
         </div>
       </div>
 
@@ -117,7 +127,7 @@ export default function AdminDashboard() {
             <p className="text-gray-500 py-8 text-center">No hay órdenes recientes.</p>
           ) : (
             <div className="space-y-4 max-h-96 overflow-y-auto">
-              {orders.slice(0, 10).map((order) => (
+              {orders.slice(0, 8).map((order) => (
                 <div key={order.id} className="flex justify-between items-center border-b pb-4 last:border-0">
                   <div>
                     <p className="font-medium">{order.gigTitle}</p>
@@ -137,28 +147,33 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* User Management */}
+        {/* Payout Tracking */}
         <div className="bg-white border rounded-3xl p-8">
-          <h2 className="text-xl font-semibold mb-6">Gestión de Usuarios</h2>
-          <div className="space-y-4">
-            {users.map((u) => (
-              <div key={u.id} className="flex justify-between items-center border rounded-2xl p-4">
-                <div>
-                  <p className="font-medium">{u.name}</p>
-                  <p className="text-sm text-gray-500">{u.email}</p>
+          <h2 className="text-xl font-semibold mb-6">Pagos Pendientes a Vendedores</h2>
+          {completedOrders.length === 0 ? (
+            <p className="text-gray-500 py-8 text-center">No hay pagos pendientes.</p>
+          ) : (
+            <div className="space-y-4">
+              {completedOrders.map((order) => (
+                <div key={order.id} className="flex justify-between items-center border rounded-2xl p-5">
+                  <div>
+                    <p className="font-medium">{order.gigTitle}</p>
+                    <p className="text-sm text-gray-500">Vendedor: {order.seller}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-green-600">${(order.price * 0.88).toLocaleString("es-CO")}</p>
+                    <Button 
+                      size="sm" 
+                      className="mt-3 bg-green-600 hover:bg-green-700"
+                      onClick={() => markAsPaid(order.id)}
+                    >
+                      Marcar como Pagado
+                    </Button>
+                  </div>
                 </div>
-                <select 
-                  value={u.role}
-                  onChange={(e) => changeUserRole(u.id, e.target.value)}
-                  className="border rounded px-4 py-2 text-sm"
-                >
-                  <option value="buyer">Buyer</option>
-                  <option value="seller">Seller</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -181,8 +196,8 @@ export default function AdminDashboard() {
             {commissionRate}%
           </div>
         </div>
-        <Button onClick={() => showToast(`Comisión global actualizada a ${commissionRate}%`, "success")} className="mt-6">
-          Guardar Comisión
+        <Button onClick={() => showToast(`Comisión actualizada a ${commissionRate}%`, "success")} className="mt-6">
+          Guardar Comisión Global
         </Button>
       </div>
     </div>
