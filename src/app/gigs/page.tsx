@@ -10,6 +10,8 @@ interface Gig {
   price: number
   category: string
   deliveryDays: number
+  sellerId?: string
+  sellerName?: string
 }
 
 export default function GigsPage() {
@@ -33,10 +35,9 @@ export default function GigsPage() {
     }
   }, [])
 
-  // Live search + filter
+  // Live search
   useEffect(() => {
     let result = gigs
-
     if (searchTerm) {
       const term = searchTerm.toLowerCase()
       result = result.filter(gig => 
@@ -44,7 +45,6 @@ export default function GigsPage() {
         gig.description.toLowerCase().includes(term)
       )
     }
-
     setFilteredGigs(result)
   }, [gigs, searchTerm])
 
@@ -54,7 +54,13 @@ export default function GigsPage() {
     const updatedGigs = gigs.filter(g => g.id !== id)
     localStorage.setItem("oigausted-gigs", JSON.stringify(updatedGigs))
     setGigs(updatedGigs)
-    alert("Gig eliminado correctamente")
+    setFilteredGigs(updatedGigs)
+  }
+
+  const canDeleteGig = (gig: Gig) => {
+    if (!currentUser) return false
+    if (currentUser.role === "admin") return true
+    return gig.sellerId === currentUser.id
   }
 
   const openBuyModal = (gig: Gig) => {
@@ -73,7 +79,7 @@ export default function GigsPage() {
       price: selectedGig.price,
       status: "Pending",
       buyer: currentUser?.name || "Comprador",
-      seller: "Demo Vendedor",
+      seller: selectedGig.sellerName || "Demo Vendedor",
       createdAt: new Date().toISOString(),
       messages: [],
       files: [],
@@ -116,17 +122,18 @@ export default function GigsPage() {
         <div className="text-center py-20 border-2 border-dashed rounded-3xl border-gray-300 bg-gray-50">
           <p className="text-6xl mb-6">🌴</p>
           <p className="text-2xl text-gray-500">
-            {searchTerm ? "No se encontraron gigs con ese término" : "Aún no hay gigs publicados"}
+            {searchTerm ? "No se encontraron gigs" : "Aún no hay gigs publicados"}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredGigs.map((gig) => (
             <div key={gig.id} className="bg-white border rounded-2xl p-6 hover:shadow-lg transition-all relative">
-              {currentUser?.role === "admin" && (
+              {/* Delete button - visible to admin OR the seller who created it */}
+              {canDeleteGig(gig) && (
                 <button
                   onClick={() => deleteGig(gig.id)}
-                  className="absolute top-4 right-4 text-red-500 hover:text-red-700 text-xl"
+                  className="absolute top-4 right-4 text-red-500 hover:text-red-700 text-xl font-bold"
                 >
                   ✕
                 </button>

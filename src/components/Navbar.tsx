@@ -3,11 +3,12 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
 import { Menu, X, LogOut, User } from "lucide-react"
-import Image from "next/image"
+import { useRouter } from "next/navigation"
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const router = useRouter()
 
   useEffect(() => {
     const savedUser = localStorage.getItem("oigausted-user")
@@ -20,30 +21,22 @@ export function Navbar() {
     if (confirm("¿Cerrar sesión?")) {
       localStorage.removeItem("oigausted-user")
       setUser(null)
-      window.location.reload()
+      router.push("/login")   // ← Redirect to login page
     }
   }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md">
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
         <Link href="/" className="flex items-center gap-3">
-          <Image 
-            src="/logo.png" 
-            alt="OigaUsted" 
-            width={140} 
-            height={50} 
-            className="h-10 w-auto"
-            priority
-          />
+          <img src="/logo.png" alt="OigaUsted" className="h-9 w-auto" />
         </Link>
 
-        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
           <Link href="/gigs" className="hover:text-yellow-600 transition-colors">Explorar Gigs</Link>
           <Link href="/create-gig" className="hover:text-yellow-600 transition-colors">Publicar Gig</Link>
           <Link href="/profile" className="hover:text-yellow-600 transition-colors">Mi Perfil</Link>
+          {user && <Link href="/seller" className="hover:text-yellow-600 transition-colors">Vendedor</Link>}
           {user?.role === "admin" && (
             <Link href="/admin/earnings" className="hover:text-yellow-600 transition-colors">Ganancias</Link>
           )}
@@ -55,7 +48,6 @@ export function Navbar() {
               <div className="hidden md:flex items-center gap-2 text-sm">
                 <User size={16} />
                 <span>{user.name}</span>
-                <span className="text-xs bg-yellow-100 px-2 py-1 rounded-full">({user.role})</span>
               </div>
               <Button 
                 variant="ghost" 
@@ -95,9 +87,8 @@ export function Navbar() {
             <Link href="/gigs" onClick={() => setIsMenuOpen(false)}>Explorar Gigs</Link>
             <Link href="/create-gig" onClick={() => setIsMenuOpen(false)}>Publicar Gig</Link>
             <Link href="/profile" onClick={() => setIsMenuOpen(false)}>Mi Perfil</Link>
-            {user?.role === "admin" && (
-              <Link href="/admin/earnings" onClick={() => setIsMenuOpen(false)}>Ganancias</Link>
-            )}
+            {user && <Link href="/seller" onClick={() => setIsMenuOpen(false)}>Vendedor</Link>}
+            {user?.role === "admin" && <Link href="/admin/earnings" onClick={() => setIsMenuOpen(false)}>Ganancias</Link>}
             {user && (
               <button 
                 onClick={handleLogout} 
