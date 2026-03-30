@@ -10,7 +10,9 @@ export function Navbar() {
 
   useEffect(() => {
     const savedUser = localStorage.getItem("oigausted-user")
-    if (savedUser) setUser(JSON.parse(savedUser))
+    if (savedUser) {
+      setUser(JSON.parse(savedUser))
+    }
   }, [])
 
   const handleLogout = () => {
@@ -28,6 +30,7 @@ export function Navbar() {
           OigaUsted
         </Link>
 
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
           <Link href="/gigs" className="hover:text-yellow-600 transition-colors">Explorar Gigs</Link>
           <Link href="/create-gig" className="hover:text-yellow-600 transition-colors">Publicar Gig</Link>
@@ -39,17 +42,22 @@ export function Navbar() {
 
         <div className="flex items-center gap-3">
           {user ? (
-            <>
+            <div className="flex items-center gap-4">
               <div className="hidden md:flex items-center gap-2 text-sm">
                 <User size={16} />
                 <span>{user.name}</span>
                 <span className="text-xs bg-yellow-100 px-2 py-1 rounded-full">({user.role})</span>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleLogout} className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleLogout} 
+                className="flex items-center gap-2 text-red-600 hover:text-red-700"
+              >
                 <LogOut size={16} />
-                Salir
+                Cerrar Sesión
               </Button>
-            </>
+            </div>
           ) : (
             <Button variant="outline" size="sm" asChild>
               <Link href="/login">Iniciar Sesión</Link>
@@ -60,6 +68,7 @@ export function Navbar() {
             <Link href="/create-gig">Publicar Gig</Link>
           </Button>
 
+          {/* Mobile menu button */}
           <Button
             variant="ghost"
             size="icon"
@@ -81,7 +90,14 @@ export function Navbar() {
             {user?.role === "admin" && (
               <Link href="/admin/earnings" onClick={() => setIsMenuOpen(false)}>Ganancias</Link>
             )}
-            {user && <button onClick={handleLogout} className="text-left text-red-600">Cerrar Sesión</button>}
+            {user && (
+              <button 
+                onClick={handleLogout} 
+                className="text-left text-red-600 flex items-center gap-2"
+              >
+                <LogOut size={20} /> Cerrar Sesión
+              </button>
+            )}
           </div>
         </div>
       )}

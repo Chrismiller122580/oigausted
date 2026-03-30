@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 
 export default function CreateGigPage() {
   const router = useRouter()
+  const [currentUser, setCurrentUser] = useState<any>(null)
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -17,10 +18,20 @@ export default function CreateGigPage() {
   })
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    const userStr = localStorage.getItem("oigausted-user")
+    if (userStr) setCurrentUser(JSON.parse(userStr))
+  }, [])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.title || !form.description || !form.price || !form.deliveryDays) {
       alert("Por favor completa todos los campos")
+      return
+    }
+    if (!currentUser) {
+      alert("Debes iniciar sesión para publicar un gig")
+      router.push("/login")
       return
     }
 
@@ -32,17 +43,19 @@ export default function CreateGigPage() {
       description: form.description.trim(),
       category: form.category,
       price: parseFloat(form.price),
-      deliveryDays: parseInt(form.deliveryDays)
+      deliveryDays: parseInt(form.deliveryDays),
+      sellerId: currentUser.id,
+      sellerName: currentUser.name
     }
 
     const existing = JSON.parse(localStorage.getItem("oigausted-gigs") || "[]")
     localStorage.setItem("oigausted-gigs", JSON.stringify([newGig, ...existing]))
 
-    alert(`🎉 ¡Gig "${form.title}" publicado exitosamente!\n\nSerá visible en la página de gigs.`)
+    alert(`✅ ¡Gig "${form.title}" publicado exitosamente!`)
 
     setTimeout(() => {
       router.push("/gigs")
-    }, 1500)
+    }, 1000)
   }
 
   return (

@@ -8,6 +8,7 @@ interface Gig {
   title: string
   price: number
   category: string
+  sellerId?: string
 }
 
 interface Order {
@@ -15,6 +16,8 @@ interface Order {
   gigTitle: string
   price: number
   status: string
+  buyerId?: string
+  sellerId?: string
   createdAt: string
 }
 
@@ -38,34 +41,35 @@ export default function ProfilePage() {
     const user = JSON.parse(userStr)
     setCurrentUser(user)
 
-    // Load ALL gigs (but we'll filter by seller later if needed)
+    // Load gigs created by this user
     const savedGigsStr = localStorage.getItem("oigausted-gigs")
     let allGigs: Gig[] = []
     if (savedGigsStr) {
       allGigs = JSON.parse(savedGigsStr)
-      setMyGigs(allGigs) // For demo, show all as "my gigs"
+      // Filter gigs by seller (for demo we use current user as seller)
+      const userGigs = allGigs.filter(g => !g.sellerId || g.sellerId === user.id)
+      setMyGigs(userGigs)
     }
 
-    // Load orders
+    // Load orders for this user (as buyer)
     const savedOrdersStr = localStorage.getItem("oigausted-orders")
     let orders: Order[] = []
     if (savedOrdersStr) {
       orders = JSON.parse(savedOrdersStr)
+      // For demo, show all orders as "my orders"
       setMyOrders(orders)
     }
 
     const totalSpent = orders.reduce((sum, order) => sum + order.price, 0)
 
     setStats({
-      gigsPublished: allGigs.length,
+      gigsPublished: myGigs.length,
       ordersBought: orders.length,
       totalSpent
     })
   }, [])
 
-  if (!currentUser) {
-    return <div className="container py-12">Redirigiendo a login...</div>
-  }
+  if (!currentUser) return <div className="container py-12">Cargando perfil...</div>
 
   return (
     <div className="container mx-auto py-12 px-6 max-w-5xl">
@@ -84,17 +88,17 @@ export default function ProfilePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* My Gigs */}
+        {/* My Gigs (as seller) */}
         <div className="bg-white border rounded-3xl p-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold">Mis Gigs Publicados</h2>
             <Link href="/create-gig">
-              <Button variant="default">+ Nuevo Gig</Button>
+              <Button>+ Nuevo Gig</Button>
             </Link>
           </div>
 
           {myGigs.length === 0 ? (
-            <p className="text-gray-500 py-12 text-center">Aún no has publicado gigs.</p>
+            <p className="text-gray-500 py-12 text-center">Aún no has publicado ningún gig.</p>
           ) : (
             <div className="space-y-4">
               {myGigs.map((gig) => (
@@ -112,7 +116,7 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* My Orders */}
+        {/* My Orders (as buyer) */}
         <div className="bg-white border rounded-3xl p-8">
           <h2 className="text-2xl font-semibold mb-6">Mis Órdenes</h2>
 
@@ -126,7 +130,7 @@ export default function ProfilePage() {
                   href={`/orders/${order.id}`}
                   className="block border rounded-2xl p-5 hover:shadow-md transition-all hover:border-yellow-300"
                 >
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between">
                     <div>
                       <h3 className="font-medium">{order.gigTitle}</h3>
                       <p className="text-sm text-gray-500 mt-1">
@@ -136,8 +140,7 @@ export default function ProfilePage() {
                     <div className="text-right">
                       <p className="font-semibold text-yellow-600">${order.price.toLocaleString("es-CO")}</p>
                       <span className={`inline-block mt-2 px-4 py-1 text-xs rounded-full ${
-                        order.status === "Completed" ? "bg-green-100 text-green-700" : 
-                        "bg-yellow-100 text-yellow-700"
+                        order.status === "Completed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
                       }`}>
                         {order.status}
                       </span>
