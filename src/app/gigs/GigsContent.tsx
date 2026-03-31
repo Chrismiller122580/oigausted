@@ -23,6 +23,7 @@ export default function GigsContent() {
   const categoryFilter = searchParams.get("category")
   const router = useRouter()
   const { showToast } = useToast()
+
   const [gigs, setGigs] = useState<Gig[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedGig, setSelectedGig] = useState<Gig | null>(null)
@@ -34,14 +35,11 @@ export default function GigsContent() {
   }, [])
 
   const filteredGigs = gigs.filter(gig => {
-    const matchesSearch = 
+    const matchesSearch = searchTerm === "" ||
       gig.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      gig.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      gig.category.toLowerCase().includes(searchTerm.toLowerCase())
-
+      gig.description.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = !categoryFilter || 
       gig.category.toLowerCase().includes(categoryFilter.toLowerCase())
-
     return matchesSearch && matchesCategory
   })
 
@@ -59,113 +57,109 @@ export default function GigsContent() {
       price: selectedGig.price,
       status: "Pending",
       progress: 0,
-      buyer: "Tú (Comprador)",
+      buyer: "Tú",
       seller: selectedGig.seller,
       messages: [],
       paidToSeller: false,
       createdAt: new Date().toISOString()
     }
 
-    const savedOrders = localStorage.getItem("oigausted-orders") || "[]"
-    const orders = JSON.parse(savedOrders)
+    const orders = JSON.parse(localStorage.getItem("oigausted-orders") || "[]")
     orders.unshift(newOrder)
     localStorage.setItem("oigausted-orders", JSON.stringify(orders))
 
     setShowBuyModal(false)
-    showToast("¡Compra realizada! Redirigiendo a tu pedido...", "success")
+    showToast(`¡Compra de "${selectedGig.title}" realizada con éxito!`, "success")
 
-    // Auto-redirect to the new order
+    // Auto redirect to order detail
     setTimeout(() => {
       router.push(`/orders/${newOrder.id}`)
     }, 800)
   }
 
-  const renderStars = (rating: number = 0) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <span key={i} className={i < Math.floor(rating) ? "text-yellow-500" : "text-gray-300"}>★</span>
-    ))
-  }
+  const renderStars = (rating = 0) => Array.from({ length: 5 }, (_, i) => (
+    <span key={i} className={i < Math.floor(rating) ? "text-yellow-500" : "text-gray-300"}>★</span>
+  ))
 
   return (
-    <div className="container mx-auto py-12 px-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-        <div>
-          <h1 className="text-4xl font-bold">Explorar Gigs</h1>
-          <p className="text-gray-600 mt-2">
-            {categoryFilter ? `Resultados para "${categoryFilter}"` : "Encuentra talento local en Colombia"}
-          </p>
-        </div>
-        <div className="flex gap-4 w-full md:w-auto">
-          <input
-            type="text"
-            placeholder="Buscar gigs..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="border rounded-2xl px-5 py-3 flex-1 md:w-80 focus:outline-none focus:border-yellow-600"
-          />
-          <Button asChild>
-            <Link href="/create-gig">Publicar Gig</Link>
-          </Button>
-        </div>
+    <div className="container mx-auto py-8 px-4 md:px-6 max-w-7xl">
+      {/* Search + Publish */}
+      <div className="flex flex-col md:flex-row gap-4 mb-10">
+        <input
+          type="text"
+          placeholder="Buscar gigs o servicios..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="flex-1 border-2 rounded-3xl px-6 py-4 text-lg focus:outline-none focus:border-yellow-500"
+        />
+        <Button asChild className="w-full md:w-auto px-8 py-6 text-lg font-medium">
+          <Link href="/create-gig">+ Publicar Gig</Link>
+        </Button>
       </div>
 
-      {filteredGigs.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-2xl text-gray-400">No se encontraron gigs</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredGigs.map((gig) => (
-            <div key={gig.id} className="bg-white border rounded-3xl overflow-hidden hover:shadow-xl transition-all group">
-              <div className="p-8">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-semibold line-clamp-2 group-hover:text-yellow-600 transition-colors">
-                    {gig.title}
-                  </h3>
-                  {gig.rating && (
-                    <div className="flex items-center gap-1 text-sm">
-                      {renderStars(gig.rating)}
-                      <span className="text-gray-500 ml-1">({gig.reviewCount || 1})</span>
-                    </div>
-                  )}
-                </div>
+      {/* Gigs Grid - Better mobile layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {filteredGigs.map((gig) => (
+          <div key={gig.id} className="bg-white border rounded-3xl overflow-hidden hover:shadow-2xl transition-all group flex flex-col">
+            <div className="p-6 flex-1">
+              <h3 className="font-semibold text-xl leading-tight mb-3 group-hover:text-yellow-600 transition-colors line-clamp-2">
+                {gig.title}
+              </h3>
+              <p className="text-gray-600 text-[15px] line-clamp-3 mb-6">{gig.description}</p>
 
-                <p className="text-gray-600 line-clamp-3 mb-6">{gig.description}</p>
-
-                <div className="flex justify-between items-end">
-                  <div>
-                    <p className="text-3xl font-bold text-green-600">${gig.price}</p>
-                    <p className="text-xs text-gray-500">COP</p>
-                  </div>
-                  <Button size="sm" onClick={() => buyGig(gig)}>
-                    Comprar Ahora
-                  </Button>
+              {gig.rating && (
+                <div className="flex items-center gap-1 mb-4 text-sm">
+                  {renderStars(gig.rating)}
+                  <span className="text-gray-500 ml-1">({gig.reviewCount || 1})</span>
                 </div>
-              </div>
-              <div className="border-t px-8 py-4 text-sm text-gray-500 flex justify-between">
-                <span>Por {gig.seller}</span>
-                {gig.deliveryDays && <span>Entrega en {gig.deliveryDays} días</span>}
+              )}
+            </div>
+
+            <div className="border-t p-6 mt-auto">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-3xl font-bold text-green-600"> ${gig.price}</span>
+                  <span className="text-xs text-gray-500 block">COP</span>
+                </div>
+                <Button 
+                  onClick={() => buyGig(gig)}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium px-8 py-6 text-base rounded-2xl shadow-md active:scale-95 transition-all"
+                >
+                  Comprar Ahora
+                </Button>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
 
-      {/* Buy Confirmation Modal */}
+      {/* Prominent Buy Confirmation Modal */}
       {showBuyModal && selectedGig && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden">
-            <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-8 text-center">
-              <h2 className="text-2xl font-bold">Confirmar Compra</h2>
-              <p className="mt-2 opacity-90">{selectedGig.title}</p>
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-end md:items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden">
+            <div className="p-8 text-center border-b">
+              <h2 className="text-2xl font-bold mb-2">Confirmar Compra</h2>
+              <p className="text-lg text-gray-700">{selectedGig.title}</p>
             </div>
+            
             <div className="p-8">
-              <p className="text-lg font-medium mb-6">¿Estás seguro de comprar este gig por <span className="text-green-600">${selectedGig.price}</span>?</p>
+              <div className="text-center mb-8">
+                <p className="text-5xl font-bold text-green-600 mb-1">${selectedGig.price}</p>
+                <p className="text-gray-500">COP</p>
+              </div>
+
               <div className="flex gap-4">
-                <Button variant="outline" className="flex-1" onClick={() => setShowBuyModal(false)}>
+                <Button 
+                  variant="outline" 
+                  className="flex-1 py-7 text-lg font-medium"
+                  onClick={() => setShowBuyModal(false)}
+                >
                   Cancelar
                 </Button>
-                <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={confirmPurchase}>
+                <Button 
+                  className="flex-1 py-7 text-lg font-medium bg-green-600 hover:bg-green-700 active:bg-green-800"
+                  onClick={confirmPurchase}
+                >
                   Sí, Comprar Ahora
                 </Button>
               </div>
