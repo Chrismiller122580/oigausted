@@ -1,65 +1,63 @@
 "use client"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ToastProvider"
-import { useSession } from "next-auth/react"
+import Link from "next/link"
 
 export default function AdminDashboard() {
-  const router = useRouter()
-  const { data: session, status } = useSession()
-  const { showToast } = useToast()
-
-  const [currentUser, setCurrentUser] = useState<any>(null)
-  const [commissionRate, setCommissionRate] = useState(12)
-
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login")
-      return
-    }
-
-    if (status === "authenticated" && session?.user) {
-      const role = (session.user as any).role
-      if (role !== "admin") {
-        showToast("Acceso denegado. Solo administradores.", "error")
-        router.push("/profile")
-        return
-      }
-      setCurrentUser(session.user)
-    }
-  }, [session, status, router, showToast])
-
-  if (status === "loading") {
-    return <div className="container py-20 text-center">Cargando dashboard...</div>
-  }
-
-  if (!currentUser || currentUser.role !== "admin") {
-    return <div className="container py-20 text-center">Acceso denegado.</div>
-  }
-
   return (
-    <div className="container mx-auto py-12 px-6">
-      <h1 className="text-4xl font-bold mb-10">Admin Dashboard</h1>
-      <p className="text-gray-600 mb-8">Bienvenido, {currentUser.name}</p>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-white border rounded-3xl p-8">
-          <h2 className="text-xl font-semibold mb-6">Control de Comisiones</h2>
-          <input 
-            type="range" 
-            min="5" 
-            max="25" 
-            value={commissionRate} 
-            onChange={(e) => setCommissionRate(parseInt(e.target.value))}
-            className="w-full accent-yellow-600"
-          />
-          <p className="text-6xl font-bold text-green-600 mt-6 text-center">{commissionRate}%</p>
+    <div className="min-h-screen bg-gray-950 text-white">
+      <div className="container mx-auto py-12 px-6 max-w-6xl">
+        <div className="text-center mb-16">
+          <h1 className="text-5xl font-bold mb-4 text-blue-400">Admin Panel</h1>
+          <p className="text-xl text-gray-400">Gestión completa de OigaUsted</p>
         </div>
 
-        <div className="bg-white border rounded-3xl p-8">
-          <h2 className="text-xl font-semibold mb-6">Estadísticas</h2>
-          <p className="text-gray-500">Más métricas vendrán pronto...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <Link href="/admin/overview" className="group">
+            <div className="bg-gray-900 border border-gray-700 hover:border-blue-500 rounded-3xl p-10 text-center transition-all hover:shadow-2xl">
+              <div className="text-6xl mb-6">📊</div>
+              <h3 className="text-2xl font-semibold mb-3 group-hover:text-blue-400">Overview</h3>
+              <p className="text-gray-400">Métricas generales y estadísticas</p>
+            </div>
+          </Link>
+
+          <Link href="/admin/users" className="group">
+            <div className="bg-gray-900 border border-gray-700 hover:border-blue-500 rounded-3xl p-10 text-center transition-all hover:shadow-2xl">
+              <div className="text-6xl mb-6">👥</div>
+              <h3 className="text-2xl font-semibold mb-3 group-hover:text-blue-400">Gestión de Usuarios</h3>
+              <p className="text-gray-400">Ver y editar usuarios</p>
+            </div>
+          </Link>
+
+          <Link href="/admin/payouts" className="group">
+            <div className="bg-gray-900 border border-gray-700 hover:border-blue-500 rounded-3xl p-10 text-center transition-all hover:shadow-2xl">
+              <div className="text-6xl mb-6">💰</div>
+              <h3 className="text-2xl font-semibold mb-3 group-hover:text-blue-400">Pagos a Vendedores</h3>
+              <p className="text-gray-400">Revisar y pagar pendientes</p>
+            </div>
+          </Link>
+
+          <Link href="/admin/support" className="group">
+            <div className="bg-gray-900 border border-gray-700 hover:border-blue-500 rounded-3xl p-10 text-center transition-all hover:shadow-2xl">
+              <div className="text-6xl mb-6">🛟</div>
+              <h3 className="text-2xl font-semibold mb-3 group-hover:text-blue-400">Soporte y Tickets</h3>
+              <p className="text-gray-400">Gestionar tickets de usuarios</p>
+            </div>
+          </Link>
+
+          <Link href="/admin/settings" className="group">
+            <div className="bg-gray-900 border border-gray-700 hover:border-blue-500 rounded-3xl p-10 text-center transition-all hover:shadow-2xl">
+              <div className="text-6xl mb-6">⚙️</div>
+              <h3 className="text-2xl font-semibold mb-3 group-hover:text-blue-400">Platform Settings</h3>
+              <p className="text-gray-400">Configuración general</p>
+            </div>
+          </Link>
+
+          <Link href="/admin/reports" className="group">
+            <div className="bg-gray-900 border border-gray-700 hover:border-blue-500 rounded-3xl p-10 text-center transition-all hover:shadow-2xl">
+              <div className="text-6xl mb-6">📈</div>
+              <h3 className="text-2xl font-semibold mb-3 group-hover:text-blue-400">Reports</h3>
+              <p className="text-gray-400">Reportes y analíticas</p>
+            </div>
+          </Link>
         </div>
       </div>
     </div>

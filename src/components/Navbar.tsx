@@ -1,98 +1,59 @@
 "use client"
 import Link from "next/link"
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import { Menu, X, LogOut, User, Repeat, HelpCircle } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Menu, X, LogOut, User } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
-import { useRouter } from "next/navigation"
 
 export function Navbar() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { data: session, status } = useSession()
-  const router = useRouter()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const user = session?.user
+  const isAdmin = user && (user as any).role === "admin"
 
-  const handleLogout = () => {
-    if (confirm("¿Cerrar sesión?")) {
-      signOut({ callbackUrl: "/login" })
-    }
+  const handleLogout = async () => {
+    await signOut({ redirect: false })
+    window.location.href = "/login"
   }
 
-  const isLoggedIn = status === "authenticated"
+  if (status === "loading") {
+    return <div className="h-16 bg-white border-b" />
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md">
-      <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
-          <Image 
-            src="/logo.png" 
-            alt="OigaUsted" 
-            width={140} 
-            height={40}
-            className="h-9 w-auto object-contain"
-            priority
-          />
+      <div className="container flex h-16 items-center justify-between px-6">
+        <Link href="/" className="flex items-center gap-2 font-bold text-2xl text-yellow-600">
+          OigaUsted
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-          {user?.role !== "admin" && (
+          {!isAdmin && (
             <>
-              <Link href="/gigs" className="hover:text-yellow-600 transition-colors">Explorar Gigs</Link>
-              <Link href="/create-gig" className="hover:text-yellow-600 transition-colors">Publicar Gig</Link>
+              <Link href="/gigs" className="hover:text-yellow-600">Explorar Gigs</Link>
+              <Link href="/create-gig" className="hover:text-yellow-600">Publicar Gig</Link>
             </>
           )}
-          {user?.role === "admin" && (
-            <>
-              <Link href="/admin" className="hover:text-yellow-600 transition-colors font-semibold">Dashboard</Link>
-              <Link href="/admin/users" className="hover:text-yellow-600 transition-colors">Usuarios</Link>
-            </>
-          )}
-          <Link href="/profile" className="hover:text-yellow-600 transition-colors">Mi Perfil</Link>
-          {user && user.role !== "admin" && (
-            <Link href="/seller" className="hover:text-yellow-600 transition-colors">Vendedor</Link>
-          )}
-          <Link href="#" className="hover:text-yellow-600 transition-colors flex items-center gap-1">
-            <HelpCircle size={16} /> Ayuda
+          <Link href="/profile" className="hover:text-yellow-600 flex items-center gap-1">
+            <User size={18} /> Mi Perfil
           </Link>
+          {isAdmin && <Link href="/admin" className="hover:text-yellow-600 font-medium">Admin</Link>}
         </nav>
 
         <div className="flex items-center gap-3">
-          {isLoggedIn && user ? (
-            <div className="flex items-center gap-4">
-              <div className="hidden md:flex items-center gap-2 text-sm">
-                <User size={16} />
-                <span>{user.name}</span>
-                <span className="text-xs bg-yellow-100 px-2 py-1 rounded-full">({user.role})</span>
-              </div>
-
-              {user.role !== "admin" && (
-                <Button variant="ghost" size="sm" className="flex items-center gap-2 text-blue-600">
-                  <Repeat size={16} />
-                  Cambiar Rol
-                </Button>
-              )}
-
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleLogout} 
-                className="flex items-center gap-2 text-red-600 hover:text-red-700"
-              >
-                <LogOut size={16} />
-                Cerrar Sesión
+          {user ? (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600 hidden md:block">
+                {isAdmin ? "Admin" : (user as any).role === "buyer" ? "Comprador" : "Vendedor"}
+              </span>
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                <LogOut size={18} />
               </Button>
             </div>
           ) : (
-            <Button variant="outline" size="sm" asChild>
+            <Button asChild>
               <Link href="/login">Iniciar Sesión</Link>
-            </Button>
-          )}
-
-          {user?.role !== "admin" && (
-            <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700" asChild>
-              <Link href="/create-gig">Publicar Gig</Link>
             </Button>
           )}
 
@@ -107,35 +68,20 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden border-t bg-white">
-          <div className="container py-6 flex flex-col gap-6 text-lg">
-            {user?.role !== "admin" && (
+        <div className="md:hidden border-t bg-white px-6 py-6">
+          <div className="flex flex-col gap-6 text-lg">
+            {!isAdmin && (
               <>
                 <Link href="/gigs" onClick={() => setIsMenuOpen(false)}>Explorar Gigs</Link>
                 <Link href="/create-gig" onClick={() => setIsMenuOpen(false)}>Publicar Gig</Link>
               </>
             )}
-            {user?.role === "admin" && (
-              <>
-                <Link href="/admin" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
-                <Link href="/admin/users" onClick={() => setIsMenuOpen(false)}>Usuarios</Link>
-              </>
-            )}
             <Link href="/profile" onClick={() => setIsMenuOpen(false)}>Mi Perfil</Link>
-            {user && user.role !== "admin" && (
-              <Link href="/seller" onClick={() => setIsMenuOpen(false)}>Vendedor</Link>
-            )}
-            <Link href="#" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2">
-              <HelpCircle size={20} /> Ayuda
-            </Link>
+            {isAdmin && <Link href="/admin" onClick={() => setIsMenuOpen(false)}>Admin Panel</Link>}
             {user && (
-              <button 
-                onClick={handleLogout} 
-                className="text-left text-red-600 flex items-center gap-2"
-              >
-                <LogOut size={20} /> Cerrar Sesión
+              <button onClick={handleLogout} className="text-left text-red-600">
+                Cerrar Sesión
               </button>
             )}
           </div>
