@@ -1,6 +1,13 @@
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 
+const demoUsers = [
+  { id: "1", name: "Chris Buyer", email: "buyer@demo.com", password: "123", role: "buyer" },
+  { id: "2", name: "Ana Seller", email: "seller@demo.com", password: "123", role: "seller" },
+  { id: "3", name: "Admin", email: "admin@demo.com", password: "123", role: "admin" },
+  { id: "4", name: "Chris Miller", email: "chris@demo.com", password: "123", role: "admin" },
+]
+
 const handler = NextAuth({
   providers: [
     CredentialsProvider({
@@ -15,22 +22,15 @@ const handler = NextAuth({
         const email = credentials.email.toLowerCase().trim()
         const password = credentials.password.trim()
 
-        const demoUsers = [
-          { id: "1", name: "Chris Buyer", email: "buyer@demo.com", password: "123", role: "buyer" },
-          { id: "2", name: "Ana Seller", email: "seller@demo.com", password: "123", role: "seller" },
-          { id: "3", name: "Admin", email: "admin@demo.com", password: "123", role: "admin" },
-          { id: "4", name: "Chris Miller", email: "chris@demo.com", password: "123", role: "admin" },
-        ]
-
         const user = demoUsers.find(u => u.email === email && u.password === password)
 
         if (user) {
           console.log(`✅ Login successful: ${user.email} as ${user.role}`)
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
+          return { 
+            id: user.id, 
+            name: user.name, 
+            email: user.email, 
+            role: user.role 
           }
         }
 
@@ -39,23 +39,18 @@ const handler = NextAuth({
       }
     })
   ],
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
-  session: {
-    strategy: "jwt",
-  },
+  pages: { signIn: "/login" },
+  session: { strategy: "jwt" },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) token.role = (user as any).role
+    async jwt({ token, user }: any) {
+      if (user) token.role = user.role
       return token
     },
-    async session({ session, token }) {
+    async session({ session, token }: any) {
       if (token.role) (session.user as any).role = token.role
       return session
-    },
-  },
+    }
+  }
 })
 
 export { handler as GET, handler as POST }
