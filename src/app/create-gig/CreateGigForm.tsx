@@ -20,6 +20,7 @@ export default function CreateGigForm() {
   const [category, setCategory] = useState("")
   const [completionTime, setCompletionTime] = useState("")
   const [loading, setLoading] = useState(false)
+  const [generating, setGenerating] = useState(false)
 
   useEffect(() => {
     if (editId) {
@@ -34,6 +35,28 @@ export default function CreateGigForm() {
       }
     }
   }, [editId])
+
+  const generateDescription = async () => {
+    if (!title.trim()) {
+      alert("Por favor escribe un título primero")
+      return
+    }
+
+    setGenerating(true)
+
+    // Simple AI simulation
+    const templates = [
+      `Servicio profesional de ${title.toLowerCase()}. Resultados de alta calidad con atención personalizada. Incluye ${completionTime || "entrega rápida"} y revisiones según sea necesario. Perfecto para negocios en Colombia.`,
+      `¿Buscas ${title.toLowerCase()}? Te ofrezco un trabajo excepcional, rápido y adaptado a tus necesidades. Experiencia comprobada y satisfacción garantizada.`,
+      `Ofrezco ${title.toLowerCase()} profesional. Trabajo detallado, creativo y eficiente. Entrega en ${completionTime || "el tiempo acordado"} con soporte post-entrega.`
+    ]
+
+    const randomDesc = templates[Math.floor(Math.random() * templates.length)]
+    setDescription(randomDesc)
+
+    setGenerating(false)
+    alert("¡Descripción generada con IA! Puedes editarla si deseas mejorar el texto.")
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -70,7 +93,7 @@ export default function CreateGigForm() {
 
     setTimeout(() => {
       router.push("/seller")
-    }, 600)
+    }, 800)
   }
 
   return (
@@ -96,13 +119,24 @@ export default function CreateGigForm() {
           </div>
 
           <div>
-            <Label htmlFor="description">Descripción detallada *</Label>
+            <div className="flex justify-between items-center mb-2">
+              <Label htmlFor="description">Descripción detallada *</Label>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                onClick={generateDescription}
+                disabled={generating || !title.trim()}
+              >
+                {generating ? "Generando..." : "✨ Generar con IA"}
+              </Button>
+            </div>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Explica qué incluye el servicio..."
-              rows={5}
+              rows={6}
               required
             />
           </div>

@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 
 type ToastType = "success" | "error" | "info";
 
@@ -19,7 +19,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = (message: string, type: ToastType = "success") => {
-    const id = Date.now();
+    const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { id, message, type }]);
 
     setTimeout(() => {
@@ -30,11 +30,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+      <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-auto">
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`px-6 py-3 rounded-xl shadow-lg text-white flex items-center gap-3 max-w-xs animate-slide-up ${
+            className={`px-6 py-4 rounded-2xl shadow-2xl text-white flex items-center gap-3 max-w-sm text-sm ${
               toast.type === "success" ? "bg-green-600" :
               toast.type === "error" ? "bg-red-600" : "bg-blue-600"
             }`}
@@ -49,6 +49,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
 export const useToast = () => {
   const context = useContext(ToastContext);
-  if (!context) throw new Error("useToast must be used within ToastProvider");
+  if (!context) {
+    console.warn("useToast used outside ToastProvider - falling back to alert");
+    return { showToast: (msg: string) => alert(msg) };
+  }
   return context;
 };
