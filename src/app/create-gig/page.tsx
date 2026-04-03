@@ -36,6 +36,7 @@ export default function CreateGigPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
     if (!title || !description || !price || !category || !completionTime) {
       alert("Por favor completa todos los campos")
       return
@@ -67,25 +68,53 @@ export default function CreateGigPage() {
 
   return (
     <div className="container py-12 max-w-2xl mx-auto">
-      <h1 className="text-4xl font-bold mb-8">{isEditing ? "Editar Gig" : "Publicar Nuevo Gig"}</h1>
+      <h1 className="text-4xl font-bold mb-8">
+        {isEditing ? "Editar Gig" : "Publicar Nuevo Gig"}
+      </h1>
+
       <form onSubmit={handleSubmit} className="space-y-8">
         <div>
           <Label htmlFor="title">Título del Gig</Label>
-          <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: Diseño de Logo Profesional" required />
+          <Input
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Ej: Diseño de Logo Profesional"
+            required
+          />
         </div>
+
         <div>
           <Label htmlFor="description">Descripción</Label>
-          <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe el servicio en detalle..." rows={6} required />
+          <Textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe el servicio en detalle..."
+            rows={6}
+            required
+          />
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <Label htmlFor="price">Precio (COP)</Label>
-            <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="85000" required />
+            <Input
+              id="price"
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="85000"
+              required
+            />
           </div>
+
           <div>
             <Label htmlFor="completionTime">Tiempo de Entrega</Label>
             <Select value={completionTime} onValueChange={setCompletionTime} required>
-              <SelectTrigger><SelectValue placeholder="Selecciona tiempo de entrega" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona tiempo de entrega" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="1 día">1 día</SelectItem>
                 <SelectItem value="2 días">2 días</SelectItem>
@@ -97,10 +126,13 @@ export default function CreateGigPage() {
             </Select>
           </div>
         </div>
+
         <div>
           <Label htmlFor="category">Categoría</Label>
           <Select value={category} onValueChange={setCategory} required>
-            <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecciona una categoría" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="diseño">Diseño Gráfico</SelectItem>
               <SelectItem value="video">Edición de Video</SelectItem>
@@ -110,6 +142,7 @@ export default function CreateGigPage() {
             </SelectContent>
           </Select>
         </div>
+
         <Button type="submit" className="w-full py-7 text-lg bg-yellow-600 hover:bg-yellow-700">
           {isEditing ? "Actualizar Gig" : "Publicar Gig"}
         </Button>

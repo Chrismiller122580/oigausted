@@ -1,13 +1,13 @@
 "use client"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import { Menu, X, LogOut, Bell, User } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Menu, X, LogOut, Bell } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 
 export function Navbar() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const router = useRouter()
 
@@ -22,6 +22,18 @@ export function Navbar() {
   const handleLogout = async () => {
     await signOut({ redirect: false })
     window.location.href = "/login"
+  }
+
+  // Show loading state while session is loading
+  if (status === "loading") {
+    return (
+      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md">
+        <div className="container flex h-16 items-center justify-between px-6">
+          <div className="font-bold text-2xl text-yellow-600">OigaUsted</div>
+          <div className="text-sm text-gray-500">Cargando...</div>
+        </div>
+      </header>
+    )
   }
 
   return (
@@ -42,32 +54,21 @@ export function Navbar() {
             </>
           )}
 
-          {isBuyer && (
-            <Link href="/buyer" className="hover:text-yellow-600">Mi Perfil</Link>
-          )}
-
+          {isBuyer && <Link href="/buyer" className="hover:text-yellow-600">Mi Perfil</Link>}
           {isAdmin && <Link href="/admin" className="hover:text-yellow-600">Admin Dashboard</Link>}
         </nav>
 
         <div className="flex items-center gap-4">
           {session && isSeller && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="relative"
-              onClick={() => router.push("/seller")}
-            >
+            <Button variant="ghost" size="icon" onClick={() => router.push("/seller")}>
               <Bell className="w-5 h-5" />
-              {/* Future notification badge can go here */}
             </Button>
           )}
 
           {session ? (
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                Cerrar Sesión
-              </Button>
-            </div>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              Cerrar Sesión
+            </Button>
           ) : (
             <Button variant="outline" size="sm" asChild>
               <Link href="/login">Iniciar Sesión</Link>
