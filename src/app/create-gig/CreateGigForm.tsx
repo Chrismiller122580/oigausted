@@ -7,12 +7,15 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useSession } from "next-auth/react"
 
 export default function CreateGigForm() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { data: session } = useSession()
 
   const editId = searchParams.get("edit")
+  const currentSellerName = session?.user?.name || "Ana Seller"
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -44,18 +47,17 @@ export default function CreateGigForm() {
 
     setGenerating(true)
 
-    // Simple AI simulation
     const templates = [
-      `Servicio profesional de ${title.toLowerCase()}. Resultados de alta calidad con atención personalizada. Incluye ${completionTime || "entrega rápida"} y revisiones según sea necesario. Perfecto para negocios en Colombia.`,
-      `¿Buscas ${title.toLowerCase()}? Te ofrezco un trabajo excepcional, rápido y adaptado a tus necesidades. Experiencia comprobada y satisfacción garantizada.`,
-      `Ofrezco ${title.toLowerCase()} profesional. Trabajo detallado, creativo y eficiente. Entrega en ${completionTime || "el tiempo acordado"} con soporte post-entrega.`
+      `Servicio profesional de ${title.toLowerCase()}. Entrega de alta calidad con atención personalizada y revisiones incluidas. Ideal para negocios en Colombia.`,
+      `Ofrezco ${title.toLowerCase()} con resultados excepcionales. Trabajo detallado, rápido y adaptado a tus necesidades. Satisfacción garantizada.`,
+      `¿Necesitas ${title.toLowerCase()}? Te entrego un servicio profesional, creativo y eficiente en ${completionTime || "el tiempo acordado"}.`
     ]
 
     const randomDesc = templates[Math.floor(Math.random() * templates.length)]
     setDescription(randomDesc)
 
     setGenerating(false)
-    alert("¡Descripción generada con IA! Puedes editarla si deseas mejorar el texto.")
+    alert("¡Descripción generada con IA!")
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -75,7 +77,7 @@ export default function CreateGigForm() {
       price: parseFloat(price),
       category,
       completionTime,
-      seller: "Current Seller",
+      seller: currentSellerName,   // ← This is the important fix
       createdAt: new Date().toISOString()
     }
 

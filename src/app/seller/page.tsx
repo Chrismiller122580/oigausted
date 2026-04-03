@@ -1,271 +1,264 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { DollarSign, Package, Plus, CheckCircle, Trash2, Edit, Upload, Star, TrendingUp, MessageCircle } from "lucide-react"
+import { Upload, Trash2 } from "lucide-react"
 
 export default function SellerDashboard() {
   const { data: session } = useSession()
   const router = useRouter()
-  const [myGigs, setMyGigs] = useState<any[]>([])
-  const [mySales, setMySales] = useState<any[]>([])
-  const [businessProfile, setBusinessProfile] = useState({
-    logo: "",
-    bio: "",
-    socialInstagram: "",
-    socialFacebook: "",
-    socialTwitter: "",
-    website: "",
-    portfolio: [] as string[]
-  })
-  const [replyMessage, setReplyMessage] = useState("")
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
 
-  const currentUserName = session?.user?.name || "Demo Vendedor"
+  const [myGigs, setMyGigs] = useState<any[]>([])
+  const [earnings, setEarnings] = useState(0)
+  const [activeOrders, setActiveOrders] = useState<any[]>([])
+  const [businessProfile, setBusinessProfile] = useState({
+    bio: "",
+    portfolio: [] as string[],
+    logo: ""
+  })
+
+  const currentUserName = session?.user?.name || "Ana Seller"
+  const usernameSlug = currentUserName.toLowerCase().replace(/\s+/g, '')
 
   useEffect(() => {
-    // Load gigs
-    const savedGigs = localStorage.getItem("oigausted-gigs")
-    if (savedGigs) {
-      const allGigs = JSON.parse(savedGigs)
-      const userGigs = allGigs.filter((g: any) => 
-        g.seller.toLowerCase() === currentUserName.toLowerCase()
-      )
-      setMyGigs(userGigs)
-    }
+    const savedGigs = JSON.parse(localStorage.getItem("oigausted-gigs") || "[]")
+    
+    const sellerGigs = savedGigs.filter((g: any) => 
+      g.seller && g.seller.toLowerCase().includes(currentUserName.toLowerCase())
+    )
+    
+    setMyGigs(sellerGigs)
 
-    // Load sales
-    const savedOrders = localStorage.getItem("oigausted-orders")
-    if (savedOrders) {
-      const orders = JSON.parse(savedOrders)
-      const sellerSales = orders.filter((o: any) => 
-        o.seller.toLowerCase() === currentUserName.toLowerCase()
-      )
-      setMySales(sellerSales)
-    }
+    const totalEarnings = sellerGigs.length * 45000
+    setEarnings(totalEarnings)
 
-    // Load profile
-    const savedProfile = localStorage.getItem("oigausted-seller-profile")
+    const savedOrders = JSON.parse(localStorage.getItem("oigausted-orders") || "[]")
+    const sellerOrders = savedOrders.filter((o: any) => 
+      o.seller && o.seller.toLowerCase().includes(currentUserName.toLowerCase())
+    )
+    setActiveOrders(sellerOrders)
+
+    const savedProfile = localStorage.getItem(`businessProfile_${usernameSlug}`)
     if (savedProfile) {
-      const parsed = JSON.parse(savedProfile)
-      setBusinessProfile({
-        ...parsed,
-        portfolio: parsed.portfolio || []
-      })
+      setBusinessProfile(JSON.parse(savedProfile))
     }
-  }, [currentUserName])
-
-  const totalEarnings = mySales.reduce((sum, order) => sum + (order.price || 0), 0)
-  const completedSales = mySales.filter(o => o.status === "Completed").length
-  const activeOrders = mySales.filter(o => o.status !== "Completed")
+  }, [currentUserName, usernameSlug])
 
   const saveBusinessProfile = () => {
-    localStorage.setItem("oigausted-seller-profile", JSON.stringify(businessProfile))
-    alert("Perfil guardado correctamente")
+    localStorage.setItem(`businessProfile_${usernameSlug}`, JSON.stringify(businessProfile))
+    alert("Perfil de negocio guardado correctamente")
+  }
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setBusinessProfile(prev => ({ ...prev, logo: event.target?.result as string }))
+      }
+      reader.readAsDataURL(file)
+    }
   }
 
   const addPortfolioImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       const reader = new FileReader()
-      reader.onload = (ev) => {
+      reader.onload = (event) => {
         setBusinessProfile(prev => ({
           ...prev,
-          portfolio: [...(prev.portfolio || []), ev.target?.result as string]
+          portfolio: [...prev.portfolio, event.target?.result as string]
         }))
       }
       reader.readAsDataURL(file)
     }
   }
 
-  const deleteGig = (gigId: string, title: string) => {
-    if (!confirm(`¿Eliminar "${title}"?`)) return
-    const savedGigs = JSON.parse(localStorage.getItem("oigausted-gigs") || "[]")
-    const updated = savedGigs.filter((g: any) => g.id !== gigId)
-    localStorage.setItem("oigausted-gigs", JSON.stringify(updated))
-    setMyGigs(myGigs.filter(g => g.id !== gigId))
-    alert("Gig eliminado")
+  const removePortfolioImage = (index: number) => {
+    setBusinessProfile(prev => ({
+      ...prev,
+      portfolio: prev.portfolio.filter((_, i) => i !== index)
+    }))
   }
 
-  const boostGig = (gigId: string) => {
-    alert("🚀 Gig boosted! It will appear at the top of Explore Gigs for 7 days (Demo mode).")
-  }
+  const deleteGig = (id: string) => {
+    if (!confirm("¿Eliminar este gig permanentemente?")) return
 
-  const sendSellerReply = (orderId: string) => {
-    if (!replyMessage.trim()) return
+    let gigs = JSON.parse(localStorage.getItem("oigausted-gigs") || "[]")
+    gigs = gigs.filter((g: any) => g.id !== id)
+    localStorage.setItem("oigausted-gigs", JSON.stringify(gigs))
 
-    const savedOrders = JSON.parse(localStorage.getItem("oigausted-orders") || "[]")
-    const index = savedOrders.findIndex((o: any) => o.id === orderId)
-    if (index !== -1) {
-      savedOrders[index].messages = [
-        ...(savedOrders[index].messages || []),
-        {
-          from: "Seller",
-          text: replyMessage.trim(),
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
-      ]
-      localStorage.setItem("oigausted-orders", JSON.stringify(savedOrders))
-    }
-
-    setMySales(mySales.map(o => 
-      o.id === orderId 
-        ? { ...o, messages: [...(o.messages || []), { from: "Seller", text: replyMessage.trim(), time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }] }
-        : o
-    ))
-
-    setReplyMessage("")
-    alert("Respuesta enviada al comprador")
+    setMyGigs(myGigs.filter(g => g.id !== id))
+    alert("Gig eliminado correctamente")
   }
 
   return (
-    <div className="container py-10 max-w-6xl mx-auto">
-      <div className="flex justify-between items-center mb-10">
+    <div className="container py-8 max-w-6xl mx-auto px-4">
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-5xl font-bold">Mi Portal de Vendedor</h1>
-          <p className="text-2xl text-gray-600 mt-2">{currentUserName}</p>
+          <h1 className="text-4xl font-bold">My Seller Dashboard</h1>
+          <p className="text-gray-600">Welcome, {currentUserName}</p>
         </div>
-        <Button onClick={() => router.push("/create-gig")} size="lg" className="bg-yellow-600 hover:bg-yellow-700">
-          <Plus className="mr-2" /> Publicar Nuevo Gig
+        <Button onClick={() => router.push("/create-gig")} className="bg-yellow-600 hover:bg-yellow-700">
+          + Publish New Gig
         </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-500">Published Gigs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-5xl font-bold text-yellow-600">{myGigs.length}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-500">Estimated Earnings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-5xl font-bold text-green-600">${earnings.toLocaleString()}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-500">Active Orders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-5xl font-bold">{activeOrders.length}</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Business Profile */}
       <Card className="mb-12">
-        <CardContent className="p-8">
-          <h2 className="text-2xl font-semibold mb-6 flex items-center gap-3">
-            <Star className="text-yellow-500" /> Mi Perfil de Negocio
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-            <div className="md:col-span-3 text-center">
-              <div className="w-32 h-32 mx-auto border-2 border-dashed border-gray-300 rounded-2xl overflow-hidden bg-gray-50">
-                {businessProfile.logo ? (
-                  <img src={businessProfile.logo} alt="Logo" className="w-full h-full object-cover" />
-                ) : (
-                  <Upload className="w-12 h-12 text-gray-400 mx-auto mt-8" />
-                )}
-              </div>
-              <Input type="file" accept="image/*" className="mt-4" onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) {
-                  const reader = new FileReader()
-                  reader.onload = (ev) => setBusinessProfile({ ...businessProfile, logo: ev.target?.result as string })
-                  reader.readAsDataURL(file)
-                }
-              }} />
-            </div>
-
-            <div className="md:col-span-9 space-y-6">
-              <div>
-                <Label>Bio / Acerca de mí</Label>
-                <Textarea value={businessProfile.bio} onChange={(e) => setBusinessProfile({ ...businessProfile, bio: e.target.value })} placeholder="Cuéntales a los compradores sobre tu experiencia..." rows={4} />
-              </div>
-
-              <div>
-                <Label>Portafolio / Muestras de trabajo</Label>
-                <div className="flex gap-4 flex-wrap mt-3">
-                  {businessProfile.portfolio.map((img, index) => (
-                    <div key={index} className="w-24 h-24 border rounded-lg overflow-hidden">
-                      <img src={img} alt="portfolio" className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                </div>
-                <Input type="file" accept="image/*" onChange={addPortfolioImage} className="mt-3" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>Instagram</Label><Input placeholder="@tuusuario" value={businessProfile.socialInstagram} onChange={(e) => setBusinessProfile({...businessProfile, socialInstagram: e.target.value})} /></div>
-                <div><Label>Facebook</Label><Input placeholder="facebook.com/tuusuario" value={businessProfile.socialFacebook} onChange={(e) => setBusinessProfile({...businessProfile, socialFacebook: e.target.value})} /></div>
-                <div><Label>Twitter/X</Label><Input placeholder="@tuusuario" value={businessProfile.socialTwitter} onChange={(e) => setBusinessProfile({...businessProfile, socialTwitter: e.target.value})} /></div>
-                <div><Label>Sitio Web</Label><Input placeholder="https://tudominio.com" value={businessProfile.website} onChange={(e) => setBusinessProfile({...businessProfile, website: e.target.value})} /></div>
-              </div>
-
-              <Button onClick={saveBusinessProfile} className="w-full">Guardar Perfil</Button>
-              <Button variant="outline" asChild className="w-full">
-                <Link href={`/sellers/${currentUserName.toLowerCase().replace(/\s+/g, '')}`}>Ver mi página pública</Link>
-              </Button>
-            </div>
+        <CardHeader>
+          <CardTitle>Business Profile</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <Label>Logo de tu negocio</Label>
+            <input type="file" accept="image/*" onChange={handleLogoUpload} className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100" />
+            {businessProfile.logo && (
+              <img src={businessProfile.logo} alt="logo" className="mt-4 w-32 h-32 object-cover rounded-xl border" />
+            )}
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Active Orders & Chat */}
-      <Card className="mb-12">
-        <CardContent className="p-8">
-          <h2 className="text-2xl font-semibold mb-6 flex items-center gap-3">
-            <MessageCircle className="text-blue-600" /> Mensajes de Compradores
-          </h2>
-          {activeOrders.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No tienes mensajes pendientes de compradores.</p>
-          ) : (
-            <div className="space-y-6">
-              {activeOrders.map((order) => (
-                <div key={order.id} className="border rounded-2xl p-6">
-                  <h3 className="font-medium">{order.gigTitle}</h3>
-                  <p className="text-sm text-gray-500">Comprador: {order.buyer}</p>
-                  
-                  <div className="mt-4 max-h-48 overflow-y-auto bg-gray-50 p-4 rounded-xl text-sm">
-                    {(order.messages || []).map((msg: any, i: number) => (
-                      <div key={i} className={`mb-3 ${msg.from === "Seller" ? "text-right" : ""}`}>
-                        <span className="text-xs text-gray-500">{msg.from} • {msg.time}</span>
-                        <p className="mt-1">{msg.text}</p>
-                      </div>
-                    ))}
-                  </div>
+          <div>
+            <Label>Bio / Acerca de tu negocio</Label>
+            <Textarea
+              value={businessProfile.bio}
+              onChange={(e) => setBusinessProfile({ ...businessProfile, bio: e.target.value })}
+              placeholder="Cuéntanos sobre tu experiencia y qué te hace único..."
+              rows={4}
+            />
+          </div>
 
-                  <div className="flex gap-3 mt-4">
-                    <Input 
-                      value={replyMessage} 
-                      onChange={(e) => setReplyMessage(e.target.value)} 
-                      placeholder="Escribe tu respuesta al comprador..." 
-                      className="flex-1"
-                    />
-                    <Button onClick={() => sendSellerReply(order.id)}>
-                      Enviar
-                    </Button>
-                  </div>
+          <div>
+            <Label>Portafolio (imágenes de trabajos anteriores)</Label>
+            <input type="file" accept="image/*" onChange={addPortfolioImage} className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100" />
+            <div className="flex flex-wrap gap-4 mt-4">
+              {businessProfile.portfolio.map((img, index) => (
+                <div key={index} className="relative group">
+                  <img src={img} alt="portfolio" className="w-32 h-32 object-cover rounded-xl border" />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => removePortfolioImage(index)}
+                  >
+                    <Trash2 size={14} />
+                  </Button>
                 </div>
               ))}
             </div>
-          )}
+          </div>
+
+          <Button onClick={saveBusinessProfile} className="w-full">
+            Guardar Perfil de Negocio
+          </Button>
+
+          <Button variant="outline" asChild className="w-full">
+            <Link href={`/sellers/${usernameSlug}`}>Ver mi página pública</Link>
+          </Button>
         </CardContent>
       </Card>
 
-      {/* My Gigs */}
-      <div className="bg-white border rounded-3xl p-10">
-        <h2 className="text-3xl font-semibold mb-8">Mis Gigs Publicados</h2>
+      {/* My Published Gigs */}
+      <div className="mb-12">
+        <h2 className="text-2xl font-semibold mb-6">My Published Gigs</h2>
+        
         {myGigs.length === 0 ? (
-          <p className="text-gray-500 text-center py-12">Aún no tienes gigs publicados.</p>
+          <Card className="p-12 text-center">
+            <p className="text-gray-500 text-lg">You don't have any gigs published yet.</p>
+            <Button onClick={() => router.push("/create-gig")} className="mt-6">
+              Create my first Gig
+            </Button>
+          </Card>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {myGigs.map((gig) => (
-              <div key={gig.id} className="border rounded-2xl p-6 hover:shadow-md transition-all">
-                <h3 className="font-semibold text-xl">{gig.title}</h3>
-                <p className="text-yellow-600 text-2xl font-bold">${gig.price}</p>
-                {gig.completionTime && <p className="text-xs text-green-600 mt-1">⏱ {gig.completionTime}</p>}
-                <p className="text-sm text-gray-500 mt-4 line-clamp-2">{gig.description}</p>
-
-                <div className="flex gap-3 mt-6">
+              <Card key={gig.id} className="overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="text-lg line-clamp-2">{gig.title}</CardTitle>
+                  <p className="text-sm text-gray-500">${gig.price.toLocaleString()} COP</p>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-sm text-gray-600 line-clamp-3">{gig.description}</p>
+                  {gig.completionTime && (
+                    <p className="text-xs text-gray-500 mt-3">Delivery: {gig.completionTime}</p>
+                  )}
+                </CardContent>
+                <CardFooter className="flex gap-3 pt-4">
                   <Button variant="outline" className="flex-1" asChild>
-                    <Link href={`/gigs/${gig.id}`}>Ver Detalle</Link>
+                    <Link href={`/create-gig?edit=${gig.id}`}>Edit</Link>
                   </Button>
-                  <Button variant="outline" className="flex-1" onClick={() => router.push(`/create-gig?edit=${gig.id}`)}>
-                    <Edit className="mr-2 h-4 w-4" /> Editar
+                  <Button 
+                    variant="destructive" 
+                    className="flex-1" 
+                    onClick={() => deleteGig(gig.id)}
+                  >
+                    Delete
                   </Button>
-                  <Button variant="outline" onClick={() => boostGig(gig.id)}>
-                    🚀 Boost
-                  </Button>
-                  <Button variant="destructive" size="icon" onClick={() => deleteGig(gig.id, gig.title)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Active Orders */}
+      <div>
+        <h2 className="text-2xl font-semibold mb-6">Active Orders</h2>
+        {activeOrders.length === 0 ? (
+          <Card className="p-12 text-center">
+            <p className="text-gray-500">You don't have any active orders yet.</p>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {activeOrders.map((order) => (
+              <Card key={order.id}>
+                <CardContent className="p-6 flex justify-between items-center">
+                  <div>
+                    <h3 className="font-medium">{order.gigTitle}</h3>
+                    <p className="text-sm text-gray-500">Buyer: {order.buyer}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-green-600">${order.price.toLocaleString()}</p>
+                    <p className="text-xs text-gray-500 capitalize">{order.status}</p>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}

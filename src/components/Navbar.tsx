@@ -21,6 +21,7 @@ export function Navbar() {
 
   const handleLogout = async () => {
     await signOut({ redirect: false })
+    alert("Sesión cerrada correctamente")
     router.push("/login")
   }
 
@@ -70,7 +71,6 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden border-t bg-white py-6">
           <div className="container flex flex-col gap-6 text-lg px-6">
