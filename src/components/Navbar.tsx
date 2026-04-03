@@ -1,8 +1,8 @@
 "use client"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { useState, useEffect } from "react"
-import { Menu, X, LogOut, Bell } from "lucide-react"
+import { useState } from "react"
+import { Menu, X, LogOut } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 
@@ -12,28 +12,16 @@ export function Navbar() {
   const router = useRouter()
 
   const user = session?.user
-  const role = (user as any)?.role || ""
-  const name = user?.name || ""
+  const isAdmin = user && (user as any).role === "admin"
+  const isSeller = user && (user as any).role === "seller"
 
-  const isSeller = role === "seller" || name.toLowerCase().includes("seller") || name.toLowerCase().includes("vendedor")
-  const isAdmin = role === "admin"
-  const isBuyer = !isSeller && !isAdmin
+  if (status === "loading") {
+    return <div className="h-16 bg-white border-b" />
+  }
 
   const handleLogout = async () => {
     await signOut({ redirect: false })
-    window.location.href = "/login"
-  }
-
-  // Show loading state while session is loading
-  if (status === "loading") {
-    return (
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md">
-        <div className="container flex h-16 items-center justify-between px-6">
-          <div className="font-bold text-2xl text-yellow-600">OigaUsted</div>
-          <div className="text-sm text-gray-500">Cargando...</div>
-        </div>
-      </header>
-    )
+    router.push("/login")
   }
 
   return (
@@ -44,33 +32,29 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-          <Link href="/gigs" className="hover:text-yellow-600">Explorar Gigs</Link>
-
-          {isSeller && (
+          {!isAdmin && (
             <>
-              <Link href="/seller" className="hover:text-yellow-600 font-medium">Dashboard</Link>
-              <Link href="/create-gig" className="hover:text-yellow-600">Publicar Gig</Link>
-              <Link href={`/sellers/${name.toLowerCase().replace(/\s+/g, '')}`} className="hover:text-yellow-600">Mi Página Pública</Link>
+              <Link href="/gigs" className="hover:text-yellow-600 transition-colors">Explorar Gigs</Link>
+              {!isSeller && <Link href="/buyer" className="hover:text-yellow-600 transition-colors">Mi Perfil</Link>}
+              {isSeller && <Link href="/seller" className="hover:text-yellow-600 transition-colors">Mi Dashboard</Link>}
+              {isSeller && <Link href="/create-gig" className="hover:text-yellow-600 transition-colors">Publicar Gig</Link>}
             </>
           )}
-
-          {isBuyer && <Link href="/buyer" className="hover:text-yellow-600">Mi Perfil</Link>}
-          {isAdmin && <Link href="/admin" className="hover:text-yellow-600">Admin Dashboard</Link>}
+          {isAdmin && (
+            <>
+              <Link href="/admin" className="hover:text-yellow-600 transition-colors">Admin Dashboard</Link>
+              <Link href="/admin/users" className="hover:text-yellow-600 transition-colors">Usuarios</Link>
+            </>
+          )}
         </nav>
 
-        <div className="flex items-center gap-4">
-          {session && isSeller && (
-            <Button variant="ghost" size="icon" onClick={() => router.push("/seller")}>
-              <Bell className="w-5 h-5" />
-            </Button>
-          )}
-
+        <div className="flex items-center gap-3">
           {session ? (
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               Cerrar Sesión
             </Button>
           ) : (
-            <Button variant="outline" size="sm" asChild>
+            <Button asChild size="sm" variant="outline">
               <Link href="/login">Iniciar Sesión</Link>
             </Button>
           )}
@@ -88,22 +72,25 @@ export function Navbar() {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden border-t bg-white">
-          <div className="container py-6 flex flex-col gap-6 text-lg">
-            <Link href="/gigs" onClick={() => setIsMenuOpen(false)}>Explorar Gigs</Link>
-            
-            {isSeller && (
+        <div className="md:hidden border-t bg-white py-6">
+          <div className="container flex flex-col gap-6 text-lg px-6">
+            {!isAdmin && (
               <>
-                <Link href="/seller" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
-                <Link href="/create-gig" onClick={() => setIsMenuOpen(false)}>Publicar Gig</Link>
-                <Link href={`/sellers/${name.toLowerCase().replace(/\s+/g, '')}`} onClick={() => setIsMenuOpen(false)}>Mi Página Pública</Link>
+                <Link href="/gigs" onClick={() => setIsMenuOpen(false)}>Explorar Gigs</Link>
+                {!isSeller && <Link href="/buyer" onClick={() => setIsMenuOpen(false)}>Mi Perfil</Link>}
+                {isSeller && <Link href="/seller" onClick={() => setIsMenuOpen(false)}>Mi Dashboard</Link>}
+                {isSeller && <Link href="/create-gig" onClick={() => setIsMenuOpen(false)}>Publicar Gig</Link>}
               </>
             )}
-            
-            {isBuyer && <Link href="/buyer" onClick={() => setIsMenuOpen(false)}>Mi Perfil</Link>}
-            {isAdmin && <Link href="/admin" onClick={() => setIsMenuOpen(false)}>Admin Dashboard</Link>}
-            
-            {session && <button onClick={handleLogout} className="text-left text-red-600">Cerrar Sesión</button>}
+            {isAdmin && (
+              <>
+                <Link href="/admin" onClick={() => setIsMenuOpen(false)}>Admin Dashboard</Link>
+                <Link href="/admin/users" onClick={() => setIsMenuOpen(false)}>Usuarios</Link>
+              </>
+            )}
+            {session && (
+              <button onClick={handleLogout} className="text-left text-red-600">Cerrar Sesión</button>
+            )}
           </div>
         </div>
       )}
