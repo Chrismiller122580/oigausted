@@ -21,13 +21,12 @@ export function Navbar() {
 
   const handleLogout = async () => {
     await signOut({ redirect: false })
-    alert("Sesión cerrada correctamente")
     router.push("/login")
   }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md">
-      <div className="container flex h-16 items-center justify-between px-6">
+      <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         <Link href="/" className="flex items-center gap-2 font-bold text-2xl text-yellow-600">
           OigaUsted
         </Link>
@@ -42,10 +41,7 @@ export function Navbar() {
             </>
           )}
           {isAdmin && (
-            <>
-              <Link href="/admin" className="hover:text-yellow-600 transition-colors">Admin Dashboard</Link>
-              <Link href="/admin/users" className="hover:text-yellow-600 transition-colors">Usuarios</Link>
-            </>
+            <Link href="/admin" className="hover:text-yellow-600 transition-colors">Admin</Link>
           )}
         </nav>
 
@@ -72,8 +68,8 @@ export function Navbar() {
       </div>
 
       {isMenuOpen && (
-        <div className="md:hidden border-t bg-white py-6">
-          <div className="container flex flex-col gap-6 text-lg px-6">
+        <div className="md:hidden border-t bg-white py-6 px-4">
+          <div className="flex flex-col gap-6 text-lg">
             {!isAdmin && (
               <>
                 <Link href="/gigs" onClick={() => setIsMenuOpen(false)}>Explorar Gigs</Link>
@@ -82,15 +78,8 @@ export function Navbar() {
                 {isSeller && <Link href="/create-gig" onClick={() => setIsMenuOpen(false)}>Publicar Gig</Link>}
               </>
             )}
-            {isAdmin && (
-              <>
-                <Link href="/admin" onClick={() => setIsMenuOpen(false)}>Admin Dashboard</Link>
-                <Link href="/admin/users" onClick={() => setIsMenuOpen(false)}>Usuarios</Link>
-              </>
-            )}
-            {session && (
-              <button onClick={handleLogout} className="text-left text-red-600">Cerrar Sesión</button>
-            )}
+            {isAdmin && <Link href="/admin" onClick={() => setIsMenuOpen(false)}>Admin Dashboard</Link>}
+            {session && <button onClick={handleLogout} className="text-red-600 text-left">Cerrar Sesión</button>}
           </div>
         </div>
       )}

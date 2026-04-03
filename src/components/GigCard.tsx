@@ -31,9 +31,7 @@ export default function GigCard({ gig }: { gig: Gig }) {
   }, [])
 
   const isOwnGig = currentUserName && 
-    (gig.seller.toLowerCase() === currentUserName.toLowerCase() ||
-     currentUserName.toLowerCase().includes("seller") === false && 
-     gig.seller.toLowerCase().includes(currentUserName.toLowerCase()))
+    gig.seller.toLowerCase().includes(currentUserName.toLowerCase())
 
   const handleBuyNow = () => {
     if (isOwnGig) {
@@ -46,7 +44,7 @@ export default function GigCard({ gig }: { gig: Gig }) {
       id: orderId,
       gigTitle: gig.title,
       price: gig.price,
-      status: "Pending" as const,
+      status: "Pending",
       progress: 0,
       buyer: currentUserName || "Comprador",
       seller: gig.seller,
@@ -56,11 +54,11 @@ export default function GigCard({ gig }: { gig: Gig }) {
       createdAt: new Date().toISOString()
     }
 
-    const savedOrders = JSON.parse(localStorage.getItem("oigausted-orders") || "[]")
+    let savedOrders = JSON.parse(localStorage.getItem("oigausted-orders") || "[]")
     savedOrders.push(newOrder)
     localStorage.setItem("oigausted-orders", JSON.stringify(savedOrders))
 
-    router.push(`/orders/${orderId}`)
+    router.push(`/checkout/${orderId}`)
   }
 
   return (

@@ -2,6 +2,7 @@
 
 import { SessionProvider } from "next-auth/react"
 import { Navbar } from "@/components/Navbar"
+import GrokAssistant from "@/components/GrokAssistant"
 
 export function NavbarWrapper({ children }: { children: React.ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export function NavbarWrapper({ children }: { children: React.ReactNode }) {
       <main className="min-h-screen">
         {children}
       </main>
+      <GrokAssistant />
     </SessionProvider>
   )
 }

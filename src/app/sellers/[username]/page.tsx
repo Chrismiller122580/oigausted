@@ -1,110 +1,102 @@
 "use client"
+
 import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams } from "next/navigation"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { ArrowLeft, Instagram, Facebook, Twitter, Globe, Star, Image } from "lucide-react"
 
 export default function PublicSellerProfile() {
-  const params = useParams()
-  const router = useRouter()
-  const username = params.username as string
-
-  const [sellerProfile, setSellerProfile] = useState<any>(null)
-  const [sellerGigs, setSellerGigs] = useState<any[]>([])
+  const { username } = useParams()
+  const [seller, setSeller] = useState<any>(null)
+  const [gigs, setGigs] = useState<any[]>([])
 
   useEffect(() => {
-    const savedProfile = localStorage.getItem("oigausted-seller-profile")
+    const savedProfile = localStorage.getItem(`businessProfile_${username}`)
     if (savedProfile) {
-      setSellerProfile(JSON.parse(savedProfile))
+      setSeller(JSON.parse(savedProfile))
     }
 
-    const savedGigs = localStorage.getItem("oigausted-gigs")
-    if (savedGigs) {
-      const allGigs = JSON.parse(savedGigs)
-      const userGigs = allGigs.filter((g: any) => 
-        g.seller.toLowerCase().replace(/\s+/g, '') === username.toLowerCase()
-      )
-      setSellerGigs(userGigs)
-    }
+    const savedGigs = JSON.parse(localStorage.getItem("oigausted-gigs") || "[]")
+    const sellerGigs = savedGigs.filter((g: any) => 
+      g.seller && g.seller.toLowerCase().replace(/\s+/g, '') === username
+    )
+    setGigs(sellerGigs)
   }, [username])
 
-  if (!sellerProfile) {
-    return <div className="container py-20 text-center">Cargando perfil del vendedor...</div>
+  if (!seller) {
+    return (
+      <div className="container py-20 text-center">
+        <h1 className="text-3xl font-bold">Vendedor no encontrado</h1>
+        <p className="text-gray-500 mt-4">El perfil que buscas no existe.</p>
+      </div>
+    )
   }
 
   return (
-    <div className="container py-10 max-w-5xl mx-auto">
-      <Button onClick={() => router.push("/gigs")} variant="outline" className="mb-8">
-        ← Volver a Explorar Gigs
-      </Button>
-
-      <div className="bg-white border rounded-3xl p-10">
-        <div className="flex flex-col md:flex-row gap-10">
-          {/* Profile Header */}
-          <div className="md:w-80 flex-shrink-0 text-center">
-            <div className="w-40 h-40 mx-auto rounded-2xl overflow-hidden border-4 border-white shadow-xl">
-              {sellerProfile.logo ? (
-                <img src={sellerProfile.logo} alt="Logo" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <Star className="w-20 h-20 text-gray-400" />
-                </div>
-              )}
-            </div>
-
-            <h1 className="text-3xl font-bold mt-6">Demo Vendedor</h1>
-            <p className="text-gray-500">Vendedor Profesional en Colombia</p>
-
-            <div className="flex justify-center gap-6 mt-8">
-              {sellerProfile.socialInstagram && <a href={`https://instagram.com/${sellerProfile.socialInstagram}`} target="_blank" className="text-pink-600"><Instagram className="w-6 h-6" /></a>}
-              {sellerProfile.socialFacebook && <a href={sellerProfile.socialFacebook} target="_blank" className="text-blue-600"><Facebook className="w-6 h-6" /></a>}
-              {sellerProfile.socialTwitter && <a href={`https://twitter.com/${sellerProfile.socialTwitter}`} target="_blank" className="text-black"><Twitter className="w-6 h-6" /></a>}
-              {sellerProfile.website && <a href={sellerProfile.website} target="_blank" className="text-gray-600"><Globe className="w-6 h-6" /></a>}
-            </div>
-          </div>
-
-          {/* Bio and Portfolio */}
-          <div className="flex-1">
-            <h2 className="text-2xl font-semibold mb-4">Sobre mí</h2>
-            <p className="text-gray-700 leading-relaxed mb-10">
-              {sellerProfile.bio || "Este vendedor aún no ha agregado una bio."}
-            </p>
-
-            {sellerProfile.portfolio && sellerProfile.portfolio.length > 0 && (
-              <>
-                <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-                  <Image className="w-6 h-6" /> Portafolio / Muestras
-                </h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-12">
-                  {sellerProfile.portfolio.map((img: string, index: number) => (
-                    <div key={index} className="aspect-square border rounded-xl overflow-hidden">
-                      <img src={img} alt="portfolio" className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                </div>
-              </>
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white border-b">
+        <div className="container max-w-5xl mx-auto px-6 py-12">
+          <div className="flex flex-col md:flex-row gap-8 items-center">
+            {seller.logo ? (
+              <img 
+                src={seller.logo} 
+                alt="logo" 
+                className="w-32 h-32 rounded-2xl object-cover border-4 border-white shadow-lg" 
+              />
+            ) : (
+              <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-5xl text-white font-bold">
+                {username[0]?.toUpperCase()}
+              </div>
             )}
 
-            <h2 className="text-2xl font-semibold mb-6">Mis Servicios</h2>
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="text-5xl font-bold mb-2">{username}</h1>
+              <p className="text-xl text-gray-600 max-w-md mx-auto md:mx-0">
+                {seller.bio || "Vendedor profesional en Colombia. Ofrezco servicios de calidad con entrega rápida."}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            {sellerGigs.length === 0 ? (
-              <p className="text-gray-500">Este vendedor aún no tiene gigs publicados.</p>
-            ) : (
-              <div className="grid gap-6">
-                {sellerGigs.map((gig) => (
-                  <div key={gig.id} className="border rounded-2xl p-6 hover:shadow-md transition-all">
-                    <h3 className="font-semibold text-xl">{gig.title}</h3>
-                    <p className="text-2xl font-bold text-yellow-600 mt-2">${gig.price}</p>
-                    {gig.completionTime && <p className="text-sm text-green-600 mt-1">⏱ {gig.completionTime}</p>}
-                    <p className="text-sm text-gray-600 mt-4 line-clamp-3">{gig.description}</p>
-
-                    <Button className="mt-6" asChild>
-                      <Link href={`/gigs/${gig.id}`}>Ver Detalle del Gig</Link>
-                    </Button>
+      <div className="container max-w-5xl mx-auto px-6 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          <div className="lg:col-span-2">
+            <h2 className="text-2xl font-semibold mb-6">Portafolio</h2>
+            {seller.portfolio && seller.portfolio.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {seller.portfolio.map((img: string, index: number) => (
+                  <div key={index} className="aspect-square rounded-2xl overflow-hidden border">
+                    <img src={img} alt="portfolio" className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>
+            ) : (
+              <p className="text-gray-500">Este vendedor aún no ha agregado portafolio.</p>
+            )}
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-semibold mb-6">Servicios Disponibles</h2>
+            {gigs.length > 0 ? (
+              <div className="space-y-4">
+                {gigs.map((gig) => (
+                  <Card key={gig.id}>
+                    <CardContent className="p-6">
+                      <h3 className="font-medium">{gig.title}</h3>
+                      <p className="text-2xl font-bold text-yellow-600 mt-2">
+                        ${gig.price.toLocaleString()}
+                      </p>
+                      <Button asChild className="w-full mt-4" variant="outline">
+                        <Link href={`/gigs/${gig.id}`}>Ver Detalles</Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">Este vendedor aún no tiene gigs publicados.</p>
             )}
           </div>
         </div>

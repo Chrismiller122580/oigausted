@@ -1,228 +1,108 @@
 "use client"
-import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+
+import { useEffect, useState } from "react"
+import { useParams, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ToastProvider"
-import { MessageCircle, Upload, Star, CheckCircle, ArrowLeft } from "lucide-react"
+import { Send } from "lucide-react"
 
-interface Order {
-  id: string
-  gigTitle: string
-  price: number
-  status: string
-  progress: number
-  buyer: string
-  seller: string
-  messages: { from: string; text: string; time: string }[]
-  files: { name: string; url: string }[]
-  rating?: number
-  reviewComment?: string
-}
+export default function OrderDetailPage() {
+  const { id } = useParams()
+  const searchParams = useSearchParams()
+  const isSuccess = searchParams.get("success") === "true"
 
-export default function OrderDetail() {
-  const params = useParams()
-  const router = useRouter()
-  const { showToast } = useToast()
-  
-  const [order, setOrder] = useState<Order | null>(null)
+  const [order, setOrder] = useState<any>(null)
+  const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState("")
-  const [rating, setRating] = useState(0)
-  const [reviewComment, setReviewComment] = useState("")
-  const [showRatingModal, setShowRatingModal] = useState(false)
+  const [currentUser, setCurrentUser] = useState("")
 
   useEffect(() => {
     const savedOrders = JSON.parse(localStorage.getItem("oigausted-orders") || "[]")
-    const found = savedOrders.find((o: Order) => o.id === params.id)
-    
-    if (found) {
-      setOrder(found)
-    } else {
-      router.push("/buyer")
+    const foundOrder = savedOrders.find((o: any) => o.id === id)
+    setOrder(foundOrder)
+
+    const savedMessages = JSON.parse(localStorage.getItem(`chat_${id}`) || "[]")
+    setMessages(savedMessages)
+
+    const userStr = localStorage.getItem("oigausted-user")
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr)
+        setCurrentUser(user.name || "")
+      } catch (e) {}
     }
-  }, [params.id, router])
+  }, [id])
 
   const sendMessage = () => {
     if (!newMessage.trim() || !order) return
 
-    const updatedOrder = {
-      ...order,
-      messages: [
-        ...order.messages,
-        {
-          from: "Buyer",
-          text: newMessage.trim(),
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
-      ]
+    const messageObj = {
+      id: Date.now(),
+      text: newMessage.trim(),
+      sender: currentUser || "Usuario",
+      timestamp: new Date().toISOString()
     }
 
-    const savedOrders = JSON.parse(localStorage.getItem("oigausted-orders") || "[]")
-    const index = savedOrders.findIndex((o: Order) => o.id === order.id)
-    if (index !== -1) {
-      savedOrders[index] = updatedOrder
-      localStorage.setItem("oigausted-orders", JSON.stringify(savedOrders))
-    }
+    const updatedMessages = [...messages, messageObj]
+    setMessages(updatedMessages)
+    localStorage.setItem(`chat_${id}`, JSON.stringify(updatedMessages))
 
-    setOrder(updatedOrder)
     setNewMessage("")
-    showToast("Mensaje enviado al vendedor", "success")
   }
 
-  const markAsReceived = () => {
-    setShowRatingModal(true)
-  }
-
-  const submitRating = () => {
-    if (!order || rating === 0) return
-
-    const updatedOrder = {
-      ...order,
-      status: "Completed",
-      progress: 100,
-      rating,
-      reviewComment: reviewComment.trim()
-    }
-
-    const savedOrders = JSON.parse(localStorage.getItem("oigausted-orders") || "[]")
-    const index = savedOrders.findIndex((o: Order) => o.id === order.id)
-    if (index !== -1) {
-      savedOrders[index] = updatedOrder
-      localStorage.setItem("oigausted-orders", JSON.stringify(savedOrders))
-    }
-
-    setOrder(updatedOrder)
-    setShowRatingModal(false)
-    setReviewComment("")
-
-    showToast(`¡Gracias por tu calificación de ${rating} estrellas!`, "success")
-
-    // Auto redirect to home page after rating
-    setTimeout(() => {
-      router.push("/")
-    }, 1500)
-  }
-
-  const simulateFileUpload = () => {
-    showToast("Archivo subido correctamente (simulación)", "success")
-  }
-
-  if (!order) return <div className="p-10 text-center">Cargando pedido...</div>
+  if (!order) return <div className="min-h-screen flex items-center justify-center">Orden no encontrada</div>
 
   return (
-    <div className="container py-10 max-w-4xl mx-auto">
-      <Button onClick={() => router.push("/buyer")} variant="outline" className="mb-8">
-        ← Volver a Mi Perfil
-      </Button>
-
-      <div className="bg-white border rounded-3xl p-10">
-        <h1 className="text-4xl font-bold mb-2">{order.gigTitle}</h1>
-        <p className="text-3xl text-yellow-600 font-semibold mb-8">${order.price}</p>
-
-        {/* Progress */}
-        <div className="mb-10">
-          <div className="flex justify-between mb-3">
-            <span className="font-medium">Progreso del Pedido</span>
-            <span>{order.progress}%</span>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container max-w-3xl mx-auto px-4">
+        {isSuccess && (
+          <div className="bg-green-100 border border-green-300 rounded-2xl p-6 mb-8 text-center">
+            <h1 className="text-2xl font-bold text-green-700">¡Pago confirmado!</h1>
+            <p className="text-green-600">El vendedor ha sido notificado. Puedes chatear con él aquí.</p>
           </div>
-          <Progress value={order.progress} className="h-5" />
-        </div>
+        )}
 
-        {/* Chat Section */}
-        <div className="mb-12">
-          <h3 className="font-semibold text-xl mb-4 flex items-center gap-2">
-            <MessageCircle className="w-6 h-6" /> Chat con el Vendedor
-          </h3>
-          <div className="h-80 border rounded-2xl p-6 bg-gray-50 overflow-y-auto mb-4 space-y-4">
-            {order.messages.length === 0 ? (
-              <p className="text-gray-500 text-center py-10">Aún no hay mensajes. Inicia la conversación.</p>
+        <Card className="mb-8">
+          <CardContent className="p-6">
+            <h2 className="text-2xl font-semibold">{order.gigTitle}</h2>
+            <p className="text-gray-500">Orden #{order.id}</p>
+            <p className="text-3xl font-bold text-yellow-600 mt-4">${order.price.toLocaleString()} COP</p>
+          </CardContent>
+        </Card>
+
+        {/* Chat */}
+        <Card className="h-[500px] flex flex-col">
+          <div className="p-4 border-b font-medium">Chat con el vendedor</div>
+          
+          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50">
+            {messages.length === 0 ? (
+              <p className="text-center text-gray-500 mt-10">Aún no hay mensajes. Envía el primero.</p>
             ) : (
-              order.messages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.from === "Buyer" ? "justify-end" : ""}`}>
-                  <div className={`max-w-[75%] p-4 rounded-2xl ${msg.from === "Buyer" ? "bg-yellow-600 text-white" : "bg-white border"}`}>
+              messages.map((msg) => (
+                <div key={msg.id} className={`flex ${msg.sender === currentUser ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[75%] p-3 rounded-2xl ${msg.sender === currentUser ? "bg-yellow-600 text-white" : "bg-white border"}`}>
                     <p>{msg.text}</p>
-                    <p className="text-xs opacity-70 mt-1">{msg.time}</p>
+                    <p className="text-xs opacity-70 mt-1">{new Date(msg.timestamp).toLocaleTimeString()}</p>
                   </div>
                 </div>
               ))
             )}
           </div>
 
-          <div className="flex gap-3">
+          <div className="p-4 border-t flex gap-2">
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-              placeholder="Escribe un mensaje al vendedor..."
-              className="flex-1"
+              placeholder="Escribe un mensaje..."
             />
-            <Button onClick={sendMessage}>Enviar</Button>
-          </div>
-        </div>
-
-        {/* File Section */}
-        <div className="mb-12">
-          <h3 className="font-semibold text-xl mb-4">Archivos y Entregables</h3>
-          <Button onClick={simulateFileUpload} className="mb-4">
-            <Upload className="mr-2" /> Subir Archivo
-          </Button>
-        </div>
-
-        {/* Review Section */}
-        {order.rating && (
-          <div className="mb-8 p-6 border rounded-2xl bg-green-50">
-            <h3 className="font-semibold text-lg mb-3">Tu Calificación</h3>
-            <div className="flex items-center gap-2 text-3xl text-yellow-500 mb-2">
-              {"★".repeat(order.rating)}
-            </div>
-            {order.reviewComment && <p className="text-gray-700 italic">"{order.reviewComment}"</p>}
-          </div>
-        )}
-
-        {/* Action Button */}
-        {order.status !== "Completed" && (
-          <Button 
-            onClick={markAsReceived}
-            className="w-full py-8 text-xl bg-green-600 hover:bg-green-700"
-          >
-            Marcar como Recibido y Calificar Servicio
-          </Button>
-        )}
-      </div>
-
-      {/* Rating Modal with Comment */}
-      {showRatingModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-white rounded-3xl p-10 max-w-md w-full">
-            <h3 className="text-2xl font-bold mb-6 text-center">¿Cómo calificarías este servicio?</h3>
-            
-            <div className="flex justify-center gap-4 mb-8 text-5xl">
-              {[1,2,3,4,5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => setRating(star)}
-                  className={rating >= star ? "text-yellow-500" : "text-gray-300"}
-                >
-                  ★
-                </button>
-              ))}
-            </div>
-
-            <Textarea
-              value={reviewComment}
-              onChange={(e) => setReviewComment(e.target.value)}
-              placeholder="Escribe un comentario sobre el servicio (opcional)"
-              className="mb-6 min-h-[100px]"
-            />
-
-            <Button onClick={submitRating} disabled={rating === 0} className="w-full py-7 text-lg">
-              Enviar Calificación y Comentario
+            <Button onClick={sendMessage}>
+              <Send size={20} />
             </Button>
           </div>
-        </div>
-      )}
+        </Card>
+      </div>
     </div>
   )
 }
