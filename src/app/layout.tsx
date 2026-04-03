@@ -1,16 +1,13 @@
 import type { Metadata } from "next"
-import { Inter, Geist } from "next/font/google"
+import { Inter } from "next/font/google"
 import "./globals.css"
 import { NavbarWrapper } from "@/components/NavbarWrapper"
-import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "OigaUsted - Gigs Colombia",
-  description: "Plataforma de servicios freelance en Colombia",
+  description: "Plataforma de gigs y servicios locales en Colombia",
 }
 
 export default function RootLayout({
@@ -19,10 +16,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es" className={cn("font-sans", geist.variable)}>
+    <html lang="es">
       <body className={inter.className}>
-        <NavbarWrapper />
-        <main>{children}</main>
+        <NavbarWrapper>
+          {children}
+        </NavbarWrapper>
       </body>
     </html>
   )

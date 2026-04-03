@@ -1,12 +1,18 @@
-'use client';
+"use client"
 
 import { SessionProvider } from "next-auth/react"
-import { Navbar } from "./Navbar"
+import { ToastProvider } from "@/components/ToastProvider"
+import { Navbar } from "@/components/Navbar"
 
-export function NavbarWrapper() {
+export function NavbarWrapper({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <Navbar />
+      <ToastProvider>
+        <Navbar />
+        <main className="min-h-screen">
+          {children}
+        </main>
+      </ToastProvider>
     </SessionProvider>
   )
 }
