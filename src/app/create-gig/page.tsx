@@ -1,138 +1,117 @@
 "use client"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ToastProvider"
 
 export default function CreateGigPage() {
   const router = useRouter()
-  const { showToast } = useToast()
-  const [currentUser, setCurrentUser] = useState<any>(null)
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    category: "Diseño Gráfico",
-    price: "",
-    deliveryDays: "3"
-  })
-  const [loading, setLoading] = useState(false)
+  const searchParams = useSearchParams()
+  const editId = searchParams.get("edit")
+  
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [price, setPrice] = useState("")
+  const [category, setCategory] = useState("")
+  const [completionTime, setCompletionTime] = useState("")
+  const [isEditing, setIsEditing] = useState(false)
 
   useEffect(() => {
-    const userStr = localStorage.getItem("oigausted-user")
-    if (userStr) setCurrentUser(JSON.parse(userStr))
-  }, [])
+    if (editId) {
+      const savedGigs = JSON.parse(localStorage.getItem("oigausted-gigs") || "[]")
+      const gigToEdit = savedGigs.find((g: any) => g.id === editId)
+      if (gigToEdit) {
+        setTitle(gigToEdit.title)
+        setDescription(gigToEdit.description)
+        setPrice(gigToEdit.price.toString())
+        setCategory(gigToEdit.category)
+        setCompletionTime(gigToEdit.completionTime || "")
+        setIsEditing(true)
+      }
+    }
+  }, [editId])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.title || !form.description || !form.price || !form.deliveryDays) {
-      showToast("Por favor completa todos los campos", "error")
-      return
-    }
-    if (!currentUser) {
-      showToast("Debes iniciar sesión para publicar un gig", "error")
-      router.push("/login")
+    if (!title || !description || !price || !category || !completionTime) {
+      alert("Por favor completa todos los campos")
       return
     }
 
-    setLoading(true)
-
-    const newGig = {
-      id: Date.now().toString(),
-      title: form.title.trim(),
-      description: form.description.trim(),
-      category: form.category,
-      price: parseFloat(form.price),
-      deliveryDays: parseInt(form.deliveryDays),
-      sellerId: currentUser.id,
-      sellerName: currentUser.name
+    const gigData = {
+      id: editId || "g" + Date.now(),
+      title: title.trim(),
+      description: description.trim(),
+      price: parseFloat(price),
+      category,
+      completionTime,
+      seller: "Demo Vendedor"
     }
 
-    const existing = JSON.parse(localStorage.getItem("oigausted-gigs") || "[]")
-    localStorage.setItem("oigausted-gigs", JSON.stringify([newGig, ...existing]))
+    let savedGigs = JSON.parse(localStorage.getItem("oigausted-gigs") || "[]")
 
-    showToast(`✅ Gig "${form.title}" publicado exitosamente!`, "success")
+    if (editId) {
+      savedGigs = savedGigs.map((g: any) => g.id === editId ? gigData : g)
+      alert("Gig actualizado correctamente")
+    } else {
+      savedGigs.push(gigData)
+      alert("Gig publicado exitosamente")
+    }
 
-    setTimeout(() => {
-      router.push("/gigs")
-    }, 1200)
+    localStorage.setItem("oigausted-gigs", JSON.stringify(savedGigs))
+    router.push("/seller")
   }
 
   return (
-    <div className="container mx-auto max-w-2xl py-12 px-6">
-      <h1 className="text-4xl font-bold text-center mb-8">Publicar Nuevo Gig</h1>
-
-      <form onSubmit={handleSubmit} className="bg-white border rounded-3xl p-10 space-y-8">
+    <div className="container py-12 max-w-2xl mx-auto">
+      <h1 className="text-4xl font-bold mb-8">{isEditing ? "Editar Gig" : "Publicar Nuevo Gig"}</h1>
+      <form onSubmit={handleSubmit} className="space-y-8">
         <div>
-          <Label>Título del Gig</Label>
-          <Input
-            value={form.title}
-            onChange={(e) => setForm({...form, title: e.target.value})}
-            placeholder="Ej: Diseño de logo profesional"
-            required
-          />
+          <Label htmlFor="title">Título del Gig</Label>
+          <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: Diseño de Logo Profesional" required />
         </div>
-
         <div>
-          <Label>Descripción</Label>
-          <Textarea
-            rows={5}
-            value={form.description}
-            onChange={(e) => setForm({...form, description: e.target.value})}
-            placeholder="Describe tu servicio con detalle..."
-            required
-          />
+          <Label htmlFor="description">Descripción</Label>
+          <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe el servicio en detalle..." rows={6} required />
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <Label>Categoría</Label>
-            <select 
-              value={form.category}
-              onChange={(e) => setForm({...form, category: e.target.value})}
-              className="w-full border rounded-md p-3 mt-1"
-            >
-              <option>Diseño Gráfico</option>
-              <option>Desarrollo Web</option>
-              <option>Marketing Digital</option>
-              <option>Fotografía</option>
-              <option>Producción Musical</option>
-              <option>Otros Servicios</option>
-            </select>
+            <Label htmlFor="price">Precio (COP)</Label>
+            <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="85000" required />
           </div>
-
           <div>
-            <Label>Precio (COP)</Label>
-            <Input
-              type="number"
-              value={form.price}
-              onChange={(e) => setForm({...form, price: e.target.value})}
-              placeholder="250000"
-              required
-            />
-          </div>
-
-          <div>
-            <Label>Días de entrega</Label>
-            <Input
-              type="number"
-              value={form.deliveryDays}
-              onChange={(e) => setForm({...form, deliveryDays: e.target.value})}
-              placeholder="3"
-              min="1"
-              required
-            />
+            <Label htmlFor="completionTime">Tiempo de Entrega</Label>
+            <Select value={completionTime} onValueChange={setCompletionTime} required>
+              <SelectTrigger><SelectValue placeholder="Selecciona tiempo de entrega" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1 día">1 día</SelectItem>
+                <SelectItem value="2 días">2 días</SelectItem>
+                <SelectItem value="3 días">3 días</SelectItem>
+                <SelectItem value="5 días">5 días</SelectItem>
+                <SelectItem value="1 semana">1 semana</SelectItem>
+                <SelectItem value="2 semanas">2 semanas</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-
-        <Button 
-          type="submit" 
-          disabled={loading}
-          className="w-full py-7 text-lg bg-yellow-600 hover:bg-yellow-700"
-        >
-          {loading ? "Publicando..." : "Publicar Gig Ahora"}
+        <div>
+          <Label htmlFor="category">Categoría</Label>
+          <Select value={category} onValueChange={setCategory} required>
+            <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="diseño">Diseño Gráfico</SelectItem>
+              <SelectItem value="video">Edición de Video</SelectItem>
+              <SelectItem value="limpieza">Limpieza</SelectItem>
+              <SelectItem value="redes">Gestión de Redes Sociales</SelectItem>
+              <SelectItem value="otros">Otros Servicios</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button type="submit" className="w-full py-7 text-lg bg-yellow-600 hover:bg-yellow-700">
+          {isEditing ? "Actualizar Gig" : "Publicar Gig"}
         </Button>
       </form>
     </div>

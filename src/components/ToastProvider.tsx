@@ -1,7 +1,7 @@
 "use client"
 import { createContext, useContext, useState, ReactNode } from "react"
 
-type ToastType = "success" | "error"
+type ToastType = "success" | "error" | "info"
 
 interface Toast {
   id: number
@@ -10,7 +10,7 @@ interface Toast {
 }
 
 interface ToastContextType {
-  showToast: (message: string, type: ToastType) => void
+  showToast: (message: string, type?: ToastType) => void
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined)
@@ -23,8 +23,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => [...prev, { id, message, type }])
 
     setTimeout(() => {
-      setToasts((prev) => prev.filter((toast) => toast.id !== id))
-    }, 3000)
+      setToasts((prev) => prev.filter((t) => t.id !== id))
+    }, 4000)
   }
 
   return (
@@ -34,10 +34,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`px-6 py-4 rounded-2xl shadow-2xl text-white flex items-center gap-3 max-w-xs ${
-              toast.type === "success" ? "bg-green-600" : "bg-red-600"
-            }`}
+            className={`px-6 py-4 rounded-2xl shadow-xl text-white flex items-center gap-3 max-w-xs animate-slide-up
+              ${toast.type === "success" ? "bg-green-600" : ""}
+              ${toast.type === "error" ? "bg-red-600" : ""}
+              ${toast.type === "info" ? "bg-blue-600" : ""}
+            `}
           >
+            {toast.type === "success" && "✅"}
+            {toast.type === "error" && "❌"}
+            {toast.type === "info" && "ℹ️"}
             <span>{toast.message}</span>
           </div>
         ))}
@@ -48,8 +53,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 export const useToast = () => {
   const context = useContext(ToastContext)
-  if (!context) {
-    throw new Error("useToast must be used within ToastProvider")
-  }
+  if (!context) throw new Error("useToast must be used within ToastProvider")
   return context
 }
