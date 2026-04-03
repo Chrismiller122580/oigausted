@@ -7,11 +7,15 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
 export default function PublicSellerProfile() {
-  const { username } = useParams()
+  const params = useParams()
+  const username = params.username as string   // Safe cast
+
   const [seller, setSeller] = useState<any>(null)
   const [gigs, setGigs] = useState<any[]>([])
 
   useEffect(() => {
+    if (!username) return
+
     const savedProfile = localStorage.getItem(`businessProfile_${username}`)
     if (savedProfile) {
       setSeller(JSON.parse(savedProfile))
@@ -24,7 +28,7 @@ export default function PublicSellerProfile() {
     setGigs(sellerGigs)
   }, [username])
 
-  if (!seller) {
+  if (!username || !seller) {
     return (
       <div className="container py-20 text-center">
         <h1 className="text-3xl font-bold">Vendedor no encontrado</h1>
@@ -46,7 +50,7 @@ export default function PublicSellerProfile() {
               />
             ) : (
               <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-5xl text-white font-bold">
-                {username[0]?.toUpperCase()}
+                {username[0]?.toUpperCase() || '?'}
               </div>
             )}
 
