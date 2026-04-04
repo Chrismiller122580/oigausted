@@ -7,17 +7,12 @@ import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 
 export function Navbar() {
-  const { data: session, status } = useSession()
+  const { data: session } = useSession()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const router = useRouter()
 
   const user = session?.user
-  const isAdmin = user && (user as any).role === "admin"
-  const isSeller = user && (user as any).role === "seller"
-
-  if (status === "loading") {
-    return <div className="h-16 bg-white border-b" />
-  }
+  const isAdmin = (user as any)?.role === "admin"
 
   const handleLogout = async () => {
     await signOut({ redirect: false })
@@ -26,38 +21,34 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md">
-      <div className="container flex h-16 items-center justify-between px-4 md:px-6">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-9 h-9">
-            <img src="/logo.png" alt="OigaUsted" className="w-full h-full" />
-          </div>
-          <div>
-            <span className="font-bold text-2xl text-[#003087]">Oiga</span>
-            <span className="font-bold text-2xl text-[#FFCD00]">Usted</span>
-          </div>
+      <div className="container flex h-16 items-center justify-between px-6">
+        <Link href="/" className="flex items-center gap-2 font-bold text-2xl text-yellow-600">
+          OigaUsted
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+          <Link href="/gigs" className="hover:text-yellow-600">Explorar Gigs</Link>
+          
           {!isAdmin && (
             <>
-              <Link href="/gigs" className="hover:text-[#FFCD00] transition-colors">Explorar Gigs</Link>
-              {!isSeller && <Link href="/buyer" className="hover:text-[#FFCD00] transition-colors">Mi Perfil</Link>}
-              {isSeller && <Link href="/seller" className="hover:text-[#FFCD00] transition-colors">Mi Dashboard</Link>}
-              {isSeller && <Link href="/create-gig" className="hover:text-[#FFCD00] transition-colors">Publicar Gig</Link>}
+              <Link href="/create-gig" className="hover:text-yellow-600">Publicar Gig</Link>
             </>
           )}
+
           {isAdmin && (
-            <Link href="/admin" className="hover:text-[#FFCD00] transition-colors">Admin</Link>
+            <Link href="/admin" className="hover:text-yellow-600">Admin Panel</Link>
           )}
         </nav>
 
         <div className="flex items-center gap-3">
           {session ? (
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-[#003087]">
-              Cerrar Sesión
-            </Button>
+            <>
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                Cerrar Sesión
+              </Button>
+            </>
           ) : (
-            <Button asChild size="sm" className="bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-[#003087] font-medium">
+            <Button size="sm" asChild>
               <Link href="/login">Iniciar Sesión</Link>
             </Button>
           )}
@@ -73,19 +64,14 @@ export function Navbar() {
         </div>
       </div>
 
+      {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden border-t bg-white py-6 px-4">
-          <div className="flex flex-col gap-6 text-lg">
-            {!isAdmin && (
-              <>
-                <Link href="/gigs" onClick={() => setIsMenuOpen(false)}>Explorar Gigs</Link>
-                {!isSeller && <Link href="/buyer" onClick={() => setIsMenuOpen(false)}>Mi Perfil</Link>}
-                {isSeller && <Link href="/seller" onClick={() => setIsMenuOpen(false)}>Mi Dashboard</Link>}
-                {isSeller && <Link href="/create-gig" onClick={() => setIsMenuOpen(false)}>Publicar Gig</Link>}
-              </>
-            )}
-            {isAdmin && <Link href="/admin" onClick={() => setIsMenuOpen(false)}>Admin Dashboard</Link>}
-            {session && <button onClick={handleLogout} className="text-red-600 text-left">Cerrar Sesión</button>}
+        <div className="md:hidden border-t bg-white">
+          <div className="container py-6 flex flex-col gap-6 text-lg">
+            <Link href="/gigs" onClick={() => setIsMenuOpen(false)}>Explorar Gigs</Link>
+            {!isAdmin && <Link href="/create-gig" onClick={() => setIsMenuOpen(false)}>Publicar Gig</Link>}
+            {isAdmin && <Link href="/admin" onClick={() => setIsMenuOpen(false)}>Admin Panel</Link>}
+            {session && <button onClick={handleLogout} className="text-left">Cerrar Sesión</button>}
           </div>
         </div>
       )}
