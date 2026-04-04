@@ -4,7 +4,6 @@ import type { NextRequest } from 'next/server'
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
-  // Redirect any /profile request to /buyer
   if (pathname === '/profile' || pathname.startsWith('/profile/')) {
     return NextResponse.redirect(new URL('/buyer', request.url))
   }
