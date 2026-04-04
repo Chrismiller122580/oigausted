@@ -12,7 +12,7 @@ export function Navbar() {
   const router = useRouter()
 
   const user = session?.user
-  const role = (user as any)?.role
+  const role = (user as any)?.role || "visitor"
 
   const isAdmin = role === "admin"
   const isSeller = role === "seller"
@@ -39,7 +39,7 @@ export function Navbar() {
 
           {isSeller && (
             <>
-              <Link href="/seller" className="hover:text-yellow-600">Mi Dashboard</Link>
+              <Link href="/seller" className="hover:text-yellow-600 font-medium">Mi Dashboard</Link>
               <Link href="/create-gig" className="hover:text-yellow-600">Publicar Gig</Link>
             </>
           )}
@@ -88,7 +88,7 @@ export function Navbar() {
             
             {isAdmin && <Link href="/admin" onClick={() => setIsMenuOpen(false)}>Admin Panel</Link>}
             
-            {session && <button onClick={handleLogout} className="text-left">Cerrar Sesión</button>}
+            {session && <button onClick={handleLogout} className="text-left text-red-600">Cerrar Sesión</button>}
           </div>
         </div>
       )}
