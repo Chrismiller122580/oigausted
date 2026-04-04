@@ -26,8 +26,9 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between px-6">
-        <Link href="/" className="flex items-center gap-2 font-bold text-2xl text-yellow-600">
-          OigaUsted
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2">
+          <img src="/logo.png" alt="OigaUsted" className="h-9 w-auto" />
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
