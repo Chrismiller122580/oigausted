@@ -34,22 +34,26 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Categories Section */}
+      {/* Categories – Role Aware */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-6">
           <h2 className="text-3xl font-bold text-center mb-10">Categorías Populares</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {categories.map((cat) => {
               const IconComponent = (LucideIcons as any)[cat.icon] || LucideIcons.Star
+              const isBuyer = role === "buyer"
+              const href = isBuyer ? `/gigs` : `/create-gig/${cat.slug}`
+
               return (
                 <Link 
                   key={cat.slug} 
-                  href={`/create-gig/${cat.slug}`} 
+                  href={href} 
                   className="group"
                 >
                   <div className="bg-white border rounded-2xl p-8 text-center hover:border-yellow-500 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col items-center h-full">
                     <IconComponent className="w-12 h-12 text-yellow-600 mb-4 group-hover:scale-110 transition-transform" />
                     <h3 className="font-semibold text-lg">{cat.name}</h3>
+                    {isBuyer && <p className="text-xs text-gray-500 mt-2">Explorar gigs</p>}
                   </div>
                 </Link>
               )
