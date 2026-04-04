@@ -27,31 +27,37 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
-        <Link href="/" className="flex items-center gap-2 font-bold text-2xl text-yellow-600">
-          OigaUsted
+        <Link href="/" className="flex items-center gap-3">
+          <div className="w-9 h-9">
+            <img src="/logo.png" alt="OigaUsted" className="w-full h-full" />
+          </div>
+          <div>
+            <span className="font-bold text-2xl text-[#003087]">Oiga</span>
+            <span className="font-bold text-2xl text-[#FFCD00]">Usted</span>
+          </div>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
           {!isAdmin && (
             <>
-              <Link href="/gigs" className="hover:text-yellow-600 transition-colors">Explorar Gigs</Link>
-              {!isSeller && <Link href="/buyer" className="hover:text-yellow-600 transition-colors">Mi Perfil</Link>}
-              {isSeller && <Link href="/seller" className="hover:text-yellow-600 transition-colors">Mi Dashboard</Link>}
-              {isSeller && <Link href="/create-gig" className="hover:text-yellow-600 transition-colors">Publicar Gig</Link>}
+              <Link href="/gigs" className="hover:text-[#FFCD00] transition-colors">Explorar Gigs</Link>
+              {!isSeller && <Link href="/buyer" className="hover:text-[#FFCD00] transition-colors">Mi Perfil</Link>}
+              {isSeller && <Link href="/seller" className="hover:text-[#FFCD00] transition-colors">Mi Dashboard</Link>}
+              {isSeller && <Link href="/create-gig" className="hover:text-[#FFCD00] transition-colors">Publicar Gig</Link>}
             </>
           )}
           {isAdmin && (
-            <Link href="/admin" className="hover:text-yellow-600 transition-colors">Admin</Link>
+            <Link href="/admin" className="hover:text-[#FFCD00] transition-colors">Admin</Link>
           )}
         </nav>
 
         <div className="flex items-center gap-3">
           {session ? (
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-[#003087]">
               Cerrar Sesión
             </Button>
           ) : (
-            <Button asChild size="sm" variant="outline">
+            <Button asChild size="sm" className="bg-[#FFCD00] hover:bg-[#FFCD00]/90 text-[#003087] font-medium">
               <Link href="/login">Iniciar Sesión</Link>
             </Button>
           )}
