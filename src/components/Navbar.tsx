@@ -12,7 +12,11 @@ export function Navbar() {
   const router = useRouter()
 
   const user = session?.user
-  const isAdmin = (user as any)?.role === "admin"
+  const role = (user as any)?.role
+
+  const isAdmin = role === "admin"
+  const isSeller = role === "seller"
+  const isBuyer = role === "buyer"
 
   const handleLogout = async () => {
     await signOut({ redirect: false })
@@ -28,9 +32,14 @@ export function Navbar() {
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
           <Link href="/gigs" className="hover:text-yellow-600">Explorar Gigs</Link>
-          
-          {!isAdmin && (
+
+          {isBuyer && (
+            <Link href="/buyer" className="hover:text-yellow-600">Mi Perfil</Link>
+          )}
+
+          {isSeller && (
             <>
+              <Link href="/seller" className="hover:text-yellow-600">Mi Dashboard</Link>
               <Link href="/create-gig" className="hover:text-yellow-600">Publicar Gig</Link>
             </>
           )}
@@ -42,11 +51,9 @@ export function Navbar() {
 
         <div className="flex items-center gap-3">
           {session ? (
-            <>
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                Cerrar Sesión
-              </Button>
-            </>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              Cerrar Sesión
+            </Button>
           ) : (
             <Button size="sm" asChild>
               <Link href="/login">Iniciar Sesión</Link>
@@ -69,8 +76,18 @@ export function Navbar() {
         <div className="md:hidden border-t bg-white">
           <div className="container py-6 flex flex-col gap-6 text-lg">
             <Link href="/gigs" onClick={() => setIsMenuOpen(false)}>Explorar Gigs</Link>
-            {!isAdmin && <Link href="/create-gig" onClick={() => setIsMenuOpen(false)}>Publicar Gig</Link>}
+            
+            {isBuyer && <Link href="/buyer" onClick={() => setIsMenuOpen(false)}>Mi Perfil</Link>}
+            
+            {isSeller && (
+              <>
+                <Link href="/seller" onClick={() => setIsMenuOpen(false)}>Mi Dashboard</Link>
+                <Link href="/create-gig" onClick={() => setIsMenuOpen(false)}>Publicar Gig</Link>
+              </>
+            )}
+            
             {isAdmin && <Link href="/admin" onClick={() => setIsMenuOpen(false)}>Admin Panel</Link>}
+            
             {session && <button onClick={handleLogout} className="text-left">Cerrar Sesión</button>}
           </div>
         </div>
