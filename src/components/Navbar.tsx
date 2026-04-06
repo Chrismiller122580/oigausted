@@ -1,85 +1,66 @@
 "use client"
+import { useSession } from "next-auth/react"
+import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import { Menu, X, LogOut } from "lucide-react"
-import { useSession, signOut } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
-export function Navbar() {
-  const { data: session } = useSession()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const router = useRouter()
+// Simple fallback navbar for non-admin pages
+export default function Navbar() {
+  const { data: session, status } = useSession()
+  const pathname = usePathname()
+  const [user, setUser] = useState<any>(null)
 
-  const role = (session?.user as any)?.role || "visitor"
-  const isBuyer = role === "buyer"
-  const isSeller = role === "seller"
-  const isAdmin = role === "admin"
+  useEffect(() => {
+    if (status === "loading") return
 
-  const handleLogout = async () => {
-    await signOut({ redirect: false })
-    router.push("/login")
+    const savedUser = localStorage.getItem("oigausted-user")
+    if (savedUser) {
+      setUser(JSON.parse(savedUser))
+    }
+  }, [status])
+
+  // Don't render on admin pages (handled by admin layout)
+  if (pathname?.startsWith("/admin")) {
+    return null
   }
 
+  const isLoggedIn = !!user || !!session?.user
+  const role = user?.role || (session?.user as any)?.role || "buyer"
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md">
-      <div className="container flex h-16 items-center justify-between px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <img src="/logo.png" alt="OigaUsted" className="h-9 w-auto" />
+    <nav className="fixed top-0 left-0 right-0 bg-white border-b z-50">
+      <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+        <Link href="/" className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-yellow-500 rounded-xl flex items-center justify-center text-black font-bold text-2xl">O</div>
+          <span className="font-bold text-2xl tracking-tight">OigaUsted</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-          <Link href="/gigs" className="hover:text-yellow-600">Explorar Gigs</Link>
-
-          {isBuyer && <Link href="/buyer" className="hover:text-yellow-600">Mi Perfil</Link>}
+        <div className="flex items-center gap-8 text-sm">
+          <Link href="/gigs" className="hover:text-yellow-600">Gigs</Link>
+          <Link href="/orders" className="hover:text-yellow-600">Mis Pedidos</Link>
           
-          {isSeller && (
+          {isLoggedIn ? (
             <>
-              <Link href="/seller" className="hover:text-yellow-600 font-medium">Mi Dashboard</Link>
-              <Link href="/create-gig" className="hover:text-yellow-600">Publicar Gig</Link>
+              {role === "seller" && <Link href="/seller" className="hover:text-yellow-600">Vendedor</Link>}
+              {role === "buyer" && <Link href="/buyer" className="hover:text-yellow-600">Comprador</Link>}
+              <Link href="/profile" className="hover:text-yellow-600">Perfil</Link>
+              <button 
+                onClick={() => {
+                  localStorage.removeItem("oigausted-user")
+                  window.location.href = "/login"
+                }}
+                className="text-red-600 hover:text-red-700"
+              >
+                Cerrar Sesión
+              </button>
             </>
-          )}
-
-          {isAdmin && <Link href="/admin" className="hover:text-yellow-600">Admin Panel</Link>}
-        </nav>
-
-        <div className="flex items-center gap-3">
-          {session ? (
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              Cerrar Sesión
-            </Button>
           ) : (
-            <Button size="sm" asChild>
-              <Link href="/login">Iniciar Sesión</Link>
-            </Button>
+            <Link href="/login" className="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-2 rounded-full font-medium">
+              Iniciar Sesión
+            </Link>
           )}
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </Button>
         </div>
       </div>
-
-      {isMenuOpen && (
-        <div className="md:hidden border-t bg-white">
-          <div className="container py-6 flex flex-col gap-6 text-lg">
-            <Link href="/gigs" onClick={() => setIsMenuOpen(false)}>Explorar Gigs</Link>
-            {isBuyer && <Link href="/buyer" onClick={() => setIsMenuOpen(false)}>Mi Perfil</Link>}
-            {isSeller && (
-              <>
-                <Link href="/seller" onClick={() => setIsMenuOpen(false)}>Mi Dashboard</Link>
-                <Link href="/create-gig" onClick={() => setIsMenuOpen(false)}>Publicar Gig</Link>
-              </>
-            )}
-            {session && <button onClick={handleLogout} className="text-left text-red-600">Cerrar Sesión</button>}
-          </div>
-        </div>
-      )}
-    </header>
+    </nav>
   )
 }

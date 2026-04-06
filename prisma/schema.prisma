@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -12,26 +12,46 @@ model User {
   name          String?
   email         String?  @unique
   role          String   @default("buyer")
+  phone         String?
+  idNumber      String?
+  address       String?
+  instagram     String?
+  facebook      String?
+  whatsapp      String?
+  businessName  String?
+  nit           String?
+  bio           String?
+  profilePicture String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  gigs          Gig[]                     // gigs this user sells
+  gigs          Gig[]
   ordersAsBuyer Order[]  @relation("BuyerOrders")
   ordersAsSeller Order[] @relation("SellerOrders")
 }
 
 model Gig {
-  id          String   @id @default(uuid())
-  title       String
-  price       Float
-  sellerId    String
+  id              String   @id @default(uuid())
+  title           String
+  description     String?
+  price           Float
+  category        String?
+  completionTime  String?
+  imageUrl        String?
+  createdAt       DateTime @default(now())
 
-  seller      User     @relation(fields: [sellerId], references: [id])
-  orders      Order[]   // one gig can have many orders
+  sellerId        String
+  seller          User     @relation(fields: [sellerId], references: [id])
+
+  orders          Order[]
 }
 
 model Order {
   id          String   @id @default(uuid())
   price       Float
   status      String   @default("Pending")
+  progress    Int      @default(0)
+  createdAt   DateTime @default(now())
 
   buyerId     String
   sellerId    String
