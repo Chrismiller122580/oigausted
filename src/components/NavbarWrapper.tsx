@@ -7,7 +7,7 @@ import GrokAssistant from "@/components/GrokAssistant"
 export function NavbarWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   
-  // Hide global navbar on auth pages AND all admin pages
+  // Hide global navbar completely on ALL admin pages and auth pages
   const isAuthPage = pathname === "/login" || pathname === "/signup"
   const isAdminPage = pathname.startsWith("/admin")
 
