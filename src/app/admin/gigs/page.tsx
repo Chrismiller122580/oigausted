@@ -3,9 +3,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Trash2, Edit2, Save, X, Eye, EyeOff, Search } from "lucide-react"
+import { Trash2, Edit2, Save, X, Search } from "lucide-react"
 
 interface Gig {
   id: string
@@ -119,7 +117,7 @@ export default function AdminGigsPage() {
     <div className="container mx-auto px-6 py-12">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-4xl font-bold">Gestión de Gigs</h1>
+          <h1 className="text-4xl font-bold text-white">Gestión de Gigs</h1>
           <p className="text-gray-400 mt-1">Administra todos los servicios publicados en la plataforma</p>
         </div>
         <div className="text-gray-400">Total: {gigs.length} gigs</div>
@@ -127,16 +125,16 @@ export default function AdminGigsPage() {
 
       {/* Search */}
       <div className="mb-6 relative">
-        <Search className="absolute left-4 top-3.5 text-gray-500" size={20} />
+        <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
         <Input
           placeholder="Buscar por título, vendedor o email..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-12 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500"
+          className="pl-12 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 focus:border-yellow-500"
         />
       </div>
 
-      <Card className="bg-gray-900 border-gray-800">
+      <Card className="bg-gray-900 border-gray-700">
         <CardHeader>
           <CardTitle className="text-white">Lista de Gigs</CardTitle>
         </CardHeader>
@@ -144,72 +142,82 @@ export default function AdminGigsPage() {
           <table className="w-full text-sm">
             <thead className="border-b border-gray-700">
               <tr>
-                <th className="text-left p-4">Título</th>
-                <th className="text-left p-4">Vendedor</th>
-                <th className="text-left p-4">Precio</th>
-                <th className="text-left p-4">Categoría</th>
-                <th className="text-left p-4">Fecha</th>
-                <th className="text-right p-4">Acciones</th>
+                <th className="text-left p-4 text-gray-300 font-medium">Título</th>
+                <th className="text-left p-4 text-gray-300 font-medium">Vendedor</th>
+                <th className="text-left p-4 text-gray-300 font-medium">Precio</th>
+                <th className="text-left p-4 text-gray-300 font-medium">Categoría</th>
+                <th className="text-left p-4 text-gray-300 font-medium">Fecha</th>
+                <th className="text-right p-4 text-gray-300 font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
               {filteredGigs.map((gig) => (
-                <tr key={gig.id} className="hover:bg-gray-800/50">
-                  <td className="p-4 font-medium">
+                <tr key={gig.id} className="hover:bg-gray-800/70 transition-colors">
+                  <td className="p-4 font-medium text-white">
                     {editingGig?.id === gig.id ? (
                       <Input
                         value={formData.title || ""}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-gray-800 border-gray-600 text-white"
                       />
                     ) : gig.title}
                   </td>
                   <td className="p-4">
-                    <div>{gig.seller.name || "Sin nombre"}</div>
+                    <div className="text-white font-medium">{gig.seller.name || "Sin nombre"}</div>
                     <div className="text-xs text-gray-500">{gig.seller.email}</div>
                   </td>
-                  <td className="p-4">
+                  <td className="p-4 text-white font-medium">
                     {editingGig?.id === gig.id ? (
                       <Input
                         type="number"
                         step="0.01"
                         value={formData.price || ""}
                         onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                        className="bg-gray-800 border-gray-700 text-white w-24"
+                        className="bg-gray-800 border-gray-600 text-white w-28"
                       />
                     ) : (
-                      <span className="font-medium">${gig.price}</span>
+                      `$${gig.price.toLocaleString('es-CO')}`
                     )}
                   </td>
-                  <td className="p-4">
+                  <td className="p-4 text-gray-200">
                     {editingGig?.id === gig.id ? (
                       <Input
                         value={formData.category || ""}
                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-gray-800 border-gray-600 text-white"
                       />
                     ) : (gig.category || "-")}
                   </td>
                   <td className="p-4 text-gray-400 text-sm">
                     {new Date(gig.createdAt).toLocaleDateString('es-CO')}
                   </td>
-                  <td className="p-4 text-right space-x-2">
+                  <td className="p-4 text-right space-x-3">
                     {editingGig?.id === gig.id ? (
                       <>
-                        <Button size="sm" onClick={saveEdit} className="bg-green-600 hover:bg-green-700">
+                        <Button 
+                          size="sm" 
+                          onClick={saveEdit} 
+                          className="bg-green-600 hover:bg-green-700 text-white font-medium px-5"
+                        >
                           <Save size={16} className="mr-1" /> Guardar
                         </Button>
-                        <Button size="sm" variant="outline" onClick={cancelEdit} className="border-gray-700 hover:bg-gray-800">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={cancelEdit} 
+                          className="border-gray-600 hover:bg-gray-800 text-gray-300 hover:text-white px-5"
+                        >
                           <X size={16} className="mr-1" /> Cancelar
                         </Button>
                       </>
                     ) : (
                       <>
+                        {/* Blue Edit Button */}
                         <Button 
                           size="sm" 
                           variant="outline" 
                           onClick={() => startEdit(gig)}
-                          className="border-gray-700 hover:bg-gray-800"
+                          className="border-blue-600 text-blue-400 hover:bg-blue-950 hover:text-blue-300 px-5"
                         >
                           <Edit2 size={16} className="mr-1" /> Editar
                         </Button>
@@ -217,6 +225,7 @@ export default function AdminGigsPage() {
                           size="sm" 
                           variant="destructive" 
                           onClick={() => deleteGig(gig.id)}
+                          className="px-5"
                         >
                           <Trash2 size={16} className="mr-1" /> Eliminar
                         </Button>
