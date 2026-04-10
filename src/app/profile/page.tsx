@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Camera, MapPin, Store, User } from "lucide-react"
-import GrokAssistant from "@/components/GrokAssistant"
+import GrokAssistant from "@/components/common/GrokAssistant"
 
 export default function PersonalProfile() {
   const router = useRouter()

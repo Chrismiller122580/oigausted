@@ -25,27 +25,33 @@ export default function LoginPage() {
     }
   }, [session, router])
 
-  const handleDemoLogin = (demoEmail: string, demoRole: string) => {
-    // Force admin for the special case
-    if (demoEmail === "admin@demo.com") {
-      localStorage.setItem("oigausted-user", JSON.stringify({
-        id: "admin-1",
-        name: "Admin User",
-        email: "admin@demo.com",
-        role: "admin"
-      }))
-      window.location.href = "/admin"
-      return
-    }
+  const handleDemoLogin = async (demoEmail: string, demoRole: string) => {
+    setLoading(true)
+    setError("")
 
-    // Normal demo login
-    localStorage.setItem("oigausted-user", JSON.stringify({
-      id: Date.now().toString(),
-      name: demoRole === "buyer" ? "Buyer Demo" : "Ana Seller",
-      email: demoEmail,
-      role: demoRole
-    }))
-    window.location.href = demoRole === "buyer" ? "/buyer" : "/seller"
+    try {
+      // Use real NextAuth signIn with credentials for better session handling
+      const res = await signIn("credentials", {
+        email: demoEmail,
+        password: "demo123", // dummy password - backend should accept demo accounts
+        redirect: false,
+      })
+
+      if (res?.ok) {
+        // Small delay to let session update
+        setTimeout(() => {
+          if (demoRole === "admin") router.push("/admin")
+          else if (demoRole === "seller") router.push("/seller")
+          else router.push("/buyer")
+        }, 300)
+      } else {
+        setError("Demo login failed. Try again.")
+      }
+    } catch (err) {
+      setError("Error during login")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,16 +67,7 @@ export default function LoginPage() {
       })
 
       if (res?.ok) {
-        // Check role from session or localStorage
-        const savedUser = JSON.parse(localStorage.getItem("oigausted-user") || "{}")
-        const role = savedUser.role || "buyer"
-        if (role === "admin") {
-          router.push("/admin")
-        } else if (role === "seller") {
-          router.push("/seller")
-        } else {
-          router.push("/buyer")
-        }
+        // Let useEffect handle redirect based on real session role
       } else {
         setError("Credenciales incorrectas. Usa las cuentas demo.")
       }
@@ -101,7 +98,6 @@ export default function LoginPage() {
               required
             />
           </div>
-
           <div>
             <Label htmlFor="password">Contraseña</Label>
             <Input
@@ -113,9 +109,7 @@ export default function LoginPage() {
               required
             />
           </div>
-
           {error && <p className="text-red-600 text-sm text-center">{error}</p>}
-
           <Button type="submit" className="w-full py-6 text-lg" disabled={loading}>
             {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
           </Button>
@@ -124,24 +118,27 @@ export default function LoginPage() {
         <div className="mt-8">
           <p className="text-center text-sm text-gray-500 mb-4">Cuentas de prueba</p>
           <div className="grid grid-cols-1 gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="justify-start h-auto py-4"
               onClick={() => handleDemoLogin("buyer@demo.com", "buyer")}
+              disabled={loading}
             >
               👤 Entrar como Comprador
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="justify-start h-auto py-4"
               onClick={() => handleDemoLogin("seller@demo.com", "seller")}
+              disabled={loading}
             >
               🛠️ Entrar como Vendedor
             </Button>
-            <Button 
-              variant="default" 
+            <Button
+              variant="default"
               className="justify-start h-auto py-4 bg-yellow-600 hover:bg-yellow-700"
               onClick={() => handleDemoLogin("admin@demo.com", "admin")}
+              disabled={loading}
             >
               🔑 Entrar como Admin
             </Button>

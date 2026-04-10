@@ -1,8 +1,8 @@
 "use client"
 import Link from "next/link"
-import { ArrowLeft, Edit3, TrendingUp, MapPin, Phone } from "lucide-react"
+import { ArrowLeft, Edit3, TrendingUp, MapPin, Phone, Star } from "lucide-react"
 import { useState } from "react"
-import GrokAssistant from "@/components/GrokAssistant"
+import GrokAssistant from "@/components/common/GrokAssistant"
 
 export default function BusinessProfile() {
   const [businessName, setBusinessName] = useState("Mi Negocio Local")
@@ -21,6 +21,12 @@ export default function BusinessProfile() {
     { id: 3, title: "Sesión fotográfica corporativa", date: "2 Mar 2026", price: 850000 },
   ]
 
+  const reviews = [
+    { id: 1, customer: "María López", rating: 5, comment: "Excelente servicio y muy profesional. Recomendado 100%.", date: "2 días atrás" },
+    { id: 2, customer: "Carlos Ramírez", rating: 4, comment: "Buen trabajo, solo un pequeño retraso pero todo quedó perfecto.", date: "1 semana atrás" },
+    { id: 3, customer: "Ana Gutiérrez", rating: 5, comment: "Muy atentos y el resultado superó mis expectativas.", date: "2 semanas atrás" },
+  ]
+
   const handleSave = () => alert("✅ Información del negocio guardada correctamente")
 
   return (
@@ -30,7 +36,7 @@ export default function BusinessProfile() {
         <div className="mb-8">
           <Link 
             href="/seller" 
-            className="inline-flex items-center gap-3 text-gray-600 hover:text-yellow-600 font-medium text-lg"
+            className="inline-flex items-center gap-3 text-gray-600 hover:text-orange-600 font-medium text-lg"
           >
             <ArrowLeft size={24} />
             Volver al Dashboard
@@ -41,7 +47,7 @@ export default function BusinessProfile() {
           <h1 className="text-4xl font-bold">Mi Negocio</h1>
           <button 
             onClick={handleSave}
-            className="flex items-center gap-3 bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-4 rounded-2xl font-medium"
+            className="flex items-center gap-3 bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-4 rounded-2xl font-medium transition"
           >
             <Edit3 size={20} /> Guardar Cambios
           </button>
@@ -49,54 +55,56 @@ export default function BusinessProfile() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Main Profile Info */}
-          <div className="lg:col-span-8 bg-white rounded-3xl border p-10">
+          <div className="lg:col-span-8 bg-white rounded-3xl border p-10 shadow-sm">
             <div className="flex gap-10">
               <div className="flex-shrink-0">
-                <div className="w-44 h-44 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-3xl flex items-center justify-center text-8xl shadow-inner">
+                <div className="w-48 h-48 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-3xl flex items-center justify-center text-8xl shadow-inner border">
                   🏪
                 </div>
-                <button className="mt-4 text-yellow-600 text-sm font-medium block w-full">Cambiar foto</button>
+                <button className="mt-6 w-full py-3 border border-yellow-600 text-yellow-600 rounded-2xl font-medium hover:bg-yellow-50 transition">
+                  Cambiar foto
+                </button>
               </div>
 
               <div className="flex-1 space-y-8">
                 <div>
-                  <label className="block text-sm font-medium mb-3">Nombre del Negocio</label>
+                  <label className="block text-sm font-medium mb-3 text-gray-700">Nombre del Negocio</label>
                   <input 
                     value={businessName} 
                     onChange={(e) => setBusinessName(e.target.value)}
-                    className="w-full px-6 py-5 border border-gray-300 rounded-2xl focus:border-yellow-600 text-lg"
+                    className="w-full px-6 py-5 border border-gray-300 rounded-2xl focus:border-yellow-600 text-lg focus:ring-1 focus:ring-yellow-600"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-3">Descripción del Negocio</label>
+                  <label className="block text-sm font-medium mb-3 text-gray-700">Descripción del Negocio</label>
                   <textarea 
                     value={description} 
                     onChange={(e) => setDescription(e.target.value)}
                     rows={5}
-                    className="w-full px-6 py-5 border border-gray-300 rounded-2xl focus:border-yellow-600"
+                    className="w-full px-6 py-5 border border-gray-300 rounded-2xl focus:border-yellow-600 focus:ring-1 focus:ring-yellow-600"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium mb-3 flex items-center gap-2">
+                    <label className="block text-sm font-medium mb-3 flex items-center gap-2 text-gray-700">
                       <Phone size={18} /> Teléfono de contacto
                     </label>
                     <input 
                       value={phone} 
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full px-6 py-5 border border-gray-300 rounded-2xl focus:border-yellow-600"
+                      className="w-full px-6 py-5 border border-gray-300 rounded-2xl focus:border-yellow-600 focus:ring-1 focus:ring-yellow-600"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-3 flex items-center gap-2">
+                    <label className="block text-sm font-medium mb-3 flex items-center gap-2 text-gray-700">
                       <MapPin size={18} /> Ubicación
                     </label>
                     <input 
                       value={location} 
                       onChange={(e) => setLocation(e.target.value)}
-                      className="w-full px-6 py-5 border border-gray-300 rounded-2xl focus:border-yellow-600"
+                      className="w-full px-6 py-5 border border-gray-300 rounded-2xl focus:border-yellow-600 focus:ring-1 focus:ring-yellow-600"
                     />
                   </div>
                 </div>
@@ -106,7 +114,7 @@ export default function BusinessProfile() {
 
           {/* Ratings & Stats */}
           <div className="lg:col-span-4 space-y-8">
-            <div className="bg-white rounded-3xl border p-8">
+            <div className="bg-white rounded-3xl border p-8 shadow-sm">
               <h3 className="font-semibold text-xl mb-6">Tu Reputación</h3>
               <div className="flex items-center gap-6">
                 <div className="text-7xl font-bold text-yellow-600">{rating}</div>
@@ -117,7 +125,7 @@ export default function BusinessProfile() {
               </div>
             </div>
 
-            <div className="bg-white rounded-3xl border p-8">
+            <div className="bg-white rounded-3xl border p-8 shadow-sm">
               <h3 className="font-semibold text-xl mb-6 flex items-center gap-2">
                 <TrendingUp size={24} /> Estadísticas
               </h3>
@@ -134,8 +142,36 @@ export default function BusinessProfile() {
             </div>
           </div>
 
+          {/* Reviews Section */}
+          <div className="lg:col-span-12 bg-white rounded-3xl border p-10 shadow-sm">
+            <h3 className="font-semibold text-2xl mb-8 flex items-center gap-3">
+              <Star className="text-yellow-500" /> Reseñas de Clientes
+            </h3>
+            <div className="space-y-8">
+              {reviews.map((review) => (
+                <div key={review.id} className="border-b pb-8 last:border-b-0">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">{review.customer}</p>
+                      <div className="flex text-yellow-500 mt-1">
+                        {Array.from({ length: review.rating }).map((_, i) => (
+                          <Star key={i} size={18} fill="currentColor" />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500">{review.date}</p>
+                  </div>
+                  <p className="text-gray-600 mt-3">{review.comment}</p>
+                  <button className="mt-4 text-yellow-600 text-sm font-medium hover:underline">
+                    Responder →
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Past Projects */}
-          <div className="lg:col-span-12 bg-white rounded-3xl border p-10">
+          <div className="lg:col-span-12 bg-white rounded-3xl border p-10 shadow-sm">
             <h3 className="font-semibold text-2xl mb-8">Proyectos Recientes</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {pastProjects.map((project) => (
@@ -157,8 +193,14 @@ export default function BusinessProfile() {
         </div>
       </div>
 
-      {/* Grok AI Assistant on Profile Page */}
+      {/* Grok AI Assistant */}
       <GrokAssistant />
     </div>
   )
 }
+
+const reviews = [
+  { id: 1, customer: "María López", rating: 5, comment: "Excelente servicio y muy profesional. Recomendado 100%.", date: "2 días atrás" },
+  { id: 2, customer: "Carlos Ramírez", rating: 4, comment: "Buen trabajo, solo un pequeño retraso pero todo quedó perfecto.", date: "1 semana atrás" },
+  { id: 3, customer: "Ana Gutiérrez", rating: 5, comment: "Muy atentos y el resultado superó mis expectativas.", date: "2 semanas atrás" },
+]

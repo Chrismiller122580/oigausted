@@ -28,6 +28,7 @@ model User {
   gigs          Gig[]
   ordersAsBuyer Order[]  @relation("BuyerOrders")
   ordersAsSeller Order[] @relation("SellerOrders")
+  password        String?
 }
 
 model Gig {
@@ -61,3 +62,4 @@ model Order {
   seller      User     @relation("SellerOrders", fields: [sellerId], references: [id])
   gig         Gig      @relation(fields: [gigId], references: [id])
 }
+

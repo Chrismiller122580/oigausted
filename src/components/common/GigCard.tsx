@@ -35,9 +35,7 @@ export default function GigCard({ gig }: { gig: Gig }) {
   }, [])
 
   const sellerName = gig.seller?.name || gig.seller?.businessName || gig.seller?.email || "Vendedor"
-  const isOwnGig = currentUser && 
-    (gig.seller.id === currentUser.id || 
-     sellerName.toLowerCase().includes((currentUser.name || "").toLowerCase()))
+  const isOwnGig = currentUser && gig.seller.id === currentUser.id
 
   const handleBuyNow = () => {
     if (isOwnGig) {
