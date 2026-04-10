@@ -12,19 +12,19 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   const { data: session, status } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Force role detection - ignore brief unauthenticated states
-  const role = session?.user?.role 
-    ? String(session.user.role).toLowerCase().trim() 
+  // Safe role extraction
+  const role = session?.user 
+    ? String((session.user as any)?.role || '').toLowerCase().trim() 
     : null;
 
-  // If we detect any role, always use the role navbar
+  // If we have a role, always use the role navbar
   if (role) {
     if (role === 'admin') return <AdminNavbar>{children}</AdminNavbar>;
     if (role === 'seller') return <SellerNavbar>{children}</SellerNavbar>;
     if (role === 'buyer') return <BuyerNavbar>{children}</BuyerNavbar>;
   }
 
-  // Only show public navbar when truly no role
+  // Only show public navbar when truly not logged in
   return (
     <>
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
