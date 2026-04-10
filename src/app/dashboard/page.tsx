@@ -9,17 +9,19 @@ export default function DashboardRedirect() {
 
   useEffect(() => {
     if (status === "loading") return
-
     if (!session) {
       router.replace("/login")
       return
     }
 
-    if (session.user?.role === "seller") {
+    // Safe type cast for role
+    const role = (session.user as any)?.role || "buyer"
+
+    if (role === "seller") {
       router.replace("/seller")
-    } else if (session.user?.role === "buyer") {
+    } else if (role === "buyer") {
       router.replace("/buyer")
-    } else if (session.user?.role === "admin") {
+    } else if (role === "admin") {
       router.replace("/admin")
     } else {
       router.replace("/login")

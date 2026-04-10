@@ -16,23 +16,13 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Skip NavbarWrapper only for admin routes
-  const isAdminRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
-
   return (
     <html lang="es">
       <body className={inter.className}>
         <SessionProviderWrapper>
-          {!isAdminRoute && (
-            // Buyer, Seller, and public pages use the smart NavbarWrapper
-            <NavbarWrapper>
-              {children}
-            </NavbarWrapper>
-          )}
-          {isAdminRoute && (
-            // Admin pages skip the wrapper and use only AdminNavbar from their layout
-            children
-          )}
+          <NavbarWrapper>
+            {children}
+          </NavbarWrapper>
         </SessionProviderWrapper>
       </body>
     </html>

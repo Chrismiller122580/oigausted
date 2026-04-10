@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import GigCard from "@/components/GigCard"
+import GigCard from "@/components/common/GigCard"
 
 export default function GigsContent() {
   const [gigs, setGigs] = useState<any[]>([])

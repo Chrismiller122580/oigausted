@@ -1,7 +1,6 @@
 "use client"
-
 import { SessionProvider } from "next-auth/react"
-import Navbar from "@/components/Navbar"
+import NavbarWrapper from "@/components/layout/NavbarWrapper"
 
 export default function ClientLayout({
   children,
@@ -10,10 +9,11 @@ export default function ClientLayout({
 }) {
   return (
     <SessionProvider>
-      <Navbar />
-      <main className="min-h-screen">
-        {children}
-      </main>
+      <NavbarWrapper>
+        <main className="min-h-screen">
+          {children}
+        </main>
+      </NavbarWrapper>
     </SessionProvider>
   )
 }
