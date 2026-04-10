@@ -8,26 +8,26 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  name          String?
-  email         String?  @unique
-  role          String   @default("buyer")
-  phone         String?
-  idNumber      String?
-  address       String?
-  instagram     String?
-  facebook      String?
-  whatsapp      String?
-  businessName  String?
-  nit           String?
-  bio           String?
-  profilePicture String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default(uuid())
+  name            String?
+  email           String?  @unique
+  role            String   @default("buyer")
+  phone           String?
+  idNumber        String?
+  address         String?
+  instagram       String?
+  facebook        String?
+  whatsapp        String?
+  businessName    String?
+  nit             String?
+  bio             String?
+  profilePicture  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  gigs          Gig[]
-  ordersAsBuyer Order[]  @relation("BuyerOrders")
-  ordersAsSeller Order[] @relation("SellerOrders")
+  gigs            Gig[]
+  ordersAsBuyer   Order[]  @relation("BuyerOrders")
+  ordersAsSeller  Order[]  @relation("SellerOrders")
   password        String?
 }
 
@@ -39,6 +39,8 @@ model Gig {
   category        String?
   completionTime  String?
   imageUrl        String?
+  fields          Json?    // Stores dynamic fields from create form
+  addons          Json?    // Stores selected addons
   createdAt       DateTime @default(now())
 
   sellerId        String
@@ -62,4 +64,3 @@ model Order {
   seller      User     @relation("SellerOrders", fields: [sellerId], references: [id])
   gig         Gig      @relation(fields: [gigId], references: [id])
 }
-

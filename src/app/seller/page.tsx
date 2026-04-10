@@ -14,18 +14,29 @@ export default function SellerDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const savedGigs = localStorage.getItem("oigausted-gigs")
-    if (savedGigs) {
-      const parsed = JSON.parse(savedGigs)
-      // Filter only gigs belonging to current seller
-      const myGigs = parsed.filter((gig: any) => 
-        gig.sellerEmail === session?.user?.email || 
-        gig.seller === session?.user?.name
-      )
-      setGigs(myGigs)
-    }
-    setLoading(false)
+    if (!session?.user?.email) return
+
+    fetchMyGigs()
   }, [session])
+
+  const fetchMyGigs = async () => {
+    try {
+      const res = await fetch("/api/gigs")
+      const data = await res.json()
+      
+      // Filter only gigs belonging to current seller
+      const myGigs = data.gigs.filter((gig: any) => 
+        gig.seller.email === session?.user?.email ||
+        gig.seller.id === (session?.user as any)?.id
+      )
+      
+      setGigs(myGigs)
+    } catch (error) {
+      console.error("Failed to fetch my gigs", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const totalGigs = gigs.length
   const totalEarnings = gigs.reduce((sum, gig) => sum + (gig.price || 0), 0)
@@ -57,7 +68,6 @@ export default function SellerDashboard() {
               <Package className="w-12 h-12 text-orange-500" />
             </div>
           </div>
-
           <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
               <div>
@@ -69,7 +79,6 @@ export default function SellerDashboard() {
               <DollarSign className="w-12 h-12 text-green-600" />
             </div>
           </div>
-
           <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
               <div>
@@ -133,10 +142,10 @@ export default function SellerDashboard() {
               {gigs.map((gig) => (
                 <div key={gig.id} className="border rounded-3xl overflow-hidden hover:shadow-md transition">
                   {gig.imageUrl && (
-                    <img 
-                      src={gig.imageUrl} 
-                      alt={gig.title} 
-                      className="w-full h-48 object-cover" 
+                    <img
+                      src={gig.imageUrl}
+                      alt={gig.title}
+                      className="w-full h-48 object-cover"
                     />
                   )}
                   <div className="p-6">
@@ -159,7 +168,6 @@ export default function SellerDashboard() {
           )}
         </div>
       </div>
-
       <GrokAssistant />
     </div>
   )
