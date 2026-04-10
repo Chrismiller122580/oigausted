@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { getServerSession } from 'next-auth/next'
-import { authOptions } from '../auth/[...nextauth]/route'
 
 const prisma = new PrismaClient()
 
@@ -29,13 +28,22 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
-    const { title, description, price, category, completionTime, fields = {}, addons = [], imageUrl } = body
+    const { 
+      title, 
+      description, 
+      price, 
+      category, 
+      completionTime, 
+      fields = {}, 
+      addons = [], 
+      imageUrl 
+    } = body
 
     const seller = await prisma.user.findUnique({
       where: { email: session.user.email }
