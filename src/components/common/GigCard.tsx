@@ -2,8 +2,8 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
 
 interface Gig {
   id: string
@@ -22,92 +22,58 @@ interface Gig {
 }
 
 export default function GigCard({ gig }: { gig: Gig }) {
+  const { data: session } = useSession()
   const router = useRouter()
-  const [currentUser, setCurrentUser] = useState<any>(null)
-
-  useEffect(() => {
-    const userStr = localStorage.getItem("oigausted-user")
-    if (userStr) {
-      try {
-        setCurrentUser(JSON.parse(userStr))
-      } catch (e) {}
-    }
-  }, [])
 
   const sellerName = gig.seller?.name || gig.seller?.businessName || gig.seller?.email || "Vendedor"
-  const isOwnGig = currentUser && gig.seller.id === currentUser.id
+  const isOwnGig = session?.user && gig.seller.id === (session.user as any).id
 
   const handleBuyNow = () => {
     if (isOwnGig) {
       alert("No puedes comprar tu propio gig")
       return
     }
-
-    const orderId = "order-" + Date.now()
-    const newOrder = {
-      id: orderId,
-      gigTitle: gig.title,
-      price: gig.price,
-      status: "Pending",
-      progress: 0,
-      buyer: currentUser?.name || "Comprador",
-      seller: sellerName,
-      gigId: gig.id,
-      sellerId: gig.seller.id,
-      createdAt: new Date().toISOString()
-    }
-
-    let savedOrders = JSON.parse(localStorage.getItem("oigausted-orders") || "[]")
-    savedOrders.push(newOrder)
-    localStorage.setItem("oigausted-orders", JSON.stringify(savedOrders))
-
-    router.push(`/checkout/${orderId}`)
+    router.push(`/checkout/${gig.id}`)
   }
 
   return (
-    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-200">
+    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
+      {gig.imageUrl && (
+        <div className="relative h-52 overflow-hidden">
+          <img 
+            src={gig.imageUrl} 
+            alt={gig.title} 
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+          />
+        </div>
+      )}
+
       <CardHeader>
-        <CardTitle className="text-xl line-clamp-2">{gig.title}</CardTitle>
-        <p className="text-sm text-gray-600">Por {sellerName}</p>
+        <CardTitle className="line-clamp-2 text-xl">{gig.title}</CardTitle>
+        <p className="text-sm text-gray-500">por {sellerName}</p>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        <div className="text-3xl font-bold text-yellow-600">
-          ${gig.price.toLocaleString('es-CO')}
-        </div>
-
+      <CardContent className="pb-4">
         {gig.description && (
-          <p className="text-sm text-gray-600 line-clamp-3">{gig.description}</p>
+          <p className="text-gray-600 line-clamp-3 text-sm mb-4">{gig.description}</p>
         )}
-
-        {gig.completionTime && (
-          <p className="text-xs text-gray-500">Entrega aproximada: {gig.completionTime}</p>
-        )}
-
-        {gig.category && (
-          <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-            {gig.category}
+        
+        <div className="flex items-baseline gap-1">
+          <span className="text-3xl font-bold text-orange-600">
+            ${gig.price.toLocaleString("es-CO")}
           </span>
-        )}
+          <span className="text-sm text-gray-500">COP</span>
+        </div>
       </CardContent>
 
-      <CardFooter className="flex gap-3 pt-2">
-        <Button variant="outline" className="flex-1" asChild>
-          <Link href={`/gigs/${gig.id}`}>Ver Detalles</Link>
+      <CardFooter className="pt-0">
+        <Button 
+          onClick={handleBuyNow}
+          className="w-full bg-orange-600 hover:bg-orange-700"
+          disabled={isOwnGig}
+        >
+          {isOwnGig ? "Tu propio gig" : "Comprar ahora"}
         </Button>
-
-        {isOwnGig ? (
-          <Button className="flex-1 bg-blue-600 hover:bg-blue-700" asChild>
-            <Link href={`/create-gig?edit=${gig.id}`}>Editar Gig</Link>
-          </Button>
-        ) : (
-          <Button
-            onClick={handleBuyNow}
-            className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white"
-          >
-            Comprar Ahora
-          </Button>
-        )}
       </CardFooter>
     </Card>
   )

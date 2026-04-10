@@ -1,11 +1,9 @@
 'use client';
-
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
-
 import AdminNavbar from './AdminNavbar';
 import BuyerNavbar from './BuyerNavbar';
 import SellerNavbar from './SellerNavbar';
@@ -14,27 +12,19 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   const { data: session, status } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    console.log('NavbarWrapper → status:', status, 'role:', (session?.user as any)?.role);
-  }, [status, session]);
+  // Force role detection - ignore brief unauthenticated states
+  const role = session?.user?.role 
+    ? String(session.user.role).toLowerCase().trim() 
+    : null;
 
-  // Safe role extraction
-  const role = session?.user ? String((session.user as any)?.role || '').toLowerCase().trim() : null;
-
-  // If authenticated and we have a role, show the correct navbar
-  if (status === 'authenticated' && role) {
-    if (role === 'admin') {
-      return <AdminNavbar>{children}</AdminNavbar>;
-    }
-    if (role === 'seller') {
-      return <SellerNavbar>{children}</SellerNavbar>;
-    }
-    if (role === 'buyer') {
-      return <BuyerNavbar>{children}</BuyerNavbar>;
-    }
+  // If we detect any role, always use the role navbar
+  if (role) {
+    if (role === 'admin') return <AdminNavbar>{children}</AdminNavbar>;
+    if (role === 'seller') return <SellerNavbar>{children}</SellerNavbar>;
+    if (role === 'buyer') return <BuyerNavbar>{children}</BuyerNavbar>;
   }
 
-  // Public navbar only when clearly not logged in
+  // Only show public navbar when truly no role
   return (
     <>
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
@@ -59,7 +49,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
             </Link>
           </div>
 
-          <button 
+          <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden p-2 text-gray-700"
           >
@@ -81,10 +71,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
           </div>
         )}
       </nav>
-
-      <main>
-        {children}
-      </main>
+      <main>{children}</main>
     </>
   );
 }
