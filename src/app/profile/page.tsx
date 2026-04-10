@@ -45,18 +45,18 @@ export default function ProfilePage() {
 
   const [errors, setErrors] = useState<FormErrors>({})
 
-  // Load initial data
+  // Load initial data safely
   useEffect(() => {
     if (session?.user) {
       setProfile(prev => ({
         ...prev,
-        name: session.user.name || prev.name,
-        email: session.user.email || prev.email,
+        name: session.user?.name || prev.name,
+        email: session.user?.email || prev.email,
       }))
     }
   }, [session])
 
-  // Validación en tiempo real
+  // Real-time validation
   const validateField = (field: keyof ProfileData, value: string) => {
     const newErrors = { ...errors }
 
@@ -101,7 +101,7 @@ export default function ProfilePage() {
     validateField(field, value)
   }
 
-  const isFormValid = Object.keys(errors).length === 0 && profile.name.trim().length > 2
+  const isFormValid = Object.keys(errors).length === 0 && profile.name.trim().length >= 3
 
   const handleSave = async () => {
     if (!isFormValid) return
@@ -146,7 +146,7 @@ export default function ProfilePage() {
               <Camera size={20} className="text-gray-700" />
             </button>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">{profile.name}</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{profile.name || "Mi Perfil"}</h1>
           <p className="text-orange-600 font-medium">{isSeller ? "Vendedor" : "Comprador"}</p>
         </div>
 
@@ -170,7 +170,7 @@ export default function ProfilePage() {
                 value={profile.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 disabled={!isEditing}
-                className={`mt-1 ${errors.name ? 'border-red-500' : ''}`}
+                className={`mt-1 ${errors.name ? 'border-red-500 focus:border-red-500' : ''}`}
               />
               {errors.name && <p className="text-red-500 text-sm mt-1 flex items-center gap-1"><AlertCircle size={14} /> {errors.name}</p>}
             </div>
@@ -216,7 +216,7 @@ export default function ProfilePage() {
             <div>
               <Label>Instagram</Label>
               <Input 
-                value={profile.instagram}
+                value={profile.instagram || ""}
                 onChange={(e) => setProfile({...profile, instagram: e.target.value})}
                 disabled={!isEditing}
                 className="mt-1"
@@ -225,7 +225,7 @@ export default function ProfilePage() {
             <div>
               <Label>Facebook</Label>
               <Input 
-                value={profile.facebook}
+                value={profile.facebook || ""}
                 onChange={(e) => setProfile({...profile, facebook: e.target.value})}
                 disabled={!isEditing}
                 className="mt-1"
@@ -234,7 +234,7 @@ export default function ProfilePage() {
             <div>
               <Label>WhatsApp</Label>
               <Input 
-                value={profile.whatsapp}
+                value={profile.whatsapp || ""}
                 onChange={(e) => setProfile({...profile, whatsapp: e.target.value})}
                 disabled={!isEditing}
                 className="mt-1"
@@ -246,14 +246,14 @@ export default function ProfilePage() {
             <Button 
               onClick={handleSave}
               disabled={loading || !isFormValid}
-              className="w-full mt-8 bg-orange-600 hover:bg-orange-700 text-white py-6 text-lg rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full mt-8 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white py-6 text-lg rounded-2xl flex items-center justify-center gap-2"
             >
               {loading ? "Guardando..." : <><Save size={20} /> Guardar Cambios</>}
             </Button>
           )}
         </div>
 
-        {/* Become Seller Button - ONLY for buyers */}
+        {/* Become Seller - Only for buyers */}
         {!isSeller && (
           <div className="bg-white rounded-3xl shadow-sm p-8 text-center">
             <h3 className="text-xl font-semibold mb-3">¿Quieres vender tus servicios?</h3>
