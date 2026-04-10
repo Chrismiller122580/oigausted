@@ -1,266 +1,274 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Camera, MapPin, Store, User } from "lucide-react"
+import { Camera, Save, Edit2, X, AlertCircle } from "lucide-react"
 import GrokAssistant from "@/components/common/GrokAssistant"
 
-export default function PersonalProfile() {
+interface ProfileData {
+  name: string
+  email: string
+  phone: string
+  idNumber: string
+  address: string
+  instagram?: string
+  facebook?: string
+  whatsapp?: string
+}
+
+interface FormErrors {
+  name?: string
+  phone?: string
+  idNumber?: string
+  address?: string
+}
+
+export default function ProfilePage() {
+  const { data: session, status, update } = useSession()
   const router = useRouter()
 
-  const [profileData, setProfileData] = useState({
+  const [isEditing, setIsEditing] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [profile, setProfile] = useState<ProfileData>({
     name: "",
     email: "",
-    phone: "",
-    idNumber: "",
-    address: "",
-    instagram: "",
-    facebook: "",
-    whatsapp: "",
-    profilePicture: ""
+    phone: "+57 300 123 4567",
+    idNumber: "1.234.567.890",
+    address: "Calle 45 #12-34, Bucaramanga",
+    instagram: "@tuusuario",
+    facebook: "facebook.com/tuusuario",
+    whatsapp: "+57 300 123 4567"
   })
 
-  const [isSellerModalOpen, setIsSellerModalOpen] = useState(false)
-  const [businessName, setBusinessName] = useState("")
-  const [nit, setNit] = useState("")
-  const [bio, setBio] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [currentRole, setCurrentRole] = useState<"buyer" | "seller">("buyer")
-  const [userId, setUserId] = useState("")
+  const [errors, setErrors] = useState<FormErrors>({})
 
+  // Load initial data
   useEffect(() => {
-    const savedUserStr = localStorage.getItem("oigausted-user")
-    if (savedUserStr) {
-      try {
-        const user = JSON.parse(savedUserStr)
-        setUserId(user.id)
-        setCurrentRole(user.role || "buyer")
-        setProfileData(prev => ({
-          ...prev,
-          name: user.name || "",
-          email: user.email || "",
-          profilePicture: user.profilePicture || ""
-        }))
-      } catch (e) {}
+    if (session?.user) {
+      setProfile(prev => ({
+        ...prev,
+        name: session.user.name || prev.name,
+        email: session.user.email || prev.email,
+      }))
     }
-  }, [])
+  }, [session])
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !userId) return
+  // Validación en tiempo real
+  const validateField = (field: keyof ProfileData, value: string) => {
+    const newErrors = { ...errors }
 
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('userId', userId)
-
-    try {
-      const response = await fetch('/api/upload/profile', {
-        method: 'POST',
-        body: formData
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        setProfileData(prev => ({ ...prev, profilePicture: data.imageUrl }))
-        alert("Foto de perfil subida correctamente")
+    if (field === 'name') {
+      if (!value || value.trim().length < 3) {
+        newErrors.name = "El nombre debe tener al menos 3 caracteres"
+      } else {
+        delete newErrors.name
       }
-    } catch (error) {
-      alert("Error al subir la foto")
     }
+
+    if (field === 'phone') {
+      const phoneRegex = /^\+57 \d{3} \d{3} \d{4}$/
+      if (!phoneRegex.test(value)) {
+        newErrors.phone = "Formato inválido. Usa +57 300 123 4567"
+      } else {
+        delete newErrors.phone
+      }
+    }
+
+    if (field === 'idNumber') {
+      if (!value || value.trim().length < 8) {
+        newErrors.idNumber = "La cédula debe tener al menos 8 caracteres"
+      } else {
+        delete newErrors.idNumber
+      }
+    }
+
+    if (field === 'address') {
+      if (!value || value.trim().length < 10) {
+        newErrors.address = "La dirección debe ser más completa"
+      } else {
+        delete newErrors.address
+      }
+    }
+
+    setErrors(newErrors)
   }
 
-  const saveProfile = () => {
-    localStorage.setItem("oigausted-personal-profile", JSON.stringify(profileData))
-    alert("✅ Perfil guardado")
+  const handleInputChange = (field: keyof ProfileData, value: string) => {
+    setProfile(prev => ({ ...prev, [field]: value }))
+    validateField(field, value)
   }
 
-  const handleBecomeSeller = async () => {
-    if (!businessName.trim()) {
-      alert("Por favor ingresa el nombre de tu negocio")
-      return
-    }
+  const isFormValid = Object.keys(errors).length === 0 && profile.name.trim().length > 2
+
+  const handleSave = async () => {
+    if (!isFormValid) return
 
     setLoading(true)
-
     try {
-      const response = await fetch('/api/user/become-seller', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          businessName: businessName.trim(),
-          nit: nit.trim() || null,
-          bio: bio.trim() || null
-        })
+      const res = await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile),
       })
 
-      if (response.ok) {
-        const savedUserStr = localStorage.getItem("oigausted-user")
-        if (savedUserStr) {
-          const currentUser = JSON.parse(savedUserStr)
-          localStorage.setItem("oigausted-user", JSON.stringify({
-            ...currentUser,
-            role: "seller",
-            businessName: businessName.trim(),
-            nit: nit.trim() || null,
-            bio: bio.trim() || null
-          }))
-        }
-
-        setCurrentRole("seller")
-        alert("¡Felicidades! Ahora eres un Vendedor.")
-        window.location.reload()
+      if (res.ok) {
+        await update()
+        alert("✅ Perfil actualizado correctamente")
+        setIsEditing(false)
+        setErrors({})
       } else {
-        alert("Error al actualizar rol")
+        alert("❌ Error al guardar el perfil")
       }
     } catch (error) {
-      alert("Error de conexión")
+      alert("❌ Error de conexión")
     } finally {
       setLoading(false)
-      setIsSellerModalOpen(false)
     }
   }
 
-  const isBuyer = currentRole === "buyer"
+  if (status === "loading") {
+    return <div className="min-h-screen flex items-center justify-center">Cargando perfil...</div>
+  }
+
+  const isSeller = (session?.user as any)?.role?.toLowerCase() === "seller"
 
   return (
-    <div className="container py-8 max-w-4xl mx-auto px-4 relative min-h-screen">
-      <GrokAssistant />
-
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold flex items-center gap-3">
-          <User className="text-yellow-600" /> Mi Perfil Personal
-        </h1>
-        <Button onClick={() => router.push("/")} variant="outline">
-          ← Volver al Inicio
-        </Button>
-      </div>
-
-      {/* Profile Picture */}
-      <Card className="mb-8">
-        <CardContent className="pt-8 pb-6 flex flex-col items-center">
-          <div className="relative w-32 h-32 mb-4">
-            {profileData.profilePicture ? (
-              <img 
-                src={profileData.profilePicture} 
-                alt="Foto de perfil" 
-                className="w-32 h-32 rounded-full object-cover border-4 border-yellow-600 shadow-md"
-              />
-            ) : (
-              <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center border-4 border-yellow-600">
-                <User className="w-16 h-16 text-gray-400" />
-              </div>
-            )}
-            <label className="absolute bottom-0 right-0 bg-yellow-600 hover:bg-yellow-700 text-white p-2.5 rounded-full cursor-pointer shadow">
-              <Camera size={20} />
-              <input 
-                type="file" 
-                accept="image/*" 
-                className="hidden" 
-                onChange={handleImageUpload}
-              />
-            </label>
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-4xl mx-auto px-6">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <div className="relative mx-auto w-32 h-32 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center text-white text-6xl mb-4">
+            👤
+            <button className="absolute bottom-2 right-2 bg-white p-2 rounded-full shadow-md hover:bg-orange-100 transition">
+              <Camera size={20} className="text-gray-700" />
+            </button>
           </div>
-          <p className="text-sm text-gray-500">Haz clic en la cámara para subir tu foto</p>
-        </CardContent>
-      </Card>
+          <h1 className="text-3xl font-bold text-gray-900">{profile.name}</h1>
+          <p className="text-orange-600 font-medium">{isSeller ? "Vendedor" : "Comprador"}</p>
+        </div>
 
-      {/* Personal Information */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Información Personal</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+        {/* Personal Information */}
+        <div className="bg-white rounded-3xl shadow-sm p-8 mb-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold">Información Personal</h2>
+            <Button
+              variant={isEditing ? "destructive" : "default"}
+              onClick={() => isEditing ? setIsEditing(false) : setIsEditing(true)}
+              className="flex items-center gap-2"
+            >
+              {isEditing ? <><X size={18} /> Cancelar</> : <><Edit2 size={18} /> Editar</>}
+            </Button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label>Nombre Completo</Label>
-              <Input value={profileData.name} onChange={(e) => setProfileData({...profileData, name: e.target.value})} className="mt-2" />
+              <Input 
+                value={profile.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                disabled={!isEditing}
+                className={`mt-1 ${errors.name ? 'border-red-500' : ''}`}
+              />
+              {errors.name && <p className="text-red-500 text-sm mt-1 flex items-center gap-1"><AlertCircle size={14} /> {errors.name}</p>}
             </div>
             <div>
               <Label>Correo Electrónico</Label>
-              <Input value={profileData.email} disabled className="mt-2 bg-gray-100" />
+              <Input value={profile.email} disabled className="mt-1 bg-gray-100" />
             </div>
             <div>
               <Label>Teléfono</Label>
-              <Input value={profileData.phone} onChange={(e) => setProfileData({...profileData, phone: e.target.value})} placeholder="+57 300 123 4567" className="mt-2" />
+              <Input 
+                value={profile.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                disabled={!isEditing}
+                className={`mt-1 ${errors.phone ? 'border-red-500' : ''}`}
+                placeholder="+57 300 123 4567"
+              />
+              {errors.phone && <p className="text-red-500 text-sm mt-1 flex items-center gap-1"><AlertCircle size={14} /> {errors.phone}</p>}
             </div>
             <div>
               <Label>Cédula / ID</Label>
-              <Input value={profileData.idNumber} onChange={(e) => setProfileData({...profileData, idNumber: e.target.value})} placeholder="1.234.567.890" className="mt-2" />
+              <Input 
+                value={profile.idNumber}
+                onChange={(e) => handleInputChange('idNumber', e.target.value)}
+                disabled={!isEditing}
+                className={`mt-1 ${errors.idNumber ? 'border-red-500' : ''}`}
+              />
+              {errors.idNumber && <p className="text-red-500 text-sm mt-1 flex items-center gap-1"><AlertCircle size={14} /> {errors.idNumber}</p>}
             </div>
           </div>
 
-          <div>
+          <div className="mt-6">
             <Label>Dirección</Label>
-            <Input value={profileData.address} onChange={(e) => setProfileData({...profileData, address: e.target.value})} placeholder="Calle 45 #12-34, Bucaramanga" className="mt-2" />
+            <Input 
+              value={profile.address}
+              onChange={(e) => handleInputChange('address', e.target.value)}
+              disabled={!isEditing}
+              className={`mt-1 ${errors.address ? 'border-red-500' : ''}`}
+            />
+            {errors.address && <p className="text-red-500 text-sm mt-1 flex items-center gap-1"><AlertCircle size={14} /> {errors.address}</p>}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
             <div>
               <Label>Instagram</Label>
-              <Input value={profileData.instagram} onChange={(e) => setProfileData({...profileData, instagram: e.target.value})} placeholder="@tuusuario" className="mt-2" />
+              <Input 
+                value={profile.instagram}
+                onChange={(e) => setProfile({...profile, instagram: e.target.value})}
+                disabled={!isEditing}
+                className="mt-1"
+              />
             </div>
             <div>
               <Label>Facebook</Label>
-              <Input value={profileData.facebook} onChange={(e) => setProfileData({...profileData, facebook: e.target.value})} placeholder="facebook.com/tuusuario" className="mt-2" />
+              <Input 
+                value={profile.facebook}
+                onChange={(e) => setProfile({...profile, facebook: e.target.value})}
+                disabled={!isEditing}
+                className="mt-1"
+              />
             </div>
             <div>
               <Label>WhatsApp</Label>
-              <Input value={profileData.whatsapp} onChange={(e) => setProfileData({...profileData, whatsapp: e.target.value})} placeholder="+57 300 123 4567" className="mt-2" />
+              <Input 
+                value={profile.whatsapp}
+                onChange={(e) => setProfile({...profile, whatsapp: e.target.value})}
+                disabled={!isEditing}
+                className="mt-1"
+              />
             </div>
           </div>
 
-          <Button onClick={saveProfile} className="w-full">
-            Guardar Cambios
-          </Button>
-        </CardContent>
-      </Card>
-
-      {isBuyer && (
-        <Card>
-          <CardContent className="pt-8 pb-8 text-center">
+          {isEditing && (
             <Button 
-              onClick={() => setIsSellerModalOpen(true)}
-              size="lg"
-              className="bg-yellow-600 hover:bg-yellow-700 text-white py-7 text-lg px-12"
+              onClick={handleSave}
+              disabled={loading || !isFormValid}
+              className="w-full mt-8 bg-orange-600 hover:bg-orange-700 text-white py-6 text-lg rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <Store className="mr-3" /> Quiero ser Vendedor
+              {loading ? "Guardando..." : <><Save size={20} /> Guardar Cambios</>}
             </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {isSellerModalOpen && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-8">
-            <h2 className="text-2xl font-bold mb-6">Conviértete en Vendedor</h2>
-            <div className="space-y-6">
-              <div>
-                <Label>Nombre del Negocio *</Label>
-                <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Ej: Limpieza Rápida Bucaramanga" className="mt-2" />
-              </div>
-              <div>
-                <Label>NIT (opcional)</Label>
-                <Input value={nit} onChange={(e) => setNit(e.target.value)} placeholder="123456789-0" className="mt-2" />
-              </div>
-              <div>
-                <Label>Breve descripción</Label>
-                <Textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Ofrecemos limpieza profunda..." className="mt-2 h-24" />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-8">
-              <Button variant="outline" onClick={() => setIsSellerModalOpen(false)} className="flex-1">Cancelar</Button>
-              <Button onClick={handleBecomeSeller} disabled={loading || !businessName.trim()} className="flex-1 bg-yellow-600 hover:bg-yellow-700">
-                {loading ? "Procesando..." : "Confirmar y Ser Vendedor"}
-              </Button>
-            </div>
-          </div>
+          )}
         </div>
-      )}
+
+        {/* Become Seller Button - ONLY for buyers */}
+        {!isSeller && (
+          <div className="bg-white rounded-3xl shadow-sm p-8 text-center">
+            <h3 className="text-xl font-semibold mb-3">¿Quieres vender tus servicios?</h3>
+            <p className="text-gray-600 mb-6">Únete a miles de vendedores locales y empieza a ganar dinero.</p>
+            <Button 
+              onClick={() => router.push("/api/user/become-seller")}
+              className="bg-orange-600 hover:bg-orange-700 text-white px-10 py-6 text-lg rounded-2xl"
+            >
+              Quiero ser Vendedor
+            </Button>
+          </div>
+        )}
+
+        <GrokAssistant />
+      </div>
     </div>
   )
 }
