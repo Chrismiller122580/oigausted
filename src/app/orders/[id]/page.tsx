@@ -1,107 +1,144 @@
 "use client"
-
-import { useEffect, useState } from "react"
-import { useParams, useSearchParams } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Send } from "lucide-react"
+import Link from "next/link"
+import { useSession } from "next-auth/react"
+import { Clock, Package, MessageCircle, Upload, Download, CheckCircle } from "lucide-react"
 
 export default function OrderDetailPage() {
-  const { id } = useParams()
-  const searchParams = useSearchParams()
-  const isSuccess = searchParams.get("success") === "true"
+  const params = useParams()
+  const { data: session } = useSession()
 
   const [order, setOrder] = useState<any>(null)
-  const [messages, setMessages] = useState<any[]>([])
-  const [newMessage, setNewMessage] = useState("")
-  const [currentUser, setCurrentUser] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
   useEffect(() => {
-    const savedOrders = JSON.parse(localStorage.getItem("oigausted-orders") || "[]")
-    const foundOrder = savedOrders.find((o: any) => o.id === id)
-    setOrder(foundOrder)
+    fetchOrder()
+  }, [])
 
-    const savedMessages = JSON.parse(localStorage.getItem(`chat_${id}`) || "[]")
-    setMessages(savedMessages)
-
-    const userStr = localStorage.getItem("oigausted-user")
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr)
-        setCurrentUser(user.name || "")
-      } catch (e) {}
+  const fetchOrder = async () => {
+    try {
+      const res = await fetch(`/api/orders/${params.id}`)
+      if (!res.ok) throw new Error("Order not found")
+      const data = await res.json()
+      setOrder(data.order)
+    } catch (err) {
+      console.error(err)
+      setError("Orden no encontrada o no tienes acceso")
+    } finally {
+      setLoading(false)
     }
-  }, [id])
-
-  const sendMessage = () => {
-    if (!newMessage.trim() || !order) return
-
-    const messageObj = {
-      id: Date.now(),
-      text: newMessage.trim(),
-      sender: currentUser || "Usuario",
-      timestamp: new Date().toISOString()
-    }
-
-    const updatedMessages = [...messages, messageObj]
-    setMessages(updatedMessages)
-    localStorage.setItem(`chat_${id}`, JSON.stringify(updatedMessages))
-
-    setNewMessage("")
   }
 
-  if (!order) return <div className="min-h-screen flex items-center justify-center">Orden no encontrada</div>
+  if (loading) return <div className="container py-20 text-center">Cargando orden...</div>
+  if (error) return <div className="container py-20 text-center text-red-600">{error}</div>
+  if (!order) return <div className="container py-20 text-center">Orden no encontrada</div>
+
+  const isBuyer = order.buyerId === (session?.user as any)?.id
+  const isSeller = order.sellerId === (session?.user as any)?.id
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container max-w-3xl mx-auto px-4">
-        {isSuccess && (
-          <div className="bg-green-100 border border-green-300 rounded-2xl p-6 mb-8 text-center">
-            <h1 className="text-2xl font-bold text-green-700">¡Pago confirmado!</h1>
-            <p className="text-green-600">El vendedor ha sido notificado. Puedes chatear con él aquí.</p>
-          </div>
-        )}
+    <div className="container max-w-4xl mx-auto py-12 px-6">
+      <Link href={isBuyer ? "/buyer" : "/seller"} className="text-orange-600 hover:underline mb-8 inline-block">
+        ← Volver a mis {isBuyer ? "pedidos" : "ventas"}
+      </Link>
 
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <h2 className="text-2xl font-semibold">{order.gigTitle}</h2>
-            <p className="text-gray-500">Orden #{order.id}</p>
-            <p className="text-3xl font-bold text-yellow-600 mt-4">${order.price.toLocaleString()} COP</p>
-          </CardContent>
-        </Card>
+      <div className="flex justify-between items-center mb-10">
+        <div>
+          <h1 className="text-3xl font-bold">{order.gig.title}</h1>
+          <p className="text-gray-500">Orden #{order.id.slice(0, 8)}...</p>
+        </div>
+        <div className={`px-6 py-2 rounded-full font-medium ${order.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+          {order.status}
+        </div>
+      </div>
 
-        {/* Chat */}
-        <Card className="h-[500px] flex flex-col">
-          <div className="p-4 border-b font-medium">Chat con el vendedor</div>
-          
-          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50">
-            {messages.length === 0 ? (
-              <p className="text-center text-gray-500 mt-10">Aún no hay mensajes. Envía el primero.</p>
-            ) : (
-              messages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.sender === currentUser ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[75%] p-3 rounded-2xl ${msg.sender === currentUser ? "bg-yellow-600 text-white" : "bg-white border"}`}>
-                    <p>{msg.text}</p>
-                    <p className="text-xs opacity-70 mt-1">{new Date(msg.timestamp).toLocaleTimeString()}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+      <div className="grid md:grid-cols-12 gap-8">
+        {/* Main Content */}
+        <div className="md:col-span-8 space-y-8">
+          {/* Progress */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                Progreso de la Orden
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-3 bg-gray-200 rounded-full overflow-hidden mb-4">
+                <div 
+                  className="h-full bg-orange-600 rounded-full transition-all" 
+                  style={{ width: `${order.progress || 25}%` }}
+                />
+              </div>
+              <p className="text-center text-sm text-gray-500">{order.progress || 25}% completado</p>
+            </CardContent>
+          </Card>
 
-          <div className="p-4 border-t flex gap-2">
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-              placeholder="Escribe un mensaje..."
-            />
-            <Button onClick={sendMessage}>
-              <Send size={20} />
-            </Button>
-          </div>
-        </Card>
+          {/* Chat Placeholder */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5" />
+                Chat con {isBuyer ? "el vendedor" : "el comprador"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-64 bg-gray-50 rounded-xl flex items-center justify-center border">
+              <p className="text-gray-500">Chat en tiempo real (próximamente)</p>
+            </CardContent>
+          </Card>
+
+          {/* Files */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="w-5 h-5" />
+                Archivos y Entregables
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center">
+                <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-500">Sube o descarga archivos aquí</p>
+                <Button variant="outline" className="mt-6">Subir archivo</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar */}
+        <div className="md:col-span-4">
+          <Card className="sticky top-8">
+            <CardHeader>
+              <CardTitle>Resumen</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <p className="text-sm text-gray-500">Precio</p>
+                <p className="text-3xl font-bold text-orange-600">
+                  ${order.price.toLocaleString("es-CO")} COP
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">Vendedor</p>
+                <p className="font-medium">{order.seller.name || order.seller.businessName}</p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">Comprador</p>
+                <p className="font-medium">{order.buyer.name || "Comprador"}</p>
+              </div>
+
+              <Button className="w-full" variant="outline">
+                Contactar Soporte
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

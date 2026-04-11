@@ -22,6 +22,8 @@ model User {
   nit             String?
   bio             String?
   profilePicture  String?
+  rating          Float?   @default(0)
+  reviewCount     Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -29,6 +31,8 @@ model User {
   ordersAsBuyer   Order[]  @relation("BuyerOrders")
   ordersAsSeller  Order[]  @relation("SellerOrders")
   password        String?
+  reviewsReceived Review[] @relation("ReviewToSeller")
+  reviewsGiven    Review[] @relation("ReviewToBuyer")
 }
 
 model Gig {
@@ -39,8 +43,8 @@ model Gig {
   category        String?
   completionTime  String?
   imageUrl        String?
-  fields          Json?    // Stores dynamic fields from create form
-  addons          Json?    // Stores selected addons
+  fields          Json?
+  addons          Json?
   createdAt       DateTime @default(now())
 
   sellerId        String
@@ -50,17 +54,59 @@ model Gig {
 }
 
 model Order {
+  id              String   @id @default(uuid())
+  price           Float
+  status          String   @default("Pending") // Pending, InProgress, Completed, Cancelled
+  progress        Int      @default(0)         // 0-100
+  trackingNumber  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  buyerId         String
+  sellerId        String
+  gigId           String
+
+  buyer           User     @relation("BuyerOrders", fields: [buyerId], references: [id])
+  seller          User     @relation("SellerOrders", fields: [sellerId], references: [id])
+  gig             Gig      @relation(fields: [gigId], references: [id])
+
+  messages        OrderMessage[]
+  files           OrderFile[]
+  reviews         Review[]
+}
+
+model OrderMessage {
+  id        String   @id @default(uuid())
+  content   String
+  isFromBuyer Boolean
+  createdAt DateTime @default(now())
+
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+}
+
+model OrderFile {
   id          String   @id @default(uuid())
-  price       Float
-  status      String   @default("Pending")
-  progress    Int      @default(0)
+  fileUrl     String
+  fileName    String
+  uploadedByBuyer Boolean
   createdAt   DateTime @default(now())
 
-  buyerId     String
-  sellerId    String
-  gigId       String
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+}
 
-  buyer       User     @relation("BuyerOrders", fields: [buyerId], references: [id])
-  seller      User     @relation("SellerOrders", fields: [sellerId], references: [id])
-  gig         Gig      @relation(fields: [gigId], references: [id])
+model Review {
+  id          String   @id @default(uuid())
+  rating      Int      // 1-5
+  comment     String?
+  createdAt   DateTime @default(now())
+
+  reviewerId  String
+  sellerId    String
+  orderId     String
+
+  reviewer    User     @relation("ReviewToBuyer", fields: [reviewerId], references: [id])
+  seller      User     @relation("ReviewToSeller", fields: [sellerId], references: [id])
+  order       Order    @relation(fields: [orderId], references: [id])
 }

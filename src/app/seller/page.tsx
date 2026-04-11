@@ -15,7 +15,6 @@ export default function SellerDashboard() {
 
   useEffect(() => {
     if (!session?.user?.email) return
-
     fetchMyGigs()
   }, [session])
 
@@ -24,7 +23,6 @@ export default function SellerDashboard() {
       const res = await fetch("/api/gigs")
       const data = await res.json()
       
-      // Filter only gigs belonging to current seller
       const myGigs = data.gigs.filter((gig: any) => 
         gig.seller.email === session?.user?.email ||
         gig.seller.id === (session?.user as any)?.id
@@ -113,7 +111,7 @@ export default function SellerDashboard() {
           </Link>
         </div>
 
-        {/* My Gigs Section */}
+        {/* My Gigs Section - NOW CLICKABLE */}
         <div className="bg-white rounded-3xl shadow-sm p-8">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-semibold">Mis Gigs Publicados</h2>
@@ -140,29 +138,33 @@ export default function SellerDashboard() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {gigs.map((gig) => (
-                <div key={gig.id} className="border rounded-3xl overflow-hidden hover:shadow-md transition">
-                  {gig.imageUrl && (
-                    <img
-                      src={gig.imageUrl}
-                      alt={gig.title}
-                      className="w-full h-48 object-cover"
-                    />
-                  )}
-                  <div className="p-6">
-                    <h3 className="font-semibold text-xl mb-2 line-clamp-2">{gig.title}</h3>
-                    <p className="text-gray-600 text-sm line-clamp-3 mb-4">{gig.description}</p>
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <span className="text-3xl font-bold text-orange-600">
-                          ${gig.price?.toLocaleString("es-CO")}
+                <Link key={gig.id} href={`/gigs/${gig.id}`} className="block">
+                  <div className="border rounded-3xl overflow-hidden hover:shadow-md transition group">
+                    {gig.imageUrl && (
+                      <img
+                        src={gig.imageUrl}
+                        alt={gig.title}
+                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform"
+                      />
+                    )}
+                    <div className="p-6">
+                      <h3 className="font-semibold text-xl mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors">
+                        {gig.title}
+                      </h3>
+                      <p className="text-gray-600 text-sm line-clamp-3 mb-4">{gig.description}</p>
+                      <div className="flex justify-between items-end">
+                        <div>
+                          <span className="text-3xl font-bold text-orange-600">
+                            ${gig.price?.toLocaleString("es-CO")}
+                          </span>
+                        </div>
+                        <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
+                          {gig.category}
                         </span>
                       </div>
-                      <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
-                        {gig.category}
-                      </span>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
