@@ -3,9 +3,10 @@ import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
-import { Clock, Package, MessageCircle, Upload, Download, CheckCircle } from "lucide-react"
+import { Clock, MessageCircle, Upload, Truck } from "lucide-react"
 
 export default function OrderDetailPage() {
   const params = useParams()
@@ -14,6 +15,8 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [messages, setMessages] = useState<any[]>([])
+  const [newMessage, setNewMessage] = useState("")
 
   useEffect(() => {
     fetchOrder()
@@ -25,6 +28,7 @@ export default function OrderDetailPage() {
       if (!res.ok) throw new Error("Order not found")
       const data = await res.json()
       setOrder(data.order)
+      setMessages(data.order.messages || [])
     } catch (err) {
       console.error(err)
       setError("Orden no encontrada o no tienes acceso")
@@ -33,15 +37,40 @@ export default function OrderDetailPage() {
     }
   }
 
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !order) return
+
+    try {
+      const res = await fetch(`/api/orders/${order.id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: newMessage,
+          isFromBuyer: true
+        })
+      })
+
+      if (res.ok) {
+        const newMsg = await res.json()
+        setMessages([...messages, newMsg])
+        setNewMessage("")   // Clear input after sending
+      } else {
+        alert("Error al enviar mensaje")
+      }
+    } catch (err) {
+      console.error(err)
+      alert("Error al enviar mensaje")
+    }
+  }
+
   if (loading) return <div className="container py-20 text-center">Cargando orden...</div>
   if (error) return <div className="container py-20 text-center text-red-600">{error}</div>
   if (!order) return <div className="container py-20 text-center">Orden no encontrada</div>
 
   const isBuyer = order.buyerId === (session?.user as any)?.id
-  const isSeller = order.sellerId === (session?.user as any)?.id
 
   return (
-    <div className="container max-w-4xl mx-auto py-12 px-6">
+    <div className="container max-w-5xl mx-auto py-12 px-6">
       <Link href={isBuyer ? "/buyer" : "/seller"} className="text-orange-600 hover:underline mb-8 inline-block">
         ← Volver a mis {isBuyer ? "pedidos" : "ventas"}
       </Link>
@@ -56,9 +85,8 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-12 gap-8">
-        {/* Main Content */}
-        <div className="md:col-span-8 space-y-8">
+      <div className="grid lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 space-y-8">
           {/* Progress */}
           <Card>
             <CardHeader>
@@ -78,7 +106,7 @@ export default function OrderDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Chat Placeholder */}
+          {/* Chat */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -86,8 +114,30 @@ export default function OrderDetailPage() {
                 Chat con {isBuyer ? "el vendedor" : "el comprador"}
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-64 bg-gray-50 rounded-xl flex items-center justify-center border">
-              <p className="text-gray-500">Chat en tiempo real (próximamente)</p>
+            <CardContent>
+              <div className="h-80 bg-gray-50 rounded-xl p-4 overflow-y-auto mb-4 border space-y-4">
+                {messages.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No hay mensajes aún. Inicia la conversación.</p>
+                ) : (
+                  messages.map((msg) => (
+                    <div key={msg.id} className={`flex ${msg.isFromBuyer ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[70%] p-3 rounded-2xl ${msg.isFromBuyer ? 'bg-orange-600 text-white' : 'bg-white border'}`}>
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Escribe un mensaje..."
+                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                />
+                <Button onClick={sendMessage}>Enviar</Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -110,14 +160,14 @@ export default function OrderDetailPage() {
         </div>
 
         {/* Sidebar */}
-        <div className="md:col-span-4">
+        <div className="lg:col-span-4">
           <Card className="sticky top-8">
             <CardHeader>
               <CardTitle>Resumen</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <p className="text-sm text-gray-500">Precio</p>
+                <p className="text-sm text-gray-500">Precio Total</p>
                 <p className="text-3xl font-bold text-orange-600">
                   ${order.price.toLocaleString("es-CO")} COP
                 </p>
@@ -132,6 +182,15 @@ export default function OrderDetailPage() {
                 <p className="text-sm text-gray-500">Comprador</p>
                 <p className="font-medium">{order.buyer.name || "Comprador"}</p>
               </div>
+
+              {order.trackingNumber && (
+                <div>
+                  <p className="text-sm text-gray-500">Seguimiento</p>
+                  <p className="font-medium flex items-center gap-2">
+                    <Truck className="w-4 h-4" /> {order.trackingNumber}
+                  </p>
+                </div>
+              )}
 
               <Button className="w-full" variant="outline">
                 Contactar Soporte
