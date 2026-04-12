@@ -53,12 +53,14 @@ export default function OrderDetailPage() {
     if (!newMessage.trim() || !order) return
 
     try {
+      const isFromBuyer = (session?.user as any)?.role === "buyer"
+
       const res = await fetch(`/api/orders/${orderId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content: newMessage,
-          isFromBuyer: session?.user?.role === "buyer"
+          isFromBuyer
         })
       })
 
@@ -75,8 +77,8 @@ export default function OrderDetailPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando orden...</div>
   if (!order) return <div className="min-h-screen flex items-center justify-center">Orden no encontrada</div>
 
-  const isBuyer = session?.user?.role === "buyer"
-  const isSeller = session?.user?.role === "seller"
+  const isBuyer = (session?.user as any)?.role === "buyer"
+  const isSeller = (session?.user as any)?.role === "seller"
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
