@@ -77,7 +77,7 @@ export default function LoginPage() {
         {/* Header */}
         <div className="bg-gradient-to-r from-orange-500 to-red-600 p-10 text-white text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center text-5xl">
+            <div className="w-20 h-20 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center text-5xl font-black">
               O
             </div>
           </div>
@@ -86,13 +86,13 @@ export default function LoginPage() {
         </div>
 
         <div className="p-10 space-y-8">
-          {/* Google Login - Prominent */}
+          {/* Prominent Google Button */}
           <Button
             onClick={() => signIn("google", { callbackUrl: "/" })}
-            className="w-full py-7 text-lg font-medium bg-white border-2 border-gray-300 hover:bg-gray-50 text-gray-900 flex items-center justify-center gap-3 shadow-sm"
+            className="w-full py-7 text-lg font-medium bg-white border-2 border-gray-300 hover:bg-gray-50 text-gray-900 flex items-center justify-center gap-3 shadow-sm rounded-2xl"
             disabled={loading}
           >
-            <FcGoogle className="text-2xl" />
+            <FcGoogle className="text-3xl" />
             Continuar con Google
           </Button>
 
@@ -105,7 +105,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Traditional Login Form */}
+          {/* Traditional Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <Label htmlFor="email">Correo electrónico</Label>
@@ -134,7 +134,7 @@ export default function LoginPage() {
 
             <Button 
               type="submit" 
-              className="w-full py-6 text-lg bg-orange-600 hover:bg-orange-700"
+              className="w-full py-6 text-lg bg-orange-600 hover:bg-orange-700 rounded-2xl"
               disabled={loading}
             >
               {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
