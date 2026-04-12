@@ -4,40 +4,65 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, BarChart3, DollarSign, Package } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { PlusCircle, BarChart3, DollarSign, Package, ShoppingBag, Trash2 } from "lucide-react"
 import GrokAssistant from "@/components/common/GrokAssistant"
 
 export default function SellerDashboard() {
   const { data: session } = useSession()
   const router = useRouter()
   const [gigs, setGigs] = useState<any[]>([])
+  const [sales, setSales] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!session?.user?.email) return
-    fetchMyGigs()
+    fetchData()
   }, [session])
 
-  const fetchMyGigs = async () => {
+  const fetchData = async () => {
     try {
-      const res = await fetch("/api/gigs")
-      const data = await res.json()
-      
-      const myGigs = data.gigs.filter((gig: any) => 
-        gig.seller.email === session?.user?.email ||
+      const gigsRes = await fetch("/api/gigs")
+      const gigsData = await gigsRes.json()
+      const myGigs = gigsData.gigs.filter((gig: any) => 
+        gig.seller.email === session?.user?.email || 
         gig.seller.id === (session?.user as any)?.id
       )
-      
       setGigs(myGigs)
+
+      const ordersRes = await fetch("/api/orders")
+      const ordersData = await ordersRes.json()
+      const mySales = ordersData.orders.filter((order: any) => 
+        order.seller.email === session?.user?.email || 
+        order.seller.id === (session?.user as any)?.id
+      )
+      setSales(mySales)
     } catch (error) {
-      console.error("Failed to fetch my gigs", error)
+      console.error("Failed to fetch data", error)
     } finally {
       setLoading(false)
     }
   }
 
+  const handleDeleteGig = async (gigId: string) => {
+    if (!confirm("¿Estás seguro de eliminar este gig? Esta acción no se puede deshacer.")) return
+
+    try {
+      const res = await fetch(`/api/gigs/${gigId}`, { method: "DELETE" })
+      if (res.ok) {
+        setGigs(gigs.filter(g => g.id !== gigId))
+        alert("Gig eliminado correctamente")
+      } else {
+        alert("Error al eliminar el gig")
+      }
+    } catch (error) {
+      console.error("Delete error", error)
+      alert("Error al eliminar el gig")
+    }
+  }
+
   const totalGigs = gigs.length
-  const totalEarnings = gigs.reduce((sum, gig) => sum + (gig.price || 0), 0)
+  const totalEarnings = sales.reduce((sum, order) => sum + (order.price || 0), 0)
   const avgPrice = totalGigs > 0 ? Math.round(totalEarnings / totalGigs) : 0
 
   if (loading) {
@@ -47,7 +72,6 @@ export default function SellerDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="max-w-6xl mx-auto px-6">
-        {/* Welcome Header */}
         <div className="mb-10">
           <h1 className="text-4xl font-bold text-gray-900">
             ¡Bienvenido de nuevo, {session?.user?.name?.split(" ")[0] || "Vendedor"}!
@@ -55,7 +79,6 @@ export default function SellerDashboard() {
           <p className="text-xl text-gray-600 mt-2">Aquí está el resumen de tu negocio</p>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
@@ -90,7 +113,6 @@ export default function SellerDashboard() {
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="flex flex-wrap gap-4 mb-12">
           <Link href="/create-gig">
             <Button size="lg" className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-6 text-lg rounded-2xl flex items-center gap-3">
@@ -98,21 +120,10 @@ export default function SellerDashboard() {
               Crear Nuevo Gig
             </Button>
           </Link>
-          <Link href="/seller/earnings">
-            <Button size="lg" variant="outline" className="px-8 py-6 text-lg rounded-2xl flex items-center gap-3">
-              <BarChart3 size={24} />
-              Ver Ganancias
-            </Button>
-          </Link>
-          <Link href="/seller/profile">
-            <Button size="lg" variant="outline" className="px-8 py-6 text-lg rounded-2xl flex items-center gap-3">
-              Mi Negocio
-            </Button>
-          </Link>
         </div>
 
-        {/* My Gigs Section - NOW CLICKABLE */}
-        <div className="bg-white rounded-3xl shadow-sm p-8">
+        {/* Mis Gigs Publicados */}
+        <div className="bg-white rounded-3xl shadow-sm p-8 mb-12">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-semibold">Mis Gigs Publicados</h2>
             <Link href="/create-gig" className="text-orange-600 hover:underline flex items-center gap-1">
@@ -127,7 +138,7 @@ export default function SellerDashboard() {
               </div>
               <h3 className="text-2xl font-medium text-gray-900 mb-3">Aún no tienes gigs</h3>
               <p className="text-gray-600 max-w-md mx-auto mb-8">
-                Publica tu primer servicio y empieza a recibir pedidos de clientes locales.
+                Publica tu primer servicio y empieza a recibir pedidos.
               </p>
               <Link href="/create-gig">
                 <Button size="lg" className="bg-orange-600 hover:bg-orange-700">
@@ -138,19 +149,13 @@ export default function SellerDashboard() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {gigs.map((gig) => (
-                <Link key={gig.id} href={`/gigs/${gig.id}`} className="block">
-                  <div className="border rounded-3xl overflow-hidden hover:shadow-md transition group">
+                <div key={gig.id} className="group relative border rounded-3xl overflow-hidden hover:shadow-md transition">
+                  <Link href={`/gigs/${gig.id}`} className="block">
                     {gig.imageUrl && (
-                      <img
-                        src={gig.imageUrl}
-                        alt={gig.title}
-                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform"
-                      />
+                      <img src={gig.imageUrl} alt={gig.title} className="w-full h-48 object-cover group-hover:scale-105 transition-transform" />
                     )}
                     <div className="p-6">
-                      <h3 className="font-semibold text-xl mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors">
-                        {gig.title}
-                      </h3>
+                      <h3 className="font-semibold text-xl mb-2 line-clamp-2 group-hover:text-orange-600">{gig.title}</h3>
                       <p className="text-gray-600 text-sm line-clamp-3 mb-4">{gig.description}</p>
                       <div className="flex justify-between items-end">
                         <div>
@@ -163,7 +168,58 @@ export default function SellerDashboard() {
                         </span>
                       </div>
                     </div>
-                  </div>
+                  </Link>
+
+                  {/* Delete Button */}
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleDeleteGig(gig.id)
+                    }}
+                    className="absolute top-4 right-4 bg-white/90 hover:bg-red-50 text-red-600 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                    title="Eliminar gig"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Mis Ventas */}
+        <div className="bg-white rounded-3xl shadow-sm p-8">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-semibold flex items-center gap-2">
+              <ShoppingBag className="w-6 h-6" />
+              Mis Ventas
+            </h2>
+            <span className="text-sm text-gray-500">{sales.length} órdenes recibidas</span>
+          </div>
+
+          {sales.length === 0 ? (
+            <div className="text-center py-16 text-gray-500">
+              Aún no tienes ventas. Tus gigs aparecerán aquí cuando los clientes compren.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {sales.map((order) => (
+                <Link key={order.id} href={`/orders/${order.id}`} className="block">
+                  <Card className="hover:shadow-md transition">
+                    <CardContent className="p-6">
+                      <h3 className="font-semibold text-lg mb-2">{order.gig?.title}</h3>
+                      <p className="text-sm text-gray-500 mb-4">Comprador: {order.buyer?.name || "Comprador"}</p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-2xl font-bold text-orange-600">
+                          ${order.price.toLocaleString("es-CO")}
+                        </span>
+                        <span className={`px-4 py-1 text-xs rounded-full ${order.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                          {order.status}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </Link>
               ))}
             </div>

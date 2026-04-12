@@ -10,7 +10,6 @@ import Link from "next/link"
 export default function BuyerPage() {
   const { data: session } = useSession()
   const router = useRouter()
-
   const [myPurchases, setMyPurchases] = useState<any[]>([])
   const [completedOrders, setCompletedOrders] = useState(0)
 
@@ -18,26 +17,33 @@ export default function BuyerPage() {
   const userEmail = session?.user?.email || ""
 
   useEffect(() => {
-    const savedOrders = JSON.parse(localStorage.getItem("oigausted-orders") || "[]")
-    const buyerOrders = savedOrders.filter((o: any) =>
-      o.buyerEmail === userEmail || o.buyer === userName
-    )
-    setMyPurchases(buyerOrders)
-    setCompletedOrders(buyerOrders.filter((o: any) => o.status === "completed").length)
-  }, [userEmail, userName])
+    fetchMyOrders()
+  }, [userEmail])
+
+  const fetchMyOrders = async () => {
+    try {
+      const res = await fetch("/api/orders")
+      const data = await res.json()
+      const buyerOrders = data.orders.filter((o: any) => 
+        o.buyer.email === userEmail || o.buyer.id === (session?.user as any)?.id
+      )
+      setMyPurchases(buyerOrders)
+      setCompletedOrders(buyerOrders.filter((o: any) => o.status === "Completed").length)
+    } catch (error) {
+      console.error("Failed to fetch orders", error)
+    }
+  }
 
   const totalSpent = myPurchases.reduce((sum, o) => sum + (o.price || 0), 0)
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="max-w-6xl mx-auto px-6">
-        {/* Welcome + Main CTA */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold tracking-tight mb-4">
             ¡Hola, {userName.split(" ")[0]}!
           </h1>
           <p className="text-2xl text-gray-600 mb-8">¿Qué servicio necesitas hoy?</p>
-
           <Button 
             onClick={() => router.push("/gigs")} 
             size="lg" 
@@ -45,10 +51,8 @@ export default function BuyerPage() {
           >
             Explorar Gigs Disponibles
           </Button>
-          <p className="text-gray-500 mt-4">Encuentra servicios locales cerca de ti</p>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <Card className="p-8">
             <CardHeader className="pb-3">
@@ -60,7 +64,6 @@ export default function BuyerPage() {
               <p className="text-6xl font-bold text-orange-600">{myPurchases.length}</p>
             </CardContent>
           </Card>
-
           <Card className="p-8">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-3 text-gray-500">
@@ -71,7 +74,6 @@ export default function BuyerPage() {
               <p className="text-6xl font-bold text-green-600">{completedOrders}</p>
             </CardContent>
           </Card>
-
           <Card className="p-8">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-3 text-gray-500">
@@ -86,7 +88,6 @@ export default function BuyerPage() {
           </Card>
         </div>
 
-        {/* Recent Purchases */}
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-semibold">Mis Compras Recientes</h2>
@@ -109,20 +110,22 @@ export default function BuyerPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {myPurchases.slice(0, 6).map((order) => (
-                <Card key={order.id} className="hover:shadow-md transition">
-                  <CardHeader>
-                    <CardTitle className="line-clamp-2 text-lg">{order.gigTitle || "Orden"}</CardTitle>
-                    <p className="text-sm text-gray-500">Vendedor: {order.seller}</p>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-orange-600">
-                      ${order.price?.toLocaleString("es-CO")} COP
-                    </p>
-                    <p className={`text-sm mt-3 font-medium ${order.status === "completed" ? "text-green-600" : "text-orange-600"}`}>
-                      {order.status || "En progreso"}
-                    </p>
-                  </CardContent>
-                </Card>
+                <Link key={order.id} href={`/orders/${order.id}`}>
+                  <Card className="hover:shadow-md transition">
+                    <CardHeader>
+                      <CardTitle className="line-clamp-2 text-lg">{order.gig?.title || "Orden"}</CardTitle>
+                      <p className="text-sm text-gray-500">Vendedor: {order.seller?.name}</p>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-3xl font-bold text-orange-600">
+                        ${order.price?.toLocaleString("es-CO")} COP
+                      </p>
+                      <p className={`text-sm mt-3 font-medium ${order.status === "Completed" ? "text-green-600" : "text-orange-600"}`}>
+                        {order.status || "En progreso"}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
           )}
