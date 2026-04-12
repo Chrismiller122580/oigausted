@@ -1,14 +1,11 @@
 import NextAuth from "next-auth"
+import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
-
-const demoUsers = [
-  { id: "1", name: "Chris Buyer", email: "buyer@demo.com", password: "123", role: "buyer" },
-  { id: "2", name: "Ana Seller", email: "seller@demo.com", password: "123", role: "seller" },
-  { id: "3", name: "Admin", email: "admin@demo.com", password: "123", role: "admin" },
-  { id: "4", name: "Chris Miller", email: "chris@demo.com", password: "123", role: "admin" },
-]
+import { PrismaAdapter } from "@auth/prisma-adapter"
+import { prisma } from "@/lib/prisma"
 
 const handler = NextAuth({
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -17,40 +14,37 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
-
-        const email = credentials.email.toLowerCase().trim()
-        const password = credentials.password.trim()
-
-        const user = demoUsers.find(u => u.email === email && u.password === password)
-
-        if (user) {
-          console.log(`✅ Login successful: ${user.email} as ${user.role}`)
-          return { 
-            id: user.id, 
-            name: user.name, 
-            email: user.email, 
-            role: user.role 
-          }
-        }
-
-        console.log(`❌ Login failed for: ${email}`)
+        if (credentials?.email === "buyer@demo.com") return { id: "1", name: "Buyer Demo", email: "buyer@demo.com", role: "buyer" }
+        if (credentials?.email === "seller@demo.com") return { id: "2", name: "Seller Demo", email: "seller@demo.com", role: "seller" }
+        if (credentials?.email === "admin@demo.com") return { id: "3", name: "Admin", email: "admin@demo.com", role: "admin" }
         return null
       }
+    }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     })
   ],
-  pages: { signIn: "/login" },
   session: { strategy: "jwt" },
   callbacks: {
-    async jwt({ token, user }: any) {
-      if (user) token.role = user.role
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id
+        token.role = (user as any).role || "buyer"
+      }
       return token
     },
-    async session({ session, token }: any) {
-      if (token.role) (session.user as any).role = token.role
+    async session({ session, token }) {
+      if (session.user) {
+        (session.user as any).id = token.id as string
+        (session.user as any).role = token.role as string
+      }
       return session
     }
-  }
+  },
+  pages: {
+    signIn: "/login",
+  },
 })
 
 export { handler as GET, handler as POST }
