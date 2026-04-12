@@ -4,55 +4,73 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShoppingBag, Star, TrendingUp } from "lucide-react"
+import { ShoppingBag, Star, TrendingUp, ArrowRight } from "lucide-react"
 import Link from "next/link"
+import GrokAssistant from "@/components/common/GrokAssistant"
 
 export default function BuyerPage() {
   const { data: session } = useSession()
   const router = useRouter()
   const [myPurchases, setMyPurchases] = useState<any[]>([])
   const [completedOrders, setCompletedOrders] = useState(0)
+  const [loading, setLoading] = useState(true)
 
   const userName = session?.user?.name || "Comprador"
   const userEmail = session?.user?.email || ""
 
   useEffect(() => {
-    fetchMyOrders()
-  }, [userEmail])
+    if (!session) return
 
-  const fetchMyOrders = async () => {
-    try {
-      const res = await fetch("/api/orders")
-      const data = await res.json()
-      const buyerOrders = data.orders.filter((o: any) => 
-        o.buyer.email === userEmail || o.buyer.id === (session?.user as any)?.id
-      )
-      setMyPurchases(buyerOrders)
-      setCompletedOrders(buyerOrders.filter((o: any) => o.status === "Completed").length)
-    } catch (error) {
-      console.error("Failed to fetch orders", error)
+    const fetchBuyerData = async () => {
+      try {
+        const res = await fetch("/api/orders")
+        const data = await res.json()
+        const buyerOrders = data.orders.filter((o: any) =>
+          o.buyer?.email === userEmail || o.buyer?.name === userName
+        )
+        setMyPurchases(buyerOrders)
+        setCompletedOrders(buyerOrders.filter((o: any) => o.status === "Completed").length)
+      } catch (error) {
+        console.error("Failed to fetch buyer orders", error)
+      } finally {
+        setLoading(false)
+      }
     }
-  }
+
+    fetchBuyerData()
+  }, [session, userEmail, userName])
 
   const totalSpent = myPurchases.reduce((sum, o) => sum + (o.price || 0), 0)
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Cargando tu dashboard...</div>
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="max-w-6xl mx-auto px-6">
+        {/* Welcome Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold tracking-tight mb-4">
-            ¡Hola, {userName.split(" ")[0]}!
+          <h1 className="text-5xl font-bold tracking-tight text-gray-900">
+            ¡Hola, {userName}!
           </h1>
-          <p className="text-2xl text-gray-600 mb-8">¿Qué servicio necesitas hoy?</p>
-          <Button 
-            onClick={() => router.push("/gigs")} 
-            size="lg" 
-            className="bg-orange-600 hover:bg-orange-700 text-white text-xl px-16 py-8 rounded-3xl shadow-lg"
-          >
-            Explorar Gigs Disponibles
-          </Button>
+          <p className="text-2xl text-gray-600 mt-3">¿Qué servicio necesitas hoy?</p>
         </div>
 
+        {/* Main CTA */}
+        <div className="mb-12 text-center">
+          <Button
+            onClick={() => router.push("/gigs")}
+            size="lg"
+            className="bg-orange-600 hover:bg-orange-700 text-white text-xl px-16 py-8 rounded-3xl shadow-lg flex items-center gap-3 mx-auto"
+          >
+            Explorar Gigs Disponibles
+            <ArrowRight size={28} />
+          </Button>
+          <p className="text-gray-500 mt-4">Encuentra servicios locales cerca de ti</p>
+        </div>
+
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <Card className="p-8">
             <CardHeader className="pb-3">
@@ -61,9 +79,10 @@ export default function BuyerPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-6xl font-bold text-orange-600">{myPurchases.length}</p>
+              <p className="text-6xl font-bold text-yellow-600">{myPurchases.length}</p>
             </CardContent>
           </Card>
+
           <Card className="p-8">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-3 text-gray-500">
@@ -74,6 +93,7 @@ export default function BuyerPage() {
               <p className="text-6xl font-bold text-green-600">{completedOrders}</p>
             </CardContent>
           </Card>
+
           <Card className="p-8">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-3 text-gray-500">
@@ -81,48 +101,46 @@ export default function BuyerPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-6xl font-bold text-yellow-600">
+              <p className="text-6xl font-bold text-orange-600">
                 ${totalSpent.toLocaleString("es-CO")}
               </p>
             </CardContent>
           </Card>
         </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold">Mis Compras Recientes</h2>
-            <Link href="/orders" className="text-orange-600 hover:underline text-sm font-medium">
-              Ver todas las órdenes →
-            </Link>
-          </div>
+        {/* Recent Purchases - Now Clickable */}
+        <div className="bg-white rounded-3xl shadow-sm p-8">
+          <h2 className="text-2xl font-semibold mb-6">Compras Recientes</h2>
 
           {myPurchases.length === 0 ? (
-            <Card className="p-12 text-center">
-              <ShoppingBag className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <h3 className="text-2xl font-medium text-gray-600 mb-3">Aún no has comprado nada</h3>
-              <p className="text-gray-500 mb-8 max-w-md mx-auto">
-                Explora los gigs disponibles y encuentra el servicio perfecto para ti.
-              </p>
+            <div className="text-center py-16">
+              <p className="text-2xl text-gray-500 mb-6">Aún no has comprado nada</p>
               <Button onClick={() => router.push("/gigs")} size="lg" className="bg-orange-600 hover:bg-orange-700">
                 Explorar Gigs Ahora
               </Button>
-            </Card>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {myPurchases.slice(0, 6).map((order) => (
-                <Link key={order.id} href={`/orders/${order.id}`}>
-                  <Card className="hover:shadow-md transition">
-                    <CardHeader>
-                      <CardTitle className="line-clamp-2 text-lg">{order.gig?.title || "Orden"}</CardTitle>
-                      <p className="text-sm text-gray-500">Vendedor: {order.seller?.name}</p>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-3xl font-bold text-orange-600">
-                        ${order.price?.toLocaleString("es-CO")} COP
-                      </p>
-                      <p className={`text-sm mt-3 font-medium ${order.status === "Completed" ? "text-green-600" : "text-orange-600"}`}>
-                        {order.status || "En progreso"}
-                      </p>
+                <Link 
+                  key={order.id} 
+                  href={`/orders/${order.id}`}
+                  className="block"
+                >
+                  <Card className="hover:shadow-md transition hover:border-orange-500">
+                    <CardContent className="p-6">
+                      <h3 className="font-semibold text-lg mb-2 line-clamp-2">{order.gig?.title || "Orden"}</h3>
+                      <p className="text-sm text-gray-500 mb-4">Vendedor: {order.seller?.name || "Vendedor"}</p>
+                      <div className="flex justify-between items-end">
+                        <span className="text-3xl font-bold text-yellow-600">
+                          ${order.price?.toLocaleString("es-CO")}
+                        </span>
+                        <span className={`px-4 py-1 text-xs rounded-full font-medium ${
+                          order.status === "Completed" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                        }`}>
+                          {order.status || "En progreso"}
+                        </span>
+                      </div>
                     </CardContent>
                   </Card>
                 </Link>
@@ -131,6 +149,8 @@ export default function BuyerPage() {
           )}
         </div>
       </div>
+
+      <GrokAssistant />
     </div>
   )
 }

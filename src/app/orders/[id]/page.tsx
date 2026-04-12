@@ -1,39 +1,51 @@
 "use client"
-import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import Link from "next/link"
 import { useSession } from "next-auth/react"
-import { Clock, MessageCircle, Upload, Truck } from "lucide-react"
+import { useRouter, useParams } from "next/navigation"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { ArrowLeft, Send, Upload, CheckCircle } from "lucide-react"
+import Link from "next/link"
 
 export default function OrderDetailPage() {
-  const params = useParams()
   const { data: session } = useSession()
+  const router = useRouter()
+  const params = useParams()
+  const orderId = params.id as string
 
   const [order, setOrder] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState("")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!orderId) return
     fetchOrder()
-  }, [])
+    fetchMessages()
+  }, [orderId])
 
   const fetchOrder = async () => {
     try {
-      const res = await fetch(`/api/orders/${params.id}`)
+      const res = await fetch(`/api/orders/${orderId}`)
       if (!res.ok) throw new Error("Order not found")
       const data = await res.json()
       setOrder(data.order)
-      setMessages(data.order.messages || [])
     } catch (err) {
       console.error(err)
-      setError("Orden no encontrada o no tienes acceso")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchMessages = async () => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/messages`)
+      if (res.ok) {
+        const data = await res.json()
+        setMessages(data.messages || [])
+      }
+    } catch (err) {
+      console.error("Failed to fetch messages", err)
     }
   }
 
@@ -41,162 +53,123 @@ export default function OrderDetailPage() {
     if (!newMessage.trim() || !order) return
 
     try {
-      const res = await fetch(`/api/orders/${order.id}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(`/api/orders/${orderId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content: newMessage,
-          isFromBuyer: true
+          isFromBuyer: session?.user?.role === "buyer"
         })
       })
 
       if (res.ok) {
         const newMsg = await res.json()
         setMessages([...messages, newMsg])
-        setNewMessage("")   // Clear input after sending
-      } else {
-        alert("Error al enviar mensaje")
+        setNewMessage("")
       }
     } catch (err) {
-      console.error(err)
-      alert("Error al enviar mensaje")
+      console.error("Failed to send message", err)
     }
   }
 
-  if (loading) return <div className="container py-20 text-center">Cargando orden...</div>
-  if (error) return <div className="container py-20 text-center text-red-600">{error}</div>
-  if (!order) return <div className="container py-20 text-center">Orden no encontrada</div>
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando orden...</div>
+  if (!order) return <div className="min-h-screen flex items-center justify-center">Orden no encontrada</div>
 
-  const isBuyer = order.buyerId === (session?.user as any)?.id
+  const isBuyer = session?.user?.role === "buyer"
+  const isSeller = session?.user?.role === "seller"
 
   return (
-    <div className="container max-w-5xl mx-auto py-12 px-6">
-      <Link href={isBuyer ? "/buyer" : "/seller"} className="text-orange-600 hover:underline mb-8 inline-block">
-        ← Volver a mis {isBuyer ? "pedidos" : "ventas"}
-      </Link>
-
-      <div className="flex justify-between items-center mb-10">
-        <div>
-          <h1 className="text-3xl font-bold">{order.gig.title}</h1>
-          <p className="text-gray-500">Orden #{order.id.slice(0, 8)}...</p>
-        </div>
-        <div className={`px-6 py-2 rounded-full font-medium ${order.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-          {order.status}
-        </div>
-      </div>
-
-      <div className="grid lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-8 space-y-8">
-          {/* Progress */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                Progreso de la Orden
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-3 bg-gray-200 rounded-full overflow-hidden mb-4">
-                <div 
-                  className="h-full bg-orange-600 rounded-full transition-all" 
-                  style={{ width: `${order.progress || 25}%` }}
-                />
-              </div>
-              <p className="text-center text-sm text-gray-500">{order.progress || 25}% completado</p>
-            </CardContent>
-          </Card>
-
-          {/* Chat */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5" />
-                Chat con {isBuyer ? "el vendedor" : "el comprador"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-80 bg-gray-50 rounded-xl p-4 overflow-y-auto mb-4 border space-y-4">
-                {messages.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No hay mensajes aún. Inicia la conversación.</p>
-                ) : (
-                  messages.map((msg) => (
-                    <div key={msg.id} className={`flex ${msg.isFromBuyer ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[70%] p-3 rounded-2xl ${msg.isFromBuyer ? 'bg-orange-600 text-white' : 'bg-white border'}`}>
-                        {msg.content}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className="flex gap-2">
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Escribe un mensaje..."
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                />
-                <Button onClick={sendMessage}>Enviar</Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Files */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="w-5 h-5" />
-                Archivos y Entregables
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center">
-                <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500">Sube o descarga archivos aquí</p>
-                <Button variant="outline" className="mt-6">Subir archivo</Button>
-              </div>
-            </CardContent>
-          </Card>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-5xl mx-auto px-6">
+        <div className="flex items-center gap-4 mb-8">
+          <Button variant="ghost" onClick={() => router.back()}>
+            <ArrowLeft size={20} />
+          </Button>
+          <h1 className="text-3xl font-bold">Orden #{order.id.slice(0,8)}</h1>
         </div>
 
-        {/* Sidebar */}
-        <div className="lg:col-span-4">
-          <Card className="sticky top-8">
-            <CardHeader>
-              <CardTitle>Resumen</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <p className="text-sm text-gray-500">Precio Total</p>
-                <p className="text-3xl font-bold text-orange-600">
-                  ${order.price.toLocaleString("es-CO")} COP
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-500">Vendedor</p>
-                <p className="font-medium">{order.seller.name || order.seller.businessName}</p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-500">Comprador</p>
-                <p className="font-medium">{order.buyer.name || "Comprador"}</p>
-              </div>
-
-              {order.trackingNumber && (
-                <div>
-                  <p className="text-sm text-gray-500">Seguimiento</p>
-                  <p className="font-medium flex items-center gap-2">
-                    <Truck className="w-4 h-4" /> {order.trackingNumber}
-                  </p>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-8 space-y-8">
+            {/* Progress */}
+            <Card>
+              <CardContent className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold">Progreso de la Orden</h2>
+                  <span className="text-2xl font-bold text-orange-600">{order.progress}%</span>
                 </div>
-              )}
+                <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-full bg-orange-600 transition-all" style={{ width: `${order.progress}%` }} />
+                </div>
+              </CardContent>
+            </Card>
 
-              <Button className="w-full" variant="outline">
-                Contactar Soporte
-              </Button>
-            </CardContent>
-          </Card>
+            {/* Chat */}
+            <Card>
+              <CardContent className="p-8">
+                <h2 className="text-xl font-semibold mb-6">Chat con {isBuyer ? order.seller?.name : order.buyer?.name}</h2>
+                
+                <div className="h-96 bg-gray-50 rounded-2xl p-6 mb-6 overflow-y-auto space-y-4">
+                  {messages.length === 0 ? (
+                    <p className="text-center text-gray-500 py-12">Aún no hay mensajes. ¡Escribe el primero!</p>
+                  ) : (
+                    messages.map((msg, i) => (
+                      <div key={i} className={`flex ${msg.isFromBuyer === isBuyer ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[70%] px-5 py-3 rounded-3xl ${msg.isFromBuyer === isBuyer ? 'bg-orange-600 text-white' : 'bg-white border'}`}>
+                          {msg.content}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                    placeholder="Escribe un mensaje..."
+                    className="flex-1 px-5 py-4 border rounded-2xl focus:outline-none focus:border-orange-500"
+                  />
+                  <Button onClick={sendMessage} className="px-8">
+                    <Send size={20} />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="lg:col-span-4">
+            <Card className="sticky top-8">
+              <CardContent className="p-8 space-y-8">
+                <div>
+                  <h3 className="font-semibold text-lg mb-4">Resumen</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Gig</span>
+                      <span className="font-medium">{order.gig?.title}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Precio</span>
+                      <span className="font-bold text-xl">${order.price?.toLocaleString("es-CO")}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Estado</span>
+                      <span className={`px-4 py-1 rounded-full text-sm ${order.status === "Completed" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
+                        {order.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <Button className="w-full py-6 text-lg" onClick={() => alert("Upload feature coming soon")}>
+                  Subir archivo / Evidencia
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
