@@ -3,8 +3,8 @@ import { useSession } from "next-auth/react"
 import { useRouter, useParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { ArrowLeft, Send, Upload, CheckCircle } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ArrowLeft, Send, Upload, CheckCircle, FileText } from "lucide-react"
 import Link from "next/link"
 
 export default function OrderDetailPage() {
@@ -75,7 +75,7 @@ export default function OrderDetailPage() {
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando orden...</div>
-  if (!order) return <div className="min-h-screen flex items-center justify-center">Orden no encontrada</div>
+  if (!order) return <div className="min-h-screen flex items-center justify-center text-red-600">Orden no encontrada</div>
 
   const isBuyer = (session?.user as any)?.role === "buyer"
   const isSeller = (session?.user as any)?.role === "seller"
@@ -88,29 +88,50 @@ export default function OrderDetailPage() {
             <ArrowLeft size={20} />
           </Button>
           <h1 className="text-3xl font-bold">Orden #{order.id.slice(0,8)}</h1>
+          <span className={`ml-auto px-5 py-2 rounded-full text-sm font-medium ${
+            order.status === "Completed" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+          }`}>
+            {order.status}
+          </span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-8 space-y-8">
-            {/* Progress */}
+            {/* Progress / Milestones */}
             <Card>
+              <CardHeader>
+                <CardTitle>Progreso de la Orden</CardTitle>
+              </CardHeader>
               <CardContent className="p-8">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold">Progreso de la Orden</h2>
-                  <span className="text-2xl font-bold text-orange-600">{order.progress}%</span>
+                <div className="flex justify-between mb-4">
+                  <span className="text-sm text-gray-600">Avance</span>
+                  <span className="font-bold text-orange-600">{order.progress}%</span>
                 </div>
-                <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-orange-600 transition-all" style={{ width: `${order.progress}%` }} />
+                <div className="h-4 bg-gray-200 rounded-full overflow-hidden mb-8">
+                  <div 
+                    className="h-full bg-gradient-to-r from-orange-500 to-red-600 transition-all duration-500" 
+                    style={{ width: `${order.progress}%` }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+                  {["Pending", "InProgress", "Review", "Completed"].map((status, index) => (
+                    <div key={index} className={`p-4 rounded-2xl border ${order.status === status ? 'border-orange-500 bg-orange-50' : 'border-gray-200'}`}>
+                      <CheckCircle className={`mx-auto mb-2 ${order.status === status ? 'text-orange-600' : 'text-gray-300'}`} size={28} />
+                      <p className="text-sm font-medium">{status}</p>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
 
             {/* Chat */}
             <Card>
+              <CardHeader>
+                <CardTitle>Chat con {isBuyer ? order.seller?.name : order.buyer?.name}</CardTitle>
+              </CardHeader>
               <CardContent className="p-8">
-                <h2 className="text-xl font-semibold mb-6">Chat con {isBuyer ? order.seller?.name : order.buyer?.name}</h2>
-                
                 <div className="h-96 bg-gray-50 rounded-2xl p-6 mb-6 overflow-y-auto space-y-4">
                   {messages.length === 0 ? (
                     <p className="text-center text-gray-500 py-12">Aún no hay mensajes. ¡Escribe el primero!</p>
@@ -145,30 +166,37 @@ export default function OrderDetailPage() {
           {/* Sidebar */}
           <div className="lg:col-span-4">
             <Card className="sticky top-8">
+              <CardHeader>
+                <CardTitle>Resumen de la Orden</CardTitle>
+              </CardHeader>
               <CardContent className="p-8 space-y-8">
-                <div>
-                  <h3 className="font-semibold text-lg mb-4">Resumen</h3>
-                  <div className="space-y-4">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Gig</span>
-                      <span className="font-medium">{order.gig?.title}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Precio</span>
-                      <span className="font-bold text-xl">${order.price?.toLocaleString("es-CO")}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Estado</span>
-                      <span className={`px-4 py-1 rounded-full text-sm ${order.status === "Completed" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
-                        {order.status}
-                      </span>
-                    </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Gig</span>
+                    <span className="font-medium text-right">{order.gig?.title}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Precio</span>
+                    <span className="font-bold text-xl text-orange-600">${order.price?.toLocaleString("es-CO")}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Estado</span>
+                    <span className={`px-5 py-2 rounded-full text-sm font-medium ${order.status === "Completed" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
+                      {order.status}
+                    </span>
                   </div>
                 </div>
 
-                <Button className="w-full py-6 text-lg" onClick={() => alert("Upload feature coming soon")}>
-                  Subir archivo / Evidencia
-                </Button>
+                {/* File Upload */}
+                <div>
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <Upload size={18} /> Archivos / Evidencia
+                  </h4>
+                  <Button variant="outline" className="w-full py-6" onClick={() => alert("File upload coming in next step")}>
+                    Subir archivo
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-3 text-center">Imágenes, documentos o comprobantes</p>
+                </div>
               </CardContent>
             </Card>
           </div>
