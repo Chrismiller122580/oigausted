@@ -2,8 +2,8 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 interface Gig {
   id: string
@@ -22,11 +22,20 @@ interface Gig {
 }
 
 export default function GigCard({ gig }: { gig: Gig }) {
-  const { data: session } = useSession()
   const router = useRouter()
+  const [currentUser, setCurrentUser] = useState<any>(null)
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("oigausted-user")
+    if (userStr) {
+      try {
+        setCurrentUser(JSON.parse(userStr))
+      } catch (e) {}
+    }
+  }, [])
 
   const sellerName = gig.seller?.name || gig.seller?.businessName || gig.seller?.email || "Vendedor"
-  const isOwnGig = session?.user && gig.seller.id === (session.user as any).id
+  const isOwnGig = currentUser && gig.seller.id === currentUser.id
 
   const handleBuyNow = () => {
     if (isOwnGig) {
@@ -37,42 +46,38 @@ export default function GigCard({ gig }: { gig: Gig }) {
   }
 
   return (
-    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       {gig.imageUrl && (
-        <div className="relative h-52 overflow-hidden">
-          <img 
-            src={gig.imageUrl} 
-            alt={gig.title} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-          />
-        </div>
+        <img 
+          src={gig.imageUrl} 
+          alt={gig.title} 
+          className="w-full h-48 object-cover" 
+        />
       )}
-
       <CardHeader>
-        <CardTitle className="line-clamp-2 text-xl">{gig.title}</CardTitle>
-        <p className="text-sm text-gray-500">por {sellerName}</p>
+        <CardTitle className="line-clamp-2">{gig.title}</CardTitle>
+        <p className="text-sm text-gray-500">{sellerName}</p>
       </CardHeader>
-
-      <CardContent className="pb-4">
-        {gig.description && (
-          <p className="text-gray-600 line-clamp-3 text-sm mb-4">{gig.description}</p>
-        )}
-        
-        <div className="flex items-baseline gap-1">
+      <CardContent>
+        <p className="text-gray-600 line-clamp-3 mb-4">{gig.description}</p>
+        <div className="flex justify-between items-center">
           <span className="text-3xl font-bold text-orange-600">
             ${gig.price.toLocaleString("es-CO")}
           </span>
-          <span className="text-sm text-gray-500">COP</span>
+          {gig.category && (
+            <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
+              {gig.category}
+            </span>
+          )}
         </div>
       </CardContent>
-
-      <CardFooter className="pt-0">
+      <CardFooter>
         <Button 
           onClick={handleBuyNow}
           className="w-full bg-orange-600 hover:bg-orange-700"
           disabled={isOwnGig}
         >
-          {isOwnGig ? "Tu propio gig" : "Comprar ahora"}
+          {isOwnGig ? "Tu propio gig" : "Comprar Ahora"}
         </Button>
       </CardFooter>
     </Card>

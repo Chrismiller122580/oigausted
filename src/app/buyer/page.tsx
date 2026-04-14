@@ -1,156 +1,90 @@
 "use client"
-import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShoppingBag, Star, TrendingUp, ArrowRight } from "lucide-react"
 import Link from "next/link"
-import GrokAssistant from "@/components/common/GrokAssistant"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { ShoppingBag, Package, MessageCircle } from "lucide-react"
 
-export default function BuyerPage() {
-  const { data: session } = useSession()
-  const router = useRouter()
-  const [myPurchases, setMyPurchases] = useState<any[]>([])
-  const [completedOrders, setCompletedOrders] = useState(0)
-  const [loading, setLoading] = useState(true)
-
-  const userName = session?.user?.name || "Comprador"
-  const userEmail = session?.user?.email || ""
-
-  useEffect(() => {
-    if (!session) return
-
-    const fetchBuyerData = async () => {
-      try {
-        const res = await fetch("/api/orders")
-        const data = await res.json()
-        const buyerOrders = data.orders.filter((o: any) =>
-          o.buyer?.email === userEmail || o.buyer?.name === userName
-        )
-        setMyPurchases(buyerOrders)
-        setCompletedOrders(buyerOrders.filter((o: any) => o.status === "Completed").length)
-      } catch (error) {
-        console.error("Failed to fetch buyer orders", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchBuyerData()
-  }, [session, userEmail, userName])
-
-  const totalSpent = myPurchases.reduce((sum, o) => sum + (o.price || 0), 0)
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Cargando tu dashboard...</div>
-  }
-
+export default function BuyerDashboard() {
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
+    <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-6xl mx-auto px-6">
-        {/* Welcome Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold tracking-tight text-gray-900">
-            ¡Hola, {userName}!
-          </h1>
-          <p className="text-2xl text-gray-600 mt-3">¿Qué servicio necesitas hoy?</p>
+        <div className="flex justify-between items-center mb-12">
+          <div>
+            <h1 className="text-5xl font-bold tracking-tight">Hola, Comprador</h1>
+            <p className="text-xl text-gray-600 mt-3">¿Qué servicio necesitas hoy?</p>
+          </div>
         </div>
 
-        {/* Main CTA */}
-        <div className="mb-12 text-center">
-          <Button
-            onClick={() => router.push("/gigs")}
-            size="lg"
-            className="bg-orange-600 hover:bg-orange-700 text-white text-xl px-16 py-8 rounded-3xl shadow-lg flex items-center gap-3 mx-auto"
-          >
-            Explorar Gigs Disponibles
-            <ArrowRight size={28} />
-          </Button>
-          <p className="text-gray-500 mt-4">Encuentra servicios locales cerca de ti</p>
-        </div>
+        {/* Big Buy Button */}
+        <Card className="mb-12 bg-gradient-to-r from-orange-600 to-orange-700 text-white">
+          <CardContent className="p-12 text-center">
+            <ShoppingBag className="h-16 w-16 mx-auto mb-6" />
+            <h2 className="text-4xl font-bold mb-4">Encuentra y Compra Servicios</h2>
+            <p className="text-xl mb-8 max-w-md mx-auto">
+              Miles de gigs disponibles. Encuentra el freelancer perfecto para tu proyecto.
+            </p>
+            <Button asChild size="lg" className="bg-white text-orange-700 hover:bg-gray-100 text-xl px-12 py-7 rounded-2xl font-semibold">
+              <Link href="/gigs">
+                Explorar Gigs y Comprar Ahora
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <Card className="p-8">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-3 text-gray-500">
-                <ShoppingBag className="w-6 h-6" /> Compras Realizadas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-6xl font-bold text-yellow-600">{myPurchases.length}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="p-8">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-3 text-gray-500">
-                <Star className="w-6 h-6" /> Órdenes Completadas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-6xl font-bold text-green-600">{completedOrders}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="p-8">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-3 text-gray-500">
-                <TrendingUp className="w-6 h-6" /> Total Gastado
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-6xl font-bold text-orange-600">
-                ${totalSpent.toLocaleString("es-CO")}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Recent Purchases - Now Clickable */}
-        <div className="bg-white rounded-3xl shadow-sm p-8">
-          <h2 className="text-2xl font-semibold mb-6">Compras Recientes</h2>
-
-          {myPurchases.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-2xl text-gray-500 mb-6">Aún no has comprado nada</p>
-              <Button onClick={() => router.push("/gigs")} size="lg" className="bg-orange-600 hover:bg-orange-700">
-                Explorar Gigs Ahora
+        {/* Quick Links */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="hover:shadow-lg transition-all">
+            <CardContent className="p-8">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="bg-orange-100 p-4 rounded-2xl">
+                  <ShoppingBag className="h-8 w-8 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-2xl">Explorar Gigs</h3>
+                  <p className="text-gray-600">Descubre servicios</p>
+                </div>
+              </div>
+              <Button asChild className="w-full">
+                <Link href="/gigs">Ver Todos los Gigs</Link>
               </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {myPurchases.slice(0, 6).map((order) => (
-                <Link 
-                  key={order.id} 
-                  href={`/orders/${order.id}`}
-                  className="block"
-                >
-                  <Card className="hover:shadow-md transition hover:border-orange-500">
-                    <CardContent className="p-6">
-                      <h3 className="font-semibold text-lg mb-2 line-clamp-2">{order.gig?.title || "Orden"}</h3>
-                      <p className="text-sm text-gray-500 mb-4">Vendedor: {order.seller?.name || "Vendedor"}</p>
-                      <div className="flex justify-between items-end">
-                        <span className="text-3xl font-bold text-yellow-600">
-                          ${order.price?.toLocaleString("es-CO")}
-                        </span>
-                        <span className={`px-4 py-1 text-xs rounded-full font-medium ${
-                          order.status === "Completed" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
-                        }`}>
-                          {order.status || "En progreso"}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          )}
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-all">
+            <CardContent className="p-8">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="bg-blue-100 p-4 rounded-2xl">
+                  <Package className="h-8 w-8 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-2xl">Mis Pedidos</h3>
+                  <p className="text-gray-600">Gestiona tus compras</p>
+                </div>
+              </div>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/orders">Ver Mis Órdenes</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-all">
+            <CardContent className="p-8">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="bg-green-100 p-4 rounded-2xl">
+                  <MessageCircle className="h-8 w-8 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-2xl">Chats Activos</h3>
+                  <p className="text-gray-600">Habla con vendedores</p>
+                </div>
+              </div>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/orders">Ir a Chats</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
-
-      <GrokAssistant />
     </div>
   )
 }

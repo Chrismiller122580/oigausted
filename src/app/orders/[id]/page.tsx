@@ -1,35 +1,52 @@
 "use client"
-import { useSession } from "next-auth/react"
-import { useRouter, useParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Send, Upload, CheckCircle, FileText } from "lucide-react"
-import Link from "next/link"
+import { Card, CardContent } from "@/components/ui/card"
+import { ArrowLeft, Send, Paperclip, Loader2 } from "lucide-react"
 
 export default function OrderDetailPage() {
-  const { data: session } = useSession()
-  const router = useRouter()
   const params = useParams()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const orderId = params.id as string
 
   const [order, setOrder] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
+  const [files, setFiles] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
+
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!orderId) return
+    const userStr = localStorage.getItem("oigausted-user")
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr)
+        setCurrentUserRole(user.role || "buyer")
+      } catch (e) {}
+    }
+
     fetchOrder()
     fetchMessages()
+    fetchFiles()
+
+    const interval = setInterval(fetchMessages, 4000)
+    return () => clearInterval(interval)
   }, [orderId])
 
   const fetchOrder = async () => {
     try {
       const res = await fetch(`/api/orders/${orderId}`)
-      if (!res.ok) throw new Error("Order not found")
-      const data = await res.json()
-      setOrder(data.order)
+      if (res.ok) {
+        const data = await res.json()
+        setOrder(data.order)
+      }
     } catch (err) {
       console.error(err)
     } finally {
@@ -45,100 +62,118 @@ export default function OrderDetailPage() {
         setMessages(data.messages || [])
       }
     } catch (err) {
-      console.error("Failed to fetch messages", err)
+      console.error(err)
+    }
+  }
+
+  const fetchFiles = async () => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/files`)
+      if (res.ok) {
+        const data = await res.json()
+        setFiles(data.files || [])
+      }
+    } catch (err) {
+      console.error(err)
     }
   }
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !order) return
-
+    if (!newMessage.trim()) return
+    setSending(true)
     try {
-      const isFromBuyer = (session?.user as any)?.role === "buyer"
-
       const res = await fetch(`/api/orders/${orderId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: newMessage,
-          isFromBuyer
-        })
+        body: JSON.stringify({ content: newMessage })
+      })
+      if (res.ok) {
+        setNewMessage("")
+        fetchMessages()
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const res = await fetch(`/api/orders/${orderId}/files`, {
+        method: "POST",
+        body: formData
       })
 
       if (res.ok) {
-        const newMsg = await res.json()
-        setMessages([...messages, newMsg])
-        setNewMessage("")
+        const result = await res.json()
+        // Immediately add the new file to the list for instant feedback
+        setFiles(prev => [...prev, result.file || { name: file.name, uploadedAt: new Date().toISOString() }])
+        alert(`✅ Archivo "${file.name}" subido correctamente`)
+      } else {
+        alert("Error al subir el archivo")
       }
     } catch (err) {
-      console.error("Failed to send message", err)
+      console.error(err)
+      alert("Error al subir archivo")
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
+
+  const handleWompiPayment = async () => {
+    if (!order || order.status !== "Pending") return
+    try {
+      alert("Redirigiendo a Wompi...")
+      router.push(`/orders/${orderId}?status=paid`)
+    } catch (err) {
+      alert("Error en el pago")
     }
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando orden...</div>
   if (!order) return <div className="min-h-screen flex items-center justify-center text-red-600">Orden no encontrada</div>
 
-  const isBuyer = (session?.user as any)?.role === "buyer"
-  const isSeller = (session?.user as any)?.role === "seller"
+  const isBuyer = currentUserRole === "buyer"
+  const isPaid = order.status === "Paid"
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-5xl mx-auto px-6">
-        <div className="flex items-center gap-4 mb-8">
-          <Button variant="ghost" onClick={() => router.back()}>
-            <ArrowLeft size={20} />
-          </Button>
-          <h1 className="text-3xl font-bold">Orden #{order.id.slice(0,8)}</h1>
-          <span className={`ml-auto px-5 py-2 rounded-full text-sm font-medium ${
-            order.status === "Completed" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
-          }`}>
-            {order.status}
-          </span>
-        </div>
+        <Button variant="ghost" onClick={() => router.back()} className="mb-8">← Volver</Button>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Main Content */}
           <div className="lg:col-span-8 space-y-8">
-            {/* Progress / Milestones */}
             <Card>
-              <CardHeader>
-                <CardTitle>Progreso de la Orden</CardTitle>
-              </CardHeader>
               <CardContent className="p-8">
-                <div className="flex justify-between mb-4">
-                  <span className="text-sm text-gray-600">Avance</span>
-                  <span className="font-bold text-orange-600">{order.progress}%</span>
-                </div>
-                <div className="h-4 bg-gray-200 rounded-full overflow-hidden mb-8">
-                  <div 
-                    className="h-full bg-gradient-to-r from-orange-500 to-red-600 transition-all duration-500" 
-                    style={{ width: `${order.progress}%` }}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
-                  {["Pending", "InProgress", "Review", "Completed"].map((status, index) => (
-                    <div key={index} className={`p-4 rounded-2xl border ${order.status === status ? 'border-orange-500 bg-orange-50' : 'border-gray-200'}`}>
-                      <CheckCircle className={`mx-auto mb-2 ${order.status === status ? 'text-orange-600' : 'text-gray-300'}`} size={28} />
-                      <p className="text-sm font-medium">{status}</p>
-                    </div>
-                  ))}
+                <h1 className="text-4xl font-bold">{order.gig?.title}</h1>
+                <p className="text-gray-500">Orden #{order.id.slice(0,8)}</p>
+                <div className="mt-6 text-5xl font-bold text-orange-600">
+                  ${order.price?.toLocaleString("es-CO")}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Chat */}
             <Card>
-              <CardHeader>
-                <CardTitle>Chat con {isBuyer ? order.seller?.name : order.buyer?.name}</CardTitle>
-              </CardHeader>
               <CardContent className="p-8">
-                <div className="h-96 bg-gray-50 rounded-2xl p-6 mb-6 overflow-y-auto space-y-4">
+                <h2 className="text-2xl font-semibold mb-6">
+                  Chat con {isBuyer ? "el vendedor" : "el comprador"}
+                </h2>
+                <div className="h-[420px] bg-gray-50 rounded-3xl p-6 mb-6 overflow-y-auto space-y-4">
                   {messages.length === 0 ? (
-                    <p className="text-center text-gray-500 py-12">Aún no hay mensajes. ¡Escribe el primero!</p>
+                    <p className="text-center text-gray-500 py-12">No hay mensajes aún</p>
                   ) : (
                     messages.map((msg, i) => (
-                      <div key={i} className={`flex ${msg.isFromBuyer === isBuyer ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[70%] px-5 py-3 rounded-3xl ${msg.isFromBuyer === isBuyer ? 'bg-orange-600 text-white' : 'bg-white border'}`}>
+                      <div key={i} className={`flex ${msg.isFromBuyer ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[75%] px-6 py-4 rounded-3xl ${msg.isFromBuyer ? 'bg-orange-600 text-white' : 'bg-white border'}`}>
                           {msg.content}
                         </div>
                       </div>
@@ -148,55 +183,53 @@ export default function OrderDetailPage() {
 
                 <div className="flex gap-3">
                   <input
-                    type="text"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                     placeholder="Escribe un mensaje..."
-                    className="flex-1 px-5 py-4 border rounded-2xl focus:outline-none focus:border-orange-500"
+                    className="flex-1 px-6 py-4 border rounded-3xl"
                   />
-                  <Button onClick={sendMessage} className="px-8">
-                    <Send size={20} />
+                  <Button onClick={sendMessage} disabled={sending || !newMessage.trim()}>
+                    Enviar
                   </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Sidebar */}
+          {/* Files Sidebar - Now with real list */}
           <div className="lg:col-span-4">
             <Card className="sticky top-8">
-              <CardHeader>
-                <CardTitle>Resumen de la Orden</CardTitle>
-              </CardHeader>
-              <CardContent className="p-8 space-y-8">
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Gig</span>
-                    <span className="font-medium text-right">{order.gig?.title}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Precio</span>
-                    <span className="font-bold text-xl text-orange-600">${order.price?.toLocaleString("es-CO")}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Estado</span>
-                    <span className={`px-5 py-2 rounded-full text-sm font-medium ${order.status === "Completed" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
-                      {order.status}
-                    </span>
-                  </div>
+              <CardContent className="p-8">
+                <h3 className="font-semibold mb-6">Archivos subidos ({files.length})</h3>
+                
+                <div className="min-h-[260px] bg-gray-50 rounded-2xl p-6 mb-6 overflow-y-auto">
+                  {files.length === 0 ? (
+                    <p className="text-gray-500 text-center py-12">Aún no hay archivos subidos</p>
+                  ) : (
+                    files.map((file, i) => (
+                      <div key={i} className="py-3 border-b last:border-0 flex items-center gap-3 text-sm">
+                        <Paperclip className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        <span className="truncate">{file.name}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
 
-                {/* File Upload */}
-                <div>
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
-                    <Upload size={18} /> Archivos / Evidencia
-                  </h4>
-                  <Button variant="outline" className="w-full py-6" onClick={() => alert("File upload coming in next step")}>
-                    Subir archivo
-                  </Button>
-                  <p className="text-xs text-gray-500 mt-3 text-center">Imágenes, documentos o comprobantes</p>
-                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <Button 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="w-full py-7"
+                  variant="outline"
+                >
+                  {uploading ? "Subiendo archivo..." : "Subir nuevo archivo"}
+                </Button>
               </CardContent>
             </Card>
           </div>

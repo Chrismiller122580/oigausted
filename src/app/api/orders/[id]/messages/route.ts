@@ -1,30 +1,58 @@
 import { NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '../../../auth/[...nextauth]/route'
 
-const prisma = new PrismaClient()
-
-export async function POST(
-  request: Request,
+export async function GET(
+  request: Request, 
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const resolvedParams = await params
-    const orderId = resolvedParams.id
+  const { id } = await params
 
-    const body = await request.json()
-    const { content, isFromBuyer = true } = body
+  try {
+    const messages = await prisma.orderMessage.findMany({
+      where: { orderId: id },
+      orderBy: { createdAt: 'asc' }
+    })
+    return NextResponse.json({ messages })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 })
+  }
+}
+
+export async function POST(
+  request: Request, 
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user?.id) {
+      console.error("❌ No session found when sending message")
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    const { content } = await request.json()
+
+    if (!content?.trim()) {
+      return NextResponse.json({ error: 'Content is required' }, { status: 400 })
+    }
 
     const message = await prisma.orderMessage.create({
       data: {
-        content,
-        isFromBuyer: Boolean(isFromBuyer),
-        orderId: orderId,
+        orderId: id,
+        content: content.trim(),
+        isFromBuyer: session.user.role === 'buyer'
       }
     })
 
-    return NextResponse.json(message)
+    console.log(`✅ Message sent by ${session.user.role}`)
+    return NextResponse.json({ message })
   } catch (error) {
-    console.error('Send message error:', error)
+    console.error("Message send error:", error)
     return NextResponse.json({ error: 'Failed to send message' }, { status: 500 })
   }
 }
