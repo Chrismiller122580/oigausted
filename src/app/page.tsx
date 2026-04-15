@@ -26,7 +26,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero - New Fresh Green Theme */}
+      {/* Hero - Fresh Green Theme with Fixed Buttons */}
       <div className="bg-gradient-to-br from-emerald-700 via-teal-600 to-cyan-600 text-white py-24">
         <div className="max-w-5xl mx-auto px-6 text-center">
           <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-6 py-2 rounded-full mb-6 text-sm font-medium">
@@ -42,20 +42,21 @@ export default function HomePage() {
             La plataforma colombiana de gigs. Rápido, confiable y 100% local.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
+            {/* Primary Button - White with strong text */}
             <Button 
               asChild 
               size="lg" 
-              className="text-xl px-12 py-8 rounded-3xl bg-white text-emerald-700 hover:bg-emerald-50 font-semibold shadow-xl"
+              className="text-xl px-10 py-8 rounded-3xl bg-white text-emerald-700 hover:bg-emerald-50 font-semibold shadow-2xl flex-1"
             >
               <Link href="/gigs">Explorar todos los gigs</Link>
             </Button>
 
+            {/* Secondary Button - Fixed contrast */}
             <Button 
               asChild 
               size="lg" 
-              variant="outline" 
-              className="text-xl px-12 py-8 rounded-3xl border-2 border-white text-white hover:bg-white/10 font-semibold"
+              className="text-xl px-10 py-8 rounded-3xl bg-transparent border-2 border-white text-white hover:bg-white hover:text-emerald-700 font-semibold flex-1 transition-all"
             >
               <Link href="/seller">Quiero vender mis servicios</Link>
             </Button>
@@ -63,7 +64,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Categories - Updated with better colors */}
+      {/* Categories */}
       <div className="max-w-7xl mx-auto px-6 py-20">
         <h2 className="text-4xl font-bold text-center mb-12 text-gray-900">Categorías Populares</h2>
 
