@@ -2,9 +2,8 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, User, Bell, Menu, MapPin } from "lucide-react"
+import { MapPin } from "lucide-react"
 import { useSession, signIn, signOut } from "next-auth/react"
 
 export default function HomePage() {
@@ -19,63 +18,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-      {/* Navbar */}
-      <nav className="sticky top-0 bg-white border-b z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl">O</div>
-              <div>
-                <div className="font-bold text-2xl tracking-tight">OigaUsted</div>
-                <div className="text-[10px] text-gray-500 -mt-1">Gigs Colombia</div>
-              </div>
-            </Link>
-
-            <div className="hidden md:flex items-center gap-6 text-sm font-medium">
-              <Link href="/gigs" className="hover:text-orange-600 transition">Explorar Gigs</Link>
-              <Link href="/seller" className="hover:text-orange-600 transition">Vender</Link>
-              <Link href="/how-it-works" className="hover:text-orange-600 transition">Cómo Funciona</Link>
-            </div>
-          </div>
-
-          <div className="flex-1 max-w-xl mx-8 relative hidden md:block">
-            <div className="relative">
-              <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
-              <Input 
-                type="text" 
-                placeholder="¿Qué servicio necesitas hoy? (ej: logo, limpieza, DJ...)"
-                className="pl-12 py-6 text-base rounded-3xl border-gray-200 focus:border-orange-500"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {session ? (
-              <>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell size={20} />
-                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">3</div>
-                </Button>
-                <Button variant="ghost" size="icon">
-                  <User size={20} />
-                </Button>
-                <Button onClick={() => signOut()} variant="outline" className="hidden md:flex">Cerrar sesión</Button>
-              </>
-            ) : (
-              <>
-                <Button variant="ghost" onClick={() => signIn()}>Ingresar</Button>
-                <Button asChild className="bg-orange-600 hover:bg-orange-700">
-                  <Link href="/register">Registrarse</Link>
-                </Button>
-              </>
-            )}
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu size={24} />
-            </Button>
-          </div>
-        </div>
-      </nav>
-
       {/* Hero Section */}
       <div className="bg-gradient-to-br from-orange-600 via-amber-600 to-yellow-600 text-white py-24">
         <div className="max-w-5xl mx-auto px-6 text-center">
@@ -121,7 +63,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* CTA Footer-like section */}
+      {/* CTA Section */}
       <div className="bg-white py-20 border-t">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-4">¿Listo para empezar?</h2>
