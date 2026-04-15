@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';   // ← Changed to named import
+import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: Request,
@@ -42,14 +42,14 @@ export async function POST(
       access: 'public',
     });
 
-    // Save metadata to database
+    // Save to database using your current schema
     const savedFile = await prisma.orderFile.create({
       data: {
         name: file.name,
         url: blob.url,
         size: file.size,
         type: file.type,
-        uploadedBy: session.user.role === 'buyer' ? 'buyer' : 'seller',
+        uploadedBy: (session.user as any).role === 'buyer' ? 'buyer' : 'seller',
         orderId: id,
       }
     });
