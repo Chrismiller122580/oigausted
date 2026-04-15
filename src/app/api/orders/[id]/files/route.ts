@@ -1,14 +1,33 @@
 import { NextResponse } from 'next/server';
-import { getFiles, addFile } from '@/lib/orderStorage';
+import { put } from '@vercel/blob';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { id } = await params;
-  const files = getFiles(id);
+
+  const files = await prisma.orderFile.findMany({
+    where: { orderId: id },
+    orderBy: { createdAt: 'desc' }
+  });
+
   return NextResponse.json({ files });
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { id } = await params;
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     const formData = await request.formData();
@@ -18,25 +37,31 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    const newFile = {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-    };
+    // Upload file to Vercel Blob
+    const blob = await put(`orders/${id}/${Date.now()}-${file.name}`, file, {
+      access: 'public',
+    });
 
-    const success = addFile(id, newFile);
+    // Save to database
+    const savedFile = await prisma.orderFile.create({
+      data: {
+        name: file.name,
+        url: blob.url,
+        size: file.size,
+        type: file.type,
+        uploadedBy: session.user.role === 'buyer' ? 'buyer' : 'seller',
+        orderId: id,
+      }
+    });
 
-    if (success) {
-      console.log(`✅ File uploaded and saved: ${file.name} for order ${id}`);
-      return NextResponse.json({ 
-        success: true, 
-        file: newFile 
-      });
-    } else {
-      return NextResponse.json({ error: 'Failed to save file' }, { status: 500 });
-    }
+    console.log(`✅ File uploaded to Vercel Blob for order ${id}: ${blob.url}`);
+
+    return NextResponse.json({ 
+      success: true, 
+      file: savedFile 
+    });
   } catch (error) {
-    console.error(error);
+    console.error('Upload error:', error);
     return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
   }
 }
