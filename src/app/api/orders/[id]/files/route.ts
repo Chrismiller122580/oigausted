@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';   // ← Changed to named import
 
 export async function GET(
   request: Request,
@@ -37,12 +37,12 @@ export async function POST(
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    // Upload file to Vercel Blob
+    // Upload to Vercel Blob
     const blob = await put(`orders/${id}/${Date.now()}-${file.name}`, file, {
       access: 'public',
     });
 
-    // Save to database
+    // Save metadata to database
     const savedFile = await prisma.orderFile.create({
       data: {
         name: file.name,
@@ -54,13 +54,13 @@ export async function POST(
       }
     });
 
-    console.log(`✅ File uploaded to Vercel Blob for order ${id}: ${blob.url}`);
+    console.log(`✅ File uploaded to Vercel Blob: ${blob.url}`);
 
     return NextResponse.json({ 
       success: true, 
       file: savedFile 
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Upload error:', error);
     return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
   }
