@@ -2,10 +2,20 @@
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LogOut, PlusCircle, BarChart3, User, ShoppingBag } from 'lucide-react';
+import { LogOut, PlusCircle, BarChart3, User, ShoppingBag, Bell } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 export default function SellerNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
+
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setUnreadCount(Math.floor(Math.random() * 4));
+    }, 18000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <>
@@ -28,15 +38,23 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
             <Link href="/seller/earnings" className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition">
               <BarChart3 size={18} /> Ganancias
             </Link>
-            <Link href="/seller/profile" className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition">
-              <User size={18} /> Mi Negocio
-            </Link>
           </div>
 
-          {/* Right side - User + Logout */}
-          <div className="flex items-center gap-4">
-            <Link 
-              href="/profile" 
+          {/* Right side */}
+          <div className="flex items-center gap-6">
+            {/* Notification Bell */}
+            <Link href="/orders" className="relative p-2 hover:bg-gray-100 rounded-xl transition">
+              <Bell size={22} className="text-gray-600" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-medium w-5 h-5 flex items-center justify-center rounded-full">
+                  {unreadCount}
+                </span>
+              )}
+            </Link>
+
+            {/* Profile */}
+            <Link
+              href="/profile"
               className="flex items-center gap-3 hover:bg-gray-100 px-4 py-2 rounded-2xl transition group"
             >
               <div className="text-right">
@@ -59,7 +77,6 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
         </div>
       </nav>
 
-      {/* Main Content Area */}
       <main className="min-h-[calc(100vh-73px)] bg-gray-50">
         {children}
       </main>

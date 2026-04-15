@@ -2,11 +2,23 @@
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ShoppingBag, LogOut } from 'lucide-react'
+import { ShoppingBag, LogOut, Bell } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 export default function BuyerNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession()
   const userName = session?.user?.name || "Comprador"
+
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  // Simple global unread simulation for now (we can make it real later with a global context)
+  useEffect(() => {
+    // For demo purposes - you can replace this with a real API call later
+    const interval = setInterval(() => {
+      setUnreadCount(Math.floor(Math.random() * 5)) // simulate some unread messages
+    }, 15000)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <>
@@ -28,10 +40,21 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
             </Link>
           </div>
 
-          {/* Right side: Profile Avatar + Logout */}
-          <div className="flex items-center gap-4">
-            <Link 
-              href="/profile" 
+          {/* Right side */}
+          <div className="flex items-center gap-6">
+            {/* Notification Bell */}
+            <Link href="/orders" className="relative p-2 hover:bg-gray-100 rounded-xl transition">
+              <Bell size={22} className="text-gray-600" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-medium w-5 h-5 flex items-center justify-center rounded-full">
+                  {unreadCount}
+                </span>
+              )}
+            </Link>
+
+            {/* Profile */}
+            <Link
+              href="/profile"
               className="flex items-center gap-3 hover:bg-gray-100 px-4 py-2 rounded-2xl transition group"
             >
               <div className="text-right">
@@ -43,9 +66,9 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
               </div>
             </Link>
 
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => signOut({ callbackUrl: '/' })}
               className="text-gray-500 hover:text-red-600"
             >
@@ -55,7 +78,6 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
         </div>
       </nav>
 
-      {/* This is the missing piece — render the actual page content */}
       <main className="min-h-[calc(100vh-73px)]">
         {children}
       </main>

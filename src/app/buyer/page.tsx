@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ShoppingBag, Package, MessageCircle } from "lucide-react"
+import { ShoppingBag, Package, MessageCircle, ArrowRight } from "lucide-react"
 
 export default function BuyerDashboard() {
   return (
@@ -15,75 +15,79 @@ export default function BuyerDashboard() {
           </div>
         </div>
 
-        {/* Big Buy Button */}
-        <Card className="mb-12 bg-gradient-to-r from-orange-600 to-orange-700 text-white">
-          <CardContent className="p-12 text-center">
-            <ShoppingBag className="h-16 w-16 mx-auto mb-6" />
-            <h2 className="text-4xl font-bold mb-4">Encuentra y Compra Servicios</h2>
-            <p className="text-xl mb-8 max-w-md mx-auto">
-              Miles de gigs disponibles. Encuentra el freelancer perfecto para tu proyecto.
+        {/* Hero / Main CTA */}
+        <Card className="mb-12 bg-gradient-to-br from-orange-600 via-orange-700 to-red-600 text-white overflow-hidden">
+          <CardContent className="p-16 text-center">
+            <ShoppingBag className="h-20 w-20 mx-auto mb-8 opacity-90" />
+            <h2 className="text-5xl font-bold mb-6">Encuentra el servicio perfecto</h2>
+            <p className="text-2xl mb-10 max-w-2xl mx-auto opacity-90">
+              Miles de gigs locales en Colombia. Encuentra freelancers confiables para tu proyecto.
             </p>
-            <Button asChild size="lg" className="bg-white text-orange-700 hover:bg-gray-100 text-xl px-12 py-7 rounded-2xl font-semibold">
-              <Link href="/gigs">
-                Explorar Gigs y Comprar Ahora
+            <Button asChild size="lg" className="bg-white text-orange-700 hover:bg-gray-100 text-2xl px-16 py-8 rounded-3xl font-semibold shadow-xl">
+              <Link href="/gigs" className="flex items-center gap-4">
+                Explorar Gigs Ahora
+                <ArrowRight size={28} />
               </Link>
             </Button>
           </CardContent>
         </Card>
 
-        {/* Quick Links */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="hover:shadow-lg transition-all">
-            <CardContent className="p-8">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="bg-orange-100 p-4 rounded-2xl">
-                  <ShoppingBag className="h-8 w-8 text-orange-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-2xl">Explorar Gigs</h3>
-                  <p className="text-gray-600">Descubre servicios</p>
-                </div>
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          <Card className="hover:shadow-xl transition-all group">
+            <CardContent className="p-10">
+              <div className="bg-orange-100 w-16 h-16 rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition">
+                <ShoppingBag className="h-9 w-9 text-orange-600" />
               </div>
+              <h3 className="text-3xl font-semibold mb-3">Explorar Gigs</h3>
+              <p className="text-gray-600 mb-8">Descubre servicios locales de calidad</p>
               <Button asChild className="w-full">
                 <Link href="/gigs">Ver Todos los Gigs</Link>
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all">
-            <CardContent className="p-8">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="bg-blue-100 p-4 rounded-2xl">
-                  <Package className="h-8 w-8 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-2xl">Mis Pedidos</h3>
-                  <p className="text-gray-600">Gestiona tus compras</p>
-                </div>
+          <Card className="hover:shadow-xl transition-all group">
+            <CardContent className="p-10">
+              <div className="bg-blue-100 w-16 h-16 rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition">
+                <Package className="h-9 w-9 text-blue-600" />
               </div>
+              <h3 className="text-3xl font-semibold mb-3">Mis Pedidos</h3>
+              <p className="text-gray-600 mb-8">Revisa y gestiona tus compras</p>
               <Button asChild variant="outline" className="w-full">
                 <Link href="/orders">Ver Mis Órdenes</Link>
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all">
-            <CardContent className="p-8">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="bg-green-100 p-4 rounded-2xl">
-                  <MessageCircle className="h-8 w-8 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-2xl">Chats Activos</h3>
-                  <p className="text-gray-600">Habla con vendedores</p>
-                </div>
+          <Card className="hover:shadow-xl transition-all group">
+            <CardContent className="p-10">
+              <div className="bg-green-100 w-16 h-16 rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition">
+                <MessageCircle className="h-9 w-9 text-green-600" />
               </div>
+              <h3 className="text-3xl font-semibold mb-3">Chats Activos</h3>
+              <p className="text-gray-600 mb-8">Habla directamente con los vendedores</p>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/orders">Ir a Chats</Link>
+                <Link href="/orders">Ir a Mis Chats</Link>
               </Button>
             </CardContent>
           </Card>
         </div>
+
+        {/* Recent Purchases Placeholder */}
+        <Card>
+          <CardContent className="p-10">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-3xl font-semibold">Compras Recientes</h2>
+              <Link href="/orders" className="text-orange-600 hover:underline flex items-center gap-2">
+                Ver todas <ArrowRight size={18} />
+              </Link>
+            </div>
+            <p className="text-gray-500 text-center py-20">
+              Tus compras recientes aparecerán aquí una vez que realices pedidos.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
