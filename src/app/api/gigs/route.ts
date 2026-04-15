@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-import { getServerSession } from 'next-auth/next'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'   // ← Use shared instance
+import { getServerSession } from 'next-auth'
 
 export async function GET() {
   try {
@@ -34,15 +32,15 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { 
-      title, 
-      description, 
-      price, 
-      category, 
-      completionTime, 
-      fields = {}, 
-      addons = [], 
-      imageUrl 
+    const {
+      title,
+      description,
+      price,
+      category,
+      completionTime,
+      fields = {},
+      addons = [],
+      imageUrl
     } = body
 
     const seller = await prisma.user.findUnique({

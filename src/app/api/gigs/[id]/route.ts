@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'   // ← Use shared instance
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params   // ← This is the required fix
-
+    const { id } = await params
     const gig = await prisma.gig.findUnique({
       where: { id },
       include: {
