@@ -14,9 +14,12 @@ export async function POST(request: Request) {
       access: 'public',
     });
 
-    return NextResponse.json({ url: blob.url });
-  } catch (error) {
-    console.error(error);
+    return NextResponse.json({ 
+      success: true,
+      url: blob.url 
+    });
+  } catch (error: any) {
+    console.error('Image upload error:', error);
     return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 });
   }
 }
