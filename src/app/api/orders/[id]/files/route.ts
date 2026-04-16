@@ -26,6 +26,7 @@ export async function POST(
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
+    console.error("Unauthorized upload attempt");
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -34,13 +35,20 @@ export async function POST(
     const file = formData.get('file') as File;
 
     if (!file) {
+      console.error("No file in formData");
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
+    console.log(`Uploading file: ${file.name} (${file.size} bytes) for order ${id}`);
+
+    // Upload to Vercel Blob
     const blob = await put(`orders/${id}/${Date.now()}-${file.name}`, file, {
       access: 'public',
     });
 
+    console.log(`Blob upload successful: ${blob.url}`);
+
+    // Save to database
     const savedFile = await prisma.orderFile.create({
       data: {
         name: file.name,
@@ -52,11 +60,20 @@ export async function POST(
       }
     });
 
-    console.log(`✅ File uploaded: ${blob.url}`);
+    console.log(`✅ File saved to DB for order ${id}`);
 
-    return NextResponse.json({ success: true, file: savedFile });
+    return NextResponse.json({ 
+      success: true, 
+      file: savedFile 
+    });
   } catch (error: any) {
-    console.error('Upload error:', error);
-    return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
+    console.error("=== FILE UPLOAD ERROR ===");
+    console.error("Message:", error.message);
+    console.error("Stack:", error.stack);
+    console.error("Full error:", error);
+
+    return NextResponse.json({ 
+      error: error.message || 'Failed to upload file' 
+    }, { status: 500 });
   }
 }
