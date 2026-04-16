@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Required by @auth/prisma-adapter
+// Your models (clean version)
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -35,7 +35,6 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Your existing models
 model User {
   id            String    @id @default(uuid())
   name          String?
@@ -110,13 +109,18 @@ model OrderMessage {
 }
 
 model OrderFile {
-  id               String   @id @default(uuid())
-  fileUrl          String
-  fileName         String
-  uploadedByBuyer  Boolean
-  createdAt        DateTime @default(now())
-  orderId          String
-  order            Order    @relation(fields: [orderId], references: [id])
+  id          String   @id @default(cuid())
+  name        String
+  url         String
+  size        Int
+  type        String
+  uploadedBy  String
+  createdAt   DateTime @default(now())
+
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_files")
 }
 
 model Review {

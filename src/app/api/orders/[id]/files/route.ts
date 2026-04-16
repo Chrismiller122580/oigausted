@@ -37,12 +37,10 @@ export async function POST(
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    // Upload to Vercel Blob
     const blob = await put(`orders/${id}/${Date.now()}-${file.name}`, file, {
       access: 'public',
     });
 
-    // Save to database using your current schema
     const savedFile = await prisma.orderFile.create({
       data: {
         name: file.name,
@@ -54,12 +52,9 @@ export async function POST(
       }
     });
 
-    console.log(`✅ File uploaded to Vercel Blob: ${blob.url}`);
+    console.log(`✅ File uploaded: ${blob.url}`);
 
-    return NextResponse.json({ 
-      success: true, 
-      file: savedFile 
-    });
+    return NextResponse.json({ success: true, file: savedFile });
   } catch (error: any) {
     console.error('Upload error:', error);
     return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
