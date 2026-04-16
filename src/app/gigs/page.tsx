@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -40,16 +39,13 @@ export default function GigsPage() {
     }
   }
 
-  // Filter gigs when search or category changes
   useEffect(() => {
     let result = [...gigs]
 
-    // Category filter
     if (selectedCategory !== "Todas") {
       result = result.filter(gig => gig.category === selectedCategory)
     }
 
-    // Search filter
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase()
       result = result.filter(gig => 
@@ -63,26 +59,18 @@ export default function GigsPage() {
   }, [searchTerm, selectedCategory, gigs])
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center py-20">Cargando gigs...</div>
-        </div>
-      </div>
-    )
+    return <div className="min-h-screen bg-gray-50 py-12 text-center">Cargando gigs...</div>
   }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-6">
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
           <div>
             <h1 className="text-5xl font-bold tracking-tight">Explorar Gigs</h1>
             <p className="text-xl text-gray-600 mt-2">Encuentra el servicio perfecto en Colombia</p>
           </div>
 
-          {/* Search Bar */}
           <div className="relative w-full md:w-96">
             <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
             <Input
@@ -95,7 +83,6 @@ export default function GigsPage() {
           </div>
         </div>
 
-        {/* Category Filters */}
         <div className="flex flex-wrap gap-3 mb-10">
           {categories.map((cat) => (
             <Button
@@ -109,10 +96,9 @@ export default function GigsPage() {
           ))}
         </div>
 
-        {/* Gigs Grid */}
         {filteredGigs.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-2xl text-gray-500">No se encontraron gigs con esos filtros</p>
+            <p className="text-2xl text-gray-500">No se encontraron gigs</p>
             <Button onClick={() => { setSearchTerm(""); setSelectedCategory("Todas") }} className="mt-6">
               Limpiar filtros
             </Button>
@@ -122,16 +108,18 @@ export default function GigsPage() {
             {filteredGigs.map((gig) => (
               <Link key={gig.id} href={`/gigs/${gig.id}`}>
                 <Card className="group hover:shadow-2xl transition-all duration-300 overflow-hidden h-full flex flex-col">
-                  <div className="relative h-52 bg-gray-200">
+                  <div className="relative h-52 bg-gray-100">
                     {gig.imageUrl ? (
-                      <Image 
-                        src={gig.imageUrl} 
+                      <img 
+                        src={gig.imageUrl}
                         alt={gig.title}
-                        fill 
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none'
+                        }}
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center text-6xl">
+                      <div className="w-full h-full bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center text-7xl">
                         🛠️
                       </div>
                     )}
@@ -149,16 +137,10 @@ export default function GigsPage() {
 
                     <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
                       <span>{gig.seller?.name || gig.seller?.businessName || "Vendedor"}</span>
-                      {gig.seller?.rating && (
-                        <span className="flex items-center gap-1 ml-auto">
-                          <Star className="fill-yellow-400 text-yellow-400" size={16} />
-                          {gig.seller.rating.toFixed(1)}
-                        </span>
-                      )}
                     </div>
 
                     <p className="text-sm text-gray-600 line-clamp-3 flex-1">
-                      {gig.description}
+                      {gig.description || "Sin descripción"}
                     </p>
 
                     {gig.category && (
