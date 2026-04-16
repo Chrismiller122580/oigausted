@@ -100,9 +100,12 @@ export default function OrderDetailPage() {
     }
   }
 
+  // Improved handleFileUpload with better toast feedback
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    const toastId = toast.loading(`Subiendo ${file.name}...`)
 
     setUploading(true)
     const formData = new FormData()
@@ -117,15 +120,15 @@ export default function OrderDetailPage() {
       const data = await res.json()
 
       if (res.ok) {
-        toast.success("✅ Archivo subido correctamente")
-        fetchFiles()   // Refresh the file list
+        toast.success(`✅ ${file.name} subido correctamente`, { id: toastId })
+        fetchFiles()                    // Refresh the file list
       } else {
-        toast.error(data.error || "Error al subir archivo")
+        toast.error(data.error || "Error al subir el archivo", { id: toastId })
         console.error("Upload failed:", data)
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Upload error:", err)
-      toast.error("Error al subir archivo. Revisa la consola para más detalles.")
+      toast.error("Error de conexión al subir el archivo", { id: toastId })
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
