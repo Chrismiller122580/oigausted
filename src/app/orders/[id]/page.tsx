@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ArrowLeft, Send, Paperclip, Loader2, PlayCircle, Check, CreditCard, MessageCircle } from "lucide-react"
+import { ArrowLeft, Send, Paperclip, Loader2, CreditCard, MessageCircle } from "lucide-react"
 import { toast } from "react-hot-toast"
 
 const statusConfig: any = {
@@ -103,20 +103,29 @@ export default function OrderDetailPage() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
     setUploading(true)
     const formData = new FormData()
     formData.append("file", file)
+
     try {
       const res = await fetch(`/api/orders/${orderId}/files`, {
         method: "POST",
         body: formData
       })
+
+      const data = await res.json()
+
       if (res.ok) {
-        toast.success("Archivo subido correctamente")
-        fetchFiles()
+        toast.success("✅ Archivo subido correctamente")
+        fetchFiles()   // Refresh the file list
+      } else {
+        toast.error(data.error || "Error al subir archivo")
+        console.error("Upload failed:", data)
       }
     } catch (err) {
-      toast.error("Error al subir archivo")
+      console.error("Upload error:", err)
+      toast.error("Error al subir archivo. Revisa la consola para más detalles.")
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
@@ -233,10 +242,17 @@ export default function OrderDetailPage() {
                       <div key={i} className="flex items-start gap-4 p-4 bg-white rounded-2xl border">
                         <Paperclip className="h-6 w-6 text-gray-400 mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{file.name}</p>
+                          <p className="font-medium truncate">
+                            {file.name || file.fileName || "Archivo sin nombre"}
+                          </p>
                           <p className="text-xs text-gray-500 mt-1">
-                            Subido por {file.uploadedBy === "buyer" ? "el comprador" : "el vendedor"} • 
-                            {new Date(file.createdAt).toLocaleDateString("es-CO", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                            Subido por {(file.uploadedBy === "buyer" || file.uploadedByBuyer) ? "el comprador" : "el vendedor"} • 
+                            {new Date(file.createdAt).toLocaleDateString("es-CO", { 
+                              day: "numeric", 
+                              month: "short", 
+                              hour: "2-digit", 
+                              minute: "2-digit" 
+                            })}
                           </p>
                         </div>
                       </div>
@@ -244,7 +260,12 @@ export default function OrderDetailPage() {
                   )}
                 </div>
                 <input ref={fileInputRef} type="file" onChange={handleFileUpload} className="hidden" />
-                <Button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="w-full py-7" variant="outline">
+                <Button 
+                  onClick={() => fileInputRef.current?.click()} 
+                  disabled={uploading} 
+                  className="w-full py-7" 
+                  variant="outline"
+                >
                   {uploading ? "Subiendo..." : "Subir nuevo archivo"}
                 </Button>
               </CardContent>
