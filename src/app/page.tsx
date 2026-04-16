@@ -44,7 +44,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
+      {/* Hero Section - unchanged */}
       <div className="bg-gradient-to-br from-emerald-700 via-teal-600 to-cyan-600 text-white py-24">
         <div className="max-w-5xl mx-auto px-6 text-center">
           <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-6 py-2 rounded-full mb-6 text-sm font-medium">
@@ -71,7 +71,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Featured Gigs Section */}
+      {/* Featured Gigs - Improved Image Handling */}
       <div className="max-w-7xl mx-auto px-6 py-16">
         <div className="flex justify-between items-end mb-10">
           <div>
@@ -94,17 +94,18 @@ export default function HomePage() {
             {featuredGigs.map((gig) => (
               <Link key={gig.id} href={`/gigs/${gig.id}`}>
                 <Card className="group hover:shadow-2xl transition-all duration-300 overflow-hidden h-full">
-                  <div className="relative h-48 bg-gray-200">
+                  <div className="relative h-48 bg-gray-100">
                     {gig.imageUrl ? (
                       <Image 
                         src={gig.imageUrl} 
                         alt={gig.title}
                         fill 
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center">
-                        <span className="text-6xl">🛠️</span>
+                      <div className="w-full h-full bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center text-6xl">
+                        🛠️
                       </div>
                     )}
                   </div>
@@ -140,7 +141,7 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Categories Section */}
+      {/* Rest of your homepage (categories + CTA) remains the same */}
       <div className="max-w-7xl mx-auto px-6 py-16 bg-white">
         <h2 className="text-4xl font-bold text-center mb-12 text-gray-900">Categorías Populares</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -161,7 +162,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Final CTA */}
       <div className="bg-emerald-600 text-white py-20">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-4">¿Listo para empezar?</h2>
