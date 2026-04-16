@@ -41,14 +41,13 @@ export async function POST(
 
     console.log(`Uploading file: ${file.name} (${file.size} bytes) for order ${id}`);
 
-    // Upload to Vercel Blob
+    // Use 'private' access since your Blob store is private
     const blob = await put(`orders/${id}/${Date.now()}-${file.name}`, file, {
-      access: 'public',
+      access: 'private',   // Changed from 'public'
     });
 
     console.log(`Blob upload successful: ${blob.url}`);
 
-    // Save to database
     const savedFile = await prisma.orderFile.create({
       data: {
         name: file.name,
@@ -70,8 +69,6 @@ export async function POST(
     console.error("=== FILE UPLOAD ERROR ===");
     console.error("Message:", error.message);
     console.error("Stack:", error.stack);
-    console.error("Full error:", error);
-
     return NextResponse.json({ 
       error: error.message || 'Failed to upload file' 
     }, { status: 500 });
