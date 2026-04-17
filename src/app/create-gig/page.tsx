@@ -37,12 +37,13 @@ export default function CreateGigPage() {
     }
 
     setLoading(true)
+    let imageUrl = null
 
     try {
-      let imageUrl = null
-
       // Upload image if selected
       if (imageFile) {
+        toast.loading("Subiendo imagen...", { id: "upload" })
+
         const form = new FormData()
         form.append("file", imageFile)
 
@@ -51,9 +52,15 @@ export default function CreateGigPage() {
           body: form,
         })
 
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json()
+        const uploadData = await uploadRes.json()
+
+        if (uploadRes.ok && uploadData.url) {
           imageUrl = uploadData.url
+          toast.success("Imagen subida correctamente", { id: "upload" })
+          console.log("Image URL received:", imageUrl)
+        } else {
+          toast.error(uploadData.error || "Error al subir imagen", { id: "upload" })
+          console.error("Upload failed:", uploadData)
         }
       }
 
@@ -64,19 +71,21 @@ export default function CreateGigPage() {
         body: JSON.stringify({
           ...formData,
           price: Number(formData.price),
-          imageUrl,
+          imageUrl: imageUrl,
         }),
       })
+
+      const data = await res.json()
 
       if (res.ok) {
         toast.success("¡Gig creado exitosamente!")
         router.push("/seller")
       } else {
-        toast.error("Error al crear el gig")
+        toast.error(data.error || "Error al crear el gig")
       }
-    } catch (err) {
-      console.error(err)
-      toast.error("Error al crear el gig")
+    } catch (err: any) {
+      console.error("Create gig error:", err)
+      toast.error("Error inesperado al crear el gig")
     } finally {
       setLoading(false)
     }
@@ -93,19 +102,19 @@ export default function CreateGigPage() {
             <label className="block text-sm font-medium mb-2">Imagen del Gig (opcional)</label>
             <div className="border-2 border-dashed border-gray-300 rounded-3xl p-8 text-center">
               {imagePreview ? (
-                <div className="relative w-full h-64 mx-auto">
-                  <img src={imagePreview} alt="Preview" className="rounded-2xl object-cover w-full h-full" />
+                <div className="relative w-full h-64 mx-auto rounded-2xl overflow-hidden">
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                   <Button 
                     type="button" 
                     variant="outline" 
-                    className="absolute top-2 right-2"
+                    className="absolute top-3 right-3"
                     onClick={() => { setImageFile(null); setImagePreview(null) }}
                   >
                     Cambiar
                   </Button>
                 </div>
               ) : (
-                <label className="cursor-pointer block">
+                <label className="cursor-pointer block py-12">
                   <div className="text-gray-500">
                     <div className="text-6xl mb-4">📸</div>
                     <p className="font-medium">Haz clic para subir una imagen</p>
