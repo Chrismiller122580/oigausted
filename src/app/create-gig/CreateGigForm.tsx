@@ -50,7 +50,7 @@ export default function CreateGigForm({ initialCategory }: { initialCategory?: s
       completionTime: formData.completionTime || "",
       fields: formData,
       addons: Object.keys(addons).filter(k => addons[k]),
-      sellerId: (session?.user as any)?.id || (session?.user as any)?.email || "unknown",
+      sellerId: session?.user?.id || "unknown",
       sellerName: session?.user?.name || "Vendedor",
     }
 
@@ -87,6 +87,7 @@ export default function CreateGigForm({ initialCategory }: { initialCategory?: s
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Common fields */}
         <div>
           <Label htmlFor="title">Título del Gig *</Label>
           <Input
@@ -122,7 +123,8 @@ export default function CreateGigForm({ initialCategory }: { initialCategory?: s
           />
         </div>
 
-        {category.fields.map((field: any) => (
+        {/* Dynamic fields from category */}
+        {category.fields.map((field) => (
           <div key={field.key}>
             <Label htmlFor={field.key}>{field.label} {field.required && "*"}</Label>
             {field.type === "number" && (
@@ -150,7 +152,7 @@ export default function CreateGigForm({ initialCategory }: { initialCategory?: s
                   <SelectValue placeholder="Selecciona una opción" />
                 </SelectTrigger>
                 <SelectContent>
-                  {field.options.map((opt: string) => (
+                  {field.options.map((opt) => (
                     <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                   ))}
                 </SelectContent>
@@ -171,11 +173,12 @@ export default function CreateGigForm({ initialCategory }: { initialCategory?: s
           </div>
         ))}
 
+        {/* Addons */}
         {category.addons && category.addons.length > 0 && (
           <div>
             <Label className="block mb-3">Opciones adicionales</Label>
             <div className="space-y-3">
-              {category.addons.map((addon: any) => (
+              {category.addons.map((addon) => (
                 <label key={addon.id} className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
