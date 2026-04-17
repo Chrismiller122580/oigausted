@@ -24,6 +24,7 @@ export default function CreateGigPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      console.log("Image selected:", file.name, file.size)
       setImageFile(file)
       setImagePreview(URL.createObjectURL(file))
     }
@@ -40,9 +41,12 @@ export default function CreateGigPage() {
     let imageUrl = null
 
     try {
-      // Upload image if selected
+      console.log("Starting gig creation...")
+
+      // 1. Upload image if selected
       if (imageFile) {
-        toast.loading("Subiendo imagen...", { id: "upload" })
+        console.log("Uploading image to Vercel Blob...")
+        toast.loading("Subiendo imagen...", { id: "upload-toast" })
 
         const form = new FormData()
         form.append("file", imageFile)
@@ -56,15 +60,19 @@ export default function CreateGigPage() {
 
         if (uploadRes.ok && uploadData.url) {
           imageUrl = uploadData.url
-          toast.success("Imagen subida correctamente", { id: "upload" })
-          console.log("Image URL received:", imageUrl)
+          console.log("✅ Image uploaded successfully. URL:", imageUrl)
+          toast.success("Imagen subida correctamente", { id: "upload-toast" })
         } else {
-          toast.error(uploadData.error || "Error al subir imagen", { id: "upload" })
-          console.error("Upload failed:", uploadData)
+          console.error("Image upload failed:", uploadData)
+          toast.error(uploadData.error || "Error al subir imagen", { id: "upload-toast" })
         }
+      } else {
+        console.log("No image selected")
       }
 
-      // Create the gig
+      // 2. Create the gig
+      console.log("Creating gig with imageUrl:", imageUrl)
+
       const res = await fetch("/api/gigs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -78,13 +86,15 @@ export default function CreateGigPage() {
       const data = await res.json()
 
       if (res.ok) {
+        console.log("✅ Gig created successfully:", data.gig)
         toast.success("¡Gig creado exitosamente!")
         router.push("/seller")
       } else {
+        console.error("Gig creation failed:", data)
         toast.error(data.error || "Error al crear el gig")
       }
     } catch (err: any) {
-      console.error("Create gig error:", err)
+      console.error("Unexpected error during gig creation:", err)
       toast.error("Error inesperado al crear el gig")
     } finally {
       setLoading(false)
