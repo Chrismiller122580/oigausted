@@ -5,36 +5,34 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ArrowLeft, Loader2, Clock } from "lucide-react"
 
-declare global {
-  interface Window {
-    WompiCheckout?: any
-  }
-}
-
 export default function GigCheckoutPage() {
   const params = useParams()
   const router = useRouter()
   const gigId = params.gigId as string
 
   const [gig, setGig] = useState<any>(null)
-  const [order, setOrder] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [creatingOrder, setCreatingOrder] = useState(false)
   const [paying, setPaying] = useState(false)
   const [error, setError] = useState("")
+  const [wompiLoaded, setWompiLoaded] = useState(false)
 
-  // Load Wompi script
+  // Load Wompi script manually
   useEffect(() => {
-    const script = document.createElement("script")
-    script.src = "https://checkout.wompi.co/widget.js"
-    script.async = true
-    document.body.appendChild(script)
+    const loadWompi = () => {
+      if (window.WompiCheckout) {
+        setWompiLoaded(true)
+        return
+      }
 
-    return () => {
-      // Cleanup
-      const existingScript = document.querySelector('script[src="https://checkout.wompi.co/widget.js"]')
-      if (existingScript) existingScript.remove()
+      const script = document.createElement("script")
+      script.src = "https://checkout.wompi.co/widget.js"
+      script.async = true
+      script.onload = () => setWompiLoaded(true)
+      script.onerror = () => setError("No se pudo cargar Wompi. Verifica tu conexión.")
+      document.body.appendChild(script)
     }
+
+    loadWompi()
   }, [])
 
   useEffect(() => {
@@ -54,62 +52,41 @@ export default function GigCheckoutPage() {
     }
   }
 
-  const createOrder = async () => {
-    setCreatingOrder(true)
+  const handlePayment = async () => {
+    if (!gig || !wompiLoaded) {
+      alert("Wompi aún no se ha cargado. Por favor espera un momento o refresca la página.")
+      return
+    }
+
+    setPaying(true)
+
     try {
-      const res = await fetch("/api/orders", {
+      const orderRes = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ gigId })
       })
 
-      if (!res.ok) throw new Error("No se pudo crear la orden")
-      const data = await res.json()
-      setOrder(data.order)
-      return data.order
+      if (!orderRes.ok) throw new Error("No se pudo crear la orden")
+      const { order } = await orderRes.json()
+
+      const checkout = new (window as any).WompiCheckout({
+        amount_in_cents: Math.round(gig.price * 100),
+        currency: "COP",
+        reference: `order_${order.id}`,
+        public_key: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
+        redirect_url: `${window.location.origin}/orders/${order.id}`,
+        onSuccess: () => router.push(`/orders/${order.id}`),
+        onError: () => alert("Error en el pago. Inténtalo de nuevo."),
+        onClose: () => setPaying(false)
+      })
+
+      checkout.open()
     } catch (err: any) {
-      setError(err.message || "Error al crear la orden")
-      return null
-    } finally {
-      setCreatingOrder(false)
+      console.error(err)
+      alert("Error al procesar el pago")
+      setPaying(false)
     }
-  }
-
-  const handlePayment = async () => {
-    if (!gig) return
-
-    const currentOrder = order || await createOrder()
-    if (!currentOrder) return
-
-    setPaying(true)
-
-    // Small delay to ensure script is loaded
-    setTimeout(() => {
-      if (typeof window.WompiCheckout === 'undefined') {
-        alert("Wompi no se ha cargado. Por favor refresca la página e inténtalo de nuevo.")
-        setPaying(false)
-        return
-      }
-
-      try {
-        const checkout = new window.WompiCheckout({
-          amount_in_cents: Math.round(gig.price * 100),
-          currency: "COP",
-          reference: `order_${currentOrder.id}`,
-          public_key: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
-          redirect_url: `${window.location.origin}/orders/${currentOrder.id}`,
-          onSuccess: () => router.push(`/orders/${currentOrder.id}`),
-          onError: () => alert("Error en el pago. Inténtalo de nuevo."),
-          onClose: () => setPaying(false)
-        })
-
-        checkout.open()
-      } catch (err) {
-        console.error(err)
-        alert("Error al abrir el checkout de Wompi")
-        setPaying(false)
-      }
-    }, 800)
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-xl">Cargando gig...</div>
@@ -165,14 +142,16 @@ export default function GigCheckoutPage() {
 
             <Button
               onClick={handlePayment}
-              disabled={paying || creatingOrder}
+              disabled={paying || !wompiLoaded}
               className="w-full py-8 text-xl bg-[#00A651] hover:bg-[#008F44] rounded-3xl font-semibold text-white"
             >
-              {paying || creatingOrder ? (
+              {paying ? (
                 <>
                   <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                   Procesando...
                 </>
+              ) : !wompiLoaded ? (
+                "Cargando Wompi..."
               ) : (
                 "💳 Pagar con Wompi"
               )}
