@@ -22,22 +22,36 @@ export default function GigCheckoutPage() {
   const [error, setError] = useState("")
   const [wompiReady, setWompiReady] = useState(false)
 
-  // Load Wompi script
+  // Load Wompi script reliably
   useEffect(() => {
-    const scriptId = "wompi-script"
+    let attempts = 0
+    const maxAttempts = 10
 
-    if (document.getElementById(scriptId)) {
-      setWompiReady(true)
-      return
+    const checkWompi = () => {
+      if (window.WompiCheckout) {
+        setWompiReady(true)
+        return
+      }
+
+      attempts++
+      if (attempts < maxAttempts) {
+        setTimeout(checkWompi, 300)
+      } else {
+        setError("Wompi no se pudo cargar. Por favor refresca la página.")
+      }
     }
 
-    const script = document.createElement("script")
-    script.id = scriptId
-    script.src = "https://checkout.wompi.co/widget.js"
-    script.async = true
-    script.onload = () => setWompiReady(true)
-    script.onerror = () => setError("No se pudo cargar Wompi. Verifica tu conexión.")
-    document.body.appendChild(script)
+    // Load script if not already present
+    if (!document.querySelector('script[src="https://checkout.wompi.co/widget.js"]')) {
+      const script = document.createElement("script")
+      script.src = "https://checkout.wompi.co/widget.js"
+      script.async = true
+      script.onload = checkWompi
+      script.onerror = () => setError("Error al cargar el script de Wompi")
+      document.body.appendChild(script)
+    } else {
+      checkWompi()
+    }
   }, [])
 
   useEffect(() => {
@@ -58,8 +72,9 @@ export default function GigCheckoutPage() {
   }
 
   const handlePayment = async () => {
-    if (!gig || !wompiReady) {
-      alert("Wompi aún no está listo. Espera un momento o refresca la página.")
+    if (!gig) return
+    if (!wompiReady) {
+      alert("Wompi aún se está cargando. Espera unos segundos e inténtalo de nuevo.")
       return
     }
 
@@ -72,7 +87,11 @@ export default function GigCheckoutPage() {
         body: JSON.stringify({ gigId })
       })
 
-      if (!orderRes.ok) throw new Error("No se pudo crear la orden")
+      if (!orderRes.ok) {
+        const errData = await orderRes.json()
+        throw new Error(errData.error || "No se pudo crear la orden")
+      }
+
       const { order } = await orderRes.json()
 
       const checkout = new window.WompiCheckout({
@@ -82,14 +101,17 @@ export default function GigCheckoutPage() {
         public_key: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
         redirect_url: `${window.location.origin}/orders/${order.id}`,
         onSuccess: () => router.push(`/orders/${order.id}`),
-        onError: () => alert("Error en el pago. Inténtalo de nuevo."),
+        onError: (err: any) => {
+          console.error("Wompi error:", err)
+          alert("Error en el pago con Wompi.")
+        },
         onClose: () => setPaying(false)
       })
 
       checkout.open()
     } catch (err: any) {
-      console.error(err)
-      alert("Error al procesar el pago")
+      console.error("Payment flow error:", err)
+      alert("Error al procesar el pago: " + (err.message || "Desconocido"))
       setPaying(false)
     }
   }
