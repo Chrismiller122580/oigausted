@@ -3,7 +3,14 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { ArrowLeft, Loader2, Clock } from "lucide-react"
+import Script from "next/script"
+
+declare global {
+  interface Window {
+    WompiCheckout: any
+  }
+}
 
 export default function GigCheckoutPage() {
   const params = useParams()
@@ -11,29 +18,31 @@ export default function GigCheckoutPage() {
   const gigId = params.gigId as string
 
   const [gig, setGig] = useState<any>(null)
+  const [order, setOrder] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
+  const [creatingOrder, setCreatingOrder] = useState(false)
+  const [paying, setPaying] = useState(false)
   const [error, setError] = useState("")
 
   useEffect(() => {
-    const fetchGig = async () => {
-      try {
-        const res = await fetch(`/api/gigs/${gigId}`)
-        if (!res.ok) throw new Error("Gig not found")
-        const data = await res.json()
-        setGig(data.gig)
-      } catch (err: any) {
-        console.error(err)
-        setError(err.message || "No se encontró el gig")
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchGig()
   }, [gigId])
 
-  const handleConfirmOrder = async () => {
-    setCreating(true)
+  const fetchGig = async () => {
+    try {
+      const res = await fetch(`/api/gigs/${gigId}`)
+      if (!res.ok) throw new Error("Gig no encontrado")
+      const data = await res.json()
+      setGig(data.gig)
+    } catch (err: any) {
+      setError(err.message || "No se encontró el gig")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const createOrder = async () => {
+    setCreatingOrder(true)
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
@@ -41,63 +50,126 @@ export default function GigCheckoutPage() {
         body: JSON.stringify({ gigId })
       })
 
-      if (!res.ok) throw new Error("Failed to create order")
-
+      if (!res.ok) throw new Error("No se pudo crear la orden")
       const data = await res.json()
-      router.push(`/orders/${data.order.id}`)
+      setOrder(data.order)
+      return data.order
     } catch (err: any) {
-      console.error(err)
-      alert("Error al crear la orden: " + (err.message || "Desconocido"))
+      setError(err.message || "Error al crear la orden")
+      return null
     } finally {
-      setCreating(false)
+      setCreatingOrder(false)
     }
   }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando gig...</div>
+  const handlePayment = async () => {
+    if (!gig) return
+
+    const currentOrder = order || await createOrder()
+    if (!currentOrder) return
+
+    setPaying(true)
+
+    try {
+      const checkout = new window.WompiCheckout({
+        amount_in_cents: gig.price * 100,
+        currency: "COP",
+        reference: `order_${currentOrder.id}`,
+        public_key: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
+        redirect_url: `${window.location.origin}/orders/${currentOrder.id}`,
+        onSuccess: (response: any) => {
+          console.log("✅ Pago exitoso", response)
+          router.push(`/orders/${currentOrder.id}`)
+        },
+        onError: (error: any) => {
+          console.error("❌ Error en pago", error)
+          alert("Hubo un problema con el pago. Inténtalo nuevamente.")
+        },
+        onClose: () => setPaying(false)
+      })
+
+      checkout.open()
+    } catch (err) {
+      console.error(err)
+      alert("Error al abrir el checkout de Wompi")
+      setPaying(false)
+    }
+  }
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-xl">Cargando gig...</div>
   if (error || !gig) {
     return <div className="min-h-screen flex items-center justify-center text-red-600">{error || "Gig no encontrado"}</div>
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-2xl mx-auto px-6">
-        <Button variant="ghost" onClick={() => router.back()} className="mb-8">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Volver
-        </Button>
+    <>
+      <Script src="https://checkout.wompi.co/widget.js" strategy="lazyOnload" />
 
-        <Card className="shadow-sm">
-          <CardContent className="p-10 space-y-10">
-            <div>
-              <h1 className="text-4xl font-bold tracking-tight">{gig.title}</h1>
-              <p className="text-gray-600 mt-3">
-                Vendedor: {gig.seller?.name || gig.seller?.businessName || "Vendedor"}
-              </p>
-            </div>
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="max-w-2xl mx-auto px-6">
+          <Button variant="ghost" onClick={() => router.back()} className="mb-8">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Volver
+          </Button>
 
-            <div className="border-t pt-8 flex justify-between items-end">
-              <span className="text-2xl text-gray-600">Total a pagar</span>
-              <span className="text-5xl font-bold text-orange-600">
-                ${gig.price?.toLocaleString("es-CO")}
-              </span>
-            </div>
+          <Card className="shadow-sm">
+            <CardContent className="p-10 space-y-10">
+              <div>
+                <h1 className="text-4xl font-bold tracking-tight">{gig.title}</h1>
+                <p className="text-gray-600 mt-3">
+                  Vendedor: {gig.seller?.name || gig.seller?.businessName || "Vendedor"}
+                </p>
+              </div>
 
-            <Button 
-              onClick={handleConfirmOrder}
-              disabled={creating}
-              className="w-full py-8 text-xl bg-orange-600 hover:bg-orange-700 rounded-2xl font-semibold"
-            >
-              {creating ? (
-                <>
-                  <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-                  Creando orden...
-                </>
-              ) : (
-                "Confirmar Orden y Proceder al Pago"
+              {gig.deliveryTime && (
+                <div className="flex items-center gap-3 text-lg bg-emerald-50 p-4 rounded-2xl">
+                  <Clock className="text-emerald-600" />
+                  <span>Entrega estimada: <strong>{gig.deliveryTime}</strong></span>
+                </div>
               )}
-            </Button>
-          </CardContent>
-        </Card>
+
+              {gig.fields && Object.keys(gig.fields).length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-4">Detalles del servicio:</h3>
+                  <div className="space-y-3">
+                    {Object.entries(gig.fields).map(([key, value]) => (
+                      <div key={key} className="bg-gray-50 p-4 rounded-2xl">
+                        <p className="text-sm text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1')}</p>
+                        <p className="font-medium">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="border-t pt-8 flex justify-between items-end">
+                <span className="text-2xl text-gray-600">Total a pagar</span>
+                <span className="text-5xl font-bold text-emerald-600">
+                  ${gig.price?.toLocaleString("es-CO")}
+                </span>
+              </div>
+
+              <Button
+                onClick={handlePayment}
+                disabled={paying || creatingOrder}
+                className="w-full py-8 text-xl bg-[#00A651] hover:bg-[#008F44] rounded-3xl font-semibold text-white"
+              >
+                {paying || creatingOrder ? (
+                  <>
+                    <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                    Procesando...
+                  </>
+                ) : (
+                  "💳 Pagar con Wompi"
+                )}
+              </Button>
+
+              <p className="text-center text-sm text-gray-500">
+                Pago seguro procesado por <strong>Wompi</strong> • Bancolombia
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
