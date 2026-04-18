@@ -1,9 +1,8 @@
 import Link from "next/link"
 import Image from "next/image"
-import { categories, categoryEmojis } from "@/lib/categories"  // We'll create this shared file
+import { categories, categoryEmojis } from "@/lib/categories"
 
 export default async function HomePage() {
-  // Fetch all gigs (server component - fast)
   let gigs = []
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/gigs`, {
@@ -17,7 +16,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section with New Logo */}
+      {/* Hero Section - Orange/Red Brand Colors */}
       <div className="bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 text-white py-20">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <div className="flex justify-center mb-8">
@@ -39,7 +38,7 @@ export default async function HomePage() {
           <div className="mt-10">
             <Link 
               href="/gigs" 
-              className="inline-block bg-white text-orange-600 font-semibold text-xl px-10 py-5 rounded-3xl hover:bg-gray-100 transition"
+              className="inline-block bg-white text-orange-600 font-semibold text-xl px-10 py-5 rounded-3xl hover:bg-gray-100 transition shadow-lg"
             >
               Explorar todos los gigs
             </Link>
@@ -47,9 +46,9 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Popular Categories - Synced with Create Gig */}
+      {/* Popular Categories */}
       <div className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="text-4xl font-bold text-center mb-12">Categorías Populares</h2>
+        <h2 className="text-4xl font-bold text-center mb-12 text-gray-900">Categorías Populares</h2>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
           {categories.map((cat) => (
@@ -73,7 +72,7 @@ export default async function HomePage() {
       <div className="bg-white py-16">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex justify-between items-end mb-10">
-            <h2 className="text-4xl font-bold">Todos los Gigs Disponibles</h2>
+            <h2 className="text-4xl font-bold text-gray-900">Todos los Gigs Disponibles</h2>
             <Link href="/gigs" className="text-orange-600 hover:underline font-medium">
               Ver todos →
             </Link>
@@ -98,16 +97,16 @@ export default async function HomePage() {
                     </div>
                   )}
                   <div className="p-6">
-                    <div className="font-semibold text-xl line-clamp-2 mb-2 group-hover:text-orange-600">
+                    <div className="font-semibold text-xl line-clamp-2 mb-3 group-hover:text-orange-600">
                       {gig.title}
                     </div>
-                    <p className="text-3xl font-bold text-emerald-600 mb-4">
+                    <p className="text-3xl font-bold text-orange-600 mb-4">
                       ${gig.price.toLocaleString("es-CO")}
                     </p>
-                    <p className="text-sm text-gray-600 line-clamp-2">
+                    <p className="text-sm text-gray-600 line-clamp-2 mb-4">
                       {gig.description}
                     </p>
-                    <div className="mt-4 text-xs text-gray-500">
+                    <div className="text-xs text-gray-500">
                       Por {gig.seller?.businessName || gig.seller?.name}
                     </div>
                   </div>
