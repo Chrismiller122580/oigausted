@@ -72,7 +72,7 @@ export default function GigCheckoutPage() {
 
     try {
       const checkout = new window.WompiCheckout({
-        amount_in_cents: gig.price * 100,
+        amount_in_cents: Math.round(gig.price * 100),
         currency: "COP",
         reference: `order_${currentOrder.id}`,
         public_key: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
@@ -133,8 +133,10 @@ export default function GigCheckoutPage() {
                   <div className="space-y-3">
                     {Object.entries(gig.fields).map(([key, value]) => (
                       <div key={key} className="bg-gray-50 p-4 rounded-2xl">
-                        <p className="text-sm text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1')}</p>
-                        <p className="font-medium">{value}</p>
+                        <p className="text-sm text-gray-500 capitalize">
+                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </p>
+                        <p className="font-medium">{String(value || "No especificado")}</p>
                       </div>
                     ))}
                   </div>
