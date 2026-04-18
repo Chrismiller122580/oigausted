@@ -1,30 +1,28 @@
 'use client';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
 import AdminNavbar from './AdminNavbar';
 import BuyerNavbar from './BuyerNavbar';
 import SellerNavbar from './SellerNavbar';
 
 export default function NavbarWrapper({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Safe role extraction
+  if (status === "loading") {
+    return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
+  }
+
   const role = session?.user 
     ? String((session.user as any)?.role || '').toLowerCase().trim() 
     : null;
 
-  // If we have a role, always use the role navbar
-  if (role) {
-    if (role === 'admin') return <AdminNavbar>{children}</AdminNavbar>;
-    if (role === 'seller') return <SellerNavbar>{children}</SellerNavbar>;
-    if (role === 'buyer') return <BuyerNavbar>{children}</BuyerNavbar>;
-  }
+  // Role-based navbars
+  if (role === 'admin') return <AdminNavbar>{children}</AdminNavbar>;
+  if (role === 'seller') return <SellerNavbar>{children}</SellerNavbar>;
+  if (role === 'buyer') return <BuyerNavbar>{children}</BuyerNavbar>;
 
-  // Only show public navbar when truly not logged in
+  // Public navbar (not logged in)
   return (
     <>
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
@@ -39,8 +37,10 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
             </div>
           </Link>
 
-          <div className="hidden md:flex items-center gap-6">
-            <Link href="/gigs" className="font-medium text-gray-700 hover:text-orange-600">Ver Todos los Gigs</Link>
+          <div className="hidden md:flex items-center gap-8">
+            <Link href="/gigs" className="font-medium text-gray-700 hover:text-orange-600 transition">
+              Explorar Gigs
+            </Link>
             <Link href="/login">
               <Button variant="outline">Iniciar Sesión</Button>
             </Link>
@@ -48,28 +48,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
               <Button className="bg-orange-600 hover:bg-orange-700">Registrarse</Button>
             </Link>
           </div>
-
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-gray-700"
-          >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
         </div>
-
-        {isMobileMenuOpen && (
-          <div className="md:hidden bg-white border-t p-6 space-y-4">
-            <Link href="/gigs" className="block py-2 font-medium" onClick={() => setIsMobileMenuOpen(false)}>
-              Ver Todos los Gigs
-            </Link>
-            <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button variant="outline" className="w-full">Iniciar Sesión</Button>
-            </Link>
-            <Link href="/signup" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button className="w-full bg-orange-600">Registrarse</Button>
-            </Link>
-          </div>
-        )}
       </nav>
       <main>{children}</main>
     </>

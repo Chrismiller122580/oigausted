@@ -1,9 +1,11 @@
 "use client"
+
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { PlusCircle, DollarSign, Package, Trash2 } from "lucide-react"
+import { DollarSign, Package, Trash2 } from "lucide-react"
 import { toast } from "react-hot-toast"
 
 const statusConfig: any = {
@@ -14,36 +16,56 @@ const statusConfig: any = {
 }
 
 export default function SellerDashboard() {
+  const { data: session, status } = useSession()
   const [gigs, setGigs] = useState<any[]>([])
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (status === "loading") return
+    if (!session?.user?.email) {
+      setLoading(false)
+      return
+    }
     fetchGigs()
     fetchOrders()
-  }, [])
+  }, [session, status])
 
   const fetchGigs = async () => {
     try {
-      const res = await fetch("/api/gigs?role=seller")
+      const res = await fetch("/api/gigs?role=seller", {
+        credentials: "include",
+        cache: "no-store",
+        next: { revalidate: 0 }
+      })
       if (res.ok) {
         const data = await res.json()
         setGigs(data.gigs || [])
+      } else if (res.status === 401) {
+        toast.error("Sesión expirada")
       }
     } catch (err) {
-      console.error(err)
+      console.error("Error fetching gigs:", err)
     }
   }
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch("/api/orders?role=seller")
+      const res = await fetch("/api/orders?role=seller", {
+        credentials: "include",
+        cache: "no-store",
+        next: { revalidate: 0 }
+      })
       if (res.ok) {
         const data = await res.json()
         setOrders(data.orders || [])
+      } else if (res.status === 401) {
+        toast.error("Sesión expirada")
       }
     } catch (err) {
-      console.error(err)
+      console.error("Error fetching orders:", err)
+      setError("No se pudieron cargar los pedidos")
     } finally {
       setLoading(false)
     }
@@ -51,9 +73,11 @@ export default function SellerDashboard() {
 
   const deleteGig = async (gigId: string) => {
     if (!confirm("¿Estás seguro de que quieres eliminar este gig? Esta acción no se puede deshacer.")) return
-
     try {
-      const res = await fetch(`/api/gigs/${gigId}`, { method: "DELETE" })
+      const res = await fetch(`/api/gigs/${gigId}`, { 
+        method: "DELETE",
+        credentials: "include"
+      })
       if (res.ok) {
         toast.success("Gig eliminado correctamente")
         fetchGigs()
@@ -81,7 +105,25 @@ export default function SellerDashboard() {
     .reduce((sum, o) => sum + (o.price || 0), 0)
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Cargando dashboard del vendedor...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando dashboard del vendedor...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Intentar nuevamente</Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -92,12 +134,6 @@ export default function SellerDashboard() {
             <h1 className="text-5xl font-bold tracking-tight">Hola, Vendedor</h1>
             <p className="text-xl text-gray-600 mt-3">Gestiona tus gigs y pedidos</p>
           </div>
-          <Button asChild size="lg" className="bg-orange-600 hover:bg-orange-700">
-            <Link href="/create-gig" className="flex items-center gap-3">
-              <PlusCircle size={24} />
-              Crear Nuevo Gig
-            </Link>
-          </Button>
         </div>
 
         {/* Stats Cards */}
@@ -145,7 +181,7 @@ export default function SellerDashboard() {
           </Card>
         </div>
 
-        {/* Active Orders */}
+        {/* Active Orders - Clickable */}
         <Card className="mb-12">
           <CardContent className="p-8">
             <div className="flex justify-between items-center mb-6">
@@ -160,15 +196,19 @@ export default function SellerDashboard() {
             ) : (
               <div className="space-y-4">
                 {activeOrders.slice(0, 5).map((order: any) => (
-                  <div key={order.id} className="flex items-center justify-between p-6 border rounded-3xl hover:bg-gray-50 transition">
-                    <div>
-                      <p className="font-medium">{order.gig?.title}</p>
-                      <p className="text-sm text-gray-500">Orden #{order.id.slice(0,8)} • ${order.price?.toLocaleString("es-CO")}</p>
+                  <Link key={order.id} href={`/orders/${order.id}`}>
+                    <div className="flex items-center justify-between p-6 border rounded-3xl hover:bg-gray-50 transition cursor-pointer hover:border-orange-500">
+                      <div>
+                        <p className="font-medium">{order.gig?.title || "Orden sin título"}</p>
+                        <p className="text-sm text-gray-500">
+                          Orden #{order.id.slice(0,8)} • ${order.price?.toLocaleString("es-CO")}
+                        </p>
+                      </div>
+                      <div className={`px-5 py-2 rounded-full text-sm font-medium ${statusConfig[order.status]?.color || 'bg-gray-100'}`}>
+                        {statusConfig[order.status]?.label || order.status}
+                      </div>
                     </div>
-                    <div className={`px-5 py-2 rounded-full text-sm font-medium ${statusConfig[order.status]?.color || 'bg-gray-100'}`}>
-                      {statusConfig[order.status]?.label || order.status}
-                    </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -180,9 +220,6 @@ export default function SellerDashboard() {
           <CardContent className="p-8">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl font-semibold">Mis Gigs ({gigs.length})</h2>
-              <Button asChild>
-                <Link href="/create-gig">Crear Nuevo Gig</Link>
-              </Button>
             </div>
 
             {gigs.length === 0 ? (
