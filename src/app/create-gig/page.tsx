@@ -1,4 +1,5 @@
 "use client"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
@@ -6,7 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "react-hot-toast"
+import Image from "next/image"
 
+// Centralized categories - this will be the single source of truth
 const categories = [
   "Limpieza de Hogar y Oficinas",
   "Música y DJ para Eventos",
@@ -53,95 +56,6 @@ const categoryEmojis: Record<string, string> = {
   "Gestión de Eventos y Organización de Fiestas": "🎉",
 }
 
-const categoryConfig: Record<string, { title: string; fields: { key: string; placeholder: string }[] }> = {
-  "Limpieza de Hogar y Oficinas": { title: "Detalles de Limpieza", fields: [
-    { key: "cleaningType", placeholder: "Tipo de limpieza (Hogar, Oficina, Post-obra...)" },
-    { key: "spaceSize", placeholder: "Tamaño aproximado (habitaciones o m²)" },
-    { key: "frequency", placeholder: "Frecuencia (Única, Semanal, Mensual)" },
-    { key: "supplies", placeholder: "¿Incluye productos de limpieza?" },
-  ]},
-  "Música y DJ para Eventos": { title: "Detalles de Música y DJ", fields: [
-    { key: "eventType", placeholder: "Tipo de evento (Boda, Fiesta...)" },
-    { key: "duration", placeholder: "Duración aproximada" },
-    { key: "equipment", placeholder: "Equipo incluido" },
-  ]},
-  "Asesoría Legal y Tributaria": { title: "Detalles de Asesoría Legal", fields: [
-    { key: "adviceType", placeholder: "Tipo de asesoría" },
-    { key: "scope", placeholder: "Alcance del servicio" },
-  ]},
-  "Diseño Gráfico y Logos": { title: "Detalles de Diseño", fields: [
-    { key: "designType", placeholder: "Tipo de diseño" },
-    { key: "revisions", placeholder: "Número de revisiones" },
-  ]},
-  "Cocina Casera y Catering": { title: "Detalles de Catering", fields: [
-    { key: "cuisineType", placeholder: "Tipo de comida" },
-    { key: "servings", placeholder: "Número de personas" },
-  ]},
-  "Fotografía y Video": { title: "Detalles de Fotografía y Video", fields: [
-    { key: "photoType", placeholder: "Tipo de servicio" },
-    { key: "equipment", placeholder: "Equipo incluido" },
-    { key: "sessionDuration", placeholder: "Duración de la sesión" },
-  ]},
-  "Transporte y Mudanzas": { title: "Detalles de Transporte", fields: [
-    { key: "transportType", placeholder: "Tipo de servicio" },
-    { key: "volume", placeholder: "Volumen aproximado" },
-  ]},
-  "Belleza y Maquillaje a Domicilio": { title: "Detalles de Belleza", fields: [
-    { key: "beautyType", placeholder: "Tipo de servicio" },
-    { key: "duration", placeholder: "Duración aproximada" },
-  ]},
-  "Clases Particulares": { title: "Detalles de la Clase", fields: [
-    { key: "subject", placeholder: "Materia o tema" },
-    { key: "level", placeholder: "Nivel" },
-    { key: "modality", placeholder: "Modalidad (Presencial/Virtual)" },
-  ]},
-  "Artesanías y Productos Hechos a Mano": { title: "Detalles de Artesanía", fields: [
-    { key: "craftType", placeholder: "Tipo de artesanía" },
-    { key: "materials", placeholder: "Materiales usados" },
-  ]},
-  "Cuidado Holístico y Bienestar": { title: "Detalles de Bienestar", fields: [
-    { key: "therapyType", placeholder: "Tipo de terapia" },
-    { key: "sessionDuration", placeholder: "Duración de la sesión" },
-  ]},
-  "Marketing Digital y Redes Sociales": { title: "Detalles de Marketing", fields: [
-    { key: "campaignType", placeholder: "Tipo de campaña" },
-    { key: "postsPerMonth", placeholder: "Posts por mes" },
-    { key: "goal", placeholder: "Objetivo principal" },
-  ]},
-  "Desarrollo Web y Tiendas Online": { title: "Detalles de Desarrollo Web", fields: [
-    { key: "siteType", placeholder: "Tipo de sitio" },
-    { key: "technologies", placeholder: "Tecnologías/plataforma" },
-  ]},
-  "Edición de Video y Contenido Audiovisual": { title: "Detalles de Edición de Video", fields: [
-    { key: "videoType", placeholder: "Tipo de video" },
-    { key: "duration", placeholder: "Duración aproximada" },
-  ]},
-  "Asistente Virtual y Soporte Administrativo": { title: "Detalles de Asistente Virtual", fields: [
-    { key: "mainTasks", placeholder: "Tareas principales" },
-    { key: "hoursPerWeek", placeholder: "Horas por semana" },
-  ]},
-  "Redacción de Contenidos y Copywriting": { title: "Detalles de Redacción", fields: [
-    { key: "contentType", placeholder: "Tipo de contenido" },
-    { key: "wordCount", placeholder: "Cantidad aproximada" },
-  ]},
-  "Reparaciones y Mantenimiento del Hogar": { title: "Detalles de Reparaciones", fields: [
-    { key: "repairType", placeholder: "Tipo de reparación" },
-    { key: "zone", placeholder: "Zona de servicio" },
-  ]},
-  "Clases de Idiomas y Tutorías Online": { title: "Detalles de Clases de Idiomas", fields: [
-    { key: "language", placeholder: "Idioma a enseñar" },
-    { key: "level", placeholder: "Nivel" },
-  ]},
-  "Diseño de Interiores y Arquitectura": { title: "Detalles de Diseño de Interiores", fields: [
-    { key: "projectType", placeholder: "Tipo de proyecto" },
-    { key: "style", placeholder: "Estilo preferido" },
-  ]},
-  "Gestión de Eventos y Organización de Fiestas": { title: "Detalles de Gestión de Eventos", fields: [
-    { key: "eventType", placeholder: "Tipo de evento" },
-    { key: "guests", placeholder: "Número aproximado de invitados" },
-  ]},
-}
-
 export default function CreateGigPage() {
   const { data: session } = useSession()
   const router = useRouter()
@@ -164,6 +78,10 @@ export default function CreateGigPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("La imagen no puede superar 5MB")
+        return
+      }
       setImageFile(file)
       setImagePreview(URL.createObjectURL(file))
     }
@@ -187,10 +105,12 @@ export default function CreateGigPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
     if (!formData.title || !formData.price || !formData.category || !formData.deliveryTime) {
       toast.error("Por favor completa los campos obligatorios")
       return
     }
+
     if (!session?.user?.email) {
       toast.error("Debes estar logueado para crear un gig")
       return
@@ -200,16 +120,26 @@ export default function CreateGigPage() {
     let imageUrl = null
 
     try {
+      // Upload image if selected
       if (imageFile) {
         const form = new FormData()
         form.append("file", imageFile)
-        const uploadRes = await fetch("/api/upload", { method: "POST", body: form })
+
+        const uploadRes = await fetch("/api/upload", { 
+          method: "POST", 
+          body: form 
+        })
+
         if (uploadRes.ok) {
           const data = await uploadRes.json()
           imageUrl = data.url
+        } else {
+          const errorData = await uploadRes.json().catch(() => ({}))
+          toast.error(errorData.error || "Error al subir la imagen")
         }
       }
 
+      // Create gig
       const res = await fetch("/api/gigs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -225,31 +155,15 @@ export default function CreateGigPage() {
         toast.success("¡Gig creado exitosamente!")
         router.push("/seller")
       } else {
-        toast.error("Error al crear el gig")
+        const errorData = await res.json().catch(() => ({}))
+        toast.error(errorData.error || "Error al crear el gig")
       }
     } catch (err) {
       console.error(err)
-      toast.error("Error al crear el gig")
+      toast.error("Error de conexión. Inténtalo de nuevo.")
     } finally {
       setLoading(false)
     }
-  }
-
-  const renderTailoredFields = () => {
-    if (!selectedCategory || !categoryConfig[selectedCategory]) return null
-    const config = categoryConfig[selectedCategory]
-
-    return (
-      <div className="space-y-4">
-        {config.fields.map((field) => (
-          <Input
-            key={field.key}
-            placeholder={field.placeholder}
-            onChange={(e) => updateTailoredField(field.key, e.target.value)}
-          />
-        ))}
-      </div>
-    )
   }
 
   return (
@@ -258,15 +172,20 @@ export default function CreateGigPage() {
         <h1 className="text-4xl font-bold mb-8">Crear Nuevo Gig</h1>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Image Upload */}
+          {/* Image Upload - Improved */}
           <div>
             <label className="block text-sm font-medium mb-2">Imagen del Gig (opcional)</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-3xl p-8 text-center">
+            <div className="border-2 border-dashed border-gray-300 rounded-3xl p-8 text-center hover:border-orange-300 transition">
               {imagePreview ? (
                 <div className="relative w-full h-64 mx-auto rounded-2xl overflow-hidden">
                   <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  <Button type="button" variant="outline" className="absolute top-3 right-3" onClick={() => { setImageFile(null); setImagePreview(null) }}>
-                    Cambiar
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="absolute top-3 right-3"
+                    onClick={() => { setImageFile(null); setImagePreview(null) }}
+                  >
+                    Cambiar imagen
                   </Button>
                 </div>
               ) : (
@@ -276,7 +195,12 @@ export default function CreateGigPage() {
                     <p className="font-medium">Haz clic para subir una imagen</p>
                     <p className="text-sm mt-1">PNG, JPG o JPEG • Máx 5MB</p>
                   </div>
-                  <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleImageChange} 
+                    className="hidden" 
+                  />
                 </label>
               )}
             </div>
@@ -285,19 +209,30 @@ export default function CreateGigPage() {
           {/* Title */}
           <div>
             <label className="block text-sm font-medium mb-2">Título del Gig *</label>
-            <Input value={formData.title} onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))} placeholder="Ej: Diseño de logo profesional" required />
+            <Input 
+              value={formData.title} 
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))} 
+              placeholder="Ej: Diseño de logo profesional" 
+              required 
+            />
           </div>
 
           {/* Price */}
           <div>
             <label className="block text-sm font-medium mb-2">Precio (COP) *</label>
-            <Input type="number" value={formData.price} onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))} placeholder="50000" required />
+            <Input 
+              type="number" 
+              value={formData.price} 
+              onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))} 
+              placeholder="50000" 
+              required 
+            />
           </div>
 
           {/* Delivery Time */}
           <div>
             <label className="block text-sm font-medium mb-2">Tiempo de entrega *</label>
-            <select 
+            <select
               value={formData.deliveryTime}
               onChange={(e) => setFormData(prev => ({ ...prev, deliveryTime: e.target.value }))}
               className="w-full border rounded-3xl px-6 py-4 text-base"
@@ -313,7 +248,7 @@ export default function CreateGigPage() {
             </select>
           </div>
 
-          {/* Category Cards */}
+          {/* Category Selection */}
           <div>
             <label className="block text-sm font-medium mb-4">Categoría del servicio *</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -322,7 +257,9 @@ export default function CreateGigPage() {
                   key={cat}
                   onClick={() => handleCategoryChange(cat)}
                   className={`p-6 rounded-3xl border-2 cursor-pointer transition-all flex flex-col items-center text-center hover:shadow-md ${
-                    selectedCategory === cat ? "border-emerald-500 bg-emerald-50 shadow-md" : "border-gray-200 hover:border-gray-300"
+                    selectedCategory === cat 
+                      ? "border-emerald-500 bg-emerald-50 shadow-md" 
+                      : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
                   <div className="text-5xl mb-3">{categoryEmojis[cat]}</div>
@@ -332,26 +269,22 @@ export default function CreateGigPage() {
             </div>
           </div>
 
-          {/* Tailored Fields */}
-          {selectedCategory && (
-            <div className="border-l-4 border-emerald-500 pl-6 py-4 bg-emerald-50 rounded-r-3xl">
-              <h3 className="font-semibold mb-4">{categoryConfig[selectedCategory].title}</h3>
-              {renderTailoredFields()}
-            </div>
-          )}
-
           {/* Description */}
           <div>
             <label className="block text-sm font-medium mb-2">Descripción general</label>
-            <Textarea 
-              value={formData.description} 
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} 
-              placeholder="Describe el servicio en detalle..." 
-              rows={6} 
+            <Textarea
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Describe el servicio en detalle..."
+              rows={6}
             />
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full py-8 text-xl font-semibold">
+          <Button 
+            type="submit" 
+            disabled={loading} 
+            className="w-full py-8 text-xl font-semibold"
+          >
             {loading ? "Creando gig..." : "Publicar Gig"}
           </Button>
         </form>
