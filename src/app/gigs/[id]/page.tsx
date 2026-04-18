@@ -1,10 +1,11 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
-import { Star, Clock } from "lucide-react"
+import { Star, Clock, ArrowLeft } from "lucide-react"
 
 interface Gig {
   id: string
@@ -27,18 +28,28 @@ interface Gig {
 export default function GigDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { data: session } = useSession()
-
+  const { data: session, status } = useSession()
   const [gig, setGig] = useState<Gig | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Redirect to signup if user is not logged in
   useEffect(() => {
+    if (status === "loading") return
+
+    if (!session?.user) {
+      // Save the gig ID they were trying to view so we can redirect back after signup
+      const callbackUrl = encodeURIComponent(`/gigs/${params.id}`)
+      router.push(`/signup?callbackUrl=${callbackUrl}`)
+      return
+    }
+
     fetchGig()
-  }, [])
+  }, [session, status, params.id, router])
 
   const fetchGig = async () => {
     try {
       const res = await fetch(`/api/gigs/${params.id}`)
+      if (!res.ok) throw new Error("Gig not found")
       const data = await res.json()
       setGig(data.gig)
     } catch (error) {
@@ -53,16 +64,30 @@ export default function GigDetailPage() {
     router.push(`/checkout/${gig.id}`)
   }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-xl">Cargando gig...</div>
-  if (!gig) return <div className="min-h-screen flex items-center justify-center text-red-600">Gig no encontrado</div>
+  // Loading state while checking session or fetching gig
+  if (status === "loading" || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-xl">
+        Cargando gig...
+      </div>
+    )
+  }
+
+  if (!gig) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-600">
+        Gig no encontrado
+      </div>
+    )
+  }
 
   const isOwnGig = session?.user && gig.seller.id === (session.user as any).id
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-6xl mx-auto px-6">
-        <Link href="/gigs" className="text-emerald-600 hover:underline mb-8 inline-block">
-          ← Volver a todos los gigs
+        <Link href="/gigs" className="flex items-center gap-2 text-emerald-600 hover:underline mb-8 inline-block">
+          <ArrowLeft size={20} /> Volver a todos los gigs
         </Link>
 
         <div className="grid lg:grid-cols-5 gap-12">
@@ -70,14 +95,22 @@ export default function GigDetailPage() {
           <div className="lg:col-span-3 space-y-10">
             {gig.imageUrl && (
               <div className="rounded-3xl overflow-hidden shadow-xl">
-                <img src={gig.imageUrl} alt={gig.title} className="w-full aspect-video object-cover" />
+                <img 
+                  src={gig.imageUrl} 
+                  alt={gig.title} 
+                  className="w-full aspect-video object-cover" 
+                />
               </div>
             )}
 
             <div>
-              <h1 className="text-5xl font-bold tracking-tight mb-4">{gig.title}</h1>
+              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">{gig.title}</h1>
               <div className="flex flex-wrap items-center gap-4 text-gray-600">
-                {gig.category && <span className="font-medium bg-emerald-100 text-emerald-700 px-4 py-1 rounded-full">{gig.category}</span>}
+                {gig.category && (
+                  <span className="font-medium bg-emerald-100 text-emerald-700 px-4 py-1 rounded-full">
+                    {gig.category}
+                  </span>
+                )}
                 {gig.deliveryTime && (
                   <div className="flex items-center gap-1.5 bg-white px-4 py-1 rounded-full border">
                     <Clock className="w-5 h-5 text-emerald-600" />
@@ -89,10 +122,11 @@ export default function GigDetailPage() {
 
             <div>
               <h2 className="text-2xl font-semibold mb-4">Descripción</h2>
-              <p className="text-gray-700 leading-relaxed text-lg whitespace-pre-line">{gig.description || "Sin descripción"}</p>
+              <p className="text-gray-700 leading-relaxed text-lg whitespace-pre-line">
+                {gig.description || "Sin descripción"}
+              </p>
             </div>
 
-            {/* Tailored Fields */}
             {gig.fields && Object.keys(gig.fields).length > 0 && (
               <div>
                 <h2 className="text-2xl font-semibold mb-6">Detalles específicos del servicio</h2>
@@ -102,7 +136,9 @@ export default function GigDetailPage() {
                       <p className="text-sm uppercase tracking-widest text-gray-500 mb-1">
                         {key.replace(/([A-Z])/g, ' $1').trim()}
                       </p>
-                      <p className="text-lg font-medium text-gray-900">{value || "No especificado"}</p>
+                      <p className="text-lg font-medium text-gray-900">
+                        {value || "No especificado"}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -113,15 +149,15 @@ export default function GigDetailPage() {
           {/* Sidebar - Buy Box */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-3xl p-8 shadow-sm border sticky top-8">
-              <div className="text-6xl font-bold text-emerald-600 mb-1">
+              <div className="text-5xl sm:text-6xl font-bold text-emerald-600 mb-1">
                 ${gig.price.toLocaleString("es-CO")}
               </div>
               <p className="text-gray-500 mb-10">COP</p>
 
               {!isOwnGig && (
-                <Button 
-                  onClick={handleBuyNow} 
-                  size="lg" 
+                <Button
+                  onClick={handleBuyNow}
+                  size="lg"
                   className="w-full py-8 text-xl bg-emerald-600 hover:bg-emerald-700 rounded-3xl font-semibold mb-8"
                 >
                   Comprar ahora
@@ -142,11 +178,16 @@ export default function GigDetailPage() {
                     👤
                   </div>
                   <div>
-                    <p className="font-semibold text-lg">{gig.seller.businessName || gig.seller.name}</p>
+                    <p className="font-semibold text-lg">
+                      {gig.seller.businessName || gig.seller.name}
+                    </p>
                     {gig.seller.rating && (
                       <div className="flex items-center gap-1 text-amber-500">
                         {Array.from({ length: 5 }).map((_, i) => (
-                          <Star key={i} className={`w-5 h-5 ${i < Math.floor(gig.seller.rating!) ? "fill-current" : ""}`} />
+                          <Star 
+                            key={i} 
+                            className={`w-5 h-5 ${i < Math.floor(gig.seller.rating!) ? "fill-current" : ""}`} 
+                          />
                         ))}
                         <span className="text-sm text-gray-600 ml-2">
                           ({gig.seller.reviewCount || 0} reseñas)
