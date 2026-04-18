@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ArrowLeft, Loader2, Clock } from "lucide-react"
 
+declare global {
+  interface Window {
+    WompiCheckout?: any
+  }
+}
+
 export default function GigCheckoutPage() {
   const params = useParams()
   const router = useRouter()
@@ -16,6 +22,20 @@ export default function GigCheckoutPage() {
   const [creatingOrder, setCreatingOrder] = useState(false)
   const [paying, setPaying] = useState(false)
   const [error, setError] = useState("")
+
+  // Load Wompi script
+  useEffect(() => {
+    const script = document.createElement("script")
+    script.src = "https://checkout.wompi.co/widget.js"
+    script.async = true
+    document.body.appendChild(script)
+
+    return () => {
+      // Cleanup
+      const existingScript = document.querySelector('script[src="https://checkout.wompi.co/widget.js"]')
+      if (existingScript) existingScript.remove()
+    }
+  }, [])
 
   useEffect(() => {
     fetchGig()
@@ -63,31 +83,33 @@ export default function GigCheckoutPage() {
 
     setPaying(true)
 
-    try {
-      // Wait for Wompi script to load
+    // Small delay to ensure script is loaded
+    setTimeout(() => {
       if (typeof window.WompiCheckout === 'undefined') {
-        alert("Wompi no se ha cargado aún. Por favor refresca la página.")
+        alert("Wompi no se ha cargado. Por favor refresca la página e inténtalo de nuevo.")
         setPaying(false)
         return
       }
 
-      const checkout = new window.WompiCheckout({
-        amount_in_cents: Math.round(gig.price * 100),
-        currency: "COP",
-        reference: `order_${currentOrder.id}`,
-        public_key: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
-        redirect_url: `${window.location.origin}/orders/${currentOrder.id}`,
-        onSuccess: () => router.push(`/orders/${currentOrder.id}`),
-        onError: () => alert("Error en el pago. Inténtalo de nuevo."),
-        onClose: () => setPaying(false)
-      })
+      try {
+        const checkout = new window.WompiCheckout({
+          amount_in_cents: Math.round(gig.price * 100),
+          currency: "COP",
+          reference: `order_${currentOrder.id}`,
+          public_key: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
+          redirect_url: `${window.location.origin}/orders/${currentOrder.id}`,
+          onSuccess: () => router.push(`/orders/${currentOrder.id}`),
+          onError: () => alert("Error en el pago. Inténtalo de nuevo."),
+          onClose: () => setPaying(false)
+        })
 
-      checkout.open()
-    } catch (err) {
-      console.error(err)
-      alert("Error al abrir Wompi. Asegúrate de tener conexión.")
-      setPaying(false)
-    }
+        checkout.open()
+      } catch (err) {
+        console.error(err)
+        alert("Error al abrir el checkout de Wompi")
+        setPaying(false)
+      }
+    }, 800)
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-xl">Cargando gig...</div>
