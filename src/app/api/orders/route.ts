@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import crypto from 'crypto'
+
+const WOMPI_PRIVATE_KEY = process.env.WOMPI_PRIVATE_KEY
+
+if (!WOMPI_PRIVATE_KEY) {
+  console.error("❌ WOMPI_PRIVATE_KEY is not set in .env.local")
+}
 
 export async function GET() {
   try {
@@ -23,14 +30,11 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
-
     if (!session?.user?.id) {
-      console.error("No valid session in POST /api/orders")
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
     const { gigId } = await request.json()
-
     if (!gigId) {
       return NextResponse.json({ error: 'gigId is required' }, { status: 400 })
     }
@@ -44,6 +48,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Gig not found' }, { status: 404 })
     }
 
+    // Create order in database
     const order = await prisma.order.create({
       data: {
         gigId: gig.id,
@@ -59,8 +64,31 @@ export async function POST(request: Request) {
       }
     })
 
-    console.log(`Order created successfully for buyer ${session.user.id}`)
-    return NextResponse.json({ order }, { status: 201 })
+    // Generate Wompi transaction data + integrity signature
+    const amountInCents = Math.round(gig.price * 100)
+    const reference = `order_${order.id}`
+    const currency = "COP"
+
+    // Integrity signature (Wompi requirement)
+    const integrityString = `${reference}${amountInCents}${currency}${WOMPI_PRIVATE_KEY}`
+    const integritySignature = crypto
+      .createHash('sha256')
+      .update(integrityString)
+      .digest('hex')
+
+    console.log(`✅ Order created: ${order.id} | Reference: ${reference}`)
+
+    return NextResponse.json({
+      order,
+      wompi: {
+        amount_in_cents: amountInCents,
+        currency,
+        reference,
+        integrity_signature: integritySignature,
+        public_key: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY
+      }
+    }, { status: 201 })
+
   } catch (error) {
     console.error("Order creation failed:", error)
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
