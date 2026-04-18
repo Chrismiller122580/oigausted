@@ -4,13 +4,6 @@ import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ArrowLeft, Loader2, Clock } from "lucide-react"
-import Script from "next/script"
-
-declare global {
-  interface Window {
-    WompiCheckout: any
-  }
-}
 
 export default function GigCheckoutPage() {
   const params = useParams()
@@ -71,27 +64,28 @@ export default function GigCheckoutPage() {
     setPaying(true)
 
     try {
+      // Wait for Wompi script to load
+      if (typeof window.WompiCheckout === 'undefined') {
+        alert("Wompi no se ha cargado aún. Por favor refresca la página.")
+        setPaying(false)
+        return
+      }
+
       const checkout = new window.WompiCheckout({
         amount_in_cents: Math.round(gig.price * 100),
         currency: "COP",
         reference: `order_${currentOrder.id}`,
         public_key: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
         redirect_url: `${window.location.origin}/orders/${currentOrder.id}`,
-        onSuccess: (response: any) => {
-          console.log("✅ Pago exitoso", response)
-          router.push(`/orders/${currentOrder.id}`)
-        },
-        onError: (error: any) => {
-          console.error("❌ Error en pago", error)
-          alert("Hubo un problema con el pago. Inténtalo nuevamente.")
-        },
+        onSuccess: () => router.push(`/orders/${currentOrder.id}`),
+        onError: () => alert("Error en el pago. Inténtalo de nuevo."),
         onClose: () => setPaying(false)
       })
 
       checkout.open()
     } catch (err) {
       console.error(err)
-      alert("Error al abrir el checkout de Wompi")
+      alert("Error al abrir Wompi. Asegúrate de tener conexión.")
       setPaying(false)
     }
   }
@@ -102,76 +96,72 @@ export default function GigCheckoutPage() {
   }
 
   return (
-    <>
-      <Script src="https://checkout.wompi.co/widget.js" strategy="lazyOnload" />
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-2xl mx-auto px-6">
+        <Button variant="ghost" onClick={() => router.back()} className="mb-8">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Volver
+        </Button>
 
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-2xl mx-auto px-6">
-          <Button variant="ghost" onClick={() => router.back()} className="mb-8">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Volver
-          </Button>
-
-          <Card className="shadow-sm">
-            <CardContent className="p-10 space-y-10">
-              <div>
-                <h1 className="text-4xl font-bold tracking-tight">{gig.title}</h1>
-                <p className="text-gray-600 mt-3">
-                  Vendedor: {gig.seller?.name || gig.seller?.businessName || "Vendedor"}
-                </p>
-              </div>
-
-              {gig.deliveryTime && (
-                <div className="flex items-center gap-3 text-lg bg-emerald-50 p-4 rounded-2xl">
-                  <Clock className="text-emerald-600" />
-                  <span>Entrega estimada: <strong>{gig.deliveryTime}</strong></span>
-                </div>
-              )}
-
-              {gig.fields && Object.keys(gig.fields).length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-4">Detalles del servicio:</h3>
-                  <div className="space-y-3">
-                    {Object.entries(gig.fields).map(([key, value]) => (
-                      <div key={key} className="bg-gray-50 p-4 rounded-2xl">
-                        <p className="text-sm text-gray-500 capitalize">
-                          {key.replace(/([A-Z])/g, ' $1').trim()}
-                        </p>
-                        <p className="font-medium">{String(value || "No especificado")}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="border-t pt-8 flex justify-between items-end">
-                <span className="text-2xl text-gray-600">Total a pagar</span>
-                <span className="text-5xl font-bold text-emerald-600">
-                  ${gig.price?.toLocaleString("es-CO")}
-                </span>
-              </div>
-
-              <Button
-                onClick={handlePayment}
-                disabled={paying || creatingOrder}
-                className="w-full py-8 text-xl bg-[#00A651] hover:bg-[#008F44] rounded-3xl font-semibold text-white"
-              >
-                {paying || creatingOrder ? (
-                  <>
-                    <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-                    Procesando...
-                  </>
-                ) : (
-                  "💳 Pagar con Wompi"
-                )}
-              </Button>
-
-              <p className="text-center text-sm text-gray-500">
-                Pago seguro procesado por <strong>Wompi</strong> • Bancolombia
+        <Card className="shadow-sm">
+          <CardContent className="p-10 space-y-10">
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight">{gig.title}</h1>
+              <p className="text-gray-600 mt-3">
+                Vendedor: {gig.seller?.name || gig.seller?.businessName || "Vendedor"}
               </p>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+
+            {gig.deliveryTime && (
+              <div className="flex items-center gap-3 text-lg bg-emerald-50 p-4 rounded-2xl">
+                <Clock className="text-emerald-600" />
+                <span>Entrega estimada: <strong>{gig.deliveryTime}</strong></span>
+              </div>
+            )}
+
+            {gig.fields && Object.keys(gig.fields).length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-4">Detalles del servicio:</h3>
+                <div className="space-y-3">
+                  {Object.entries(gig.fields).map(([key, value]) => (
+                    <div key={key} className="bg-gray-50 p-4 rounded-2xl">
+                      <p className="text-sm text-gray-500 capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </p>
+                      <p className="font-medium">{String(value || "No especificado")}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="border-t pt-8 flex justify-between items-end">
+              <span className="text-2xl text-gray-600">Total a pagar</span>
+              <span className="text-5xl font-bold text-emerald-600">
+                ${gig.price?.toLocaleString("es-CO")}
+              </span>
+            </div>
+
+            <Button
+              onClick={handlePayment}
+              disabled={paying || creatingOrder}
+              className="w-full py-8 text-xl bg-[#00A651] hover:bg-[#008F44] rounded-3xl font-semibold text-white"
+            >
+              {paying || creatingOrder ? (
+                <>
+                  <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                  Procesando...
+                </>
+              ) : (
+                "💳 Pagar con Wompi"
+              )}
+            </Button>
+
+            <p className="text-center text-sm text-gray-500">
+              Pago seguro procesado por <strong>Wompi</strong> • Bancolombia
+            </p>
+          </CardContent>
+        </Card>
       </div>
-    </>
+    </div>
   )
 }
