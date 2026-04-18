@@ -106,10 +106,10 @@ export default function SellerDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando dashboard del vendedor...</p>
+          <p className="mt-4 text-gray-600">Cargando dashboard...</p>
         </div>
       </div>
     )
@@ -117,7 +117,7 @@ export default function SellerDashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error}</p>
           <Button onClick={() => window.location.reload()}>Intentar nuevamente</Button>
@@ -127,66 +127,59 @@ export default function SellerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="flex justify-between items-end mb-12">
-          <div>
-            <h1 className="text-5xl font-bold tracking-tight">Hola, Vendedor</h1>
-            <p className="text-xl text-gray-600 mt-3">Gestiona tus gigs y pedidos</p>
-          </div>
+    <div className="min-h-screen bg-gray-50 pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="pt-8 pb-10">
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">Hola, Vendedor</h1>
+          <p className="text-lg sm:text-xl text-gray-600 mt-3">Gestiona tus gigs y pedidos</p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <Card>
-            <CardContent className="p-8">
-              <div className="flex items-center gap-4">
-                <div className="bg-green-100 p-4 rounded-2xl">
-                  <DollarSign className="h-10 w-10 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Ganancias Totales</p>
-                  <p className="text-4xl font-bold">${totalEarnings.toLocaleString("es-CO")}</p>
-                </div>
+        {/* Stats Cards - Mobile friendly stacking */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-10">
+          <Card className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="bg-green-100 p-3 sm:p-4 rounded-2xl">
+                <DollarSign className="h-8 w-8 sm:h-10 sm:w-10 text-green-600" />
               </div>
-            </CardContent>
+              <div>
+                <p className="text-sm text-gray-600">Ganancias Totales</p>
+                <p className="text-3xl sm:text-4xl font-bold">${totalEarnings.toLocaleString("es-CO")}</p>
+              </div>
+            </div>
           </Card>
 
-          <Card>
-            <CardContent className="p-8">
-              <div className="flex items-center gap-4">
-                <div className="bg-blue-100 p-4 rounded-2xl">
-                  <Package className="h-10 w-10 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Pedidos Activos</p>
-                  <p className="text-4xl font-bold">{activeOrders.length}</p>
-                </div>
+          <Card className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="bg-blue-100 p-3 sm:p-4 rounded-2xl">
+                <Package className="h-8 w-8 sm:h-10 sm:w-10 text-blue-600" />
               </div>
-            </CardContent>
+              <div>
+                <p className="text-sm text-gray-600">Pedidos Activos</p>
+                <p className="text-3xl sm:text-4xl font-bold">{activeOrders.length}</p>
+              </div>
+            </div>
           </Card>
 
-          <Card>
-            <CardContent className="p-8">
-              <div className="flex items-center gap-4">
-                <div className="bg-amber-100 p-4 rounded-2xl">
-                  <DollarSign className="h-10 w-10 text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Este Mes</p>
-                  <p className="text-4xl font-bold">${thisMonthEarnings.toLocaleString("es-CO")}</p>
-                </div>
+          <Card className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="bg-amber-100 p-3 sm:p-4 rounded-2xl">
+                <DollarSign className="h-8 w-8 sm:h-10 sm:w-10 text-amber-600" />
               </div>
-            </CardContent>
+              <div>
+                <p className="text-sm text-gray-600">Este Mes</p>
+                <p className="text-3xl sm:text-4xl font-bold">${thisMonthEarnings.toLocaleString("es-CO")}</p>
+              </div>
+            </div>
           </Card>
         </div>
 
-        {/* Active Orders - Clickable */}
-        <Card className="mb-12">
-          <CardContent className="p-8">
-            <div className="flex justify-between items-center mb-6">
+        {/* Active Orders - Better mobile layout */}
+        <Card className="mb-10">
+          <CardContent className="p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <h2 className="text-2xl font-semibold">Pedidos Activos ({activeOrders.length})</h2>
-              <Link href="/orders" className="text-orange-600 hover:underline text-sm font-medium">
+              <Link href="/orders" className="text-orange-600 hover:underline text-sm font-medium self-start sm:self-auto">
                 Ver todos los pedidos →
               </Link>
             </div>
@@ -196,15 +189,15 @@ export default function SellerDashboard() {
             ) : (
               <div className="space-y-4">
                 {activeOrders.slice(0, 5).map((order: any) => (
-                  <Link key={order.id} href={`/orders/${order.id}`}>
-                    <div className="flex items-center justify-between p-6 border rounded-3xl hover:bg-gray-50 transition cursor-pointer hover:border-orange-500">
-                      <div>
-                        <p className="font-medium">{order.gig?.title || "Orden sin título"}</p>
-                        <p className="text-sm text-gray-500">
+                  <Link key={order.id} href={`/orders/${order.id}`} className="block">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 sm:p-6 border rounded-3xl hover:bg-gray-50 hover:border-orange-500 transition-all active:scale-[0.985]">
+                      <div className="flex-1 mb-3 sm:mb-0">
+                        <p className="font-medium text-base sm:text-lg">{order.gig?.title || "Orden sin título"}</p>
+                        <p className="text-sm text-gray-500 mt-1">
                           Orden #{order.id.slice(0,8)} • ${order.price?.toLocaleString("es-CO")}
                         </p>
                       </div>
-                      <div className={`px-5 py-2 rounded-full text-sm font-medium ${statusConfig[order.status]?.color || 'bg-gray-100'}`}>
+                      <div className={`px-5 py-2 rounded-full text-sm font-medium text-center sm:text-left ${statusConfig[order.status]?.color || 'bg-gray-100'}`}>
                         {statusConfig[order.status]?.label || order.status}
                       </div>
                     </div>
@@ -217,7 +210,7 @@ export default function SellerDashboard() {
 
         {/* My Gigs */}
         <Card>
-          <CardContent className="p-8">
+          <CardContent className="p-6 sm:p-8">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl font-semibold">Mis Gigs ({gigs.length})</h2>
             </div>
@@ -229,9 +222,9 @@ export default function SellerDashboard() {
                 {gigs.map((gig: any) => (
                   <Card key={gig.id} className="overflow-hidden hover:shadow-lg transition">
                     <CardContent className="p-6">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-xl line-clamp-2">{gig.title}</h3>
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-lg sm:text-xl line-clamp-2">{gig.title}</h3>
                           <p className="text-2xl font-bold text-orange-600 mt-3">
                             ${gig.price?.toLocaleString("es-CO")}
                           </p>
@@ -240,12 +233,12 @@ export default function SellerDashboard() {
                           variant="ghost"
                           size="icon"
                           onClick={() => deleteGig(gig.id)}
-                          className="text-red-500 hover:bg-red-50"
+                          className="text-red-500 hover:bg-red-50 flex-shrink-0"
                         >
                           <Trash2 size={20} />
                         </Button>
                       </div>
-                      <p className="text-sm text-gray-500 mt-4 line-clamp-3">{gig.description}</p>
+                      <p className="text-sm text-gray-500 mt-5 line-clamp-3">{gig.description}</p>
                     </CardContent>
                   </Card>
                 ))}
