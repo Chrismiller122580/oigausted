@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -22,6 +23,7 @@ const categories = [
 ]
 
 export default function CreateGigPage() {
+  const { data: session } = useSession()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -33,7 +35,6 @@ export default function CreateGigPage() {
     price: "",
     category: "",
     completionTime: "",
-    // Tailored fields will be stored here dynamically
     tailoredFields: {} as Record<string, any>
   })
 
@@ -55,10 +56,7 @@ export default function CreateGigPage() {
   const updateTailoredField = (key: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      tailoredFields: {
-        ...prev.tailoredFields,
-        [key]: value
-      }
+      tailoredFields: { ...prev.tailoredFields, [key]: value }
     }))
   }
 
@@ -69,11 +67,15 @@ export default function CreateGigPage() {
       return
     }
 
+    if (!session?.user?.email) {
+      toast.error("Debes estar logueado para crear un gig")
+      return
+    }
+
     setLoading(true)
+    let imageUrl = null
 
     try {
-      let imageUrl = null
-
       if (imageFile) {
         const form = new FormData()
         form.append("file", imageFile)
@@ -91,7 +93,7 @@ export default function CreateGigPage() {
           ...formData,
           price: Number(formData.price),
           imageUrl,
-          fields: formData.tailoredFields   // Store tailored fields here
+          fields: formData.tailoredFields
         }),
       })
 
@@ -109,66 +111,28 @@ export default function CreateGigPage() {
     }
   }
 
-  // Render tailored fields based on category
   const renderTailoredFields = () => {
     if (!selectedCategory) return null
 
     switch (selectedCategory) {
       case "Fotografía y Video":
         return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Tipo de servicio</label>
-              <Input placeholder="Sesión fotográfica, video corporativo, etc." 
-                onChange={(e) => updateTailoredField("photoType", e.target.value)} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Equipo incluido</label>
-              <Input placeholder="Cámara, dron, luces..." 
-                onChange={(e) => updateTailoredField("equipment", e.target.value)} />
-            </div>
+          <div className="space-y-4 border-l-4 border-emerald-500 pl-6 py-4 bg-emerald-50 rounded-r-3xl">
+            <h3 className="font-semibold">Campos para Fotografía y Video</h3>
+            <Input placeholder="Tipo de servicio" onChange={(e) => updateTailoredField("photoType", e.target.value)} />
+            <Input placeholder="Equipo incluido" onChange={(e) => updateTailoredField("equipment", e.target.value)} />
           </div>
         )
-
       case "Música y DJ para Eventos":
         return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Tipo de evento</label>
-              <Input placeholder="Boda, fiesta, corporativo..." 
-                onChange={(e) => updateTailoredField("eventType", e.target.value)} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Duración aproximada</label>
-              <Input placeholder="4 horas, toda la noche..." 
-                onChange={(e) => updateTailoredField("duration", e.target.value)} />
-            </div>
+          <div className="space-y-4 border-l-4 border-emerald-500 pl-6 py-4 bg-emerald-50 rounded-r-3xl">
+            <h3 className="font-semibold">Campos para Música y DJ</h3>
+            <Input placeholder="Tipo de evento" onChange={(e) => updateTailoredField("eventType", e.target.value)} />
+            <Input placeholder="Duración aproximada" onChange={(e) => updateTailoredField("duration", e.target.value)} />
           </div>
         )
-
-      case "Limpieza de Hogar y Oficinas":
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Tipo de limpieza</label>
-              <Input placeholder="General, profunda, post-obra..." 
-                onChange={(e) => updateTailoredField("cleanType", e.target.value)} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Frecuencia</label>
-              <Input placeholder="Una vez, semanal, mensual..." 
-                onChange={(e) => updateTailoredField("frequency", e.target.value)} />
-            </div>
-          </div>
-        )
-
-      // Add more categories here as needed
       default:
-        return (
-          <div className="text-sm text-gray-500 py-4">
-            No hay campos adicionales para esta categoría aún.
-          </div>
-        )
+        return <div className="text-sm text-gray-500 py-4">No hay campos adicionales para esta categoría aún.</div>
     }
   }
 
@@ -214,7 +178,7 @@ export default function CreateGigPage() {
             <Input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} placeholder="50000" required />
           </div>
 
-          {/* Category Selector */}
+          {/* Category */}
           <div>
             <label className="block text-sm font-medium mb-2">Categoría *</label>
             <select value={selectedCategory} onChange={(e) => handleCategoryChange(e.target.value)} className="w-full border rounded-3xl px-6 py-4 text-base" required>
@@ -225,7 +189,7 @@ export default function CreateGigPage() {
             </select>
           </div>
 
-          {/* Tailored Fields - Appear after category is selected */}
+          {/* Tailored Fields */}
           {selectedCategory && (
             <div className="border-l-4 border-emerald-500 pl-6 py-4 bg-emerald-50 rounded-r-3xl">
               <h3 className="font-semibold mb-4">Campos específicos para {selectedCategory}</h3>
@@ -233,7 +197,7 @@ export default function CreateGigPage() {
             </div>
           )}
 
-          {/* Common Description */}
+          {/* Description */}
           <div>
             <label className="block text-sm font-medium mb-2">Descripción general</label>
             <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Describe el servicio..." rows={5} />
