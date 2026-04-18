@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
+import Image from 'next/image';
 import AdminNavbar from './AdminNavbar';
 import BuyerNavbar from './BuyerNavbar';
 import SellerNavbar from './SellerNavbar';
@@ -21,21 +22,25 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
     ? String((session.user as any)?.role || '').toLowerCase().trim()
     : null;
 
-  // Role-based navbars (they will handle their own mobile menu)
   if (role === 'admin') return <AdminNavbar>{children}</AdminNavbar>;
   if (role === 'seller') return <SellerNavbar>{children}</SellerNavbar>;
   if (role === 'buyer') return <BuyerNavbar>{children}</BuyerNavbar>;
 
-  // ====================== PUBLIC NAVBAR (Guest) ======================
+  // Public Navbar with new logo
   return (
     <>
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          {/* Logo */}
+          {/* New Logo */}
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center text-white font-black text-3xl">
-              O
-            </div>
+            <Image 
+              src="/logo.png" 
+              alt="Oiga Usted" 
+              width={48} 
+              height={48} 
+              className="w-10 h-10 sm:w-12 sm:h-12"
+              priority
+            />
             <div className="hidden sm:block">
               <span className="text-2xl font-bold text-orange-600">Oiga</span>
               <span className="text-2xl font-bold text-gray-900">Usted</span>
@@ -55,7 +60,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
             </Link>
           </div>
 
-          {/* Hamburger Button - Visible only on mobile */}
+          {/* Hamburger */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden p-2 text-gray-700 hover:text-orange-600 transition"
@@ -71,30 +76,21 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
             <div className="flex flex-col gap-6 text-lg">
               <Link 
                 href="/gigs" 
-                className="font-medium text-gray-700 hover:text-orange-600 py-3 border-b"
+                className="font-medium py-3 border-b" 
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Explorar Gigs
               </Link>
-              
-              <Link 
-                href="/login" 
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
+              <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
                 <Button variant="outline" className="w-full py-6 text-lg">Iniciar Sesión</Button>
               </Link>
-              
-              <Link 
-                href="/signup" 
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
+              <Link href="/signup" onClick={() => setIsMobileMenuOpen(false)}>
                 <Button className="w-full bg-orange-600 hover:bg-orange-700 py-6 text-lg">Registrarse</Button>
               </Link>
             </div>
           </div>
         )}
       </nav>
-
       <main>{children}</main>
     </>
   );
