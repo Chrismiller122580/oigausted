@@ -52,7 +52,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
             {/* Profile & Logout */}
             <div className="flex items-center gap-3 pl-4 border-l">
               <Link 
-                href="/seller/profile"
+                href="/profile"
                 className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
               >
                 <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
