@@ -1,4 +1,5 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -65,21 +66,24 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 flex items-center justify-center p-4 sm:p-6">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden">
-        <div className="bg-gradient-to-r from-orange-500 to-red-600 p-10 text-white text-center">
+        
+        {/* Hero Header */}
+        <div className="bg-gradient-to-r from-orange-500 to-red-600 p-8 sm:p-10 text-white text-center">
           <div className="flex justify-center mb-4">
             <div className="w-20 h-20 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center text-5xl font-black">O</div>
           </div>
-          <h1 className="text-4xl font-bold">¡Oiga Usted!</h1>
-          <p className="mt-2 text-white/90">Conecta con servicios locales de Colombia</p>
+          <h1 className="text-3xl sm:text-4xl font-bold">¡Oiga Usted!</h1>
+          <p className="mt-2 text-white/90 text-base sm:text-lg">Conecta con servicios locales de Colombia</p>
         </div>
 
-        <div className="p-10 space-y-8">
-          {/* Prominent Google Button */}
+        <div className="p-6 sm:p-10 space-y-8">
+          
+          {/* Google Button */}
           <Button
             onClick={() => signIn("google", { callbackUrl: "/" })}
-            className="w-full py-7 text-lg font-semibold bg-white border-2 border-gray-300 hover:bg-gray-50 text-gray-900 flex items-center justify-center gap-3 shadow-md rounded-2xl"
+            className="w-full py-6 sm:py-7 text-base sm:text-lg font-semibold bg-white border-2 border-gray-300 hover:bg-gray-50 text-gray-900 flex items-center justify-center gap-3 shadow-md rounded-2xl"
           >
             <FcGoogle className="text-3xl" />
             Continuar con Google
@@ -94,21 +98,42 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Traditional Form */}
+          {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="email">Correo electrónico</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@email.com" required />
+              <Label htmlFor="email" className="text-sm font-medium">Correo electrónico</Label>
+              <Input 
+                id="email" 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="tu@email.com" 
+                required 
+                className="mt-1.5 h-12 text-base"
+              />
             </div>
+
             <div>
-              <Label htmlFor="password">Contraseña</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
+              <Label htmlFor="password" className="text-sm font-medium">Contraseña</Label>
+              <Input 
+                id="password" 
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                placeholder="••••••••" 
+                required 
+                className="mt-1.5 h-12 text-base"
+              />
             </div>
 
-            {error && <p className="text-red-600 text-sm text-center">{error}</p>}
+            {error && <p className="text-red-600 text-sm text-center font-medium">{error}</p>}
 
-            <Button type="submit" className="w-full py-6 text-lg bg-orange-600 hover:bg-orange-700 rounded-2xl" disabled={loading}>
-              {loading ? "Iniciando..." : "Iniciar Sesión"}
+            <Button 
+              type="submit" 
+              className="w-full py-6 text-lg bg-orange-600 hover:bg-orange-700 rounded-2xl font-semibold" 
+              disabled={loading}
+            >
+              {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
             </Button>
           </form>
 
@@ -116,21 +141,38 @@ export default function LoginPage() {
           <div>
             <p className="text-center text-sm text-gray-500 mb-4">Cuentas de prueba</p>
             <div className="grid grid-cols-1 gap-3">
-              <Button variant="outline" className="justify-start h-auto py-4" onClick={() => handleDemoLogin("buyer@demo.com", "buyer")} disabled={loading}>
+              <Button 
+                variant="outline" 
+                className="justify-start h-auto py-4 text-left" 
+                onClick={() => handleDemoLogin("buyer@demo.com", "buyer")} 
+                disabled={loading}
+              >
                 👤 Entrar como Comprador
               </Button>
-              <Button variant="outline" className="justify-start h-auto py-4" onClick={() => handleDemoLogin("seller@demo.com", "seller")} disabled={loading}>
+              <Button 
+                variant="outline" 
+                className="justify-start h-auto py-4 text-left" 
+                onClick={() => handleDemoLogin("seller@demo.com", "seller")} 
+                disabled={loading}
+              >
                 🛠️ Entrar como Vendedor
               </Button>
-              <Button variant="default" className="justify-start h-auto py-4 bg-yellow-600 hover:bg-yellow-700" onClick={() => handleDemoLogin("admin@demo.com", "admin")} disabled={loading}>
+              <Button 
+                variant="default" 
+                className="justify-start h-auto py-4 text-left bg-yellow-600 hover:bg-yellow-700" 
+                onClick={() => handleDemoLogin("admin@demo.com", "admin")} 
+                disabled={loading}
+              >
                 🔑 Entrar como Admin
               </Button>
             </div>
           </div>
 
-          <div className="text-center text-sm text-gray-500">
+          <div className="text-center text-sm text-gray-500 pt-2">
             ¿No tienes cuenta?{" "}
-            <Link href="/signup" className="text-orange-600 hover:underline font-medium">Regístrate aquí</Link>
+            <Link href="/signup" className="text-orange-600 hover:underline font-medium">
+              Regístrate aquí
+            </Link>
           </div>
         </div>
       </div>
