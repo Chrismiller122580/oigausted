@@ -2,21 +2,26 @@ import Link from "next/link"
 import Image from "next/image"
 import { categories, categoryEmojis } from "@/lib/categories"
 
+export const dynamic = 'force-dynamic'   // This forces the page to be fully dynamic
+
 export default async function HomePage() {
   let gigs = []
+
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/gigs`, {
-      cache: "no-store"
+      cache: 'no-store'
     })
-    const data = await res.json()
-    gigs = data.gigs || []
+    if (res.ok) {
+      const data = await res.json()
+      gigs = data.gigs || []
+    }
   } catch (error) {
     console.error("Failed to fetch gigs for homepage", error)
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section - Orange/Red Brand Colors */}
+      {/* Hero Section */}
       <div className="bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 text-white py-20">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <div className="flex justify-center mb-8">
