@@ -21,7 +21,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
     <>
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          {/* Logo */}
+          {/* Logo - Clean, no duplicate text */}
           <Link href="/seller" className="flex items-center gap-3">
             <Image 
               src="/logo.png" 
@@ -31,11 +31,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
               className="w-10 h-10 sm:w-12 sm:h-12"
               priority
             />
-            <div className="hidden sm:block">
-              <span className="text-2xl font-bold text-orange-600">Oiga</span>
-              <span className="text-2xl font-bold text-gray-900">Usted</span>
-            </div>
-            <span className="text-sm font-medium text-orange-600 ml-1">Vendedor</span>
+            <span className="text-2xl font-bold text-orange-600">OigaUsted</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -55,15 +51,18 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
             {/* Notifications */}
             <button className="p-2 text-gray-600 hover:text-orange-600 transition relative">
               <Bell size={22} />
-              {/* Future notification count badge */}
-              {/* <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</div> */}
             </button>
 
-            {/* Avatar + Logout */}
+            {/* User Profile + Logout */}
             <div className="flex items-center gap-3 pl-6 border-l">
-              <div className="text-right">
-                <p className="font-semibold text-sm">{session?.user?.name || 'Vendedor'}</p>
-                <p className="text-xs text-gray-500">Vendedor</p>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center text-xl">
+                  👤
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-sm">{session?.user?.name || 'Vendedor'}</p>
+                  <p className="text-xs text-gray-500">Vendedor</p>
+                </div>
               </div>
               <Button
                 variant="ghost"
