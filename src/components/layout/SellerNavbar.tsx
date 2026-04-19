@@ -57,8 +57,8 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
               <Bell size={22} />
             </button>
 
-            {/* Clickable User Avatar → Profile */}
-            <Link href="/seller/profile" className="flex items-center gap-3 hover:opacity-80 transition">
+            {/* Clickable User Avatar → General User Profile */}
+            <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition">
               <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center text-xl overflow-hidden">
                 👤
               </div>
