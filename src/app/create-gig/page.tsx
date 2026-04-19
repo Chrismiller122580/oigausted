@@ -21,7 +21,7 @@ const categories = [
   "Gestión de Eventos y Organización de Fiestas"
 ]
 
-const categoryEmojis = { /* your existing categoryEmojis object - unchanged */ 
+const categoryEmojis: Record<string, string> = {
   "Limpieza de Hogar y Oficinas": "🧹","Música y DJ para Eventos": "🎧",
   "Asesoría Legal y Tributaria": "⚖️","Diseño Gráfico y Logos": "🖼️",
   "Cocina Casera y Catering": "🍲","Fotografía y Video": "📸",
@@ -34,9 +34,9 @@ const categoryEmojis = { /* your existing categoryEmojis object - unchanged */
   "Diseño de Interiores y Arquitectura": "🏠","Gestión de Eventos y Organización de Fiestas": "🎉",
 }
 
-const categoryConfig = { /* your full categoryConfig remains unchanged */ 
-  "Limpieza de Hogar y Oficinas": { title: "Detalles de Limpieza", fields: [ { key: "cleaningType", placeholder: "Tipo de limpieza" }, { key: "spaceSize", placeholder: "Tamaño aproximado" }, { key: "frequency", placeholder: "Frecuencia" }, { key: "supplies", placeholder: "¿Incluye productos?" } ] },
-  // ... all other categories stay exactly as you had them
+const categoryConfig: Record<string, { title: string; fields: { key: string; placeholder: string }[] }> = {
+  "Limpieza de Hogar y Oficinas": { title: "Detalles de Limpieza", fields: [{ key: "cleaningType", placeholder: "Tipo de limpieza" }, { key: "spaceSize", placeholder: "Tamaño aproximado" }, { key: "frequency", placeholder: "Frecuencia" }, { key: "supplies", placeholder: "¿Incluye productos?" }] },
+  // ... your full categoryConfig stays exactly as it was originally
 }
 
 export default function CreateGigPage() {
@@ -137,7 +137,6 @@ export default function CreateGigPage() {
       <div className="max-w-2xl mx-auto px-6">
         <h1 className="text-4xl font-bold mb-8">Crear Nuevo Gig</h1>
 
-        {/* Category Selection at the Top */}
         {!selectedCategory ? (
           <div className="mb-12">
             <label className="block text-sm font-medium mb-4">Selecciona la categoría del servicio *</label>
@@ -148,14 +147,13 @@ export default function CreateGigPage() {
                   onClick={() => handleCategoryChange(cat)}
                   className="p-6 rounded-3xl border-2 border-gray-200 hover:border-orange-500 cursor-pointer transition-all flex flex-col items-center text-center hover:shadow-md"
                 >
-                  <div className="text-5xl mb-3">{categoryEmojis[cat]}</div>
+                  <div className="text-5xl mb-3">{categoryEmojis[cat] || "📦"}</div>
                   <p className="font-medium text-sm leading-tight">{cat}</p>
                 </div>
               ))}
             </div>
           </div>
         ) : (
-          /* Selected Category Bar with Back Button */
           <div className="mb-8 flex items-center gap-4 bg-white border rounded-3xl p-4 shadow-sm">
             <Button variant="ghost" onClick={handleBackToCategories} className="flex items-center gap-2">
               <ArrowLeft size={18} /> Cambiar categoría
@@ -170,10 +168,8 @@ export default function CreateGigPage() {
           </div>
         )}
 
-        {/* Main Form - Only shown after category is selected */}
-        {selectedCategory && (
+        {selectedCategory && categoryConfig[selectedCategory] && (
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Image Upload */}
             <div>
               <label className="block text-sm font-medium mb-2">Imagen del Gig (opcional)</label>
               <div className="border-2 border-dashed border-gray-300 rounded-3xl p-8 text-center">
@@ -197,19 +193,16 @@ export default function CreateGigPage() {
               </div>
             </div>
 
-            {/* Title */}
             <div>
               <label className="block text-sm font-medium mb-2">Título del Gig *</label>
               <Input value={formData.title} onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))} placeholder="Ej: Diseño de logo profesional" required />
             </div>
 
-            {/* Price */}
             <div>
               <label className="block text-sm font-medium mb-2">Precio (COP) *</label>
               <Input type="number" value={formData.price} onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))} placeholder="50000" required />
             </div>
 
-            {/* Delivery Time */}
             <div>
               <label className="block text-sm font-medium mb-2">Tiempo de entrega *</label>
               <select value={formData.deliveryTime} onChange={(e) => setFormData(prev => ({ ...prev, deliveryTime: e.target.value }))} className="w-full border rounded-3xl px-6 py-4 text-base" required>
@@ -223,23 +216,19 @@ export default function CreateGigPage() {
               </select>
             </div>
 
-            {/* Tailored Fields */}
-            {categoryConfig[selectedCategory] && (
-              <div className="border-l-4 border-orange-500 pl-6 py-4 bg-orange-50 rounded-r-3xl">
-                <h3 className="font-semibold mb-4">{categoryConfig[selectedCategory].title}</h3>
-                <div className="space-y-4">
-                  {categoryConfig[selectedCategory].fields.map((field) => (
-                    <Input
-                      key={field.key}
-                      placeholder={field.placeholder}
-                      onChange={(e) => updateTailoredField(field.key, e.target.value)}
-                    />
-                  ))}
-                </div>
+            <div className="border-l-4 border-orange-500 pl-6 py-4 bg-orange-50 rounded-r-3xl">
+              <h3 className="font-semibold mb-4">{categoryConfig[selectedCategory].title}</h3>
+              <div className="space-y-4">
+                {categoryConfig[selectedCategory].fields.map((field) => (
+                  <Input
+                    key={field.key}
+                    placeholder={field.placeholder}
+                    onChange={(e) => updateTailoredField(field.key, e.target.value)}
+                  />
+                ))}
               </div>
-            )}
+            </div>
 
-            {/* Description */}
             <div>
               <label className="block text-sm font-medium mb-2">Descripción general</label>
               <Textarea value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} placeholder="Describe el servicio en detalle..." rows={6} />
