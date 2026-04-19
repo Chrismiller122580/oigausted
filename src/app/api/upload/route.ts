@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
+import { writeFile } from 'fs/promises';
+import path from 'path';
 
 export async function POST(request: Request) {
   try {
@@ -10,16 +11,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    const blob = await put(`gigs/${Date.now()}-${file.name}`, file, {
-      access: 'public',
-    });
+    // Convert file to buffer
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-    return NextResponse.json({ 
+    // Generate unique filename
+    const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    const filePath = path.join(process.cwd(), 'public', 'uploads', fileName);
+
+    // Save file locally
+    await writeFile(filePath, buffer);
+
+    const url = `/uploads/${fileName}`;
+
+    console.log('✅ Image uploaded locally:', url);
+
+    return NextResponse.json({
       success: true,
-      url: blob.url 
+      url: url,
     });
   } catch (error: any) {
     console.error('Image upload error:', error);
-    return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to upload image', 
+      details: error.message 
+    }, { status: 500 });
   }
 }

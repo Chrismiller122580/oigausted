@@ -22,7 +22,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           
-          {/* Left: Logo + OigaUsted (links to homepage) */}
+          {/* Left: Logo + OigaUsted */}
           <Link href="/" className="flex items-center gap-3">
             <Image 
               src="/logo.png" 
@@ -41,7 +41,6 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
             <Link href="/gigs" className="font-medium text-gray-700 hover:text-orange-600 transition">Mis Gigs</Link>
             <Link href="/seller/profile" className="font-medium text-gray-700 hover:text-orange-600 transition">Mi Negocio</Link>
             
-            {/* Prominent Create Gig Button */}
             <Link href="/create-gig">
               <Button className="bg-orange-600 hover:bg-orange-700 flex items-center gap-2 px-6">
                 <Plus size={18} /> Crear Gig
@@ -51,33 +50,33 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
             <Link href="/orders" className="font-medium text-gray-700 hover:text-orange-600 transition">Mis Pedidos</Link>
           </div>
 
-          {/* Right Side: Notifications, Avatar, Logout */}
+          {/* Right Side */}
           <div className="hidden md:flex items-center gap-6">
             {/* Notification Bell */}
             <button className="p-2 text-gray-600 hover:text-orange-600 transition relative">
               <Bell size={22} />
             </button>
 
-            {/* User Avatar + Name + Logout */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center text-xl overflow-hidden">
-                  👤
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-sm leading-none">{session?.user?.name || 'Vendedor'}</p>
-                  <p className="text-xs text-gray-500">Vendedor</p>
-                </div>
+            {/* Clickable User Avatar → Profile */}
+            <Link href="/seller/profile" className="flex items-center gap-3 hover:opacity-80 transition">
+              <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center text-xl overflow-hidden">
+                👤
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleSignOut}
-                className="text-gray-600 hover:text-red-600"
-              >
-                <LogOut size={20} />
-              </Button>
-            </div>
+              <div className="text-right">
+                <p className="font-semibold text-sm leading-none">{session?.user?.name || 'Vendedor'}</p>
+                <p className="text-xs text-gray-500">Vendedor</p>
+              </div>
+            </Link>
+
+            {/* Logout Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSignOut}
+              className="text-gray-600 hover:text-red-600"
+            >
+              <LogOut size={20} />
+            </Button>
           </div>
 
           {/* Mobile Hamburger */}

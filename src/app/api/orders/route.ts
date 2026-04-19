@@ -1,96 +1,79 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import crypto from 'crypto'
-
-const WOMPI_PRIVATE_KEY = process.env.WOMPI_PRIVATE_KEY
-
-if (!WOMPI_PRIVATE_KEY) {
-  console.error("❌ WOMPI_PRIVATE_KEY is not set in .env.local")
-}
-
-export async function GET() {
-  try {
-    const orders = await prisma.order.findMany({
-      include: {
-        gig: true,
-        buyer: { select: { id: true, name: true, email: true } },
-        seller: { select: { id: true, name: true, email: true } }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
-    return NextResponse.json({ orders })
-  } catch (error) {
-    console.error(error)
-    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 })
-  }
-}
+// src/app/api/orders/route.ts - Fixed with GET + POST
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Debes iniciar sesión para comprar' }, { status: 401 });
+  }
 
-    const { gigId } = await request.json()
-    if (!gigId) {
-      return NextResponse.json({ error: 'gigId is required' }, { status: 400 })
-    }
+  try {
+    const body = await request.json();
+    const { gigId, price } = body;
 
     const gig = await prisma.gig.findUnique({
       where: { id: gigId },
-      include: { seller: true }
-    })
+      select: { sellerId: true }
+    });
 
-    if (!gig) {
-      return NextResponse.json({ error: 'Gig not found' }, { status: 404 })
+    if (!gig) return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
+
+    if (gig.sellerId === session.user.id) {
+      return NextResponse.json({ error: 'No puedes comprar tu propio gig' }, { status: 403 });
     }
 
-    // Create order in database
     const order = await prisma.order.create({
       data: {
-        gigId: gig.id,
         buyerId: session.user.id,
         sellerId: gig.sellerId,
-        price: gig.price,
-        status: "Pending"
+        gigId,
+        price: parseFloat(price),
+        status: 'pending',
       },
+    });
+
+    return NextResponse.json({ success: true, orderId: order.id });
+  } catch (error: any) {
+    console.error('Order creation error:', error);
+    return NextResponse.json({ error: 'Error al crear la orden' }, { status: 500 });
+  }
+}
+
+// NEW: GET method for fetching orders (buyer or seller)
+export async function GET(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const role = searchParams.get('role'); // 'buyer' or 'seller'
+
+  try {
+    let where = {};
+
+    if (role === 'seller') {
+      where = { sellerId: session.user.id };
+    } else {
+      where = { buyerId: session.user.id }; // default to buyer
+    }
+
+    const orders = await prisma.order.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
       include: {
-        gig: true,
-        buyer: true,
-        seller: true
+        gig: { select: { title: true, price: true } },
+        buyer: { select: { name: true } },
+        seller: { select: { name: true, businessName: true } }
       }
-    })
+    });
 
-    // Generate Wompi transaction data + integrity signature
-    const amountInCents = Math.round(gig.price * 100)
-    const reference = `order_${order.id}`
-    const currency = "COP"
-
-    // Integrity signature (Wompi requirement)
-    const integrityString = `${reference}${amountInCents}${currency}${WOMPI_PRIVATE_KEY}`
-    const integritySignature = crypto
-      .createHash('sha256')
-      .update(integrityString)
-      .digest('hex')
-
-    console.log(`✅ Order created: ${order.id} | Reference: ${reference}`)
-
-    return NextResponse.json({
-      order,
-      wompi: {
-        amount_in_cents: amountInCents,
-        currency,
-        reference,
-        integrity_signature: integritySignature,
-        public_key: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY
-      }
-    }, { status: 201 })
-
-  } catch (error) {
-    console.error("Order creation failed:", error)
-    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
+    return NextResponse.json(orders);
+  } catch (error: any) {
+    console.error('Fetch orders error:', error);
+    return NextResponse.json({ error: 'Error al obtener órdenes' }, { status: 500 });
   }
 }
