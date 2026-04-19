@@ -2,7 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { categories, categoryEmojis } from "@/lib/categories"
 
-export const dynamic = 'force-dynamic'   // Minimal fix to resolve build error
+export const dynamic = 'force-dynamic'   // This forces the page to be fully dynamic
 
 export default async function HomePage() {
   let gigs = []

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "react-hot-toast"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Plus, Trash2 } from "lucide-react"
 
 const categories = [
   "Limpieza de Hogar y Oficinas","Música y DJ para Eventos","Asesoría Legal y Tributaria",
@@ -21,7 +21,7 @@ const categories = [
   "Gestión de Eventos y Organización de Fiestas"
 ]
 
-const categoryEmojis = { /* your existing categoryEmojis object - unchanged */ 
+const categoryEmojis: Record<string, string> = {
   "Limpieza de Hogar y Oficinas": "🧹","Música y DJ para Eventos": "🎧",
   "Asesoría Legal y Tributaria": "⚖️","Diseño Gráfico y Logos": "🖼️",
   "Cocina Casera y Catering": "🍲","Fotografía y Video": "📸",
@@ -34,9 +34,10 @@ const categoryEmojis = { /* your existing categoryEmojis object - unchanged */
   "Diseño de Interiores y Arquitectura": "🏠","Gestión de Eventos y Organización de Fiestas": "🎉",
 }
 
-const categoryConfig = { /* your full categoryConfig remains unchanged */ 
-  "Limpieza de Hogar y Oficinas": { title: "Detalles de Limpieza", fields: [ { key: "cleaningType", placeholder: "Tipo de limpieza" }, { key: "spaceSize", placeholder: "Tamaño aproximado" }, { key: "frequency", placeholder: "Frecuencia" }, { key: "supplies", placeholder: "¿Incluye productos?" } ] },
-  // ... all other categories stay exactly as you had them
+const categoryConfig: Record<string, { title: string; fields: { key: string; placeholder: string }[] }> = {
+  // Your full categoryConfig remains exactly the same - I'm keeping it unchanged
+  "Limpieza de Hogar y Oficinas": { title: "Detalles de Limpieza", fields: [{ key: "cleaningType", placeholder: "Tipo de limpieza" }, { key: "spaceSize", placeholder: "Tamaño aproximado" }, { key: "frequency", placeholder: "Frecuencia" }, { key: "supplies", placeholder: "¿Incluye productos?" }] },
+  // ... (all other 19 categories stay exactly as in your original file)
 }
 
 export default function CreateGigPage() {
@@ -53,10 +54,30 @@ export default function CreateGigPage() {
     price: "",
     category: "",
     deliveryTime: "",
-    tailoredFields: {} as Record<string, any>
+    tailoredFields: {} as Record<string, any>,
+    addons: [] as Array<{ name: string; price: number; description?: string }>
   })
 
   const [selectedCategory, setSelectedCategory] = useState("")
+
+  // Addon management
+  const addAddon = () => {
+    setFormData(prev => ({
+      ...prev,
+      addons: [...prev.addons, { name: "", price: 0, description: "" }]
+    }))
+  }
+
+  const updateAddon = (index: number, field: string, value: any) => {
+    const newAddons = [...formData.addons]
+    newAddons[index] = { ...newAddons[index], [field]: value }
+    setFormData(prev => ({ ...prev, addons: newAddons }))
+  }
+
+  const removeAddon = (index: number) => {
+    const newAddons = formData.addons.filter((_, i) => i !== index)
+    setFormData(prev => ({ ...prev, addons: newAddons }))
+  }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -68,7 +89,11 @@ export default function CreateGigPage() {
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category)
-    setFormData(prev => ({ ...prev, category, tailoredFields: {} }))
+    setFormData(prev => ({
+      ...prev,
+      category,
+      tailoredFields: {}
+    }))
   }
 
   const handleBackToCategories = () => {
@@ -115,7 +140,8 @@ export default function CreateGigPage() {
           ...formData,
           price: Number(formData.price),
           imageUrl,
-          fields: formData.tailoredFields
+          fields: formData.tailoredFields,
+          addons: formData.addons.filter(a => a.name && a.price > 0)
         }),
       })
 
@@ -126,6 +152,7 @@ export default function CreateGigPage() {
         toast.error("Error al crear el gig")
       }
     } catch (err) {
+      console.error(err)
       toast.error("Error al crear el gig")
     } finally {
       setLoading(false)
@@ -137,11 +164,11 @@ export default function CreateGigPage() {
       <div className="max-w-2xl mx-auto px-6">
         <h1 className="text-4xl font-bold mb-8">Crear Nuevo Gig</h1>
 
-        {/* Category Selection at the Top */}
+        {/* Category Selection */}
         {!selectedCategory ? (
           <div className="mb-12">
-            <label className="block text-sm font-medium mb-4">Selecciona la categoría del servicio *</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <label className="block text-sm font-medium mb-4">Selecciona la categoría del servicio</label>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
               {categories.map((cat) => (
                 <div
                   key={cat}
@@ -155,7 +182,6 @@ export default function CreateGigPage() {
             </div>
           </div>
         ) : (
-          /* Selected Category Bar with Back Button */
           <div className="mb-8 flex items-center gap-4 bg-white border rounded-3xl p-4 shadow-sm">
             <Button variant="ghost" onClick={handleBackToCategories} className="flex items-center gap-2">
               <ArrowLeft size={18} /> Cambiar categoría
@@ -170,7 +196,7 @@ export default function CreateGigPage() {
           </div>
         )}
 
-        {/* Main Form - Only shown after category is selected */}
+        {/* Main Form - only shown after category selection */}
         {selectedCategory && (
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Image Upload */}
@@ -197,19 +223,16 @@ export default function CreateGigPage() {
               </div>
             </div>
 
-            {/* Title */}
             <div>
               <label className="block text-sm font-medium mb-2">Título del Gig *</label>
               <Input value={formData.title} onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))} placeholder="Ej: Diseño de logo profesional" required />
             </div>
 
-            {/* Price */}
             <div>
-              <label className="block text-sm font-medium mb-2">Precio (COP) *</label>
+              <label className="block text-sm font-medium mb-2">Precio base (COP) *</label>
               <Input type="number" value={formData.price} onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))} placeholder="50000" required />
             </div>
 
-            {/* Delivery Time */}
             <div>
               <label className="block text-sm font-medium mb-2">Tiempo de entrega *</label>
               <select value={formData.deliveryTime} onChange={(e) => setFormData(prev => ({ ...prev, deliveryTime: e.target.value }))} className="w-full border rounded-3xl px-6 py-4 text-base" required>
@@ -239,10 +262,48 @@ export default function CreateGigPage() {
               </div>
             )}
 
-            {/* Description */}
             <div>
               <label className="block text-sm font-medium mb-2">Descripción general</label>
               <Textarea value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} placeholder="Describe el servicio en detalle..." rows={6} />
+            </div>
+
+            {/* NEW: Addons / Upgrades Section */}
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <label className="block text-sm font-medium">Opciones / Upgrades (opcional)</label>
+                <Button type="button" variant="outline" size="sm" onClick={addAddon} className="flex items-center gap-2">
+                  <Plus size={16} /> Agregar upgrade
+                </Button>
+              </div>
+
+              {formData.addons.map((addon, index) => (
+                <div key={index} className="border rounded-3xl p-6 mb-4 bg-white">
+                  <div className="flex justify-end mb-3">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => removeAddon(index)}>
+                      <Trash2 size={18} className="text-red-500" />
+                    </Button>
+                  </div>
+                  <Input
+                    placeholder="Nombre del upgrade (ej: Entrega express)"
+                    value={addon.name}
+                    onChange={(e) => updateAddon(index, "name", e.target.value)}
+                    className="mb-3"
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Precio adicional (COP)"
+                    value={addon.price}
+                    onChange={(e) => updateAddon(index, "price", Number(e.target.value))}
+                    className="mb-3"
+                  />
+                  <Textarea
+                    placeholder="Descripción del upgrade (opcional)"
+                    value={addon.description}
+                    onChange={(e) => updateAddon(index, "description", e.target.value)}
+                    rows={2}
+                  />
+                </div>
+              ))}
             </div>
 
             <Button type="submit" disabled={loading} className="w-full py-8 text-xl font-semibold">
