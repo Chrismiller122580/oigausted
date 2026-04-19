@@ -1,10 +1,12 @@
 "use client"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
+import Image from "next/image"
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -37,9 +39,6 @@ export default function SignUpPage() {
         return
       }
 
-      // Save to localStorage for current session
-      localStorage.setItem("oigausted-user", JSON.stringify(data.user))
-
       alert(`¡Registro exitoso como ${formData.role === "buyer" ? "Comprador" : "Vendedor"}!`)
 
       if (formData.role === "seller") {
@@ -55,87 +54,110 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-md w-full p-10 shadow-2xl">
-        <h1 className="text-4xl font-bold text-center mb-2 text-yellow-600">OigaUsted</h1>
-        <p className="text-center text-gray-600 mb-8">Crea tu cuenta</p>
-
-        {error && <p className="text-red-600 text-center mb-4">{error}</p>}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <Label>Nombre Completo</Label>
-            <Input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Juan Pérez"
-              required
-              className="mt-2"
+    <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 flex items-center justify-center p-4 sm:p-6">
+      <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden">
+        
+        {/* Hero with Logo */}
+        <div className="bg-gradient-to-r from-orange-500 to-red-600 p-8 sm:p-10 text-white text-center">
+          <div className="flex justify-center mb-6">
+            <Image 
+              src="/logo.png" 
+              alt="Oiga Usted" 
+              width={100} 
+              height={100} 
+              className="drop-shadow-lg"
+              priority
             />
           </div>
+          <h1 className="text-3xl sm:text-4xl font-bold">¡Bienvenido!</h1>
+          <p className="mt-2 text-white/90">Crea tu cuenta y comienza a conectar</p>
+        </div>
 
-          <div>
-            <Label>Correo Electrónico</Label>
-            <Input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="tu@email.com"
-              required
-              className="mt-2"
-            />
-          </div>
+        <div className="p-6 sm:p-10 space-y-8">
+          {error && (
+            <p className="text-red-600 text-sm text-center font-medium bg-red-50 p-3 rounded-2xl">
+              {error}
+            </p>
+          )}
 
-          <div>
-            <Label>Contraseña</Label>
-            <Input
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder="••••••••"
-              required
-              className="mt-2"
-            />
-          </div>
-
-          <div>
-            <Label>Registrarme como</Label>
-            <div className="flex gap-4 mt-3">
-              <Button
-                type="button"
-                variant={formData.role === "buyer" ? "default" : "outline"}
-                onClick={() => setFormData({ ...formData, role: "buyer" })}
-                className="flex-1 py-6"
-              >
-                Comprador
-              </Button>
-              <Button
-                type="button"
-                variant={formData.role === "seller" ? "default" : "outline"}
-                onClick={() => setFormData({ ...formData, role: "seller" })}
-                className="flex-1 py-6"
-              >
-                Vendedor
-              </Button>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <Label htmlFor="name" className="text-sm font-medium">Nombre Completo</Label>
+              <Input
+                id="name"
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Juan Pérez"
+                required
+                className="mt-1.5 h-12 text-base"
+              />
             </div>
+
+            <div>
+              <Label htmlFor="email" className="text-sm font-medium">Correo Electrónico</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="tu@email.com"
+                required
+                className="mt-1.5 h-12 text-base"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="password" className="text-sm font-medium">Contraseña</Label>
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="••••••••"
+                required
+                className="mt-1.5 h-12 text-base"
+              />
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium">Registrarme como</Label>
+              <div className="flex gap-4 mt-3">
+                <Button
+                  type="button"
+                  variant={formData.role === "buyer" ? "default" : "outline"}
+                  onClick={() => setFormData({ ...formData, role: "buyer" })}
+                  className="flex-1 py-6 text-base"
+                >
+                  Comprador
+                </Button>
+                <Button
+                  type="button"
+                  variant={formData.role === "seller" ? "default" : "outline"}
+                  onClick={() => setFormData({ ...formData, role: "seller" })}
+                  className="flex-1 py-6 text-base"
+                >
+                  Vendedor
+                </Button>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full py-6 text-lg bg-orange-600 hover:bg-orange-700 rounded-2xl font-semibold"
+              disabled={loading}
+            >
+              {loading ? "Creando cuenta..." : "Crear Cuenta"}
+            </Button>
+          </form>
+
+          <div className="text-center text-sm text-gray-500 pt-2">
+            ¿Ya tienes cuenta?{" "}
+            <Link href="/login" className="text-orange-600 hover:underline font-medium">
+              Inicia sesión
+            </Link>
           </div>
-
-          <Button 
-            type="submit" 
-            className="w-full py-6 text-lg bg-yellow-600 hover:bg-yellow-700"
-            disabled={loading}
-          >
-            {loading ? "Creando cuenta..." : "Crear Cuenta"}
-          </Button>
-        </form>
-
-        <p className="text-center mt-8 text-sm text-gray-500">
-          ¿Ya tienes cuenta?{" "}
-          <Link href="/login" className="text-yellow-600 font-medium hover:underline">
-            Inicia sesión
-          </Link>
-        </p>
+        </div>
       </div>
     </div>
   )
