@@ -1,4 +1,4 @@
-// src/app/api/upload/route.ts - Vercel Blob for production (recommended)
+// src/app/api/upload/route.ts - Vercel Blob (stable in production)
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 
@@ -11,12 +11,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    // Upload directly to Vercel Blob - public access
+    // Upload to Vercel Blob - images saved online permanently
     const blob = await put(`gigs/${Date.now()}-${file.name}`, file, {
-      access: 'public',
+      access: 'public',   // anyone can view the image via the URL
     });
 
-    console.log('✅ Uploaded to Vercel Blob:', blob.url);
+    console.log('✅ Image saved online (Vercel Blob):', blob.url);
 
     return NextResponse.json({
       success: true,
