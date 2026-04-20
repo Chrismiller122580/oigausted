@@ -46,8 +46,10 @@ export default function GigsPage() {
       const res = await fetch("/api/gigs")
       if (res.ok) {
         const data = await res.json()
-        setGigs(data.gigs || [])
-        setFilteredGigs(data.gigs || [])
+        // Handle both direct array and {gigs: []} formats
+        const gigList = Array.isArray(data) ? data : (data.gigs || data)
+        setGigs(gigList)
+        setFilteredGigs(gigList)
       }
     } catch (err) {
       console.error("Failed to fetch gigs", err)
@@ -58,20 +60,18 @@ export default function GigsPage() {
 
   useEffect(() => {
     let result = [...gigs]
-
     if (selectedCategory !== "Todas") {
       result = result.filter(gig => gig.category === selectedCategory)
     }
-
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase()
       result = result.filter(gig =>
-        gig.title.toLowerCase().includes(term) ||
-        (gig.description && gig.description.toLowerCase().includes(term)) ||
-        (gig.seller?.name && gig.seller.name.toLowerCase().includes(term))
+        gig.title?.toLowerCase().includes(term) ||
+        gig.description?.toLowerCase().includes(term) ||
+        gig.seller?.name?.toLowerCase().includes(term) ||
+        gig.seller?.businessName?.toLowerCase().includes(term)
       )
     }
-
     setFilteredGigs(result)
   }, [searchTerm, selectedCategory, gigs])
 
@@ -99,7 +99,6 @@ export default function GigsPage() {
           </div>
         </div>
 
-        {/* Category Filters - All 20 */}
         <div className="flex flex-wrap gap-3 mb-10">
           {categories.map((cat) => (
             <Button
@@ -116,10 +115,7 @@ export default function GigsPage() {
         {filteredGigs.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-2xl text-gray-500">No se encontraron gigs</p>
-            <Button 
-              onClick={() => { setSearchTerm(""); setSelectedCategory("Todas") }} 
-              className="mt-6"
-            >
+            <Button onClick={() => { setSearchTerm(""); setSelectedCategory("Todas") }} className="mt-6">
               Limpiar filtros
             </Button>
           </div>
@@ -142,7 +138,6 @@ export default function GigsPage() {
                       </div>
                     )}
                   </div>
-
                   <CardContent className="p-6 flex-1 flex flex-col">
                     <div className="flex justify-between items-start mb-3">
                       <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-emerald-600 transition">
@@ -152,22 +147,18 @@ export default function GigsPage() {
                         ${gig.price?.toLocaleString("es-CO")}
                       </p>
                     </div>
-
                     <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
                       <span>{gig.seller?.name || gig.seller?.businessName || "Vendedor"}</span>
                     </div>
-
-                    {gig.deliveryTime && (
+                    {gig.completionTime && (
                       <div className="flex items-center gap-1.5 text-sm text-emerald-600 mb-4">
                         <Clock size={16} />
-                        <span>Entrega en {gig.deliveryTime}</span>
+                        <span>Entrega en {gig.completionTime}</span>
                       </div>
                     )}
-
                     <p className="text-sm text-gray-600 line-clamp-3 flex-1">
                       {gig.description || "Sin descripción"}
                     </p>
-
                     {gig.category && (
                       <div className="mt-4 text-xs text-emerald-600 font-medium bg-emerald-50 px-3 py-1 rounded-full inline-block">
                         {gig.category}
