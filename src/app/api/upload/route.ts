@@ -1,40 +1,31 @@
+// src/app/api/upload/route.ts - Vercel Blob for production (recommended)
 import { NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
-import path from 'path';
+import { put } from '@vercel/blob';
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get('file') as File | null;
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    // Convert file to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    // Upload directly to Vercel Blob - public access
+    const blob = await put(`gigs/${Date.now()}-${file.name}`, file, {
+      access: 'public',
+    });
 
-    // Generate unique filename
-    const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    const filePath = path.join(process.cwd(), 'public', 'uploads', fileName);
-
-    // Save file locally
-    await writeFile(filePath, buffer);
-
-    const url = `/uploads/${fileName}`;
-
-    console.log('✅ Image uploaded locally:', url);
+    console.log('✅ Uploaded to Vercel Blob:', blob.url);
 
     return NextResponse.json({
       success: true,
-      url: url,
+      url: blob.url
     });
   } catch (error: any) {
-    console.error('Image upload error:', error);
+    console.error('Upload error:', error);
     return NextResponse.json({ 
-      error: 'Failed to upload image', 
-      details: error.message 
+      error: error.message || 'Failed to upload image' 
     }, { status: 500 });
   }
 }
