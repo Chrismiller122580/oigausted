@@ -1,4 +1,4 @@
-// src/app/api/upload/route.ts - Vercel Blob (stable in production)
+// src/app/api/upload/route.ts - Connected to your existing Vercel Blob store
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 
@@ -11,12 +11,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    // Upload to Vercel Blob - images saved online permanently
+    // Upload to your existing 'oigausted-blob' store
     const blob = await put(`gigs/${Date.now()}-${file.name}`, file, {
-      access: 'public',   // anyone can view the image via the URL
+      access: 'public',
     });
 
-    console.log('✅ Image saved online (Vercel Blob):', blob.url);
+    console.log('✅ Image uploaded to Vercel Blob:', blob.url);
 
     return NextResponse.json({
       success: true,
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Upload error:', error);
     return NextResponse.json({ 
-      error: error.message || 'Failed to upload image' 
+      error: error.message || 'Failed to upload image. Check BLOB_READ_WRITE_TOKEN.' 
     }, { status: 500 });
   }
 }
