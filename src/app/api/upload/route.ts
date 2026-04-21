@@ -1,4 +1,4 @@
-// src/app/api/upload/route.ts - Clean private Blob version (build-safe)
+// src/app/api/upload/route.ts - Clean private Blob (no signed URLs)
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Upload error:', error);
     return NextResponse.json({ 
-      error: error.message || 'Failed to upload image. Check BLOB_READ_WRITE_TOKEN.' 
+      error: error.message || 'Failed to upload image' 
     }, { status: 500 });
   }
 }
