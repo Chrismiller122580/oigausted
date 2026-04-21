@@ -43,132 +43,128 @@ export default function GigsPage() {
 
   const fetchGigs = async () => {
     try {
-      const res = await fetch("/api/gigs")
-      if (res.ok) {
-        const data = await res.json()
-        // Handle both direct array and {gigs: []} formats
-        const gigList = Array.isArray(data) ? data : (data.gigs || data)
-        setGigs(gigList)
-        setFilteredGigs(gigList)
+      // Production-safe fetch (works on Vercel and local)
+      const baseUrl = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+      const res = await fetch(`${baseUrl}/api/gigs`, {
+        cache: 'no-store',
+        next: { revalidate: 0 }
+      })
+
+      if (!res.ok) {
+        console.error('Failed to fetch gigs:', res.status)
+        setGigs([])
+        return
       }
-    } catch (err) {
-      console.error("Failed to fetch gigs", err)
+
+      const data = await res.json()
+      // Handle both direct array and wrapped responses
+      const gigList = Array.isArray(data) ? data : (data.gigs || data || [])
+      setGigs(gigList)
+      setFilteredGigs(gigList)
+    } catch (error) {
+      console.error('Error fetching gigs:', error)
+      setGigs([])
     } finally {
       setLoading(false)
     }
   }
 
+  // Filter logic
   useEffect(() => {
     let result = [...gigs]
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      result = result.filter(gig => 
+        gig.title?.toLowerCase().includes(term) || 
+        gig.description?.toLowerCase().includes(term)
+      )
+    }
+
     if (selectedCategory !== "Todas") {
       result = result.filter(gig => gig.category === selectedCategory)
     }
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase()
-      result = result.filter(gig =>
-        gig.title?.toLowerCase().includes(term) ||
-        gig.description?.toLowerCase().includes(term) ||
-        gig.seller?.name?.toLowerCase().includes(term) ||
-        gig.seller?.businessName?.toLowerCase().includes(term)
-      )
-    }
+
     setFilteredGigs(result)
-  }, [searchTerm, selectedCategory, gigs])
+  }, [gigs, searchTerm, selectedCategory])
 
   if (loading) {
-    return <div className="min-h-screen bg-gray-50 py-12 text-center text-xl">Cargando gigs...</div>
+    return <div className="flex justify-center items-center min-h-screen">Cargando gigs...</div>
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
-          <div>
-            <h1 className="text-5xl font-bold tracking-tight">Explorar Gigs</h1>
-            <p className="text-xl text-gray-600 mt-2">Encuentra el servicio perfecto en Colombia</p>
-          </div>
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
+    <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-10">
+        <h1 className="text-4xl font-bold mb-4 md:mb-0">Todos los Servicios</h1>
+        
+        <div className="flex gap-4 w-full md:w-auto">
+          <div className="relative flex-1 md:w-80">
             <Input
               type="text"
-              placeholder="Busca por título, descripción o vendedor..."
+              placeholder="Buscar servicios..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 py-6 text-base rounded-3xl border-gray-200 focus:border-emerald-500"
+              className="pl-10"
             />
+            <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
           </div>
-        </div>
 
-        <div className="flex flex-wrap gap-3 mb-10">
-          {categories.map((cat) => (
-            <Button
-              key={cat}
-              variant={selectedCategory === cat ? "default" : "outline"}
-              onClick={() => setSelectedCategory(cat)}
-              className="rounded-full px-6 py-2 whitespace-nowrap"
-            >
-              {cat}
-            </Button>
-          ))}
-        </div>
-
-        {filteredGigs.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-2xl text-gray-500">No se encontraron gigs</p>
-            <Button onClick={() => { setSearchTerm(""); setSelectedCategory("Todas") }} className="mt-6">
-              Limpiar filtros
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredGigs.map((gig) => (
-              <Link key={gig.id} href={`/gigs/${gig.id}`}>
-                <Card className="group hover:shadow-2xl transition-all duration-300 overflow-hidden h-full flex flex-col">
-                  <div className="relative h-52 bg-gray-100">
-                    {gig.imageUrl ? (
-                      <img
-                        src={gig.imageUrl}
-                        alt={gig.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center text-7xl">
-                        🛠️
-                      </div>
-                    )}
-                  </div>
-                  <CardContent className="p-6 flex-1 flex flex-col">
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-emerald-600 transition">
-                        {gig.title}
-                      </h3>
-                      <p className="font-bold text-emerald-600 text-xl whitespace-nowrap ml-4">
-                        ${gig.price?.toLocaleString("es-CO")}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
-                      <span>{gig.seller?.name || gig.seller?.businessName || "Vendedor"}</span>
-                    </div>
-                    {gig.completionTime && (
-                      <div className="flex items-center gap-1.5 text-sm text-emerald-600 mb-4">
-                        <Clock size={16} />
-                        <span>Entrega en {gig.completionTime}</span>
-                      </div>
-                    )}
-                    <p className="text-sm text-gray-600 line-clamp-3 flex-1">
-                      {gig.description || "Sin descripción"}
-                    </p>
-                    {gig.category && (
-                      <div className="mt-4 text-xs text-emerald-600 font-medium bg-emerald-50 px-3 py-1 rounded-full inline-block">
-                        {gig.category}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
+          <select 
+            value={selectedCategory} 
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="border rounded-2xl px-4 py-2"
+          >
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
             ))}
-          </div>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredGigs.length > 0 ? (
+          filteredGigs.map((gig) => (
+            <Card key={gig.id} className="overflow-hidden hover:shadow-xl transition">
+              <div className="relative h-48 bg-gray-100">
+                {gig.imageUrl ? (
+                  <img 
+                    src={gig.imageUrl} 
+                    alt={gig.title} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Sin+Imagen'
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500">
+                    Sin imagen
+                  </div>
+                )}
+              </div>
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="font-semibold text-lg line-clamp-2">{gig.title}</h3>
+                  <span className="text-xl font-bold text-orange-600">
+                    ${Number(gig.price).toLocaleString('es-CO')}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 mb-4 line-clamp-3">{gig.description}</p>
+                
+                <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+                  <Clock className="h-4 w-4" />
+                  <span>{gig.completionTime || 'N/A'} días</span>
+                </div>
+
+                <Link href={`/gigs/${gig.id}`}>
+                  <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                    Ver Detalles
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <p className="col-span-full text-center py-12 text-gray-500">No se encontraron gigs</p>
         )}
       </div>
     </div>
