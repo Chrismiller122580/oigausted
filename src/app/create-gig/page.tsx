@@ -1,4 +1,4 @@
-// src/app/create-gig/page.tsx - Your original + visible upload button
+// src/app/create-gig/page.tsx - Client-side upload with @vercel/blob (permanent fix)
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { categories, categoryEmojis } from '@/lib/categories';
 import { gigCategories } from '@/lib/gig-categories';
+import { put } from '@vercel/blob';
 
 export default function CreateGigPage() {
   const router = useRouter();
@@ -18,10 +19,8 @@ export default function CreateGigPage() {
     description: '',
     category: '',
     price: '',
-    location: 'Bucaramanga',
     deliveryTime: '3',
     customFields: {} as Record<string, any>,
-    addons: [] as string[],
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -47,15 +46,6 @@ export default function CreateGigPage() {
     }));
   };
 
-  const handleAddonChange = (addonId: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      addons: checked 
-        ? [...prev.addons, addonId]
-        : prev.addons.filter(id => id !== addonId)
-    }));
-  };
-
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) setImages(Array.from(e.target.files));
   };
@@ -68,13 +58,13 @@ export default function CreateGigPage() {
 
     try {
       const imageUrls: string[] = [];
+
+      // Client-side upload to Vercel Blob
       for (const file of images) {
-        const form = new FormData();
-        form.append('file', file);
-        const res = await fetch('/api/upload', { method: 'POST', body: form });
-        if (!res.ok) throw new Error('Error subiendo imagen');
-        const { url } = await res.json();
-        imageUrls.push(url);
+        const blob = await put(`gigs/${Date.now()}-${file.name}`, file, {
+          access: 'private',
+        });
+        imageUrls.push(blob.url);
       }
 
       const res = await fetch('/api/gigs', {
@@ -88,7 +78,6 @@ export default function CreateGigPage() {
           images: imageUrls,
           deliveryTime: formData.deliveryTime,
           customFields: formData.customFields,
-          addons: formData.addons,
         }),
       });
 
@@ -100,6 +89,7 @@ export default function CreateGigPage() {
       setTimeout(() => router.push('/gigs'), 1500);
     } catch (err: any) {
       setError(err.message || 'Algo salió mal');
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -144,7 +134,7 @@ export default function CreateGigPage() {
           </div>
         </div>
 
-        {/* Tailored Fields from your gigCategories */}
+        {/* Tailored Fields */}
         {selectedCategoryData && (
           <div className="border-t pt-8">
             <h3 className="font-semibold mb-4">Opciones específicas para {selectedCategoryData.name}</h3>
@@ -171,7 +161,7 @@ export default function CreateGigPage() {
           </div>
         )}
 
-        {/* Visible Upload Button */}
+        {/* Client-side Upload Button */}
         <div>
           <label className="block text-sm font-medium mb-3">Imágenes del servicio (opcional)</label>
           <div className="flex items-center gap-4">
