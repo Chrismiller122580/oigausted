@@ -1,4 +1,4 @@
-// src/app/api/upload/route.ts - Simple private Blob (build-friendly)
+// src/app/api/upload/route.ts - Private Blob + raw URL
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 
@@ -15,16 +15,14 @@ export async function POST(request: Request) {
       access: 'private',
     });
 
-    console.log('✅ Image uploaded to private Blob:', blob.url);
+    console.log('✅ Uploaded to private Blob:', blob.url);
 
     return NextResponse.json({
       success: true,
-      url: blob.url
+      url: blob.url   // raw private URL - we'll sign it when displaying
     });
   } catch (error: any) {
     console.error('Upload error:', error);
-    return NextResponse.json({ 
-      error: error.message || 'Failed to upload image' 
-    }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to upload image' }, { status: 500 });
   }
 }
