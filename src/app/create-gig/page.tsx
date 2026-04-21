@@ -1,4 +1,3 @@
-// src/app/create-gig/page.tsx - Client-side Vercel Blob upload (Option 1 - Permanent Fix)
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { categories, categoryEmojis } from '@/lib/categories';
 import { gigCategories } from '@/lib/gig-categories';
-import { put } from '@vercel/blob';
+import { upload } from '@vercel/blob/client';
 
 export default function CreateGigPage() {
   const router = useRouter();
@@ -52,6 +51,11 @@ export default function CreateGigPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (images.length === 0) {
+      setError('Por favor selecciona al menos una imagen');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setSuccess('');
@@ -59,12 +63,13 @@ export default function CreateGigPage() {
     try {
       const imageUrls: string[] = [];
 
-      // Client-side upload - this is the permanent fix for private stores
+      // Official client upload using handle-upload route
       for (const file of images) {
-        const blob = await put(`gigs/${Date.now()}-${file.name}`, file, {
+        const newBlob = await upload(file.name, file, {
+          handleUploadUrl: '/api/blob/handle-upload',
           access: 'private',
         });
-        imageUrls.push(blob.url);
+        imageUrls.push(newBlob.url);
       }
 
       const res = await fetch('/api/gigs', {
@@ -73,7 +78,7 @@ export default function CreateGigPage() {
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
-          price: formData.price,
+          price: parseFloat(formData.price) || 0,
           category: formData.category,
           images: imageUrls,
           deliveryTime: formData.deliveryTime,
@@ -88,7 +93,7 @@ export default function CreateGigPage() {
       setSuccess('¡Gig creado exitosamente! Redirigiendo...');
       setTimeout(() => router.push('/gigs'), 1500);
     } catch (err: any) {
-      setError(err.message || 'Algo salió mal');
+      setError(err.message || 'Algo salió mal al subir las imágenes o crear el gig');
       console.error(err);
     } finally {
       setLoading(false);
@@ -134,7 +139,7 @@ export default function CreateGigPage() {
           </div>
         </div>
 
-        {/* Tailored Fields */}
+        {/* Tailored Fields - fully preserved */}
         {selectedCategoryData && (
           <div className="border-t pt-8">
             <h3 className="font-semibold mb-4">Opciones específicas para {selectedCategoryData.name}</h3>
@@ -161,9 +166,9 @@ export default function CreateGigPage() {
           </div>
         )}
 
-        {/* Visible Upload Button */}
+        {/* Visible Upload Button - preserved */}
         <div>
-          <label className="block text-sm font-medium mb-3">Imágenes del servicio (opcional)</label>
+          <label className="block text-sm font-medium mb-3">Imágenes del servicio (al menos 1 recomendada)</label>
           <div className="flex items-center gap-4">
             <label 
               htmlFor="image-upload"
@@ -190,10 +195,10 @@ export default function CreateGigPage() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || images.length === 0}
           className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-4 rounded-2xl text-lg transition"
         >
-          {loading ? 'Publicando gig...' : 'Publicar Gig'}
+          {loading ? 'Subiendo imágenes y publicando gig...' : 'Publicar Gig'}
         </button>
       </form>
     </div>
