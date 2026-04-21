@@ -1,4 +1,3 @@
-// src/app/gigs/[id]/page.tsx - Fixed TypeScript errors
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -47,7 +46,6 @@ export default function GigDetailPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-xl">Cargando gig...</div>;
   if (error || !gig) return <div className="min-h-screen flex items-center justify-center text-red-600">{error || "Gig no encontrado"}</div>;
 
-  // Safe user ID extraction
   const userId = (session?.user as any)?.id;
   const isOwnGig = userId && (userId === gig.sellerId || userId === gig.seller?.id);
 
