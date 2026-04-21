@@ -1,87 +1,55 @@
-"use client"
+// src/app/gigs/[id]/page.tsx - Fixed TypeScript errors
+'use client';
 
-import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { useSession } from "next-auth/react"
-import { Star, Clock, ArrowLeft } from "lucide-react"
-
-interface Gig {
-  id: string
-  title: string
-  description: string
-  price: number
-  category?: string
-  deliveryTime?: string
-  imageUrl?: string
-  fields?: Record<string, any>
-  seller: {
-    id: string
-    name: string
-    businessName?: string
-    rating?: number
-    reviewCount?: number
-  }
-}
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Clock } from 'lucide-react';
 
 export default function GigDetailPage() {
-  const params = useParams()
-  const router = useRouter()
-  const { data: session, status } = useSession()
-  const [gig, setGig] = useState<Gig | null>(null)
-  const [loading, setLoading] = useState(true)
+  const params = useParams();
+  const router = useRouter();
+  const { data: session, status } = useSession();
 
-  // Redirect to signup if user is not logged in
+  const [gig, setGig] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
   useEffect(() => {
-    if (status === "loading") return
-
+    if (status === "loading") return;
     if (!session?.user) {
-      // Save the gig ID they were trying to view so we can redirect back after signup
-      const callbackUrl = encodeURIComponent(`/gigs/${params.id}`)
-      router.push(`/signup?callbackUrl=${callbackUrl}`)
-      return
+      router.push(`/login?callbackUrl=/gigs/${params.id}`);
+      return;
     }
-
-    fetchGig()
-  }, [session, status, params.id, router])
+    fetchGig();
+  }, [session, status, params.id, router]);
 
   const fetchGig = async () => {
     try {
-      const res = await fetch(`/api/gigs/${params.id}`)
-      if (!res.ok) throw new Error("Gig not found")
-      const data = await res.json()
-      setGig(data.gig)
-    } catch (error) {
-      console.error("Failed to fetch gig", error)
+      const res = await fetch(`/api/gigs/${params.id}`);
+      if (!res.ok) throw new Error("Gig no encontrado");
+      const data = await res.json();
+      setGig(data.gig || data);
+    } catch (err: any) {
+      setError(err.message || "Error al cargar el gig");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleBuyNow = () => {
-    if (!gig) return
-    router.push(`/checkout/${gig.id}`)
-  }
+    if (!gig) return;
+    router.push(`/checkout/${gig.id}`);
+  };
 
-  // Loading state while checking session or fetching gig
-  if (status === "loading" || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-xl">
-        Cargando gig...
-      </div>
-    )
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-xl">Cargando gig...</div>;
+  if (error || !gig) return <div className="min-h-screen flex items-center justify-center text-red-600">{error || "Gig no encontrado"}</div>;
 
-  if (!gig) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-600">
-        Gig no encontrado
-      </div>
-    )
-  }
-
-  const isOwnGig = session?.user && gig.seller.id === (session.user as any).id
+  // Safe user ID extraction
+  const userId = (session?.user as any)?.id;
+  const isOwnGig = userId && (userId === gig.sellerId || userId === gig.seller?.id);
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -91,14 +59,16 @@ export default function GigDetailPage() {
         </Link>
 
         <div className="grid lg:grid-cols-5 gap-12">
-          {/* Main Content */}
           <div className="lg:col-span-3 space-y-10">
             {gig.imageUrl && (
-              <div className="rounded-3xl overflow-hidden shadow-xl">
-                <img 
-                  src={gig.imageUrl} 
-                  alt={gig.title} 
-                  className="w-full aspect-video object-cover" 
+              <div className="rounded-3xl overflow-hidden shadow-xl bg-white">
+                <img
+                  src={gig.imageUrl}
+                  alt={gig.title}
+                  className="w-full aspect-video object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://placehold.co/800x450?text=Sin+Imagen';
+                  }}
                 />
               </div>
             )}
@@ -111,10 +81,10 @@ export default function GigDetailPage() {
                     {gig.category}
                   </span>
                 )}
-                {gig.deliveryTime && (
+                {gig.completionTime && (
                   <div className="flex items-center gap-1.5 bg-white px-4 py-1 rounded-full border">
                     <Clock className="w-5 h-5 text-emerald-600" />
-                    <span className="font-medium">Entrega en {gig.deliveryTime}</span>
+                    <span className="font-medium">Entrega en {gig.completionTime}</span>
                   </div>
                 )}
               </div>
@@ -137,7 +107,7 @@ export default function GigDetailPage() {
                         {key.replace(/([A-Z])/g, ' $1').trim()}
                       </p>
                       <p className="text-lg font-medium text-gray-900">
-                        {value || "No especificado"}
+                        {String(value) || "No especificado"}
                       </p>
                     </div>
                   ))}
@@ -146,15 +116,14 @@ export default function GigDetailPage() {
             )}
           </div>
 
-          {/* Sidebar - Buy Box */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-3xl p-8 shadow-sm border sticky top-8">
               <div className="text-5xl sm:text-6xl font-bold text-emerald-600 mb-1">
-                ${gig.price.toLocaleString("es-CO")}
+                ${gig.price?.toLocaleString("es-CO")}
               </div>
               <p className="text-gray-500 mb-10">COP</p>
 
-              {!isOwnGig && (
+              {!isOwnGig ? (
                 <Button
                   onClick={handleBuyNow}
                   size="lg"
@@ -162,15 +131,12 @@ export default function GigDetailPage() {
                 >
                   Comprar ahora
                 </Button>
-              )}
-
-              {isOwnGig && (
+              ) : (
                 <div className="bg-amber-50 border border-amber-200 text-amber-700 p-6 rounded-3xl mb-8 text-center font-medium">
                   Este es tu propio gig • No puedes comprarlo
                 </div>
               )}
 
-              {/* Seller Info */}
               <div className="border-t pt-8">
                 <p className="text-sm text-gray-500 mb-3">Vendido por</p>
                 <div className="flex items-center gap-4">
@@ -179,21 +145,8 @@ export default function GigDetailPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-lg">
-                      {gig.seller.businessName || gig.seller.name}
+                      {gig.seller?.businessName || gig.seller?.name || "Vendedor"}
                     </p>
-                    {gig.seller.rating && (
-                      <div className="flex items-center gap-1 text-amber-500">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star 
-                            key={i} 
-                            className={`w-5 h-5 ${i < Math.floor(gig.seller.rating!) ? "fill-current" : ""}`} 
-                          />
-                        ))}
-                        <span className="text-sm text-gray-600 ml-2">
-                          ({gig.seller.reviewCount || 0} reseñas)
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -202,5 +155,5 @@ export default function GigDetailPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
