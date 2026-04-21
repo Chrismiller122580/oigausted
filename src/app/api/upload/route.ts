@@ -1,5 +1,6 @@
-// src/app/api/upload/route.ts - Minimal version to fix build
+// src/app/api/upload/route.ts - Clean private Blob version (build-safe)
 import { NextResponse } from 'next/server';
+import { put } from '@vercel/blob';
 
 export async function POST(request: Request) {
   try {
@@ -10,13 +11,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    // For now, return a placeholder. We'll move to client-side upload next if needed.
+    const blob = await put(`gigs/${Date.now()}-${file.name}`, file, {
+      access: 'private',
+    });
+
+    console.log('✅ Image uploaded to private Blob:', blob.url);
+
     return NextResponse.json({
       success: true,
-      url: `/uploads/${Date.now()}-${file.name}` // temporary
+      url: blob.url
     });
   } catch (error: any) {
     console.error('Upload error:', error);
-    return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 });
+    return NextResponse.json({ 
+      error: error.message || 'Failed to upload image. Check BLOB_READ_WRITE_TOKEN.' 
+    }, { status: 500 });
   }
 }
