@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { categories, categoryEmojis } from '@/lib/categories';
 import { gigCategories } from '@/lib/gig-categories';
-import { upload } from '@vercel/blob/client';
 
 export default function CreateGigPage() {
   const router = useRouter();
@@ -63,13 +62,19 @@ export default function CreateGigPage() {
     try {
       const imageUrls: string[] = [];
 
-      // Official client upload using handle-upload route
       for (const file of images) {
-        const newBlob = await upload(file.name, file, {
-          handleUploadUrl: '/api/blob/handle-upload',
-          access: 'private',
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', file);
+
+        const resUpload = await fetch('/api/upload', {
+          method: 'POST',
+          body: formDataUpload,
         });
-        imageUrls.push(newBlob.url);
+
+        const uploadData = await resUpload.json();
+        if (!resUpload.ok) throw new Error(uploadData.error || 'Error subiendo imagen');
+
+        imageUrls.push(uploadData.url);
       }
 
       const res = await fetch('/api/gigs', {
@@ -87,13 +92,12 @@ export default function CreateGigPage() {
       });
 
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.error || 'Error al crear el gig');
 
       setSuccess('¡Gig creado exitosamente! Redirigiendo...');
       setTimeout(() => router.push('/gigs'), 1500);
     } catch (err: any) {
-      setError(err.message || 'Algo salió mal al subir las imágenes o crear el gig');
+      setError(err.message || 'Algo salió mal');
       console.error(err);
     } finally {
       setLoading(false);
@@ -139,7 +143,6 @@ export default function CreateGigPage() {
           </div>
         </div>
 
-        {/* Tailored Fields - fully preserved */}
         {selectedCategoryData && (
           <div className="border-t pt-8">
             <h3 className="font-semibold mb-4">Opciones específicas para {selectedCategoryData.name}</h3>
@@ -166,7 +169,6 @@ export default function CreateGigPage() {
           </div>
         )}
 
-        {/* Visible Upload Button - preserved */}
         <div>
           <label className="block text-sm font-medium mb-3">Imágenes del servicio (al menos 1 recomendada)</label>
           <div className="flex items-center gap-4">
@@ -198,7 +200,7 @@ export default function CreateGigPage() {
           disabled={loading || images.length === 0}
           className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-4 rounded-2xl text-lg transition"
         >
-          {loading ? 'Subiendo imágenes y publicando gig...' : 'Publicar Gig'}
+          {loading ? 'Subiendo imágenes y publicando...' : 'Publicar Gig'}
         </button>
       </form>
     </div>
