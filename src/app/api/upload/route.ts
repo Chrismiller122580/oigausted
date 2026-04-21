@@ -1,4 +1,4 @@
-// src/app/api/upload/route.ts - Clean private Blob (no signed URLs)
+// src/app/api/upload/route.ts - Clean private Blob upload (no signed URLs)
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 
