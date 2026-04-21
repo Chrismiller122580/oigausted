@@ -1,4 +1,4 @@
-// src/app/create-gig/page.tsx - Client-side Vercel Blob upload (permanent fix for private store)
+// src/app/create-gig/page.tsx - Client-side Vercel Blob upload (Option 1 - Permanent Fix)
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -59,7 +59,7 @@ export default function CreateGigPage() {
     try {
       const imageUrls: string[] = [];
 
-      // Client-side upload - permanent fix for private Blob store
+      // Client-side upload - this is the permanent fix for private stores
       for (const file of images) {
         const blob = await put(`gigs/${Date.now()}-${file.name}`, file, {
           access: 'private',
@@ -134,7 +134,7 @@ export default function CreateGigPage() {
           </div>
         </div>
 
-        {/* Tailored Fields - unchanged from your original */}
+        {/* Tailored Fields */}
         {selectedCategoryData && (
           <div className="border-t pt-8">
             <h3 className="font-semibold mb-4">Opciones específicas para {selectedCategoryData.name}</h3>
