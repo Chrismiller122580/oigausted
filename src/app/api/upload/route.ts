@@ -1,10 +1,9 @@
-// src/app/api/upload/route.ts - Final version with better diagnostics
+// src/app/api/upload/route.ts - Fixed for private Blob store
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 
 export async function POST(request: Request) {
   try {
-    // Diagnostic log
     console.log('BLOB_READ_WRITE_TOKEN present?', !!process.env.BLOB_READ_WRITE_TOKEN);
 
     const formData = await request.formData();
@@ -20,11 +19,12 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
+    // Use 'private' because your store is configured as private
     const blob = await put(`gigs/${Date.now()}-${file.name}`, file, {
-      access: 'public',
+      access: 'private',
     });
 
-    console.log('✅ Image uploaded successfully:', blob.url);
+    console.log('✅ Image uploaded successfully to private Blob:', blob.url);
 
     return NextResponse.json({
       success: true,
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Full upload error:', error);
     return NextResponse.json({ 
-      error: error.message || 'Failed to upload image. Check Vercel logs.' 
+      error: error.message || 'Failed to upload image' 
     }, { status: 500 });
   }
 }
