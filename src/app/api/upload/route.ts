@@ -1,6 +1,6 @@
-// src/app/api/upload/route.ts - Private Blob with signed URL for display
+// src/app/api/upload/route.ts - Simple private Blob (build-friendly)
 import { NextResponse } from 'next/server';
-import { put, getSignedUrl } from '@vercel/blob';
+import { put } from '@vercel/blob';
 
 export async function POST(request: Request) {
   try {
@@ -15,14 +15,11 @@ export async function POST(request: Request) {
       access: 'private',
     });
 
-    // Generate a signed URL that lasts 1 year (for display)
-    const signedUrl = await getSignedUrl(blob.url, { expiresIn: 31536000 });
-
-    console.log('✅ Image uploaded and signed URL generated:', signedUrl);
+    console.log('✅ Image uploaded to private Blob:', blob.url);
 
     return NextResponse.json({
       success: true,
-      url: signedUrl   // Use this signed URL for display
+      url: blob.url
     });
   } catch (error: any) {
     console.error('Upload error:', error);
