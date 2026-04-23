@@ -70,11 +70,12 @@ export default function ProfilePage() {
     }
     setLoading(true);
     try {
+      const userRole = (session?.user as any)?.role || 'user';
       const res = await fetch('/api/grok', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: `Escribe una bio atractiva y profesional (máximo 180 caracteres) para un ${session?.user?.role === 'seller' ? 'vendedor' : 'comprador'} colombiano en OigaUsted. Nombre: ${formData.name}. Enfócate en confianza, calidad y cercanía. Responde solo con la bio.`
+          prompt: `Escribe una bio atractiva y profesional (máximo 180 caracteres) para un ${userRole === 'seller' ? 'vendedor' : 'comprador'} colombiano en OigaUsted. Nombre: ${formData.name}. Enfócate en confianza, calidad y cercanía. Responde solo con la bio.`
         })
       });
       const data = await res.json();
@@ -131,7 +132,8 @@ export default function ProfilePage() {
 
   if (!session) return <div className="min-h-screen flex items-center justify-center text-2xl">Cargando perfil...</div>;
 
-  const isBuyer = (session.user as any)?.role !== 'seller';
+  const userRole = (session.user as any)?.role || 'user';
+  const isBuyer = userRole !== 'seller';
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -168,7 +170,7 @@ export default function ProfilePage() {
             disabled={!isEditing}
           />
 
-          <p className="text-sm text-gray-500 mt-2 capitalize">{(session.user as any)?.role || 'Usuario'}</p>
+          <p className="text-sm text-gray-500 mt-2 capitalize">{userRole}</p>
         </div>
 
         {/* Bio */}
@@ -225,7 +227,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Become Seller */}
+        {/* Become Seller Button */}
         {isBuyer && (
           <button
             onClick={handleBecomeSeller}
