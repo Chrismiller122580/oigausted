@@ -16,8 +16,8 @@ export async function PATCH(request: Request) {
       where: { id: session.user.id },
       data: {
         name: data.name || undefined,
+        profilePicture: data.imageUrl || undefined,
 
-        // New fields from enhanced profile
         tagline: data.tagline || null,
         bio: data.bio || null,
         phone: data.phone || null,
@@ -25,13 +25,6 @@ export async function PATCH(request: Request) {
         city: data.city || null,
         instagram: data.instagram || null,
         facebook: data.facebook || null,
-
-        // Keep old fields for compatibility
-        idNumber: data.idNumber || undefined,
-        address: data.address || undefined,
-
-        // Image update (only if your schema supports it - comment out if error persists)
-        // image: data.imageUrl || undefined,
       },
     });
 
@@ -42,9 +35,6 @@ export async function PATCH(request: Request) {
 
   } catch (error: any) {
     console.error('Profile update error:', error);
-    return NextResponse.json({ 
-      error: 'Error al actualizar perfil',
-      details: error.message 
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Error al actualizar perfil' }, { status: 500 });
   }
 }
