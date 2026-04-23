@@ -1,43 +1,65 @@
-// src/app/checkout/[gigId]/CheckoutForm.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 
 interface Props {
   gig: any;
   buyerId: string;
 }
 
+declare global {
+  interface Window {
+    WompiCheckout?: any;
+  }
+}
+
 export default function CheckoutForm({ gig, buyerId }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleCheckout = async () => {
+  const handleWompiPayment = async () => {
     setLoading(true);
-    setError('');
 
     try {
-      const res = await fetch('/api/orders', {
+      // 1. Create the order first (so we have an orderId for reference)
+      const orderRes = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gigId: gig.id,
-          price: gig.price,
-        }),
+        body: JSON.stringify({ gigId: gig.id, price: gig.price }),
       });
 
-      const data = await res.json();
+      const orderData = await orderRes.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Error al procesar la orden');
+      if (!orderRes.ok) {
+        throw new Error(orderData.error || 'Error al crear la orden');
       }
 
-      alert('¡Orden creada correctamente! Redirigiendo...');
-      router.push('/orders');
+      const orderId = orderData.orderId || orderData.id;
+
+      // 2. Open Wompi Checkout Widget
+      const checkout = new window.WompiCheckout({
+        publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
+        currency: 'COP',
+        amountInCents: Math.round(gig.price * 100),
+        reference: `order_${orderId}`,
+        redirectUrl: `${window.location.origin}/orders`, // fallback
+        onSuccess: (transaction: any) => {
+          toast.success('¡Pago exitoso! Redirigiendo a tus órdenes...');
+          setTimeout(() => router.push('/orders'), 1500);
+        },
+        onError: (error: any) => {
+          toast.error('Error en el pago. Inténtalo de nuevo.');
+          console.error(error);
+        },
+      });
+
+      checkout.open();
+
     } catch (err: any) {
-      setError(err.message || 'Error desconocido');
+      toast.error(err.message || 'Error al procesar el pago');
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -45,18 +67,18 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
 
   return (
     <div className="max-w-2xl mx-auto py-12 px-6">
-      <div className="bg-white dark:bg-zinc-900 rounded-3xl border p-10">
+      <div className="bg-white rounded-3xl border p-10">
         <h1 className="text-3xl font-bold mb-8">Confirmar Compra</h1>
 
         <div className="mb-10">
           <h2 className="text-2xl font-semibold">{gig.title}</h2>
-          <p className="text-zinc-600 dark:text-zinc-400 mt-3 line-clamp-3">{gig.description}</p>
+          <p className="text-zinc-600 mt-3 line-clamp-3">{gig.description}</p>
           
           <div className="mt-8 flex justify-between items-end">
             <div>
               <p className="text-sm text-zinc-500">Precio total</p>
               <p className="text-4xl font-bold text-orange-600">
-                ${gig.price.toLocaleString()} COP
+                ${gig.price.toLocaleString("es-CO")} COP
               </p>
             </div>
             <div className="text-right">
@@ -66,22 +88,20 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-50 text-red-600 p-4 rounded-2xl mb-6">
-            {error}
-          </div>
-        )}
-
         <button
-          onClick={handleCheckout}
+          onClick={handleWompiPayment}
           disabled={loading}
-          className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-4 rounded-2xl text-lg transition-all"
+          className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-5 rounded-2xl text-xl transition-all flex items-center justify-center gap-3"
         >
-          {loading ? 'Procesando...' : 'Confirmar y Pagar con Wompi'}
+          {loading ? (
+            <>Procesando...</>
+          ) : (
+            <>Pagar con Wompi <span className="text-2xl">💳</span></>
+          )}
         </button>
 
-        <p className="text-center text-xs text-zinc-500 mt-6">
-          Pago seguro • Conexión directa con el vendedor
+        <p className="text-center text-xs text-zinc-500 mt-8">
+          Pago seguro procesado por Wompi • Dinero protegido hasta que apruebes el servicio
         </p>
       </div>
     </div>
