@@ -15,9 +15,10 @@ export async function PATCH(request: Request) {
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
       data: {
-        name: data.name,
+        name: data.name || undefined,
         image: data.imageUrl || undefined,
-        // New fields
+        
+        // New fields from enhanced profile
         tagline: data.tagline || null,
         bio: data.bio || null,
         phone: data.phone || null,
@@ -25,6 +26,10 @@ export async function PATCH(request: Request) {
         city: data.city || null,
         instagram: data.instagram || null,
         facebook: data.facebook || null,
+
+        // Keep old fields for compatibility
+        idNumber: data.idNumber || undefined,
+        address: data.address || undefined,
       },
       select: {
         id: true,
@@ -37,7 +42,10 @@ export async function PATCH(request: Request) {
         city: true,
         instagram: true,
         facebook: true,
+        idNumber: true,
+        address: true,
         role: true,
+        updatedAt: true,
       }
     });
 
@@ -46,8 +54,11 @@ export async function PATCH(request: Request) {
       user: updatedUser 
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Profile update error:', error);
-    return NextResponse.json({ error: 'Error al actualizar perfil' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Error al actualizar perfil',
+      details: error.message 
+    }, { status: 500 });
   }
 }
