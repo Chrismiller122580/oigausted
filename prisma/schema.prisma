@@ -66,3 +66,7 @@ model Order {
 
 // Add your other models (Review, Account, Session, etc.) here
 // (Keep everything else exactly as it was)
+
+  // Add these two lines inside the User model (after bio or whatsapp)
+  tagline   String?
+  city      String?
