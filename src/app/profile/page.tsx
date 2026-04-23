@@ -6,37 +6,24 @@ export default function ProfilePage() {
   const { data: session } = useSession();
 
   if (!session) {
-    return <div className="min-h-screen flex items-center justify-center">Cargando perfil...</div>;
+    return <div className="min-h-screen flex items-center justify-center text-2xl">Cargando perfil...</div>;
   }
 
-  const role = (session.user as any)?.role || "user";
-
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-3xl mx-auto px-6">
-        <div className="bg-white rounded-3xl p-10 shadow-sm">
-          <div className="flex justify-center mb-8">
-            <div className="w-32 h-32 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-white text-7xl">
-              👤
-            </div>
-          </div>
-          <h1 className="text-4xl font-bold text-center">Mi Perfil</h1>
-          <p className="text-center text-orange-600 mt-2 capitalize">{role}</p>
-          
-          <div className="mt-10 space-y-6">
-            <div>
-              <label className="block text-sm text-gray-500 mb-1">Nombre</label>
-              <p className="text-xl font-medium">{session.user?.name || "Sin nombre"}</p>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-500 mb-1">Correo</label>
-              <p className="text-xl font-medium">{session.user?.email}</p>
-            </div>
-            <div className="pt-6 border-t text-center text-sm text-gray-500">
-              Esta es la página neutral de perfil de usuario.<br />
-              (Aquí irá edición de datos, contraseña, etc.)
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50 py-20">
+      <div className="max-w-lg mx-auto bg-white rounded-3xl p-12 shadow text-center">
+        <div className="mx-auto w-28 h-28 bg-orange-500 rounded-full flex items-center justify-center text-white text-6xl mb-8">
+          👤
+        </div>
+        <h1 className="text-4xl font-bold mb-3">Mi Perfil</h1>
+        <p className="text-xl text-gray-600 mb-8">
+          {session.user?.name} • {(session.user as any)?.role || "Usuario"}
+        </p>
+        <p className="text-gray-500">Email: {session.user?.email}</p>
+        
+        <div className="mt-12 text-sm text-gray-400">
+          Neutral user profile page.<br />
+          (Avatar, personal data, settings will go here)
         </div>
       </div>
     </div>
