@@ -1,11 +1,10 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Menu, X, LogOut, Bell, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { signOut } from 'next-auth/react';
 import Image from 'next/image';
 
 export default function SellerNavbar({ children }: { children: React.ReactNode }) {
@@ -22,7 +21,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           
-          {/* Left: Logo + OigaUsted */}
+          {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
             <Image 
               src="/logo.png" 
@@ -57,7 +56,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
               <Bell size={22} />
             </button>
 
-            {/* Clickable User Avatar → General User Profile */}
+            {/* Avatar → Neutral Profile Page */}
             <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition">
               <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center text-xl overflow-hidden">
                 👤
@@ -68,7 +67,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
               </div>
             </Link>
 
-            {/* Logout Button */}
+            {/* Logout */}
             <Button
               variant="ghost"
               size="icon"
@@ -93,7 +92,6 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
         {isMobileMenuOpen && (
           <div className="md:hidden fixed inset-0 bg-white z-50 pt-20 px-6 overflow-y-auto">
             <div className="flex flex-col gap-6 text-lg">
-              <Link href="/" className="py-4 border-b" onClick={() => setIsMobileMenuOpen(false)}>Inicio</Link>
               <Link href="/seller" className="py-4 border-b" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link>
               <Link href="/gigs" className="py-4 border-b" onClick={() => setIsMobileMenuOpen(false)}>Mis Gigs</Link>
               <Link href="/seller/profile" className="py-4 border-b" onClick={() => setIsMobileMenuOpen(false)}>Mi Negocio</Link>
@@ -104,6 +102,8 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
                   <Plus size={20} /> Crear Gig
                 </Button>
               </Link>
+
+              <Link href="/profile" className="py-4 border-b" onClick={() => setIsMobileMenuOpen(false)}>Perfil Personal</Link>
 
               <Button 
                 variant="outline" 
