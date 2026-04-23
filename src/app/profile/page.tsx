@@ -3,7 +3,6 @@
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { put } from '@vercel/blob';
-import { toast } from '@/components/Toast';
 
 export default function ProfilePage() {
   const { data: session, update } = useSession();
@@ -56,9 +55,9 @@ export default function ProfilePage() {
       });
 
       setFormData({ ...formData, imageUrl: blob.url });
-      toast.success("Foto de perfil actualizada");
+      alert("✅ Foto de perfil actualizada");
     } catch (err) {
-      toast.error("Error al subir la foto");
+      alert("❌ Error al subir la foto");
     } finally {
       setUploading(false);
     }
@@ -66,7 +65,7 @@ export default function ProfilePage() {
 
   const generateWithGrok = async () => {
     if (!formData.name) {
-      toast.error("Primero escribe tu nombre");
+      alert("Primero escribe tu nombre");
       return;
     }
     setLoading(true);
@@ -75,16 +74,16 @@ export default function ProfilePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: `Escribe una bio atractiva y profesional (máximo 180 caracteres) para un ${session?.user?.role === 'seller' ? 'vendedor' : 'comprador'} colombiano en OigaUsted, un marketplace de servicios entre colombianos. Nombre: ${formData.name}. Enfócate en confianza, calidad y cercanía. Responde solo con la bio.`
+          prompt: `Escribe una bio atractiva y profesional (máximo 180 caracteres) para un ${session?.user?.role === 'seller' ? 'vendedor' : 'comprador'} colombiano en OigaUsted. Nombre: ${formData.name}. Enfócate en confianza, calidad y cercanía. Responde solo con la bio.`
         })
       });
       const data = await res.json();
       if (data.bio) {
         setFormData({ ...formData, bio: data.bio });
-        toast.success("Bio generada con Grok AI");
+        alert("✨ Bio generada con Grok AI");
       }
     } catch (err) {
-      toast.error("No se pudo generar la bio");
+      alert("No se pudo generar la bio");
     } finally {
       setLoading(false);
     }
@@ -102,12 +101,12 @@ export default function ProfilePage() {
       if (res.ok) {
         await update();
         setIsEditing(false);
-        toast.success("Perfil actualizado correctamente");
+        alert("✅ Perfil actualizado correctamente");
       } else {
-        toast.error("Error al guardar");
+        alert("❌ Error al guardar");
       }
     } catch (err) {
-      toast.error("Error de conexión");
+      alert("Error de conexión");
     } finally {
       setLoading(false);
     }
@@ -120,11 +119,11 @@ export default function ProfilePage() {
       const res = await fetch('/api/user/become-seller', { method: 'POST' });
       if (res.ok) {
         await update();
-        toast.success("¡Ahora eres vendedor! Redirigiendo...");
+        alert("¡Ahora eres vendedor! Recargando...");
         setTimeout(() => window.location.reload(), 1500);
       }
     } catch (err) {
-      toast.error("Error al cambiar rol");
+      alert("Error al cambiar rol");
     } finally {
       setLoading(false);
     }
@@ -195,9 +194,9 @@ export default function ProfilePage() {
           />
         </div>
 
-        {/* Contact */}
+        {/* Contact Info */}
         <div className="mt-8 bg-white rounded-3xl shadow p-8">
-          <h2 className="text-2xl font-semibold mb-6">Contacto</h2>
+          <h2 className="text-2xl font-semibold mb-6">Información de Contacto</h2>
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">WhatsApp (principal)</label>
@@ -209,14 +208,24 @@ export default function ProfilePage() {
                 <input name="phone" value={formData.phone} onChange={handleChange} className="w-full border rounded-2xl p-4" disabled={!isEditing} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Ciudad</label>
-                <input name="city" value={formData.city} onChange={handleChange} className="w-full border rounded-2xl p-4" placeholder="Bucaramanga" disabled={!isEditing} />
+                <label className="block text-sm font-medium text-gray-600 mb-1">Ciudad / Departamento</label>
+                <input name="city" value={formData.city} onChange={handleChange} className="w-full border rounded-2xl p-4" placeholder="Bucaramanga, Santander" disabled={!isEditing} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Instagram</label>
+                <input name="instagram" value={formData.instagram} onChange={handleChange} className="w-full border rounded-2xl p-4" placeholder="@tunombre" disabled={!isEditing} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Facebook</label>
+                <input name="facebook" value={formData.facebook} onChange={handleChange} className="w-full border rounded-2xl p-4" placeholder="facebook.com/tunombre" disabled={!isEditing} />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Become Seller Button */}
+        {/* Become Seller */}
         {isBuyer && (
           <button
             onClick={handleBecomeSeller}
@@ -227,7 +236,7 @@ export default function ProfilePage() {
           </button>
         )}
 
-        {/* Action buttons */}
+        {/* Edit / Save Buttons */}
         <div className="mt-8 flex gap-4">
           {isEditing ? (
             <>
