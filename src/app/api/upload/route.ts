@@ -1,8 +1,12 @@
 // app/api/upload/route.ts
 import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
+<<<<<<< HEAD
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+=======
+import { put } from '@vercel/blob';
+>>>>>>> e068defe272c6ab029f64eb945a1336ce9f80281
 
 export async function POST(request: Request) {
   try {
@@ -35,6 +39,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
+<<<<<<< HEAD
     if (!file.type.startsWith('image/')) {
       return NextResponse.json({ error: 'Only image files are allowed' }, { status: 400 });
     }
@@ -52,13 +57,27 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       url: blob.url,
+=======
+    const blob = await put(`gigs/${Date.now()}-${file.name}`, file, {
+      access: 'private',
+    });
+
+    console.log('✅ Uploaded to oigausted-blob:', blob.url);
+
+    return NextResponse.json({
+      success: true,
+      url: blob.url
+>>>>>>> e068defe272c6ab029f64eb945a1336ce9f80281
     });
 
   } catch (error: any) {
+<<<<<<< HEAD
     console.error('Vercel Blob upload error:', error);
+=======
+    console.error('Upload error:', error);
+>>>>>>> e068defe272c6ab029f64eb945a1336ce9f80281
     return NextResponse.json({ 
-      error: 'Failed to upload image', 
-      details: error.message 
+      error: error.message || 'Failed to upload image. Check BLOB_READ_WRITE_TOKEN.' 
     }, { status: 500 });
   }
 }

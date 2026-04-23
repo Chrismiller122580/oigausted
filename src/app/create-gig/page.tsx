@@ -1,4 +1,3 @@
-// src/app/(marketing)/create-gig/page.tsx - Visible upload button version
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -18,10 +17,8 @@ export default function CreateGigPage() {
     description: '',
     category: '',
     price: '',
-    location: 'Bucaramanga',
     deliveryTime: '3',
     customFields: {} as Record<string, any>,
-    addons: [] as string[],
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -47,34 +44,37 @@ export default function CreateGigPage() {
     }));
   };
 
-  const handleAddonChange = (addonId: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      addons: checked 
-        ? [...prev.addons, addonId]
-        : prev.addons.filter(id => id !== addonId)
-    }));
-  };
-
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) setImages(Array.from(e.target.files));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (images.length === 0) {
+      setError('Por favor selecciona al menos una imagen');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setSuccess('');
 
     try {
       const imageUrls: string[] = [];
+
       for (const file of images) {
-        const form = new FormData();
-        form.append('file', file);
-        const res = await fetch('/api/upload', { method: 'POST', body: form });
-        if (!res.ok) throw new Error('Error subiendo imagen');
-        const { url } = await res.json();
-        imageUrls.push(url);
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', file);
+
+        const resUpload = await fetch('/api/upload', {
+          method: 'POST',
+          body: formDataUpload,
+        });
+
+        const uploadData = await resUpload.json();
+        if (!resUpload.ok) throw new Error(uploadData.error || 'Error subiendo imagen');
+
+        imageUrls.push(uploadData.url);
       }
 
       const res = await fetch('/api/gigs', {
@@ -83,23 +83,22 @@ export default function CreateGigPage() {
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
-          price: formData.price,
+          price: parseFloat(formData.price) || 0,
           category: formData.category,
           images: imageUrls,
           deliveryTime: formData.deliveryTime,
           customFields: formData.customFields,
-          addons: formData.addons,
         }),
       });
 
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.error || 'Error al crear el gig');
 
       setSuccess('¡Gig creado exitosamente! Redirigiendo...');
       setTimeout(() => router.push('/gigs'), 1500);
     } catch (err: any) {
       setError(err.message || 'Algo salió mal');
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -144,7 +143,6 @@ export default function CreateGigPage() {
           </div>
         </div>
 
-        {/* Tailored Fields */}
         {selectedCategoryData && (
           <div className="border-t pt-8">
             <h3 className="font-semibold mb-4">Opciones específicas para {selectedCategoryData.name}</h3>
@@ -171,9 +169,8 @@ export default function CreateGigPage() {
           </div>
         )}
 
-        {/* Visible Upload Button */}
         <div>
-          <label className="block text-sm font-medium mb-3">Imágenes del servicio (opcional)</label>
+          <label className="block text-sm font-medium mb-3">Imágenes del servicio (al menos 1 recomendada)</label>
           <div className="flex items-center gap-4">
             <label 
               htmlFor="image-upload"
@@ -200,10 +197,10 @@ export default function CreateGigPage() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || images.length === 0}
           className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-4 rounded-2xl text-lg transition"
         >
-          {loading ? 'Publicando gig...' : 'Publicar Gig'}
+          {loading ? 'Subiendo imágenes y publicando...' : 'Publicar Gig'}
         </button>
       </form>
     </div>
