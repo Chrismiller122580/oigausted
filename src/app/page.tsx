@@ -1,22 +1,28 @@
-import Link from "next/link"
-import Image from "next/image"
-import { categories, categoryEmojis } from "@/lib/categories"
+import Link from "next/link";
+import Image from "next/image";
+import { categories, categoryEmojis } from "@/lib/categories";
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  let gigs = []
+  let gigs: any[] = [];
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/gigs`, {
-      cache: 'no-store'
-    })
+    // Use relative URL on server — Next.js will handle the correct host
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/gigs`, {
+      cache: 'no-store',
+      headers: {
+        // Optional: helps with Vercel caching
+        'x-vercel-deployment-url': process.env.VERCEL_URL || '',
+      },
+    });
+
     if (res.ok) {
-      const data = await res.json()
-      gigs = data.gigs || data || []
+      const data = await res.json();
+      gigs = data.gigs || data || [];
     }
   } catch (error) {
-    console.error("Failed to fetch gigs for homepage", error)
+    console.error("Failed to fetch gigs for homepage", error);
   }
 
   return (
@@ -124,5 +130,5 @@ export default async function HomePage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
