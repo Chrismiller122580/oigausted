@@ -16,8 +16,7 @@ export async function PATCH(request: Request) {
       where: { id: session.user.id },
       data: {
         name: data.name || undefined,
-        image: data.imageUrl || undefined,
-        
+
         // New fields from enhanced profile
         tagline: data.tagline || null,
         bio: data.bio || null,
@@ -30,23 +29,10 @@ export async function PATCH(request: Request) {
         // Keep old fields for compatibility
         idNumber: data.idNumber || undefined,
         address: data.address || undefined,
+
+        // Image update (only if your schema supports it - comment out if error persists)
+        // image: data.imageUrl || undefined,
       },
-      select: {
-        id: true,
-        name: true,
-        image: true,
-        tagline: true,
-        bio: true,
-        phone: true,
-        whatsapp: true,
-        city: true,
-        instagram: true,
-        facebook: true,
-        idNumber: true,
-        address: true,
-        role: true,
-        updatedAt: true,
-      }
     });
 
     return NextResponse.json({ 
