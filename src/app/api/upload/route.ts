@@ -1,37 +1,61 @@
+// app/api/upload/route.ts
+import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
-import path from 'path';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+
+    // Better debugging
+    console.log('Session in upload route:', {
+      hasSession: !!session,
+      userId: session?.user?.id,
+      role: (session?.user as any)?.role,
+    });
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ 
+        error: 'Unauthorized - Please log in as a seller',
+        debug: 'No valid session found' 
+      }, { status: 401 });
+    }
+
+    // Optional: Only allow sellers to upload (recommended)
+    const userRole = (session.user as any)?.role;
+    if (userRole !== 'seller') {
+      return NextResponse.json({ error: 'Only sellers can upload gig images' }, { status: 403 });
+    }
+
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get('file') as File | null;
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    // Convert file to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    if (!file.type.startsWith('image/')) {
+      return NextResponse.json({ error: 'Only image files are allowed' }, { status: 400 });
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
+    }
 
-    // Generate unique filename
-    const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    const filePath = path.join(process.cwd(), 'public', 'uploads', fileName);
+    const blob = await put(file.name, file, {
+      access: 'public',
+      addRandomSuffix: true,
+    });
 
-    // Save file locally
-    await writeFile(filePath, buffer);
-
-    const url = `/uploads/${fileName}`;
-
-    console.log('✅ Image uploaded locally:', url);
+    console.log('✅ Image uploaded to Public Vercel Blob:', blob.url);
 
     return NextResponse.json({
       success: true,
-      url: url,
+      url: blob.url,
     });
+
   } catch (error: any) {
-    console.error('Image upload error:', error);
+    console.error('Vercel Blob upload error:', error);
     return NextResponse.json({ 
       error: 'Failed to upload image', 
       details: error.message 
