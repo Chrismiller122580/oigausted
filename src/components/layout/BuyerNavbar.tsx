@@ -40,7 +40,6 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
             <Link href="/orders" className="font-medium text-gray-700 hover:text-orange-600 transition flex items-center gap-1">
               <ShoppingBag size={18} /> Mis Pedidos
             </Link>
-            <Link href="/profile" className="font-medium text-gray-700 hover:text-orange-600 transition">Perfil</Link>
           </div>
 
           {/* Right Side */}
@@ -50,7 +49,7 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
               <Bell size={22} />
             </button>
 
-            {/* Clickable Avatar → Profile */}
+            {/* Clickable Avatar → /profile */}
             <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition">
               <div className="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center text-xl overflow-hidden">
                 👤
@@ -89,7 +88,7 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
               <Link href="/gigs" className="py-4 border-b" onClick={() => setIsMobileMenuOpen(false)}>Explorar Gigs</Link>
               <Link href="/orders" className="py-4 border-b" onClick={() => setIsMobileMenuOpen(false)}>Mis Pedidos</Link>
               <Link href="/profile" className="py-4 border-b" onClick={() => setIsMobileMenuOpen(false)}>Mi Perfil</Link>
-              
+
               <Button 
                 variant="outline" 
                 onClick={handleSignOut}
