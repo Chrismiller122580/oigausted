@@ -4,13 +4,14 @@ import type { NextRequest } from 'next/server'
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
-  if (pathname === '/profile' || pathname.startsWith('/profile/')) {
-    return NextResponse.redirect(new URL('/buyer', request.url))
-  }
+  // 🚫 Eliminamos el redirect forzado de /profile a /buyer
+  // Ahora /profile funciona correctamente para compradores y vendedores
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: '/profile/:path*'
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ]
 }
