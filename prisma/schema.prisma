@@ -21,8 +21,10 @@ model User {
   businessName    String?
   nit             String?
   bio             String?
-  tagline         String?   // ← Added
-  city            String?   // ← Added
+  tagline         String?
+  city            String?
+  tagline         String?
+  city            String?
   profilePicture  String?
   rating          Float?   @default(0)
   reviewCount     Int      @default(0)
