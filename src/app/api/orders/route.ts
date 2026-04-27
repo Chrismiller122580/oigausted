@@ -1,4 +1,3 @@
-// src/app/api/orders/route.ts - Fixed with GET + POST
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -31,7 +30,7 @@ export async function POST(request: Request) {
         sellerId: gig.sellerId,
         gigId,
         price: parseFloat(price),
-        status: 'pending',
+        status: 'Pending',
       },
     });
 
@@ -42,7 +41,6 @@ export async function POST(request: Request) {
   }
 }
 
-// NEW: GET method for fetching orders (buyer or seller)
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -50,7 +48,7 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const role = searchParams.get('role'); // 'buyer' or 'seller'
+  const role = searchParams.get('role');
 
   try {
     let where = {};
@@ -58,16 +56,16 @@ export async function GET(request: Request) {
     if (role === 'seller') {
       where = { sellerId: session.user.id };
     } else {
-      where = { buyerId: session.user.id }; // default to buyer
+      where = { buyerId: session.user.id };
     }
 
     const orders = await prisma.order.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       include: {
-        gig: { select: { title: true, price: true } },
-        buyer: { select: { name: true } },
-        seller: { select: { name: true, businessName: true } }
+        gig: { select: { title: true, price: true, imageUrl: true } },
+        buyer: { select: { name: true, profilePicture: true } },   // ← Fixed
+        seller: { select: { name: true, businessName: true, profilePicture: true } }  // ← Fixed
       }
     });
 
