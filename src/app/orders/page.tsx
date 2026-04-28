@@ -21,10 +21,13 @@ export default function BuyerOrdersPage() {
 
   useEffect(() => {
     if (status === "loading") return;
-    if (!session?.user?.id) {
+
+    const user = session?.user as any; // Safe cast
+    if (!user?.id) {
       router.push("/login?callbackUrl=/orders");
       return;
     }
+
     fetchOrders();
   }, [session, status, router]);
 
@@ -36,14 +39,21 @@ export default function BuyerOrdersPage() {
         setOrders(Array.isArray(data) ? data : []);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch orders:", err);
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Cargando tus órdenes...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin w-10 h-10 border-4 border-orange-600 border-t-transparent rounded-full mx-auto"></div>
+          <p className="mt-6 text-gray-600">Cargando tus órdenes...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -67,12 +77,13 @@ export default function BuyerOrdersPage() {
               <Link
                 key={order.id}
                 href={`/orders/${order.id}`}
-                className="block bg-white border rounded-3xl p-8 hover:shadow-xl hover:border-orange-500 transition-all"
+                className="block bg-white border rounded-3xl p-8 hover:shadow-xl hover:border-orange-500 transition-all group"
               >
-                {/* Order card content here */}
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-semibold text-xl">{order.gig?.title}</h3>
+                    <h3 className="font-semibold text-xl group-hover:text-orange-600 transition">
+                      {order.gig?.title || "Orden sin título"}
+                    </h3>
                     <p className="text-gray-500 mt-1">
                       Vendedor: {order.seller?.businessName || order.seller?.name}
                     </p>
