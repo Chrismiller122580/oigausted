@@ -9,7 +9,7 @@ export default async function HomePage() {
   let gigs: any[] = [];
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/gigs`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/gigs`, {
       cache: 'no-store',
     });
 
@@ -23,66 +23,65 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section - Strong & Colombian */}
-      <div className="bg-gradient-to-br from-orange-600 via-red-600 to-amber-600 text-white py-24 relative overflow-hidden">
-        <div className="max-w-6xl mx-auto px-6 text-center relative z-10">
-          <div className="mb-8 flex justify-center">
+      {/* Hero Section - Colombian Pride */}
+      <div className="bg-gradient-to-br from-[#FFCD00] via-orange-500 to-[#003087] text-white py-24 relative overflow-hidden">
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <div className="flex justify-center mb-8">
             <Image 
               src="/logo.png" 
               alt="Oiga Usted" 
-              width={200} 
-              height={200} 
+              width={220} 
+              height={220} 
               className="drop-shadow-2xl"
               priority
             />
           </div>
 
           <h1 className="text-6xl md:text-7xl font-bold tracking-tighter mb-6 leading-none">
-            El marketplace<br />de Colombia
+            Encuentra el servicio<br />que necesitas
           </h1>
-          <p className="text-2xl md:text-3xl text-white/90 max-w-3xl mx-auto mb-10">
-            Conecta directamente con profesionales locales.<br />
-            <span className="font-semibold">Sin intermediarios. Precios justos. Confianza colombiana.</span>
+
+          <p className="text-2xl md:text-3xl max-w-3xl mx-auto mb-4">
+            Conecta directamente con profesionales locales
+          </p>
+
+          <p className="text-lg font-medium opacity-90 flex items-center justify-center gap-2 mb-10">
+            Gigs Colombia • Hecho en Colombia • Para Colombia 
+            <span className="text-2xl">🇨🇴</span>
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link 
               href="/gigs" 
-              className="inline-block bg-white text-orange-600 font-semibold text-xl px-12 py-6 rounded-3xl hover:bg-gray-100 transition shadow-xl text-center"
+              className="inline-block bg-white text-[#003087] font-semibold text-2xl px-12 py-6 rounded-3xl hover:bg-gray-100 transition shadow-2xl"
             >
-              Buscar servicios
+              Explorar todos los gigs
             </Link>
             <Link 
               href="/create-gig" 
-              className="inline-block border-2 border-white text-white font-semibold text-xl px-12 py-6 rounded-3xl hover:bg-white/10 transition text-center"
+              className="inline-block border-2 border-white text-white font-semibold text-2xl px-12 py-6 rounded-3xl hover:bg-white/10 transition"
             >
               Publicar mi servicio
             </Link>
-          </div>
-
-          <div className="mt-12 flex justify-center gap-8 text-sm opacity-90">
-            <div>✅ Pagos seguros con Wompi</div>
-            <div>✅ +10.000 servicios</div>
-            <div>✅ Soporte local</div>
           </div>
         </div>
       </div>
 
       {/* Popular Categories */}
       <div className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="text-4xl font-bold text-center mb-12 text-gray-900">¿Qué estás buscando hoy?</h2>
+        <h2 className="text-4xl font-bold text-center mb-12 text-gray-900">Categorías Populares</h2>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
           {categories.map((cat) => (
             <Link 
               key={cat} 
               href={`/gigs?category=${encodeURIComponent(cat)}`}
-              className="group bg-white rounded-3xl p-8 text-center border hover:border-orange-500 hover:shadow-xl transition-all duration-300 flex flex-col items-center hover:-translate-y-1"
+              className="group bg-white rounded-3xl p-8 text-center border hover:border-orange-500 hover:shadow-xl transition-all duration-300 flex flex-col items-center"
             >
               <div className="text-6xl mb-6 transition-transform group-hover:scale-110">
-                {categoryEmojis[cat] || "🛠️"}
+                {categoryEmojis[cat]}
               </div>
-              <p className="font-semibold text-lg group-hover:text-orange-600 transition-colors">
+              <p className="font-semibold text-lg leading-tight group-hover:text-orange-600">
                 {cat}
               </p>
             </Link>
@@ -96,7 +95,7 @@ export default async function HomePage() {
           <div className="flex justify-between items-end mb-10">
             <h2 className="text-4xl font-bold text-gray-900">Gigs Destacados</h2>
             <Link href="/gigs" className="text-orange-600 hover:underline font-medium text-lg">
-              Ver todos los gigs →
+              Ver todos →
             </Link>
           </div>
 
@@ -108,19 +107,12 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Trust / CTA Section */}
-      <div className="bg-orange-50 py-16">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold mb-6">¿Eres profesional?</h2>
-          <p className="text-xl text-gray-600 mb-10">
-            Gana dinero haciendo lo que sabes hacer.<br />Miles de colombianos buscan tus servicios.
+      {/* Colombian Trust Banner */}
+      <div className="bg-orange-50 py-12">
+        <div className="max-w-4xl mx-auto text-center px-6">
+          <p className="text-xl text-gray-700 font-medium">
+            Hecho por colombianos • Para colombianos • Con confianza local
           </p>
-          <Link 
-            href="/create-gig" 
-            className="inline-block bg-orange-600 text-white font-semibold text-xl px-12 py-6 rounded-3xl hover:bg-orange-700 transition shadow-lg"
-          >
-            Publicar mi primer Gig →
-          </Link>
         </div>
       </div>
     </div>
