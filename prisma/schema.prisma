@@ -23,8 +23,6 @@ model User {
   bio             String?
   tagline         String?
   city            String?
-  tagline         String?
-  city            String?
   profilePicture  String?
   rating          Float?   @default(0)
   reviewCount     Int      @default(0)
@@ -58,17 +56,86 @@ model Gig {
 }
 
 model Order {
-  id              String   @id @default(uuid())
+  id              String      @id @default(uuid())
   price           Float
-  status          String   @default("Pending")
-  progress        Int      @default(0)
+  status          String      @default("Pending")
+  progress        Int         @default(0)
   trackingNumber  String?
-  // ... rest of your Order model
+  buyerId         String
+  sellerId        String
+  gigId           String?
+  createdAt       DateTime    @default(now())
+  buyer           User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+  seller          User        @relation("SellerOrders", fields: [sellerId], references: [id])
+  gig             Gig?        @relation(fields: [gigId], references: [id])
+  files           OrderFile[]
+  messages        OrderMessage[]
 }
 
-// Add your other models (Review, Account, Session, etc.) here
-// (Keep everything else exactly as it was)
+model OrderFile {
+  id          String   @id @default(uuid())
+  name        String
+  url         String
+  size        Int
+  type        String
+  uploadedBy  String
+  orderId     String
+  createdAt   DateTime @default(now())
+  order       Order    @relation(fields: [orderId], references: [id])
+}
 
-  // Add these two lines inside the User model (after bio or whatsapp)
-  tagline   String?
-  city      String?
+model OrderMessage {
+  id          String   @id @default(uuid())
+  content     String
+  senderId    String
+  senderRole  String
+  isFromBuyer Boolean
+  orderId     String
+  createdAt   DateTime @default(now())
+  order       Order    @relation(fields: [orderId], references: [id])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Float
+  comment   String?
+  createdAt DateTime @default(now())
+  sellerId  String
+  buyerId   String
+  seller    User     @relation("ReviewToSeller", fields: [sellerId], references: [id])
+  buyer     User     @relation("ReviewToBuyer", fields: [buyerId], references: [id])
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
