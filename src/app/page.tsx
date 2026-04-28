@@ -9,9 +9,9 @@ export default async function HomePage() {
   let gigs: any[] = [];
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/gigs`, {
-      cache: 'no-store',
-    });
+const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/gigs`, {
+  cache: 'no-store'
+});
 
     if (res.ok) {
       const data = await res.json();
