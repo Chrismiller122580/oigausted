@@ -21,11 +21,20 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           
+          {/* Logo → Homepage */}
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition">
-            <Image src="/logo.png" alt="Oiga Usted" width={48} height={48} className="w-10 h-10 sm:w-12 sm:h-12" priority />
+            <Image 
+              src="/logo.png" 
+              alt="Oiga Usted" 
+              width={48} 
+              height={48} 
+              className="w-10 h-10 sm:w-12 sm:h-12"
+              priority
+            />
             <span className="text-2xl font-bold text-orange-600">OigaUsted</span>
           </Link>
 
+          {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
             <Link href="/gigs" className="font-medium text-gray-700 hover:text-orange-600 transition">Explorar Gigs</Link>
             <Link href="/orders" className="font-medium text-gray-700 hover:text-orange-600 transition flex items-center gap-1">
@@ -33,6 +42,7 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
             </Link>
           </div>
 
+          {/* Right Side */}
           <div className="hidden md:flex items-center gap-6">
             <button className="p-2 text-gray-600 hover:text-orange-600 transition relative">
               <Bell size={22} />
@@ -44,27 +54,40 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
               </div>
             </Link>
 
-            <Button variant="ghost" size="icon" onClick={handleSignOut} className="text-gray-600 hover:text-red-600">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSignOut}
+              className="text-gray-600 hover:text-red-600"
+            >
               <LogOut size={20} />
             </Button>
           </div>
 
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden p-2">
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden p-2 text-gray-700 hover:text-orange-600 transition"
+          >
             {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
 
+        {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden fixed inset-0 bg-white z-50 pt-20 px-6 overflow-y-auto">
             <div className="flex flex-col gap-6 text-lg">
               <Link href="/gigs" onClick={() => setIsMobileMenuOpen(false)}>Explorar Gigs</Link>
               <Link href="/orders" onClick={() => setIsMobileMenuOpen(false)}>Mis Pedidos</Link>
               <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>Mi Perfil</Link>
-              <Button variant="outline" onClick={handleSignOut} className="mt-6 py-6">Cerrar Sesión</Button>
+              <Button variant="outline" onClick={handleSignOut} className="mt-6 py-6">
+                Cerrar Sesión
+              </Button>
             </div>
           </div>
         )}
       </nav>
+
       <main>{children}</main>
     </>
   );

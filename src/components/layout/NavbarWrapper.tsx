@@ -15,6 +15,5 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   if (role === 'admin') return <AdminNavbar>{children}</AdminNavbar>;
   if (role === 'seller') return <SellerNavbar>{children}</SellerNavbar>;
   
-  // Default for buyer or logged-out users
   return <BuyerNavbar>{children}</BuyerNavbar>;
 }
