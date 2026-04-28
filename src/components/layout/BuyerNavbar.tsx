@@ -7,7 +7,7 @@ import { Menu, X, LogOut, Bell, ShoppingBag } from 'lucide-react';
 import { useState } from 'react';
 import Image from 'next/image';
 
-export default function BuyerNavbar() {
+export default function BuyerNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -21,7 +21,7 @@ export default function BuyerNavbar() {
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           
-          {/* Logo - Now correctly goes to homepage */}
+          {/* Logo - Links to homepage */}
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition">
             <Image 
               src="/logo.png" 
@@ -99,6 +99,8 @@ export default function BuyerNavbar() {
           </div>
         )}
       </nav>
+
+      <main>{children}</main>
     </>
   );
 }
