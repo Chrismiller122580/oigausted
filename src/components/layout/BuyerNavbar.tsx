@@ -7,7 +7,7 @@ import { Menu, X, LogOut, Bell, ShoppingBag } from 'lucide-react';
 import { useState } from 'react';
 import Image from 'next/image';
 
-export default function BuyerNavbar({ children }: { children: React.ReactNode }) {
+export default function BuyerNavbar() {
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -21,8 +21,8 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           
-          {/* Logo */}
-          <Link href="/buyer" className="flex items-center gap-3">
+          {/* Logo - Now correctly goes to homepage */}
+          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition">
             <Image 
               src="/logo.png" 
               alt="Oiga Usted" 
@@ -44,14 +44,13 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
 
           {/* Right Side */}
           <div className="hidden md:flex items-center gap-6">
-            {/* Notification Bell */}
             <button className="p-2 text-gray-600 hover:text-orange-600 transition relative">
               <Bell size={22} />
             </button>
 
-            {/* Clickable Avatar → /profile */}
+            {/* Avatar → Profile */}
             <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition">
-              <div className="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center text-xl overflow-hidden">
+              <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-white font-medium overflow-hidden">
                 👤
               </div>
               <div className="text-right">
@@ -60,7 +59,6 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
               </div>
             </Link>
 
-            {/* Logout */}
             <Button
               variant="ghost"
               size="icon"
@@ -101,8 +99,6 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
           </div>
         )}
       </nav>
-
-      <main>{children}</main>
     </>
   );
 }
