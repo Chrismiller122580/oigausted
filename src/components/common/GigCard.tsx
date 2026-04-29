@@ -29,7 +29,7 @@ export default function GigCard({ gig }: { gig: Gig }) {
 
   const userId = (session?.user as any)?.id;
   const sellerName = gig.seller?.businessName || gig.seller?.name || "Vendedor";
-  const isOwnGig = userId && (userId === gig.seller.id || userId === gig.sellerId);
+  const isOwnGig = userId && (userId === gig.seller.id);
 
   const handleBuyNow = () => {
     if (isOwnGig) {
