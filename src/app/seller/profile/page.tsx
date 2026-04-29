@@ -1,17 +1,129 @@
-'use client';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+"use client";
 
-export default function SellerProfileRedirect() {
-  const router = useRouter();
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save } from "lucide-react";
+import GrokAssistant from "@/components/common/GrokAssistant";
 
-  useEffect(() => {
-    router.replace('/profile');
-  }, [router]);
+export default function MiNegocioPage() {
+  const { data: session } = useSession();
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const [formData, setFormData] = useState({
+    businessName: "Mi Negocio Local",
+    tagline: "Calidad y confianza que se nota",
+    bio: "Ofrecemos servicios profesionales de calidad con atención personalizada en Bucaramanga y alrededores.",
+    phone: "+57 300 123 4567",
+    whatsapp: "+57 300 123 4567",
+    location: "Bucaramanga, Santander",
+  });
+
+  const rating = 4.8;
+  const reviewCount = 47;
+  const totalGigs = 18;
+  const totalEarnings = "12.450.000";
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setTimeout(() => {
+      alert("✅ Información del negocio guardada correctamente");
+      setIsEditing(false);
+      setSaving(false);
+    }, 800);
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p>Redirigiendo a tu perfil...</p>
+    <div className="min-h-screen bg-gray-50 pb-12">
+      <div className="max-w-6xl mx-auto px-6 py-10">
+        <Link href="/seller" className="inline-flex items-center gap-2 text-orange-600 hover:underline mb-8 text-lg">
+          <ArrowLeft size={22} /> Volver al Dashboard
+        </Link>
+
+        <div className="flex justify-between items-center mb-10">
+          <h1 className="text-4xl font-bold">Mi Negocio</h1>
+          <Button onClick={isEditing ? handleSave : () => setIsEditing(true)} disabled={saving}>
+            {isEditing ? (
+              saving ? "Guardando..." : <><Save size={18} className="mr-2" /> Guardar Cambios</>
+            ) : (
+              <><Edit3 size={18} className="mr-2" /> Editar Negocio</>
+            )}
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-8 bg-white rounded-3xl p-10 shadow-sm border">
+            <div className="flex gap-10">
+              <div className="flex-shrink-0">
+                <div className="w-52 h-52 bg-gradient-to-br from-orange-100 to-amber-100 rounded-3xl flex items-center justify-center text-9xl border-4 border-white shadow-inner">
+                  🏪
+                </div>
+              </div>
+
+              <div className="flex-1 space-y-8">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Nombre del Negocio</label>
+                  <input name="businessName" value={formData.businessName} onChange={handleChange} disabled={!isEditing}
+                    className="w-full px-6 py-5 text-2xl font-semibold border rounded-2xl focus:border-orange-500" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Descripción del Negocio</label>
+                  <textarea name="bio" value={formData.bio} onChange={handleChange} disabled={!isEditing} rows={6}
+                    className="w-full px-6 py-5 border rounded-2xl focus:border-orange-500" />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Teléfono / WhatsApp</label>
+                    <input name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing}
+                      className="w-full px-6 py-5 border rounded-2xl focus:border-orange-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Ubicación</label>
+                    <input name="location" value={formData.location} onChange={handleChange} disabled={!isEditing}
+                      className="w-full px-6 py-5 border rounded-2xl focus:border-orange-500" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-4 space-y-6">
+            <Card>
+              <CardContent className="p-8">
+                <h3 className="font-semibold text-xl mb-6">Tu Reputación</h3>
+                <div className="flex items-center gap-6">
+                  <div className="text-7xl font-bold text-yellow-600">{rating}</div>
+                  <div>
+                    <div className="flex text-4xl text-yellow-500">★★★★☆</div>
+                    <p className="text-gray-600 mt-2">{reviewCount} reseñas</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-8">
+                <h3 className="font-semibold text-xl mb-6">Estadísticas</h3>
+                <div className="space-y-6">
+                  <div className="flex justify-between"><span>Gigs publicados</span><span className="font-bold">{totalGigs}</span></div>
+                  <div className="flex justify-between"><span>Ingresos totales</span><span className="font-bold text-green-600">${totalEarnings}</span></div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <GrokAssistant />
+      </div>
     </div>
   );
 }
