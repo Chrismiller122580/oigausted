@@ -24,10 +24,13 @@ export default function SellerDashboard() {
 
   useEffect(() => {
     if (status === "loading") return;
-    if (!session?.user?.id) {
+    
+    const user = session?.user as any;
+    if (!user?.id) {
       setLoading(false);
       return;
     }
+
     fetchGigs();
     fetchOrders();
   }, [session, status]);
