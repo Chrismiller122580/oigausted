@@ -9,23 +9,33 @@ import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save } from "lucide-
 import GrokAssistant from "@/components/common/GrokAssistant";
 
 export default function MiNegocioPage() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
-    businessName: "Mi Negocio Local",
-    tagline: "Calidad y confianza que se nota",
-    bio: "Ofrecemos servicios profesionales de calidad con atención personalizada en Bucaramanga y alrededores.",
-    phone: "+57 300 123 4567",
-    whatsapp: "+57 300 123 4567",
-    location: "Bucaramanga, Santander",
+    businessName: "",
+    tagline: "",
+    bio: "",
+    phone: "",
+    whatsapp: "",
+    location: "",
   });
 
-  const rating = 4.8;
-  const reviewCount = 47;
-  const totalGigs = 18;
-  const totalEarnings = "12.450.000";
+  // Load existing data
+  useEffect(() => {
+    if (session?.user) {
+      const user = session.user as any;
+      setFormData({
+        businessName: user.businessName || "Mi Negocio Local",
+        tagline: user.tagline || "Calidad y confianza que se nota",
+        bio: user.bio || "Ofrecemos servicios profesionales con excelente atención.",
+        phone: user.phone || "",
+        whatsapp: user.whatsapp || "",
+        location: user.city || "Bucaramanga, Santander",
+      });
+    }
+  }, [session]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -33,12 +43,38 @@ export default function MiNegocioPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    setTimeout(() => {
-      alert("✅ Información del negocio guardada correctamente");
-      setIsEditing(false);
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName: formData.businessName,
+          tagline: formData.tagline,
+          bio: formData.bio,
+          phone: formData.phone,
+          whatsapp: formData.whatsapp,
+          city: formData.location,
+        }),
+      });
+
+      if (res.ok) {
+        await update();
+        alert("✅ Información del negocio guardada correctamente");
+        setIsEditing(false);
+      } else {
+        alert("❌ Error al guardar");
+      }
+    } catch (err) {
+      alert("Error de conexión");
+    } finally {
       setSaving(false);
-    }, 800);
+    }
   };
+
+  const rating = 4.8;
+  const reviewCount = 47;
+  const totalGigs = 18;
+  const totalEarnings = "12.450.000";
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
@@ -60,6 +96,7 @@ export default function MiNegocioPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 bg-white rounded-3xl p-10 shadow-sm border">
+            {/* ... same nice layout as before ... */}
             <div className="flex gap-10">
               <div className="flex-shrink-0">
                 <div className="w-52 h-52 bg-gradient-to-br from-orange-100 to-amber-100 rounded-3xl flex items-center justify-center text-9xl border-4 border-white shadow-inner">
@@ -75,8 +112,14 @@ export default function MiNegocioPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Descripción del Negocio</label>
-                  <textarea name="bio" value={formData.bio} onChange={handleChange} disabled={!isEditing} rows={6}
+                  <label className="block text-sm font-medium mb-2">Tagline</label>
+                  <input name="tagline" value={formData.tagline} onChange={handleChange} disabled={!isEditing}
+                    className="w-full px-6 py-4 border rounded-2xl focus:border-orange-500" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Descripción</label>
+                  <textarea name="bio" value={formData.bio} onChange={handleChange} disabled={!isEditing} rows={5}
                     className="w-full px-6 py-5 border rounded-2xl focus:border-orange-500" />
                 </div>
 
@@ -96,6 +139,7 @@ export default function MiNegocioPage() {
             </div>
           </div>
 
+          {/* Stats Sidebar */}
           <div className="lg:col-span-4 space-y-6">
             <Card>
               <CardContent className="p-8">
