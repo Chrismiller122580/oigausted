@@ -2,6 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
@@ -21,12 +22,11 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
     ? String((session.user as any)?.role || '').toLowerCase().trim() 
     : null;
 
-  // Role-based navbars
   if (role === 'admin') return <AdminNavbar>{children}</AdminNavbar>;
   if (role === 'seller') return <SellerNavbar>{children}</SellerNavbar>;
   if (role === 'buyer') return <BuyerNavbar>{children}</BuyerNavbar>;
 
-  // Public Navbar (Not logged in)
+  // Public Navbar
   return (
     <>
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
