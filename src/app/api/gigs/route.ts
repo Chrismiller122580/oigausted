@@ -1,4 +1,3 @@
-// src/app/api/gigs/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -13,16 +12,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    
-    const {
-      title,
-      description,
-      price,
-      category,
-      imageUrl,
-      completionTime = '3',
-      fields = {},
-    } = body;
+    const { title, description, price, category, imageUrl, completionTime = '3', fields = {} } = body;
 
     if (!title || !price || !category) {
       return NextResponse.json({ error: 'Título, precio y categoría son obligatorios' }, { status: 400 });
@@ -37,44 +27,25 @@ export async function POST(request: Request) {
         imageUrl: imageUrl ? String(imageUrl) : null,
         completionTime: String(completionTime),
         fields: fields || {},
-        sellerId: session.user.id,   // ← This is the key fix
+        sellerId: session.user.id,   // Explicit sellerId
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      gig,
-      message: 'Gig creado exitosamente'
-    });
-
+    return NextResponse.json({ success: true, gig, message: 'Gig creado exitosamente' });
   } catch (error: any) {
     console.error('Create gig error:', error);
-    return NextResponse.json({
-      error: error.message || 'Error interno al crear el gig'
-    }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Error al crear el gig' }, { status: 500 });
   }
 }
 
 export async function GET() {
-  try {
-    const gigs = await prisma.gig.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        seller: {
-          select: {
-            id: true,
-            name: true,
-            businessName: true,
-            rating: true,
-            reviewCount: true,
-          }
-        }
+  const gigs = await prisma.gig.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      seller: {
+        select: { id: true, name: true, businessName: true, rating: true, reviewCount: true }
       }
-    });
-
-    return NextResponse.json(gigs);
-  } catch (error) {
-    console.error('Fetch gigs error:', error);
-    return NextResponse.json({ error: 'Error al cargar los gigs' }, { status: 500 });
-  }
+    }
+  });
+  return NextResponse.json(gigs);
 }
