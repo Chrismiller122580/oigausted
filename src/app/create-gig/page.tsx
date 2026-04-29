@@ -81,7 +81,7 @@ export default function CreateGigPage() {
     if (!image) return setError('Selecciona una imagen');
 
     const userId = (session?.user as any)?.id;
-    if (!userId) return setError('Debes estar logueado');
+    if (!userId) return setError('Debes estar logueado como vendedor');
 
     setLoading(true);
     setError('');
@@ -98,23 +98,25 @@ export default function CreateGigPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
+          title: formData.title.trim(),
+          description: formData.description.trim(),
           price: parseFloat(formData.price) || 0,
           category: formData.category,
           imageUrl: uploadData.url,
           completionTime: formData.completionTime,
           fields: formData.customFields,
+          // sellerId is handled in the API route using session
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al crear gig');
+      if (!res.ok) throw new Error(data.error || 'Error al crear el gig');
 
       setSuccess('¡Gig creado exitosamente!');
       setTimeout(() => router.push('/gigs'), 1500);
     } catch (err: any) {
       setError(err.message || 'Algo salió mal');
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -167,7 +169,7 @@ export default function CreateGigPage() {
 
         {selectedCategoryData && (
           <div className="border-t pt-8">
-            <h3 className="font-semibold mb-4">Opciones específicas para {selectedCategoryData.name}</h3>
+            <h3 className="font-semibold mb-4">Opciones específicas</h3>
             {selectedCategoryData.fields?.map((field: any) => (
               <div key={field.key} className="mb-6">
                 <label className="block text-sm font-medium mb-2">{field.label}</label>
