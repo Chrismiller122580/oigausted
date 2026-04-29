@@ -13,9 +13,31 @@ export const authOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (credentials?.email === "buyer@demo.com") return { id: "1", name: "Buyer Demo", email: "buyer@demo.com", role: "buyer" }
-        if (credentials?.email === "seller@demo.com") return { id: "2", name: "Seller Demo", email: "seller@demo.com", role: "seller" }
-        if (credentials?.email === "admin@demo.com") return { id: "3", name: "Admin", email: "admin@demo.com", role: "admin" }
+        if (credentials?.email === "buyer@demo.com") {
+          return { 
+            id: "11111111-1111-1111-1111-111111111111", 
+            name: "Buyer Demo", 
+            email: "buyer@demo.com", 
+            role: "buyer" 
+          }
+        }
+        if (credentials?.email === "seller@demo.com") {
+          return { 
+            id: "22222222-2222-2222-2222-222222222222", 
+            name: "Seller Demo", 
+            email: "seller@demo.com", 
+            role: "seller",
+            businessName: "Mi Negocio Local"
+          }
+        }
+        if (credentials?.email === "admin@demo.com") {
+          return { 
+            id: "33333333-3333-3333-3333-333333333333", 
+            name: "Admin", 
+            email: "admin@demo.com", 
+            role: "admin" 
+          }
+        }
         return null
       }
     }),
@@ -24,9 +46,7 @@ export const authOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     })
   ],
-  session: { 
-    strategy: "jwt" as const 
-  },
+  session: { strategy: "jwt" as const },
   callbacks: {
     async jwt({ token, user }: any) {
       if (user) {

@@ -6,24 +6,12 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    console.log("Session in /api/gigs:", JSON.stringify(session?.user, null, 2));
-
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Debes iniciar sesión como vendedor' }, { status: 401 });
     }
 
     const body = await request.json();
-    console.log("Received body:", body);
-
-    const {
-      title,
-      description,
-      price,
-      category,
-      imageUrl,
-      completionTime = '3',
-      fields = {},
-    } = body;
+    const { title, description, price, category, imageUrl, completionTime = '3', fields = {} } = body;
 
     const gig = await prisma.gig.create({
       data: {
@@ -38,15 +26,10 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log("✅ Gig created successfully:", gig.id);
     return NextResponse.json({ success: true, gig, message: 'Gig creado exitosamente' });
-
   } catch (error: any) {
     console.error('Create gig error:', error);
-    return NextResponse.json({ 
-      error: error.message || 'Error interno al crear el gig',
-      code: error.code 
-    }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Error al crear el gig' }, { status: 500 });
   }
 }
 
