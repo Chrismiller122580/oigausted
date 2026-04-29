@@ -52,25 +52,20 @@ export default function CreateGigPage() {
   };
 
   const generateDescription = async () => {
-    if (!formData.title) {
-      setError("Escribe un título primero");
-      return;
-    }
+    if (!formData.title) return setError("Escribe un título primero");
     setGenerating(true);
     try {
       const res = await fetch('/api/grok', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: `Escribe una descripción atractiva y profesional (máximo 300 caracteres) para este gig: ${formData.title}. Enfócate en beneficios, calidad y confianza.`
-        })
+        body: JSON.stringify({ prompt: `Descripción profesional para gig: ${formData.title}` })
       });
       const data = await res.json();
-      if (data.description) {
-        setFormData(prev => ({ ...prev, description: data.description }));
+      if (data.reply || data.description) {
+        setFormData(prev => ({ ...prev, description: data.reply || data.description }));
       }
     } catch (err) {
-      setError("No se pudo generar la descripción");
+      setError("No se pudo generar descripción");
     } finally {
       setGenerating(false);
     }
@@ -79,9 +74,6 @@ export default function CreateGigPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!image) return setError('Selecciona una imagen');
-
-    const userId = (session?.user as any)?.id;
-    if (!userId) return setError('Debes estar logueado como vendedor');
 
     setLoading(true);
     setError('');
@@ -98,22 +90,21 @@ export default function CreateGigPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: formData.title.trim(),
-          description: formData.description.trim(),
+          title: formData.title,
+          description: formData.description,
           price: parseFloat(formData.price) || 0,
           category: formData.category,
           imageUrl: uploadData.url,
           completionTime: formData.completionTime,
           fields: formData.customFields,
-          // sellerId is handled in the API route using session
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al crear el gig');
+      if (!res.ok) throw new Error(data.error || data.message || 'Error al crear gig');
 
       setSuccess('¡Gig creado exitosamente!');
-      setTimeout(() => router.push('/gigs'), 1500);
+      setTimeout(() => router.push('/gigs'), 1200);
     } catch (err: any) {
       setError(err.message || 'Algo salió mal');
       console.error(err);
@@ -129,30 +120,25 @@ export default function CreateGigPage() {
 
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl border space-y-8">
         <div>
-          <label className="block text-sm font-medium mb-2">Título del gig</label>
-          <input type="text" name="title" value={formData.title} onChange={handleInputChange} required 
-                 className="w-full px-4 py-3 border rounded-2xl" placeholder="Ej: Limpieza profunda..." />
+          <label className="block text-sm font-medium mb-2">Título</label>
+          <input type="text" name="title" value={formData.title} onChange={handleInputChange} required className="w-full px-4 py-3 border rounded-2xl" />
         </div>
 
         <div>
-          <div className="flex justify-between items-center mb-2">
+          <div className="flex justify-between mb-2">
             <label className="block text-sm font-medium">Descripción</label>
-            <button type="button" onClick={generateDescription} disabled={generating || !formData.title}
-                    className="text-orange-600 hover:text-orange-700 text-sm flex items-center gap-1">
-              <Sparkles size={16} /> {generating ? "Generando..." : "Generar con Grok"}
+            <button type="button" onClick={generateDescription} disabled={generating} className="text-orange-600 text-sm flex items-center gap-1">
+              <Sparkles size={16} /> Grok
             </button>
           </div>
-          <textarea name="description" value={formData.description} onChange={handleInputChange} required rows={6}
-                    className="w-full px-4 py-3 border rounded-3xl" placeholder="Describe tu servicio..." />
+          <textarea name="description" value={formData.description} onChange={handleInputChange} required rows={6} className="w-full px-4 py-3 border rounded-3xl" />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-2">Categoría</label>
           <select name="category" value={formData.category} onChange={handleInputChange} required className="w-full px-4 py-3 border rounded-2xl">
-            <option value="">Selecciona una categoría</option>
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{categoryEmojis[cat] || ''} {cat}</option>
-            ))}
+            <option value="">Selecciona categoría</option>
+            {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
           </select>
         </div>
 
@@ -167,44 +153,20 @@ export default function CreateGigPage() {
           </div>
         </div>
 
-        {selectedCategoryData && (
-          <div className="border-t pt-8">
-            <h3 className="font-semibold mb-4">Opciones específicas</h3>
-            {selectedCategoryData.fields?.map((field: any) => (
-              <div key={field.key} className="mb-6">
-                <label className="block text-sm font-medium mb-2">{field.label}</label>
-                {field.type === 'number' && <input type="number" value={formData.customFields[field.key] || ''} onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} className="w-full px-4 py-3 border rounded-2xl" />}
-                {field.type === 'checkbox' && (
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={!!formData.customFields[field.key]} onChange={(e) => handleCustomFieldChange(field.key, e.target.checked)} />
-                    {field.label}
-                  </label>
-                )}
-                {field.type === 'select' && (
-                  <select value={formData.customFields[field.key] || ''} onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} className="w-full px-4 py-3 border rounded-2xl">
-                    <option value="">Selecciona...</option>
-                    {field.options?.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
         <div>
-          <label className="block text-sm font-medium mb-3">Imagen principal</label>
-          <label htmlFor="image-upload" className="cursor-pointer bg-orange-600 hover:bg-orange-700 text-white px-8 py-4 rounded-2xl inline-block">
+          <label className="block text-sm font-medium mb-3">Imagen</label>
+          <label htmlFor="image-upload" className="cursor-pointer bg-orange-600 text-white px-8 py-4 rounded-2xl inline-block">
             📸 Seleccionar imagen
           </label>
           <input type="file" accept="image/*" onChange={handleImageChange} id="image-upload" className="hidden" />
-          <p className="text-sm text-gray-500 mt-2">{image ? image.name : 'Ninguna imagen seleccionada'}</p>
+          <p className="mt-2 text-sm">{image ? image.name : 'No seleccionada'}</p>
         </div>
 
         {error && <p className="text-red-600 bg-red-50 p-4 rounded-2xl">{error}</p>}
         {success && <p className="text-green-600 bg-green-50 p-4 rounded-2xl">{success}</p>}
 
-        <button type="submit" disabled={loading || !image} className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-4 rounded-2xl text-lg">
-          {loading ? 'Publicando Gig...' : 'Publicar Gig'}
+        <button type="submit" disabled={loading || !image} className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl text-lg">
+          {loading ? 'Creando Gig...' : 'Publicar Gig'}
         </button>
       </form>
     </div>
