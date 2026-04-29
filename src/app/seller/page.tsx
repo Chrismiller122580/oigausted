@@ -5,12 +5,12 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { DollarSign, Package, Plus, ArrowRight, Trash2, Users } from "lucide-react";
+import { DollarSign, Package, Plus, ArrowRight, Trash2, Users, Clock } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 const statusConfig: any = {
   Pending: { label: "Pendiente", color: "bg-orange-100 text-orange-700" },
-  Paid: { label: "Pagado", color: "bg-green-100 text-green-700" },
+  Paid: { label: "Pagado ✓", color: "bg-green-100 text-green-700" },
   "In Progress": { label: "En progreso", color: "bg-blue-100 text-blue-700" },
   Completed: { label: "Completado", color: "bg-emerald-100 text-emerald-700" },
   Approved: { label: "Aprobado", color: "bg-purple-100 text-purple-700" },
@@ -24,13 +24,11 @@ export default function SellerDashboard() {
 
   useEffect(() => {
     if (status === "loading") return;
-    
     const user = session?.user as any;
     if (!user?.id) {
       setLoading(false);
       return;
     }
-
     fetchGigs();
     fetchOrders();
   }, [session, status]);
@@ -63,7 +61,6 @@ export default function SellerDashboard() {
 
   const deleteGig = async (gigId: string) => {
     if (!confirm("¿Estás seguro de eliminar este gig? Esta acción no se puede deshacer.")) return;
-    
     try {
       const res = await fetch(`/api/gigs/${gigId}`, { method: "DELETE" });
       if (res.ok) {
@@ -155,7 +152,7 @@ export default function SellerDashboard() {
                   <Users className="h-9 w-9 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Pedidos Completados</p>
+                  <p className="text-sm text-gray-600">Completados</p>
                   <p className="text-4xl font-bold mt-1">{completedOrders.length}</p>
                 </div>
               </div>
@@ -175,19 +172,19 @@ export default function SellerDashboard() {
 
             {activeOrders.length === 0 ? (
               <div className="text-center py-20 text-gray-500">
-                No tienes pedidos activos. ¡Comparte tus gigs!
+                No tienes pedidos activos en este momento.<br />¡Comparte tus gigs!
               </div>
             ) : (
               <div className="space-y-4">
-                {activeOrders.slice(0, 5).map((order: any) => (
+                {activeOrders.slice(0, 6).map((order: any) => (
                   <Link
                     key={order.id}
                     href={`/orders/${order.id}`}
-                    className="block p-6 border rounded-3xl hover:border-orange-500 hover:shadow-md transition-all"
+                    className="block p-6 border rounded-3xl hover:border-orange-500 hover:shadow-md transition-all group"
                   >
                     <div className="flex flex-col md:flex-row md:items-center justify-between">
                       <div className="flex-1">
-                        <p className="font-semibold text-lg">{order.gig?.title}</p>
+                        <p className="font-semibold text-lg group-hover:text-orange-600 transition">{order.gig?.title}</p>
                         <p className="text-sm text-gray-500">
                           Cliente: {order.buyer?.name || order.buyer?.email} • ${order.price?.toLocaleString("es-CO")}
                         </p>
@@ -232,7 +229,12 @@ export default function SellerDashboard() {
                             ${gig.price?.toLocaleString("es-CO")}
                           </p>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => deleteGig(gig.id)} className="text-red-500 hover:bg-red-50">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => deleteGig(gig.id)} 
+                          className="text-red-500 hover:bg-red-50"
+                        >
                           <Trash2 size={20} />
                         </Button>
                       </div>
