@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { put } from '@vercel/blob';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, Sparkles, UserPlus, Copy, MapPin, Phone } from "lucide-react";
+import { Camera, Sparkles, UserPlus, Copy, Share2, MapPin, Phone, Award } from "lucide-react";
 import GrokAssistant from "@/components/common/GrokAssistant";
 import Link from "next/link";
 
@@ -32,7 +32,7 @@ export default function ProfilePage() {
       const user = session.user as any;
       setFormData({
         name: user.name || "",
-        tagline: user.tagline || "",
+        tagline: user.tagline || "Aquí para conectar y crecer",
         bio: user.bio || "",
         phone: user.phone || "",
         whatsapp: user.whatsapp || "",
@@ -55,7 +55,7 @@ export default function ProfilePage() {
     try {
       const blob = await put(`avatars/${Date.now()}-${file.name}`, file, { access: 'public', addRandomSuffix: true });
       setFormData({ ...formData, imageUrl: blob.url });
-      alert("✅ Foto de perfil actualizada");
+      alert("✅ Foto actualizada");
     } catch (err) {
       alert("Error al subir foto");
     } finally {
@@ -73,7 +73,7 @@ export default function ProfilePage() {
       });
       await update();
       setIsEditing(false);
-      alert("✅ Perfil guardado correctamente");
+      alert("🎉 Perfil actualizado");
     } catch (err) {
       alert("Error al guardar");
     } finally {
@@ -81,105 +81,103 @@ export default function ProfilePage() {
     }
   };
 
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    alert("✅ Enlace copiado");
+  };
+
   const userRole = (session?.user as any)?.role || 'buyer';
   const isBuyer = userRole === 'buyer';
 
-  const handleBecomeSeller = async () => {
-    if (!confirm("¿Quieres convertirte en vendedor y empezar a publicar gigs?")) return;
-    try {
-      const res = await fetch('/api/user/become-seller', { method: 'POST' });
-      if (res.ok) {
-        await update();
-        alert("🚀 ¡Ahora eres vendedor!");
-        window.location.reload();
-      }
-    } catch (err) {
-      alert("Error al cambiar rol");
-    }
-  };
-
-  const copyProfileLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    alert("✅ Enlace de perfil copiado");
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
-      <div className="max-w-5xl mx-auto px-6 pt-8">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-5xl mx-auto px-6 py-10">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Mi Perfil</h1>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={copyProfileLink}>
-              <Copy size={18} className="mr-2" /> Compartir Perfil
+            <Button variant="outline" onClick={copyLink}>
+              <Share2 size={18} className="mr-2" /> Compartir Perfil
             </Button>
-            <Button onClick={() => isEditing ? handleSave() : setIsEditing(true)}>
-              {isEditing ? "💾 Guardar" : "✏️ Editar"}
+            <Button onClick={() => isEditing ? handleSave() : setIsEditing(!isEditing)}>
+              {isEditing ? "💾 Guardar" : "✏️ Editar Perfil"}
             </Button>
           </div>
         </div>
 
-        <Card className="shadow-2xl overflow-hidden">
-          <div className="h-56 bg-gradient-to-r from-orange-500 to-amber-500 relative">
-            <div className="absolute -bottom-16 left-8">
+        {/* Hero Profile Card */}
+        <Card className="shadow-2xl overflow-hidden mb-10">
+          <div className="h-64 bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 relative">
+            <div className="absolute -bottom-16 left-10">
               <label className="cursor-pointer group">
-                <div className="w-32 h-32 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-white">
+                <div className="w-36 h-36 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-white">
                   {formData.imageUrl ? (
                     <img src={formData.imageUrl} alt="Perfil" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-7xl text-gray-300">👤</div>
+                    <div className="w-full h-full flex items-center justify-center text-8xl text-gray-300">👤</div>
                   )}
                 </div>
-                <div className="absolute bottom-2 right-2 bg-white rounded-full p-2 shadow group-hover:scale-110 transition">
-                  <Camera size={20} />
+                <div className="absolute bottom-3 right-3 bg-white p-3 rounded-full shadow-md group-hover:scale-110 transition">
+                  <Camera size={22} />
                 </div>
                 <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
               </label>
             </div>
           </div>
 
-          <CardContent className="pt-20 px-8 pb-10">
-            <div className="flex justify-between items-start">
-              <div>
-                <input name="name" value={formData.name} onChange={handleChange} disabled={!isEditing}
-                  className="text-4xl font-bold bg-transparent border-b focus:outline-none w-full" placeholder="Tu nombre" />
-                <input name="tagline" value={formData.tagline} onChange={handleChange} disabled={!isEditing}
-                  className="text-orange-600 text-xl mt-1 bg-transparent border-b focus:outline-none w-full" placeholder="Tu frase destacada" />
-                <p className="text-sm text-gray-500 capitalize mt-3">{userRole}</p>
-              </div>
-            </div>
+          <CardContent className="pt-20 px-10 pb-10">
+            <input name="name" value={formData.name} onChange={handleChange} disabled={!isEditing}
+              className="text-5xl font-bold bg-transparent border-b w-full focus:outline-none" placeholder="Tu nombre" />
 
-            <div className="mt-10">
-              <label className="block text-sm font-medium mb-3">Sobre mí</label>
-              <textarea name="bio" value={formData.bio} onChange={handleChange} disabled={!isEditing} rows={5}
-                className="w-full border rounded-3xl p-6 focus:border-orange-500" placeholder="Cuéntales a los clientes quién eres..." />
-            </div>
+            <input name="tagline" value={formData.tagline} onChange={handleChange} disabled={!isEditing}
+              className="text-xl text-orange-600 mt-3 bg-transparent border-b w-full focus:outline-none" placeholder="Tu frase destacada" />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-              <div>
-                <label className="block text-sm font-medium mb-2">WhatsApp</label>
-                <input name="whatsapp" value={formData.whatsapp} onChange={handleChange} disabled={!isEditing}
-                  className="w-full border rounded-2xl p-4" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Teléfono</label>
-                <input name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing}
-                  className="w-full border rounded-2xl p-4" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Ciudad</label>
-                <input name="city" value={formData.city} onChange={handleChange} disabled={!isEditing}
-                  className="w-full border rounded-2xl p-4" />
-              </div>
-            </div>
-
-            {isBuyer && (
-              <Button onClick={handleBecomeSeller} className="w-full mt-12 py-8 text-lg bg-gradient-to-r from-emerald-600 to-teal-600">
-                <UserPlus className="mr-3" size={24} />
-                Quiero ser Vendedor en OigaUsted
-              </Button>
-            )}
+            <p className="text-sm uppercase tracking-widest text-gray-500 mt-4">{userRole}</p>
           </CardContent>
         </Card>
+
+        {/* Bio */}
+        <Card className="mb-8">
+          <CardContent className="p-10">
+            <div className="flex justify-between mb-4">
+              <h2 className="text-2xl font-semibold">Sobre mí</h2>
+              <button onClick={() => {}} className="text-orange-600 hover:underline flex items-center gap-2 text-sm">
+                <Sparkles size={18} /> Generar con Grok
+              </button>
+            </div>
+            <textarea name="bio" value={formData.bio} onChange={handleChange} disabled={!isEditing} rows={6}
+              className="w-full border rounded-3xl p-6 focus:border-orange-500" placeholder="Cuéntales quién eres y qué te apasiona..." />
+          </CardContent>
+        </Card>
+
+        {/* Contact & Links */}
+        <Card>
+          <CardContent className="p-10">
+            <h2 className="text-2xl font-semibold mb-8">Cómo contactarme</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <label className="text-sm font-medium">WhatsApp</label>
+                <input name="whatsapp" value={formData.whatsapp} onChange={handleChange} disabled={!isEditing}
+                  className="w-full mt-2 border rounded-2xl p-5 text-lg" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Teléfono</label>
+                <input name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing}
+                  className="w-full mt-2 border rounded-2xl p-5 text-lg" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Ciudad</label>
+                <input name="city" value={formData.city} onChange={handleChange} disabled={!isEditing}
+                  className="w-full mt-2 border rounded-2xl p-5" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {isBuyer && (
+          <Button onClick={() => {}} className="w-full mt-10 py-8 text-xl bg-gradient-to-r from-emerald-600 to-teal-600">
+            🚀 Quiero convertirme en Vendedor
+          </Button>
+        )}
 
         <GrokAssistant />
       </div>
