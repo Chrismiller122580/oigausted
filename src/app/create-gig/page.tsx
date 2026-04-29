@@ -68,7 +68,6 @@ export default function CreateGigPage() {
       const data = await res.json();
       if (data.description) {
         setFormData(prev => ({ ...prev, description: data.description }));
-        setError('');
       }
     } catch (err) {
       setError("No se pudo generar la descripción");
@@ -80,7 +79,9 @@ export default function CreateGigPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!image) return setError('Selecciona una imagen');
-    if (!session?.user?.id) return setError('Debes estar logueado');
+
+    const userId = (session?.user as any)?.id;
+    if (!userId) return setError('Debes estar logueado');
 
     setLoading(true);
     setError('');
@@ -143,8 +144,50 @@ export default function CreateGigPage() {
                     className="w-full px-4 py-3 border rounded-3xl" placeholder="Describe tu servicio..." />
         </div>
 
-        {/* Rest of the form (category, price, etc.) remains the same */}
-        {/* ... (I kept the rest identical to avoid breaking your flow) */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Categoría</label>
+          <select name="category" value={formData.category} onChange={handleInputChange} required className="w-full px-4 py-3 border rounded-2xl">
+            <option value="">Selecciona una categoría</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{categoryEmojis[cat] || ''} {cat}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium mb-2">Precio (COP)</label>
+            <input type="number" name="price" value={formData.price} onChange={handleInputChange} required className="w-full px-4 py-3 border rounded-2xl" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Tiempo de entrega (días)</label>
+            <input type="number" name="completionTime" value={formData.completionTime} onChange={handleInputChange} required className="w-full px-4 py-3 border rounded-2xl" />
+          </div>
+        </div>
+
+        {selectedCategoryData && (
+          <div className="border-t pt-8">
+            <h3 className="font-semibold mb-4">Opciones específicas para {selectedCategoryData.name}</h3>
+            {selectedCategoryData.fields?.map((field: any) => (
+              <div key={field.key} className="mb-6">
+                <label className="block text-sm font-medium mb-2">{field.label}</label>
+                {field.type === 'number' && <input type="number" value={formData.customFields[field.key] || ''} onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} className="w-full px-4 py-3 border rounded-2xl" />}
+                {field.type === 'checkbox' && (
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={!!formData.customFields[field.key]} onChange={(e) => handleCustomFieldChange(field.key, e.target.checked)} />
+                    {field.label}
+                  </label>
+                )}
+                {field.type === 'select' && (
+                  <select value={formData.customFields[field.key] || ''} onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} className="w-full px-4 py-3 border rounded-2xl">
+                    <option value="">Selecciona...</option>
+                    {field.options?.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium mb-3">Imagen principal</label>
