@@ -22,7 +22,6 @@ export async function POST(request: Request) {
       imageUrl,
       completionTime = '3',
       fields = {},
-      addons = [],
     } = body;
 
     if (!title || !price || !category) {
@@ -38,12 +37,9 @@ export async function POST(request: Request) {
         imageUrl: imageUrl ? String(imageUrl) : null,
         completionTime: String(completionTime),
         fields: fields || {},
-        addons: Array.isArray(addons) ? addons : [],
-        sellerId: session.user.id,
+        sellerId: session.user.id,   // ← This is the key fix
       },
     });
-
-    console.log('✅ Gig created:', gig.id);
 
     return NextResponse.json({
       success: true,
