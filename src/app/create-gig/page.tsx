@@ -58,14 +58,14 @@ export default function CreateGigPage() {
       const res = await fetch('/api/grok', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: `Descripción profesional para gig: ${formData.title}` })
+        body: JSON.stringify({ prompt: `Descripción para: ${formData.title}` })
       });
       const data = await res.json();
       if (data.reply || data.description) {
         setFormData(prev => ({ ...prev, description: data.reply || data.description }));
       }
     } catch (err) {
-      setError("No se pudo generar descripción");
+      setError("No se pudo generar");
     } finally {
       setGenerating(false);
     }
@@ -79,13 +79,14 @@ export default function CreateGigPage() {
     setError('');
 
     try {
+      // Upload image
       const formDataUpload = new FormData();
       formDataUpload.append('file', image);
-
       const resUpload = await fetch('/api/upload', { method: 'POST', body: formDataUpload });
       const uploadData = await resUpload.json();
       if (!resUpload.ok) throw new Error(uploadData.error || 'Error subiendo imagen');
 
+      // Create gig
       const res = await fetch('/api/gigs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -101,12 +102,12 @@ export default function CreateGigPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || data.message || 'Error al crear gig');
+      if (!res.ok) throw new Error(data.error || 'Error al crear el gig');
 
       setSuccess('¡Gig creado exitosamente!');
-      setTimeout(() => router.push('/gigs'), 1200);
+      setTimeout(() => router.push('/gigs'), 1500);
     } catch (err: any) {
-      setError(err.message || 'Algo salió mal');
+      setError(err.message || 'Error desconocido');
       console.error(err);
     } finally {
       setLoading(false);
@@ -115,7 +116,7 @@ export default function CreateGigPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-12">
-      <Link href="/seller" className="text-orange-600 hover:underline mb-6 inline-block">← Volver al Dashboard</Link>
+      <Link href="/seller" className="text-orange-600 hover:underline mb-6 inline-block">← Volver</Link>
       <h1 className="text-4xl font-bold mb-8">Crear Nuevo Gig</h1>
 
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl border space-y-8">
@@ -127,7 +128,7 @@ export default function CreateGigPage() {
         <div>
           <div className="flex justify-between mb-2">
             <label className="block text-sm font-medium">Descripción</label>
-            <button type="button" onClick={generateDescription} disabled={generating} className="text-orange-600 text-sm flex items-center gap-1">
+            <button type="button" onClick={generateDescription} disabled={generating} className="text-orange-600 flex items-center gap-1 text-sm">
               <Sparkles size={16} /> Grok
             </button>
           </div>
@@ -137,7 +138,7 @@ export default function CreateGigPage() {
         <div>
           <label className="block text-sm font-medium mb-2">Categoría</label>
           <select name="category" value={formData.category} onChange={handleInputChange} required className="w-full px-4 py-3 border rounded-2xl">
-            <option value="">Selecciona categoría</option>
+            <option value="">Selecciona</option>
             {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
           </select>
         </div>
@@ -154,19 +155,19 @@ export default function CreateGigPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-3">Imagen</label>
+          <label className="block text-sm font-medium mb-3">Imagen principal</label>
           <label htmlFor="image-upload" className="cursor-pointer bg-orange-600 text-white px-8 py-4 rounded-2xl inline-block">
             📸 Seleccionar imagen
           </label>
           <input type="file" accept="image/*" onChange={handleImageChange} id="image-upload" className="hidden" />
-          <p className="mt-2 text-sm">{image ? image.name : 'No seleccionada'}</p>
+          <p className="mt-2">{image ? image.name : 'No seleccionada'}</p>
         </div>
 
         {error && <p className="text-red-600 bg-red-50 p-4 rounded-2xl">{error}</p>}
         {success && <p className="text-green-600 bg-green-50 p-4 rounded-2xl">{success}</p>}
 
         <button type="submit" disabled={loading || !image} className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl text-lg">
-          {loading ? 'Creando Gig...' : 'Publicar Gig'}
+          {loading ? 'Creando...' : 'Publicar Gig'}
         </button>
       </form>
     </div>
