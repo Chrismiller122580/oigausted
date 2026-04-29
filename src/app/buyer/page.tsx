@@ -1,27 +1,31 @@
 "use client"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ShoppingBag, Package, MessageCircle, ArrowRight } from "lucide-react"
+import { ShoppingBag, Package, MessageCircle, ArrowRight, Star } from "lucide-react"
 
 export default function BuyerDashboard() {
+  const { data: session } = useSession()
+  const userName = session?.user?.name?.split(" ")[0] || "Amigo"
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex justify-between items-center mb-12">
           <div>
-            <h1 className="text-5xl font-bold tracking-tight">Hola, Comprador</h1>
-            <p className="text-xl text-gray-600 mt-3">¿Qué servicio necesitas hoy?</p>
+            <h1 className="text-5xl font-bold tracking-tight">Hola, {userName} 👋</h1>
+            <p className="text-xl text-gray-600 mt-3">¿Qué servicio necesitas hoy en Colombia?</p>
           </div>
         </div>
 
-        {/* Hero / Main CTA */}
+        {/* Hero */}
         <Card className="mb-12 bg-gradient-to-br from-orange-600 via-orange-700 to-red-600 text-white overflow-hidden">
           <CardContent className="p-16 text-center">
             <ShoppingBag className="h-20 w-20 mx-auto mb-8 opacity-90" />
             <h2 className="text-5xl font-bold mb-6">Encuentra el servicio perfecto</h2>
             <p className="text-2xl mb-10 max-w-2xl mx-auto opacity-90">
-              Miles de gigs locales en Colombia. Encuentra freelancers confiables para tu proyecto.
+              Miles de gigs locales. Profesionales confiables cerca de ti.
             </p>
             <Button asChild size="lg" className="bg-white text-orange-700 hover:bg-gray-100 text-2xl px-16 py-8 rounded-3xl font-semibold shadow-xl">
               <Link href="/gigs" className="flex items-center gap-4">
