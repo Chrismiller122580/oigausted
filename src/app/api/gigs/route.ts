@@ -1,4 +1,4 @@
-// src/app/api/gigs/route.ts - Fixed: removed unknown 'location' field
+// src/app/api/gigs/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -7,57 +7,78 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
+    
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Debes iniciar sesión para publicar un gig' }, { status: 401 });
+      return NextResponse.json({ error: 'Debes iniciar sesión como vendedor' }, { status: 401 });
     }
 
     const body = await request.json();
-
+    
     const {
       title,
       description,
       price,
       category,
-      images = [],
-      deliveryTime = '3',
-      customFields = {},
+      imageUrl,
+      completionTime = '3',
+      fields = {},
       addons = [],
     } = body;
 
+    if (!title || !price || !category) {
+      return NextResponse.json({ error: 'Título, precio y categoría son obligatorios' }, { status: 400 });
+    }
+
     const gig = await prisma.gig.create({
       data: {
-        title: String(title || ''),
-        description: description ? String(description) : null,
+        title: String(title).trim(),
+        description: description ? String(description).trim() : null,
         price: parseFloat(price) || 0,
-        category: category ? String(category) : null,
-        imageUrl: images[0] ? String(images[0]) : null,
-        completionTime: String(deliveryTime),
-        fields: customFields || {},
+        category: String(category),
+        imageUrl: imageUrl ? String(imageUrl) : null,
+        completionTime: String(completionTime),
+        fields: fields || {},
         addons: Array.isArray(addons) ? addons : [],
         sellerId: session.user.id,
       },
     });
 
-    console.log('✅ Gig created successfully:', gig.id);
+    console.log('✅ Gig created:', gig.id);
 
-    return NextResponse.json({ 
-      success: true, 
-      gigId: gig.id,
-      message: 'Gig creado exitosamente' 
+    return NextResponse.json({
+      success: true,
+      gig,
+      message: 'Gig creado exitosamente'
     });
 
   } catch (error: any) {
     console.error('Create gig error:', error);
-    return NextResponse.json({ 
-      error: error.message || 'Error al crear el gig. Revisa los datos.' 
+    return NextResponse.json({
+      error: error.message || 'Error interno al crear el gig'
     }, { status: 500 });
   }
 }
 
 export async function GET() {
-  const gigs = await prisma.gig.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: { seller: { select: { name: true, businessName: true } } }
-  });
-  return NextResponse.json(gigs);
+  try {
+    const gigs = await prisma.gig.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            businessName: true,
+            rating: true,
+            reviewCount: true,
+          }
+        }
+      }
+    });
+
+    return NextResponse.json(gigs);
+  } catch (error) {
+    console.error('Fetch gigs error:', error);
+    return NextResponse.json({ error: 'Error al cargar los gigs' }, { status: 500 });
+  }
 }
