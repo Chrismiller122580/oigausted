@@ -17,56 +17,42 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
 
   const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
 
-  // Auto create order when page loads
   useEffect(() => {
     const createOrder = async () => {
       try {
         const res = await fetch('/api/orders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            gigId: gig.id,
-            buyerId,
-            price: gig.price
-          }),
+          body: JSON.stringify({ gigId: gig.id, buyerId, price: gig.price }),
         });
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error creando orden');
 
-        const newOrderId = data.id || data.orderId;
-        setOrderId(newOrderId);
+        setOrderId(data.id || data.orderId);
         setStatus('✅ Orden creada - listo para pagar');
       } catch (err: any) {
-        console.error(err);
-        toast.error('Error al crear la orden');
+        toast.error(err.message);
       }
     };
 
     if (gig?.id && buyerId) createOrder();
   }, [gig, buyerId]);
 
-  const handlePay = async () => {
+  const handlePay = () => {
     if (!orderId) {
-      toast.error('Orden no creada aún');
+      toast.error('Espera un momento...');
       return;
     }
 
     setLoading(true);
 
-    try {
-      // Use Wompi redirect checkout (more reliable than popup)
-      const amountInCents = Math.round(Number(gig.price) * 100);
-      const redirectUrl = `${window.location.origin}/orders/${orderId}`;
+    const amountInCents = Math.round(Number(gig.price) * 100);
+    const redirectUrl = `${window.location.origin}/orders/${orderId}`;
 
-      const wompiUrl = `https://checkout.wompi.co/?public-key=${publicKey}&currency=COP&amount-in-cents=${amountInCents}&reference=order_${orderId}&redirect-url=${encodeURIComponent(redirectUrl)}`;
+    const wompiUrl = `https://checkout.wompi.co/?public-key=${publicKey}&currency=COP&amount-in-cents=${amountInCents}&reference=order_${orderId}&redirect-url=${encodeURIComponent(redirectUrl)}`;
 
-      window.location.href = wompiUrl;
-
-    } catch (err) {
-      toast.error('Error al abrir el pago');
-      setLoading(false);
-    }
+    window.location.href = wompiUrl;
   };
 
   return (
@@ -76,7 +62,7 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
 
         <div className="mb-10">
           <h2 className="text-2xl font-semibold">{gig.title}</h2>
-          <p className="text-zinc-600 mt-3 line-clamp-4">{gig.description}</p>
+          <p className="text-zinc-600 mt-3">{gig.description}</p>
 
           <div className="mt-8 flex justify-between items-end">
             <div>
