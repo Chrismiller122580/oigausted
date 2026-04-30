@@ -56,9 +56,7 @@ export default function ProfilePage() {
       formDataUpload.append('file', file);
       const res = await fetch('/api/upload', { method: 'POST', body: formDataUpload });
       const data = await res.json();
-      if (data.url) {
-        setFormData({ ...formData, imageUrl: data.url });
-      }
+      if (data.url) setFormData({ ...formData, imageUrl: data.url });
     } catch (err) {
       alert("Error subiendo foto");
     } finally {
@@ -119,7 +117,7 @@ export default function ProfilePage() {
           <h1 className="text-5xl font-bold">Mi Perfil</h1>
           <div className="flex gap-3">
             <Button onClick={copyProfileLink} variant="outline">
-              <Share2 size={18} className="mr-2" /> Compartir
+              <Share2 size={18} className="mr-2" /> Compartir Perfil
             </Button>
             <Button onClick={() => setIsEditing(!isEditing)} variant={isEditing ? "default" : "outline"}>
               {isEditing ? "Cancelar" : "Editar Perfil"}
