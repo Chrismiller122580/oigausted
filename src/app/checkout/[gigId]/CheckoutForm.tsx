@@ -18,78 +18,84 @@ declare global {
 export default function CheckoutForm({ gig, buyerId }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
-  const [status, setStatus] = useState('⏳ Cargando Wompi...');
+  const [status, setStatus] = useState('⏳ Creando orden...');
 
   const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
 
+  // 1. Create order automatically when page loads
   useEffect(() => {
-    if (!publicKey) {
-      setStatus('❌ Clave Wompi no configurada en Vercel');
+    if (!buyerId || !gig?.id) return;
+
+    const createOrder = async () => {
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gigId: gig.id, buyerId, price: gig.price }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error creando orden');
+
+        const newOrderId = data.id || data.orderId;
+        setOrderId(newOrderId);
+        setStatus('✅ Orden creada - listo para pagar');
+        console.log('✅ Order created automatically:', newOrderId);
+      } catch (err: any) {
+        console.error(err);
+        toast.error('Error al crear la orden');
+      }
+    };
+
+    createOrder();
+  }, [gig, buyerId]);
+
+  // 2. Load Wompi script
+  useEffect(() => {
+    if (window.WompiCheckout) {
+      setReady(true);
       return;
     }
 
     const script = document.createElement('script');
     script.src = 'https://checkout.wompi.co/widget.js';
     script.async = true;
-    script.onload = () => {
-      setReady(true);
-      setStatus('✅ Listo - haz clic en Pagar');
-    };
-    script.onerror = () => setStatus('❌ Error cargando Wompi');
+    script.onload = () => setReady(true);
+    script.onerror = () => toast.error('No se pudo cargar Wompi');
     document.body.appendChild(script);
-  }, [publicKey]);
+  }, []);
 
-  const handlePayment = async () => {
-    if (!ready) {
-      toast.error('Espera que Wompi termine de cargar');
+  const handlePay = () => {
+    if (!orderId || !ready) {
+      toast.error('Espera un momento...');
       return;
     }
 
     setLoading(true);
-    setStatus('Creando orden...');
 
     try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gigId: gig.id, buyerId, price: gig.price }),
+      const checkout = new window.WompiCheckout({
+        publicKey,
+        currency: 'COP',
+        amountInCents: Math.round(Number(gig.price) * 100),
+        reference: `order_${orderId}`,
+        redirectUrl: `${window.location.origin}/orders/${orderId}`,
+        onSuccess: () => {
+          toast.success('¡Pago exitoso!');
+          setTimeout(() => router.push(`/orders/${orderId}`), 1500);
+        },
+        onError: (err: any) => {
+          toast.error('Error en el pago');
+          console.error(err);
+        },
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error creando orden');
-
-      const orderId = data.id || data.orderId;
-
-      // Small delay to ensure Wompi is fully ready
-      setTimeout(() => {
-        try {
-          const checkout = new window.WompiCheckout({
-            publicKey,
-            currency: 'COP',
-            amountInCents: Math.round(Number(gig.price) * 100),
-            reference: `order_${orderId}`,
-            redirectUrl: `${window.location.origin}/orders/${orderId}`,
-            onSuccess: () => {
-              toast.success('¡Pago exitoso!');
-              setTimeout(() => router.push(`/orders/${orderId}`), 1500);
-            },
-            onError: (err: any) => {
-              toast.error('Error en el pago');
-              console.error(err);
-            },
-          });
-
-          checkout.open();
-          setStatus('✅ Widget Wompi abierto');
-        } catch (e) {
-          console.error("Wompi open error:", e);
-          toast.error("No se pudo abrir Wompi");
-        }
-      }, 600);
-
-    } catch (err: any) {
-      toast.error(err.message || 'Error inesperado');
+      checkout.open();
+    } catch (err) {
+      toast.error('No se pudo abrir Wompi');
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -119,8 +125,8 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
         </div>
 
         <button
-          onClick={handlePayment}
-          disabled={loading || !ready}
+          onClick={handlePay}
+          disabled={loading || !orderId || !ready}
           className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-5 rounded-2xl text-xl transition-all"
         >
           {loading ? 'Procesando...' : 'Pagar con Wompi 💳'}
