@@ -1,15 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { ArrowLeft } from 'lucide-react';
 
-export default function CheckoutPage({ params }: { params: { gigId: string } }) {
+export default function CheckoutPage() {
   const router = useRouter();
+  const params = useParams();
+  const gigId = params.gigId as string;   // ← Correct way for client components
   const { data: session } = useSession();
-  const gigId = params.gigId;
 
   const [gig, setGig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -19,9 +20,11 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
   const [customData, setCustomData] = useState<Record<string, any>>({});
   const [totalPrice, setTotalPrice] = useState(0);
 
+  console.log("🔍 Checkout Debug - gigId received:", gigId); // ← Debug log
+
   useEffect(() => {
     if (!gigId) {
-      setError("ID de gig inválido");
+      setError("ID de gig inválido (no se recibió el ID)");
       setLoading(false);
       return;
     }
@@ -39,7 +42,7 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
       })
       .catch(err => {
         console.error(err);
-        setError("No se pudo cargar el gig. Intenta de nuevo.");
+        setError("No se pudo cargar el gig");
         setLoading(false);
       });
   }, [gigId]);
@@ -52,6 +55,13 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
         { key: 'bathrooms', label: 'Número de baños', type: 'number', placeholder: '2', priceImpact: 15000 },
         { key: 'deepClean', label: '¿Limpieza profunda?', type: 'checkbox', priceImpact: 40000 },
         { key: 'pets', label: '¿Hay mascotas?', type: 'checkbox', priceImpact: 10000 },
+      ];
+    } else if (category.includes('Transporte') || category.includes('Mudanzas') || category.includes('Delivery')) {
+      fields = [
+        { key: 'pickupAddress', label: 'Dirección de recogida', type: 'text' },
+        { key: 'deliveryAddress', label: 'Dirección de entrega', type: 'text' },
+        { key: 'packageSize', label: 'Tamaño del paquete', type: 'select', options: ['Pequeño', 'Mediano', 'Grande'] },
+        { key: 'urgent', label: '¿Entrega urgente?', type: 'checkbox', priceImpact: 35000 },
       ];
     }
     setBuyerFields(fields);
@@ -94,6 +104,7 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
       router.push(`/orders/${data.id || data.orderId}`);
     } catch (err: any) {
       setError(err.message);
+      console.error(err);
     } finally {
       setSubmitting(false);
     }
@@ -124,7 +135,12 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
             {buyerFields.map((field, i) => (
               <div key={i}>
                 <label className="block text-sm font-medium mb-3">{field.label}</label>
-                {field.type === 'number' && <input type="number" onChange={(e) => handleFieldChange(field.key, Number(e.target.value), field.priceImpact)} className="w-full px-5 py-4 border rounded-2xl" placeholder={field.placeholder} />}
+                {field.type === 'number' && (
+                  <input type="number" onChange={(e) => handleFieldChange(field.key, Number(e.target.value), field.priceImpact)} className="w-full px-5 py-4 border rounded-2xl" placeholder={field.placeholder} />
+                )}
+                {field.type === 'text' && (
+                  <input type="text" onChange={(e) => handleFieldChange(field.key, e.target.value)} className="w-full px-5 py-4 border rounded-2xl" />
+                )}
                 {field.type === 'checkbox' && (
                   <label className="flex items-center gap-3 cursor-pointer py-3">
                     <input type="checkbox" onChange={(e) => handleFieldChange(field.key, e.target.checked, field.priceImpact)} className="w-5 h-5 accent-orange-600" />
@@ -143,7 +159,7 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
 
             {error && <p className="text-red-600 mb-4">{error}</p>}
 
-            <button onClick={handleCheckout} disabled={submitting} className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-6 rounded-2xl text-xl">
+            <button onClick={handleCheckout} disabled={submitting} className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-6 rounded-2xl text-xl">
               {submitting ? 'Procesando...' : 'Continuar al Pago 💳'}
             </button>
           </div>
