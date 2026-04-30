@@ -15,12 +15,9 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [status, setStatus] = useState('⏳ Creando orden...');
 
-  const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
-
-  // Create order on page load
+  // Auto-create order
   useEffect(() => {
     const createOrder = async () => {
-      setStatus('Creando orden...');
       try {
         const res = await fetch('/api/orders', {
           method: 'POST',
@@ -31,34 +28,40 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error creando orden');
 
-        const newOrderId = data.id || data.orderId;
-        setOrderId(newOrderId);
-        setStatus('✅ Orden creada - haz clic para pagar');
-        console.log('✅ Order created:', newOrderId);
+        setOrderId(data.id || data.orderId);
+        setStatus('✅ Orden creada');
       } catch (err: any) {
         toast.error(err.message);
-        setStatus('❌ Error creando orden');
       }
     };
 
     if (gig?.id && buyerId) createOrder();
   }, [gig, buyerId]);
 
-  const handlePay = () => {
-    if (!orderId) {
-      toast.error('Orden no lista');
-      return;
-    }
+  const handleRealWompi = () => {
+    toast.error('Wompi hosted checkout still blocked. Use "Simular Pago" for now.');
+  };
+
+  const handleSimulatePayment = async () => {
+    if (!orderId) return;
 
     setLoading(true);
 
-    const amountInCents = Math.round(Number(gig.price) * 100);
-    const redirectUrl = `${window.location.origin}/orders/${orderId}`;
+    try {
+      // Mark order as paid
+      await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Completed' }),
+      });
 
-    const wompiUrl = `https://checkout.wompi.co/?public-key=${publicKey}&currency=COP&amount-in-cents=${amountInCents}&reference=order_${orderId}&redirect-url=${encodeURIComponent(redirectUrl)}`;
-
-    console.log('🔄 Redirecting to Wompi:', wompiUrl);
-    window.location.href = wompiUrl;
+      toast.success('✅ Pago simulado con éxito (modo desarrollo)');
+      setTimeout(() => router.push(`/orders/${orderId}`), 1200);
+    } catch (err) {
+      toast.error('Error simulando pago');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -84,12 +87,21 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
           </div>
         </div>
 
+        {/* Real Wompi button (disabled for now) */}
         <button
-          onClick={handlePay}
-          disabled={loading || !orderId}
-          className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-5 rounded-2xl text-xl transition-all"
+          onClick={handleRealWompi}
+          className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-5 rounded-2xl text-xl transition-all mb-4"
         >
-          {loading ? 'Redirigiendo a Wompi...' : 'Pagar con Wompi 💳'}
+          Pagar con Wompi 💳 (real)
+        </button>
+
+        {/* Development simulation button */}
+        <button
+          onClick={handleSimulatePayment}
+          disabled={loading || !orderId}
+          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-5 rounded-2xl text-xl transition-all"
+        >
+          {loading ? 'Simulando pago...' : '🔧 Simular Pago (Modo Desarrollo)'}
         </button>
 
         <p className="text-center text-sm mt-6 font-medium text-zinc-700">{status}</p>
