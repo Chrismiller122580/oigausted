@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Send, Paperclip, Clock } from 'lucide-react';
+import { ArrowLeft, Send, Paperclip, Clock, MessageCircle } from 'lucide-react';
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -27,7 +27,6 @@ export default function OrderDetailPage() {
       const res = await fetch(`/api/orders/${params.id}`);
       const data = await res.json();
       setOrder(data);
-      // Mock messages for now
       setMessages([
         { id: 1, sender: "buyer", content: "Hola, ¿cuándo puedes empezar?", time: "hace 2 horas" },
         { id: 2, sender: "seller", content: "Mañana en la mañana estoy disponible", time: "hace 1 hora" },
@@ -61,21 +60,18 @@ export default function OrderDetailPage() {
         </Link>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Order Info */}
+          {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             <Card>
               <CardContent className="p-10">
-                <div className="flex justify-between">
-                  <h1 className="text-3xl font-bold">{order.gig?.title || 'Pedido #' + order.id}</h1>
-                  <span className="text-3xl font-bold text-orange-600">
-                    ${Number(order.price).toLocaleString('es-CO')}
-                  </span>
-                </div>
-                <p className="text-gray-600 mt-4">{order.gig?.description}</p>
+                <h1 className="text-3xl font-bold">{order.gig?.title || 'Pedido #' + order.id}</h1>
+                <p className="text-2xl font-bold text-orange-600 mt-4">
+                  ${Number(order.price).toLocaleString('es-CO')}
+                </p>
               </CardContent>
             </Card>
 
-            {/* Chat */}
+            {/* Chat Section */}
             <Card>
               <CardContent className="p-8">
                 <h3 className="font-semibold text-xl mb-6 flex items-center gap-3">
@@ -97,11 +93,10 @@ export default function OrderDetailPage() {
                   <Textarea 
                     value={newMessage} 
                     onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Escribe un mensaje..."
+                    placeholder="Escribe un mensaje al cliente..."
                     onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                    className="flex-1"
                   />
-                  <Button onClick={sendMessage} className="px-8">
+                  <Button onClick={sendMessage}>
                     <Send size={20} />
                   </Button>
                 </div>
@@ -114,9 +109,9 @@ export default function OrderDetailPage() {
             <Card className="sticky top-8">
               <CardContent className="p-8">
                 <h3 className="font-semibold mb-6">Estado del Pedido</h3>
-                <div className="space-y-6">
+                <div className="space-y-6 text-sm">
                   <div className="flex justify-between">
-                    <span>Estado</span>
+                    <span>Estado actual</span>
                     <span className="font-medium text-green-600">En Progreso</span>
                   </div>
                   <div className="flex justify-between">
@@ -125,7 +120,7 @@ export default function OrderDetailPage() {
                   </div>
                 </div>
 
-                <Button className="w-full mt-10" onClick={() => alert('Archivo subido (demo)')}>
+                <Button className="w-full mt-10" onClick={() => alert('Funcionalidad de subir archivo en desarrollo')}>
                   📎 Subir archivo para el cliente
                 </Button>
               </CardContent>
