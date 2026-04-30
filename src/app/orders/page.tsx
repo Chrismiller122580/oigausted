@@ -76,19 +76,19 @@ export default function BuyerOrdersPage() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex justify-between">
-                    <h3 className="font-semibold text-2xl line-clamp-2">{order.gig?.title}</h3>
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-semibold text-2xl line-clamp-2">{order.gig?.title || 'Servicio'}</h3>
                     <span className={`px-5 py-2 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
                       {order.status}
                     </span>
                   </div>
 
-                  <p className="text-gray-600 mt-1">Proveedor: {order.seller?.businessName || order.seller?.name}</p>
+                  <p className="text-gray-600 mt-1">Proveedor: {order.seller?.businessName || order.seller?.name || 'Vendedor'}</p>
 
                   <div className="mt-6 flex gap-8 text-sm">
                     <div>
                       <p className="text-gray-500">Total</p>
-                      <p className="font-semibold">${Number(order.price).toLocaleString('es-CO')}</p>
+                      <p className="font-semibold">${Number(order.price || 0).toLocaleString('es-CO')}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Fecha</p>
@@ -103,7 +103,7 @@ export default function BuyerOrdersPage() {
                         {Object.entries(order.customFields).map(([key, val]) => (
                           <div key={key} className="flex justify-between">
                             <span className="text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-                            <span className="font-medium">{val}</span>
+                            <span className="font-medium">{String(val)}</span>
                           </div>
                         ))}
                       </div>
