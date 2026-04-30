@@ -26,7 +26,9 @@ export default function OrderDetailPage() {
         return;
       }
 
-      setOrder(data);
+      // API returns { order: {...} } so we unwrap it
+      const actualOrder = data.order || data;
+      setOrder(actualOrder);
     } catch (err) {
       setError('Error cargando el pedido');
       console.error(err);
@@ -35,17 +37,8 @@ export default function OrderDetailPage() {
     }
   };
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Cargando pedido...</div>;
-  }
-
-  if (error || !order) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-600">
-        {error || 'Pedido no encontrado'}
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando pedido...</div>;
+  if (error || !order) return <div className="min-h-screen flex items-center justify-center text-red-600">{error || 'Pedido no encontrado'}</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -63,13 +56,11 @@ export default function OrderDetailPage() {
                 <p className="text-4xl font-bold text-orange-600 mt-4">
                   ${Number(order.price || 0).toLocaleString('es-CO')}
                 </p>
-                <p className="text-sm text-zinc-500 mt-2">
-                  ID: {order.id}
-                </p>
+                <p className="text-sm text-zinc-500 mt-2">ID: {order.id}</p>
               </CardContent>
             </Card>
 
-            {/* Chat Section */}
+            {/* Chat */}
             <Card>
               <CardContent className="p-8">
                 <h3 className="font-semibold text-xl mb-6 flex items-center gap-3">
@@ -91,11 +82,7 @@ export default function OrderDetailPage() {
                 </div>
 
                 <div className="flex gap-3">
-                  <input
-                    type="text"
-                    className="flex-1 border rounded-2xl px-5 py-4"
-                    placeholder="Escribe un mensaje..."
-                  />
+                  <input type="text" className="flex-1 border rounded-2xl px-5 py-4" placeholder="Escribe un mensaje..." />
                   <button className="bg-orange-600 text-white px-8 rounded-2xl">Enviar</button>
                 </div>
               </CardContent>
