@@ -33,10 +33,11 @@ export default function CreateGigPage() {
     const cat = formData.category;
     let fields: any[] = [];
 
+    // ==================== FULL EXPANDED LIST ====================
     if (cat === 'Limpieza de Hogar y Oficinas') {
       fields = [
-        { key: 'rooms', label: 'Número de habitaciones', type: 'number', placeholder: 'Ej: 3' },
-        { key: 'bathrooms', label: 'Número de baños', type: 'number', placeholder: 'Ej: 2' },
+        { key: 'rooms', label: 'Número de habitaciones', type: 'number', placeholder: '3' },
+        { key: 'bathrooms', label: 'Número de baños', type: 'number', placeholder: '2' },
         { key: 'deepClean', label: '¿Limpieza profunda?', type: 'checkbox' },
         { key: 'pets', label: '¿Hay mascotas?', type: 'checkbox' },
       ];
@@ -61,7 +62,7 @@ export default function CreateGigPage() {
     } else if (cat === 'Diseño Gráfico y Logos' || cat.includes('Diseño')) {
       fields = [
         { key: 'format', label: 'Formato entregable', type: 'select', options: ['PNG', 'SVG', 'PDF', 'Editable'] },
-        { key: 'revisions', label: 'Número de revisiones incluidas', type: 'number', placeholder: '2' },
+        { key: 'revisions', label: 'Revisiones incluidas', type: 'number', placeholder: '2' },
       ];
     } else if (cat === 'Fotografía y Video' || cat.includes('Foto') || cat.includes('Video')) {
       fields = [
@@ -73,10 +74,64 @@ export default function CreateGigPage() {
         { key: 'serviceType', label: 'Tipo de servicio', type: 'select', options: ['Maquillaje', 'Peinado', 'Uñas', 'Paquete completo'] },
         { key: 'people', label: 'Número de personas', type: 'number', placeholder: '1' },
       ];
-    } else if (cat.includes('IA') || cat.includes('Inteligencia') || cat.includes('Documentos')) {
+    } else if (cat.includes('IA') || cat.includes('Inteligencia') || cat.includes('Documentos') || cat.includes('Redacción') || cat.includes('Copywriting')) {
       fields = [
-        { key: 'serviceType', label: 'Tipo de servicio IA', type: 'select', options: ['Redacción', 'Traducción', 'Resumen', 'Generación de imágenes', 'Otro'] },
+        { key: 'serviceType', label: 'Tipo de servicio', type: 'select', options: ['Redacción', 'Traducción', 'Resumen', 'Generación de imágenes', 'Otro'] },
         { key: 'wordCount', label: 'Cantidad aproximada de palabras', type: 'number', placeholder: '500' },
+      ];
+    } else if (cat.includes('Eventos') || cat.includes('Fiestas') || cat.includes('Gestión')) {
+      fields = [
+        { key: 'guests', label: 'Número de invitados', type: 'number', placeholder: '50' },
+        { key: 'locationType', label: 'Tipo de lugar', type: 'select', options: ['Casa', 'Salón', 'Al aire libre'] },
+      ];
+    } else if (cat === 'Música y DJ para Eventos') {
+      fields = [
+        { key: 'eventType', label: 'Tipo de evento', type: 'select', options: ['Boda', 'Fiesta', 'Corporativo', 'Otro'] },
+        { key: 'hours', label: 'Horas de servicio', type: 'number', placeholder: '4' },
+      ];
+    } else if (cat === 'Asesoría Legal y Tributaria') {
+      fields = [
+        { key: 'serviceType', label: 'Tipo de asesoría', type: 'select', options: ['Impuestos', 'Contratos', 'Empresa', 'Personal'] },
+      ];
+    } else if (cat === 'Cocina Casera y Catering') {
+      fields = [
+        { key: 'people', label: 'Número de personas', type: 'number', placeholder: '20' },
+        { key: 'cuisine', label: 'Tipo de comida', type: 'select', options: ['Colombiana', 'Internacional', 'Vegetariana', 'Otro'] },
+      ];
+    } else if (cat === 'Artesanías y Productos Hechos a Mano') {
+      fields = [
+        { key: 'material', label: 'Material principal', type: 'text' },
+        { key: 'deliveryTime', label: 'Tiempo de entrega (días)', type: 'number', placeholder: '7' },
+      ];
+    } else if (cat === 'Cuidado Holístico y Bienestar') {
+      fields = [
+        { key: 'serviceType', label: 'Tipo de servicio', type: 'select', options: ['Masajes', 'Yoga', 'Meditación', 'Reiki'] },
+        { key: 'duration', label: 'Duración (minutos)', type: 'number', placeholder: '60' },
+      ];
+    } else if (cat === 'Marketing Digital y Redes Sociales') {
+      fields = [
+        { key: 'platform', label: 'Plataformas', type: 'text', placeholder: 'Instagram, Facebook' },
+        { key: 'goal', label: 'Objetivo', type: 'select', options: ['Más seguidores', 'Más ventas', 'Branding'] },
+      ];
+    } else if (cat === 'Desarrollo Web y Tiendas Online') {
+      fields = [
+        { key: 'projectType', label: 'Tipo de proyecto', type: 'select', options: ['Landing Page', 'Tienda Online', 'Blog', 'Otro'] },
+        { key: 'revisions', label: 'Revisiones incluidas', type: 'number', placeholder: '3' },
+      ];
+    } else if (cat === 'Edición de Video y Contenido Audiovisual') {
+      fields = [
+        { key: 'videoLength', label: 'Duración del video (minutos)', type: 'number', placeholder: '5' },
+        { key: 'style', label: 'Estilo', type: 'select', options: ['Corporativo', 'Creativo', 'Publicidad'] },
+      ];
+    } else if (cat === 'Asistente Virtual y Soporte Administrativo') {
+      fields = [
+        { key: 'hoursPerWeek', label: 'Horas por semana', type: 'number', placeholder: '10' },
+        { key: 'tasks', label: 'Tareas principales', type: 'text' },
+      ];
+    } else if (cat === 'Diseño de Interiores y Arquitectura') {
+      fields = [
+        { key: 'projectType', label: 'Tipo de proyecto', type: 'select', options: ['Residencial', 'Comercial', 'Remodelación'] },
+        { key: 'area', label: 'Área aproximada (m²)', type: 'number', placeholder: '80' },
       ];
     }
 
@@ -99,18 +154,20 @@ export default function CreateGigPage() {
   };
 
   const generateDescription = async () => {
-    if (!formData.title || !formData.category) return setError("Título y categoría son obligatorios");
+    if (!formData.title || !formData.category) return setError("Title and category are required");
     setGenerating(true);
     try {
       const res = await fetch('/api/grok', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: `Descripción atractiva y profesional en español colombiano para: ${formData.category} - ${formData.title}` })
+        body: JSON.stringify({ 
+          prompt: `Write a professional, attractive description in Colombian Spanish for this gig: ${formData.category} - ${formData.title}` 
+        })
       });
       const data = await res.json();
       if (data.reply) setFormData(prev => ({ ...prev, description: data.reply }));
     } catch {
-      setError("Error generando con Grok");
+      setError("Error with Grok");
     } finally {
       setGenerating(false);
     }
@@ -118,7 +175,7 @@ export default function CreateGigPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!image || !formData.price || !formData.title) return setError('Faltan campos obligatorios');
+    if (!image || !formData.price || !formData.title) return setError('Missing required fields (title, price, image)');
 
     setLoading(true);
     setError('');
@@ -144,8 +201,8 @@ export default function CreateGigPage() {
         }),
       });
 
-      if (!res.ok) throw new Error('Error al publicar');
-      setSuccess('¡Gig publicado exitosamente!');
+      if (!res.ok) throw new Error('Failed to publish gig');
+      setSuccess('Gig published successfully! Redirecting...');
       setTimeout(() => router.push('/gigs'), 1500);
     } catch (err: any) {
       setError(err.message);
@@ -156,31 +213,30 @@ export default function CreateGigPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
-      <Link href="/seller" className="text-orange-600 hover:underline mb-8 inline-flex items-center gap-2">← Volver al Dashboard</Link>
+      <Link href="/seller" className="text-orange-600 hover:underline mb-8 inline-flex items-center gap-2">← Back to Seller Dashboard</Link>
 
       <div className="flex justify-between items-end mb-10">
         <div>
-          <h1 className="text-5xl font-bold">Publica tu Servicio</h1>
-          <p className="text-xl text-gray-600">Ahora con campos inteligentes por categoría</p>
+          <h1 className="text-5xl font-bold">Publish Your Service</h1>
+          <p className="text-xl text-gray-600">Smart fields for every category</p>
         </div>
         <button onClick={() => setShowPreview(!showPreview)} className="flex items-center gap-2 text-orange-600 hover:text-orange-700">
-          <Eye size={20} /> {showPreview ? 'Ocultar vista previa' : 'Ver vista previa'}
+          <Eye size={20} /> {showPreview ? 'Hide Preview' : 'Show Preview'}
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-5 gap-10">
         <div className="lg:col-span-3 bg-white p-10 rounded-3xl border space-y-10">
-          {/* Title, Description, Category, Price */}
           <div>
-            <label className="block text-sm font-medium mb-2">Título del servicio</label>
-            <input type="text" name="title" value={formData.title} onChange={handleInputChange} required className="w-full px-5 py-4 border rounded-2xl text-lg" placeholder="Ej: Limpieza profunda..." />
+            <label className="block text-sm font-medium mb-2">Service Title</label>
+            <input type="text" name="title" value={formData.title} onChange={handleInputChange} required className="w-full px-5 py-4 border rounded-2xl text-lg" placeholder="e.g. Deep home cleaning" />
           </div>
 
           <div>
             <div className="flex justify-between mb-3">
-              <label className="block text-sm font-medium">Descripción</label>
+              <label className="block text-sm font-medium">Description</label>
               <button type="button" onClick={generateDescription} disabled={generating} className="text-orange-600 flex items-center gap-1 text-sm">
-                <Sparkles size={18} /> Generar con Grok
+                <Sparkles size={18} /> Generate with Grok
               </button>
             </div>
             <textarea name="description" value={formData.description} onChange={handleInputChange} rows={5} className="w-full px-5 py-4 border rounded-3xl" />
@@ -188,9 +244,9 @@ export default function CreateGigPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium mb-2">Categoría</label>
+              <label className="block text-sm font-medium mb-2">Category</label>
               <select name="category" value={formData.category} onChange={handleInputChange} required className="w-full px-5 py-4 border rounded-2xl">
-                <option value="">Selecciona una categoría</option>
+                <option value="">Select a category</option>
                 {categories.map(cat => (
                   <option key={cat} value={cat}>
                     {categoryEmojis[cat] || '•'} {cat}
@@ -199,15 +255,15 @@ export default function CreateGigPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Precio (COP)</label>
+              <label className="block text-sm font-medium mb-2">Price (COP)</label>
               <input type="number" name="price" value={formData.price} onChange={handleInputChange} required className="w-full px-5 py-4 border rounded-2xl text-lg" placeholder="85000" />
             </div>
           </div>
 
-          {/* Dynamic Fields - Ahora con más categorías */}
+          {/* Dynamic Fields - Now covers ALL categories */}
           {dynamicFields.length > 0 && (
             <div className="border-t pt-8">
-              <h3 className="font-semibold text-lg mb-6">Detalles específicos del servicio</h3>
+              <h3 className="font-semibold text-lg mb-6">Specific Service Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {dynamicFields.map((field, i) => (
                   <div key={i}>
@@ -222,7 +278,7 @@ export default function CreateGigPage() {
                     )}
                     {field.type === 'select' && field.options && (
                       <select onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} className="w-full px-5 py-4 border rounded-2xl">
-                        <option value="">Selecciona...</option>
+                        <option value="">Select...</option>
                         {field.options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
                     )}
@@ -233,10 +289,10 @@ export default function CreateGigPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-3">Imagen principal</label>
+            <label className="block text-sm font-medium mb-3">Main Image</label>
             <label htmlFor="image-upload" className="cursor-pointer border-2 border-dashed border-orange-300 hover:border-orange-600 rounded-3xl p-12 flex flex-col items-center">
               <ImageIcon className="w-12 h-12 text-orange-500 mb-4" />
-              <span>Subir imagen</span>
+              <span>Click to upload image</span>
             </label>
             <input type="file" id="image-upload" onChange={handleImageChange} className="hidden" accept="image/*" />
             {image && <p className="mt-3 text-green-600">✓ {image.name}</p>}
@@ -246,19 +302,19 @@ export default function CreateGigPage() {
           {success && <p className="text-green-600 bg-green-50 p-4 rounded-2xl">{success}</p>}
 
           <button type="submit" disabled={loading || !image || !formData.price} className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-5 rounded-2xl text-xl">
-            {loading ? 'Publicando...' : 'Publicar Gig'}
+            {loading ? 'Publishing Gig...' : 'Publish Gig'}
           </button>
         </div>
 
         {showPreview && (
           <div className="lg:col-span-2 bg-zinc-50 border rounded-3xl p-8 h-fit sticky top-8">
-            <h3 className="font-semibold mb-6">Vista previa del Gig</h3>
+            <h3 className="font-semibold mb-6">Gig Preview</h3>
             <div className="bg-white rounded-2xl overflow-hidden border">
-              {image ? <img src={URL.createObjectURL(image)} className="w-full h-48 object-cover" alt="preview" /> : <div className="h-48 bg-gray-100 flex items-center justify-center">Sin imagen</div>}
+              {image ? <img src={URL.createObjectURL(image)} className="w-full h-48 object-cover" alt="preview" /> : <div className="h-48 bg-gray-100 flex items-center justify-center text-gray-400">No image yet</div>}
               <div className="p-6">
-                <h4 className="font-semibold text-xl">{formData.title || 'Título del servicio'}</h4>
+                <h4 className="font-semibold text-xl">{formData.title || 'Service Title'}</h4>
                 <p className="text-3xl font-bold text-orange-600 mt-2">${formData.price ? Number(formData.price).toLocaleString('es-CO') : '0'}</p>
-                <p className="text-sm text-gray-600 mt-4 line-clamp-4">{formData.description || 'Descripción aparecerá aquí...'}</p>
+                <p className="text-sm text-gray-600 mt-4 line-clamp-4">{formData.description || 'Description will appear here...'}</p>
               </div>
             </div>
           </div>
