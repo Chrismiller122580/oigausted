@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
-// Absolute imports - this is the most reliable way in Next.js
-import AdminNavbar from '@/components/AdminNavbar';
-import BuyerNavbar from '@/components/BuyerNavbar';
-import SellerNavbar from '@/components/SellerNavbar';
+// Correct relative imports (from layout/ folder)
+import AdminNavbar from '../AdminNavbar';
+import BuyerNavbar from '../BuyerNavbar';
+import SellerNavbar from '../SellerNavbar';
 
 export default function NavbarWrapper({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
@@ -26,7 +26,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   if (role === 'seller') return <SellerNavbar>{children}</SellerNavbar>;
   if (role === 'buyer') return <BuyerNavbar>{children}</BuyerNavbar>;
 
-  // Public navbar fallback
+  // Public navbar
   return (
     <>
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
