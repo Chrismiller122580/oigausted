@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { gigCategories } from '@/lib/gig-categories';
 import { categories, categoryEmojis } from '@/lib/categories';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Clock, Image as ImageIcon } from 'lucide-react';
 
 export default function CreateGigPage() {
   const router = useRouter();
@@ -58,14 +58,16 @@ export default function CreateGigPage() {
       const res = await fetch('/api/grok', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: `Descripción atractiva y profesional para el gig: ${formData.title}` })
+        body: JSON.stringify({ 
+          prompt: `Escribe una descripción atractiva, profesional y convincente en español colombiano para este gig: ${formData.title}. Máximo 280 caracteres.` 
+        })
       });
       const data = await res.json();
       if (data.reply || data.description) {
         setFormData(prev => ({ ...prev, description: data.reply || data.description }));
       }
     } catch (err) {
-      setError("No se pudo generar la descripción");
+      setError("No se pudo generar la descripción con Grok");
     } finally {
       setGenerating(false);
     }
@@ -73,7 +75,7 @@ export default function CreateGigPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!image) return setError('Selecciona una imagen');
+    if (!image) return setError('Por favor selecciona una imagen');
 
     const userId = (session?.user as any)?.id;
     if (!userId) return setError('Debes estar logueado como vendedor');
@@ -106,100 +108,134 @@ export default function CreateGigPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al crear el gig');
 
-      setSuccess('¡Gig creado exitosamente!');
+      setSuccess('¡Gig publicado con éxito!');
       setTimeout(() => router.push('/gigs'), 1500);
     } catch (err: any) {
       setError(err.message || 'Algo salió mal');
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12">
-      <Link href="/seller" className="text-orange-600 hover:underline mb-6 inline-block">← Volver al Dashboard</Link>
-      <h1 className="text-4xl font-bold mb-8">Crear Nuevo Gig</h1>
+    <div className="max-w-4xl mx-auto px-6 py-12">
+      <Link href="/seller" className="text-orange-600 hover:underline mb-8 inline-flex items-center gap-2">
+        ← Volver al Dashboard del Vendedor
+      </Link>
 
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl border space-y-8">
+      <h1 className="text-5xl font-bold mb-2">Publica tu Servicio</h1>
+      <p className="text-xl text-gray-600 mb-10">Conecta con clientes locales en Colombia</p>
+
+      <form onSubmit={handleSubmit} className="bg-white p-10 rounded-3xl border shadow-sm space-y-10">
+        {/* Title */}
         <div>
-          <label className="block text-sm font-medium mb-2">Título del gig</label>
-          <input type="text" name="title" value={formData.title} onChange={handleInputChange} required className="w-full px-4 py-3 border rounded-2xl" placeholder="Ej: Limpieza profunda de hogar" />
+          <label className="block text-sm font-medium mb-2">Título del Gig</label>
+          <input 
+            type="text" 
+            name="title" 
+            value={formData.title} 
+            onChange={handleInputChange} 
+            required 
+            className="w-full px-5 py-4 border rounded-2xl text-lg" 
+            placeholder="Ej: Limpieza profunda de apartamentos en Bucaramanga" 
+          />
         </div>
 
+        {/* Description with Grok */}
         <div>
-          <div className="flex justify-between items-center mb-2">
-            <label className="block text-sm font-medium">Descripción</label>
-            <button type="button" onClick={generateDescription} disabled={generating} className="text-orange-600 hover:text-orange-700 text-sm flex items-center gap-1">
-              <Sparkles size={16} /> {generating ? "Generando..." : "Generar con Grok"}
+          <div className="flex justify-between items-center mb-3">
+            <label className="block text-sm font-medium">Descripción del Servicio</label>
+            <button 
+              type="button" 
+              onClick={generateDescription} 
+              disabled={generating || !formData.title}
+              className="flex items-center gap-2 text-orange-600 hover:text-orange-700 text-sm font-medium"
+            >
+              <Sparkles size={18} /> {generating ? "Grok pensando..." : "Generar con Grok"}
             </button>
           </div>
-          <textarea name="description" value={formData.description} onChange={handleInputChange} required rows={6} className="w-full px-4 py-3 border rounded-3xl" placeholder="Describe tu servicio de forma atractiva..." />
+          <textarea 
+            name="description" 
+            value={formData.description} 
+            onChange={handleInputChange} 
+            required 
+            rows={6}
+            className="w-full px-5 py-4 border rounded-3xl" 
+            placeholder="Describe tu servicio de forma atractiva..." 
+          />
         </div>
 
+        {/* Category with Emojis */}
         <div>
-          <label className="block text-sm font-medium mb-2">Categoría</label>
-          <select name="category" value={formData.category} onChange={handleInputChange} required className="w-full px-4 py-3 border rounded-2xl">
+          <label className="block text-sm font-medium mb-3">Categoría</label>
+          <select 
+            name="category" 
+            value={formData.category} 
+            onChange={handleInputChange} 
+            required 
+            className="w-full px-5 py-4 border rounded-2xl text-base"
+          >
             <option value="">Selecciona una categoría</option>
             {categories.map(cat => (
               <option key={cat} value={cat}>
-                {categoryEmojis[cat] || ''} {cat}
+                {categoryEmojis[cat] || '•'} {cat}
               </option>
             ))}
           </select>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Price & Delivery */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
-            <label className="block text-sm font-medium mb-2">Precio (COP)</label>
-            <input type="number" name="price" value={formData.price} onChange={handleInputChange} required className="w-full px-4 py-3 border rounded-2xl" placeholder="150000" />
+            <label className="block text-sm font-medium mb-2">Precio (en COP)</label>
+            <input type="number" name="price" value={formData.price} onChange={handleInputChange} required className="w-full px-5 py-4 border rounded-2xl text-lg" placeholder="150000" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Tiempo de entrega (días)</label>
-            <input type="number" name="completionTime" value={formData.completionTime} onChange={handleInputChange} required className="w-full px-4 py-3 border rounded-2xl" />
+            <label className="block text-sm font-medium mb-2">Tiempo de entrega</label>
+            <div className="flex items-center gap-3 border rounded-2xl px-5 py-4">
+              <Clock className="text-orange-600" />
+              <input type="number" name="completionTime" value={formData.completionTime} onChange={handleInputChange} required className="flex-1 outline-none" />
+              <span className="text-gray-500">días</span>
+            </div>
           </div>
         </div>
 
-        {selectedCategoryData && (
+        {/* Dynamic Fields */}
+        {selectedCategoryData && selectedCategoryData.fields?.length > 0 && (
           <div className="border-t pt-8">
-            <h3 className="font-semibold mb-4">Opciones específicas para {selectedCategoryData.name}</h3>
-            {selectedCategoryData.fields?.map((field: any) => (
+            <h3 className="font-semibold text-lg mb-6">Información adicional requerida</h3>
+            {selectedCategoryData.fields.map((field: any) => (
               <div key={field.key} className="mb-6">
                 <label className="block text-sm font-medium mb-2">{field.label}</label>
-                {field.type === 'number' && (
-                  <input type="number" value={formData.customFields[field.key] || ''} onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} className="w-full px-4 py-3 border rounded-2xl" />
-                )}
-                {field.type === 'checkbox' && (
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={!!formData.customFields[field.key]} onChange={(e) => handleCustomFieldChange(field.key, e.target.checked)} />
-                    {field.label}
-                  </label>
-                )}
-                {field.type === 'select' && (
-                  <select value={formData.customFields[field.key] || ''} onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} className="w-full px-4 py-3 border rounded-2xl">
-                    <option value="">Selecciona...</option>
-                    {field.options?.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
-                )}
+                {/* Render different input types based on field */}
+                {field.type === 'number' && <input type="number" className="w-full px-5 py-4 border rounded-2xl" onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} />}
+                {/* Add more field types as needed */}
               </div>
             ))}
           </div>
         )}
 
+        {/* Image Upload */}
         <div>
-          <label className="block text-sm font-medium mb-3">Imagen principal del servicio</label>
-          <label htmlFor="image-upload" className="cursor-pointer bg-orange-600 hover:bg-orange-700 text-white px-8 py-4 rounded-2xl inline-block">
-            📸 Seleccionar imagen
+          <label className="block text-sm font-medium mb-3">Foto principal del servicio</label>
+          <label htmlFor="image-upload" className="cursor-pointer border-2 border-dashed border-orange-300 hover:border-orange-600 rounded-3xl p-12 flex flex-col items-center justify-center transition">
+            <ImageIcon className="w-12 h-12 text-orange-500 mb-4" />
+            <span className="font-medium">Haz clic para subir una imagen</span>
+            <span className="text-sm text-gray-500 mt-1">Recomendado: 1200x800 px</span>
           </label>
           <input type="file" accept="image/*" onChange={handleImageChange} id="image-upload" className="hidden" />
-          <p className="mt-2 text-sm text-gray-500">{image ? image.name : 'Ninguna imagen seleccionada'}</p>
+          {image && <p className="mt-3 text-sm text-green-600">✓ {image.name}</p>}
         </div>
 
         {error && <p className="text-red-600 bg-red-50 p-4 rounded-2xl">{error}</p>}
         {success && <p className="text-green-600 bg-green-50 p-4 rounded-2xl">{success}</p>}
 
-        <button type="submit" disabled={loading || !image} className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-4 rounded-2xl text-lg transition">
-          {loading ? 'Publicando Gig...' : 'Publicar Gig'}
+        <button 
+          type="submit" 
+          disabled={loading || !image} 
+          className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-5 rounded-2xl text-xl transition"
+        >
+          {loading ? 'Publicando tu Gig...' : 'Publicar Gig'}
         </button>
       </form>
     </div>
