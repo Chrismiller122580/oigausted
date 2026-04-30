@@ -9,24 +9,15 @@ interface Props {
   buyerId: string;
 }
 
-declare global {
-  interface Window {
-    WompiCheckout: any;
-  }
-}
-
 export default function CheckoutForm({ gig, buyerId }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
-  const [status, setStatus] = useState('⏳ Inicializando...');
-  const [wompiReady, setWompiReady] = useState(false);
+  const [status, setStatus] = useState('⏳ Creando orden...');
 
   const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
 
-  console.log("🔑 Public Key from env:", publicKey ? publicKey.substring(0, 20) + "..." : "MISSING");
-
-  // Create order
+  // Create order on page load
   useEffect(() => {
     const createOrder = async () => {
       setStatus('Creando orden...');
@@ -40,11 +31,11 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error creando orden');
 
-        setOrderId(data.id || data.orderId);
-        setStatus('✅ Orden creada - haz clic en Pagar');
-        console.log("✅ Order created:", data.id || data.orderId);
+        const newOrderId = data.id || data.orderId;
+        setOrderId(newOrderId);
+        setStatus('✅ Orden creada - haz clic para pagar');
+        console.log('✅ Order created:', newOrderId);
       } catch (err: any) {
-        console.error(err);
         toast.error(err.message);
         setStatus('❌ Error creando orden');
       }
@@ -53,67 +44,21 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
     if (gig?.id && buyerId) createOrder();
   }, [gig, buyerId]);
 
-  // Load Wompi
-  useEffect(() => {
-    console.log("📥 Loading Wompi script...");
-    const script = document.createElement('script');
-    script.src = 'https://checkout.wompi.co/widget.js';
-    script.async = true;
-    script.onload = () => {
-      setWompiReady(true);
-      setStatus('✅ Wompi listo - haz clic en Pagar');
-      console.log("✅ Wompi widget loaded successfully");
-    };
-    script.onerror = () => {
-      setStatus('❌ No se pudo cargar Wompi');
-      console.error("❌ Failed to load Wompi script");
-    };
-    document.body.appendChild(script);
-  }, []);
-
   const handlePay = () => {
-    console.log("🟡 Button clicked - orderId:", orderId, "wompiReady:", wompiReady, "publicKey:", !!publicKey);
-
     if (!orderId) {
-      toast.error('Orden no creada aún');
-      return;
-    }
-    if (!wompiReady) {
-      toast.error('Wompi aún cargando...');
-      return;
-    }
-    if (!publicKey) {
-      toast.error('Falta la clave de Wompi');
+      toast.error('Orden no lista');
       return;
     }
 
     setLoading(true);
 
-    try {
-      const checkout = new window.WompiCheckout({
-        publicKey,
-        currency: 'COP',
-        amountInCents: Math.round(Number(gig.price) * 100),
-        reference: `order_${orderId}`,
-        redirectUrl: `${window.location.origin}/orders/${orderId}`,
-        onSuccess: () => {
-          toast.success('¡Pago exitoso!');
-          setTimeout(() => router.push(`/orders/${orderId}`), 1500);
-        },
-        onError: (err: any) => {
-          toast.error('Error en el pago');
-          console.error('Wompi error:', err);
-        },
-      });
+    const amountInCents = Math.round(Number(gig.price) * 100);
+    const redirectUrl = `${window.location.origin}/orders/${orderId}`;
 
-      console.log("💳 Opening Wompi widget...");
-      checkout.open();
-    } catch (err) {
-      console.error("💥 Error opening widget:", err);
-      toast.error('No se pudo abrir Wompi');
-    } finally {
-      setLoading(false);
-    }
+    const wompiUrl = `https://checkout.wompi.co/?public-key=${publicKey}&currency=COP&amount-in-cents=${amountInCents}&reference=order_${orderId}&redirect-url=${encodeURIComponent(redirectUrl)}`;
+
+    console.log('🔄 Redirecting to Wompi:', wompiUrl);
+    window.location.href = wompiUrl;
   };
 
   return (
@@ -141,10 +86,10 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
 
         <button
           onClick={handlePay}
-          disabled={loading || !orderId || !wompiReady}
+          disabled={loading || !orderId}
           className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-5 rounded-2xl text-xl transition-all"
         >
-          {loading ? 'Procesando...' : 'Pagar con Wompi 💳'}
+          {loading ? 'Redirigiendo a Wompi...' : 'Pagar con Wompi 💳'}
         </button>
 
         <p className="text-center text-sm mt-6 font-medium text-zinc-700">{status}</p>
