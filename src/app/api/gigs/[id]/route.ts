@@ -3,11 +3,13 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;   // ← This is the required fix for Next.js 16
+
     const gig = await prisma.gig.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         seller: {
           select: { 
