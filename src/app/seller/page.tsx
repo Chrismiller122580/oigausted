@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { DollarSign, Package, Star, Plus, TrendingUp } from 'lucide-react';
+import { DollarSign, Package, Star, Plus, TrendingUp, Clock } from 'lucide-react';
 import GigCard from '@/components/common/GigCard';
 
 export default function SellerDashboard() {
@@ -37,11 +37,13 @@ export default function SellerDashboard() {
     }
   };
 
-  const activeOrders = orders.filter(o => ['Pending', 'In Progress'].includes(o.status));
-  const totalEarnings = gigs.reduce((sum, gig) => sum + (gig.price || 0), 0);
+  const activeOrders = orders.filter(o => ['Pending', 'In Progress'].includes(o.status || ''));
+  const completedOrders = orders.filter(o => o.status === 'Completed');
+  const totalEarnings = gigs.reduce((sum, gig) => sum + (Number(gig.price) || 0), 0);
+  const pendingEarnings = activeOrders.reduce((sum, order) => sum + (Number(order.price) || 0), 0);
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Cargando dashboard...</div>;
+    return <div className="min-h-screen flex items-center justify-center text-xl">Cargando tu dashboard...</div>;
   }
 
   return (
@@ -49,8 +51,8 @@ export default function SellerDashboard() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex justify-between items-end mb-10">
           <div>
-            <h1 className="text-5xl font-bold">Dashboard del Vendedor</h1>
-            <p className="text-xl text-gray-600 mt-2">Bienvenido de vuelta, {session?.user?.name?.split(" ")[0]}</p>
+            <h1 className="text-5xl font-bold">Mi Dashboard</h1>
+            <p className="text-xl text-gray-600 mt-2">Hola, {session?.user?.name?.split(" ")[0] || 'Vendedor'}</p>
           </div>
           <Link href="/create-gig">
             <Button className="bg-orange-600 hover:bg-orange-700 text-lg px-8 py-6 rounded-2xl flex items-center gap-3">
@@ -59,108 +61,89 @@ export default function SellerDashboard() {
           </Link>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <Card>
             <CardContent className="p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Ganancias Totales</p>
-                  <p className="text-4xl font-bold text-green-600 mt-2">${totalEarnings.toLocaleString('es-CO')}</p>
-                </div>
-                <DollarSign className="w-12 h-12 text-green-600" />
-              </div>
+              <DollarSign className="w-12 h-12 text-green-600 mb-4" />
+              <p className="text-sm text-gray-500">Ganancias Totales</p>
+              <p className="text-4xl font-bold mt-2">${totalEarnings.toLocaleString('es-CO')}</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Gigs Publicados</p>
-                  <p className="text-4xl font-bold mt-2">{gigs.length}</p>
-                </div>
-                <Package className="w-12 h-12 text-orange-600" />
-              </div>
+              <Package className="w-12 h-12 text-orange-600 mb-4" />
+              <p className="text-sm text-gray-500">Gigs Publicados</p>
+              <p className="text-4xl font-bold mt-2">{gigs.length}</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Pedidos Activos</p>
-                  <p className="text-4xl font-bold mt-2">{activeOrders.length}</p>
-                </div>
-                <TrendingUp className="w-12 h-12 text-blue-600" />
-              </div>
+              <TrendingUp className="w-12 h-12 text-blue-600 mb-4" />
+              <p className="text-sm text-gray-500">Pedidos Activos</p>
+              <p className="text-4xl font-bold mt-2">{activeOrders.length}</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Calificación</p>
-                  <p className="text-4xl font-bold mt-2">4.8 <span className="text-xl">★</span></p>
-                </div>
-                <Star className="w-12 h-12 text-amber-500" />
-              </div>
+              <Star className="w-12 h-12 text-amber-500 mb-4" />
+              <p className="text-sm text-gray-500">Calificación</p>
+              <p className="text-4xl font-bold mt-2">4.8 ★</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* My Gigs */}
           <Card>
             <CardContent className="p-10">
-              <h3 className="text-2xl font-semibold mb-6">Mis Gigs Activos</h3>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-semibold">Mis Gigs</h3>
+                <Link href="/gigs">
+                  <Button variant="outline" size="sm">Ver Todos</Button>
+                </Link>
+              </div>
               {gigs.length > 0 ? (
-                <div className="space-y-4">
-                  {gigs.slice(0, 3).map(gig => (
-                    <div key={gig.id} className="flex justify-between items-center border-b pb-4">
-                      <div>
-                        <p className="font-medium">{gig.title}</p>
-                        <p className="text-sm text-gray-500">${gig.price?.toLocaleString('es-CO')}</p>
-                      </div>
-                      <Link href={`/gigs/${gig.id}`}>
-                        <Button variant="outline" size="sm">Ver</Button>
-                      </Link>
-                    </div>
+                <div className="grid gap-6">
+                  {gigs.slice(0, 4).map(gig => (
+                    <GigCard key={gig.id} gig={gig} />
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 py-8 text-center">Aún no tienes gigs. ¡Crea uno ahora!</p>
+                <p className="text-gray-500 py-12 text-center">Aún no tienes gigs publicados.</p>
               )}
-              <Link href="/create-gig" className="block mt-6">
-                <Button className="w-full">+ Crear Nuevo Gig</Button>
-              </Link>
             </CardContent>
           </Card>
 
+          {/* Active Orders */}
           <Card>
             <CardContent className="p-10">
-              <h3 className="text-2xl font-semibold mb-6">Pedidos Recientes</h3>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-semibold">Pedidos Activos</h3>
+                <Link href="/orders">
+                  <Button variant="outline" size="sm">Ver Todos</Button>
+                </Link>
+              </div>
               {activeOrders.length > 0 ? (
                 <div className="space-y-4">
-                  {activeOrders.slice(0, 3).map(order => (
-                    <div key={order.id} className="flex justify-between items-center border-b pb-4">
+                  {activeOrders.slice(0, 4).map(order => (
+                    <div key={order.id} className="flex justify-between items-center p-4 border rounded-2xl">
                       <div>
                         <p className="font-medium">Pedido #{order.id.slice(0,8)}</p>
-                        <p className="text-sm text-gray-500">{order.status}</p>
+                        <p className="text-sm text-gray-500">Estado: {order.status}</p>
                       </div>
                       <Link href={`/orders/${order.id}`}>
-                        <Button variant="outline" size="sm">Ver</Button>
+                        <Button variant="outline" size="sm">Gestionar</Button>
                       </Link>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 py-8 text-center">No tienes pedidos activos aún.</p>
+                <p className="text-gray-500 py-12 text-center">No tienes pedidos activos en este momento.</p>
               )}
-              <Link href="/orders" className="block mt-6">
-                <Button variant="outline" className="w-full">Ver Todos los Pedidos</Button>
-              </Link>
             </CardContent>
           </Card>
         </div>
