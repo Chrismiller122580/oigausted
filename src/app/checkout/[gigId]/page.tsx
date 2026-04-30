@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft, Clock, User } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 export default function CheckoutPage({ params }: { params: { gigId: string } }) {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const gigId = params.gigId;
 
   const [gig, setGig] = useState<any>(null);
@@ -18,8 +18,9 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
   const [customData, setCustomData] = useState<Record<string, any>>({});
   const [totalPrice, setTotalPrice] = useState(0);
 
-  // Fetch gig details
   useEffect(() => {
+    if (status === "loading") return;
+
     fetch(`/api/gigs/${gigId}`)
       .then(res => res.json())
       .then(data => {
@@ -29,7 +30,7 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [gigId]);
+  }, [gigId, status]);
 
   const generateBuyerFields = (category: string) => {
     let fields: any[] = [];
@@ -41,15 +42,20 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
         { key: 'deepClean', label: '¿Limpieza profunda?', type: 'checkbox', priceImpact: 40000 },
         { key: 'pets', label: '¿Hay mascotas?', type: 'checkbox', priceImpact: 10000 },
       ];
-    } else if (category.includes('Transporte') || category.includes('Mudanzas') || category.includes('Delivery')) {
+    } else if (category.includes('Transporte') || category.includes('Mudanzas') || category.includes('Delivery') || category.includes('Mensajería')) {
       fields = [
         { key: 'pickupAddress', label: 'Dirección de recogida', type: 'text' },
         { key: 'deliveryAddress', label: 'Dirección de entrega', type: 'text' },
         { key: 'packageSize', label: 'Tamaño del paquete', type: 'select', options: ['Pequeño', 'Mediano', 'Grande'] },
         { key: 'urgent', label: '¿Entrega urgente?', type: 'checkbox', priceImpact: 35000 },
       ];
+    } else if (category === 'Reparaciones y Mantenimiento del Hogar') {
+      fields = [
+        { key: 'problemType', label: 'Tipo de reparación', type: 'select', options: ['Eléctrica', 'Plomería', 'Pintura', 'Carpintería', 'Otra'] },
+        { key: 'urgency', label: 'Urgencia', type: 'select', options: ['Hoy mismo', 'Esta semana', 'Normal'] },
+      ];
     } 
-    // ... (we can add more categories here later)
+    // Add more categories here later if needed
 
     setBuyerFields(fields);
   };
@@ -58,17 +64,17 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
     const newData = { ...customData, [key]: value };
     setCustomData(newData);
 
-    // Simple live price calculation
     let extra = 0;
     Object.keys(newData).forEach(k => {
       const field = buyerFields.find(f => f.key === k);
-      if (field && field.priceImpact && newData[k]) extra += field.priceImpact;
+      if (field?.priceImpact && newData[k]) extra += field.priceImpact;
     });
     setTotalPrice((gig?.price || 0) + extra);
   };
 
   const handleCheckout = async () => {
-    if (!session?.user?.id) return alert("Debes iniciar sesión");
+    const userId = (session?.user as any)?.id;
+    if (!userId) return alert("Debes iniciar sesión para continuar");
 
     setSubmitting(true);
     try {
@@ -77,17 +83,17 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gigId,
-          buyerId: session.user.id,
+          buyerId: userId,
           price: totalPrice,
           customFields: customData,
         }),
       });
 
       const order = await res.json();
-      if (!res.ok) throw new Error(order.error);
+      if (!res.ok) throw new Error(order.error || "Error creando orden");
 
-      // Redirect to Wompi (or simulation for now)
-      window.location.href = `/orders/${order.id}`;
+      // For now, go to order detail (we'll connect Wompi next)
+      router.push(`/orders/${order.id}`);
     } catch (err: any) {
       alert("Error: " + err.message);
     } finally {
@@ -95,8 +101,8 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
     }
   };
 
-  if (loading) return <div className="text-center py-20">Cargando gig...</div>;
-  if (!gig) return <div className="text-center py-20">Gig no encontrado</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-xl">Cargando servicio...</div>;
+  if (!gig) return <div className="min-h-screen flex items-center justify-center text-xl">Gig no encontrado</div>;
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-12">
@@ -105,22 +111,23 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        {/* Left: Gig Info + Preview */}
+        {/* Gig Summary */}
         <div>
           <h1 className="text-4xl font-bold mb-2">{gig.title}</h1>
           <p className="text-3xl font-bold text-orange-600 mb-8">
             ${totalPrice.toLocaleString('es-CO')} COP
           </p>
 
-          <div className="bg-white rounded-3xl p-8 border">
-            {gig.imageUrl && <img src={gig.imageUrl} className="w-full h-64 object-cover rounded-2xl mb-6" alt={gig.title} />}
-            <p className="text-gray-700 leading-relaxed">{gig.description}</p>
-          </div>
+          {gig.imageUrl && (
+            <img src={gig.imageUrl} className="w-full h-64 object-cover rounded-3xl mb-6" alt={gig.title} />
+          )}
+
+          <p className="text-gray-700 leading-relaxed text-lg">{gig.description}</p>
         </div>
 
-        {/* Right: Smart Buyer Form */}
+        {/* Buyer Requirements Form */}
         <div className="bg-white rounded-3xl p-10 border">
-          <h2 className="text-2xl font-semibold mb-8">Cuéntanos exactamente qué necesitas</h2>
+          <h2 className="text-2xl font-semibold mb-8">Personaliza tu pedido</h2>
 
           <div className="space-y-8">
             {buyerFields.map((field, i) => (
@@ -129,8 +136,8 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
                 {field.type === 'number' && (
                   <input 
                     type="number" 
-                    onChange={(e) => handleFieldChange(field.key, e.target.value, field.priceImpact)} 
-                    className="w-full px-5 py-4 border rounded-2xl" 
+                    onChange={(e) => handleFieldChange(field.key, Number(e.target.value), field.priceImpact)} 
+                    className="w-full px-5 py-4 border rounded-2xl text-lg" 
                     placeholder={field.placeholder} 
                   />
                 )}
@@ -142,7 +149,7 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
                   />
                 )}
                 {field.type === 'checkbox' && (
-                  <label className="flex items-center gap-3 cursor-pointer">
+                  <label className="flex items-center gap-3 cursor-pointer py-3">
                     <input 
                       type="checkbox" 
                       onChange={(e) => handleFieldChange(field.key, e.target.checked, field.priceImpact)} 
@@ -156,7 +163,7 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
                     onChange={(e) => handleFieldChange(field.key, e.target.value)} 
                     className="w-full px-5 py-4 border rounded-2xl"
                   >
-                    <option value="">Selecciona...</option>
+                    <option value="">Selecciona una opción</option>
                     {field.options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 )}
@@ -165,17 +172,17 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
           </div>
 
           <div className="mt-12 pt-8 border-t">
-            <div className="flex justify-between text-xl font-semibold mb-6">
-              <span>Total a pagar</span>
+            <div className="flex justify-between items-center text-2xl font-semibold mb-8">
+              <span>Total</span>
               <span className="text-orange-600">${totalPrice.toLocaleString('es-CO')}</span>
             </div>
 
             <button 
               onClick={handleCheckout}
               disabled={submitting}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-6 rounded-2xl text-xl disabled:bg-gray-400 transition"
+              className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-6 rounded-2xl text-xl transition-all"
             >
-              {submitting ? 'Procesando orden...' : 'Pagar con Wompi 💳'}
+              {submitting ? 'Procesando...' : 'Continuar al Pago 💳'}
             </button>
           </div>
         </div>
