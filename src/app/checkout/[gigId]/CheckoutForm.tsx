@@ -19,21 +19,19 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
-  const [status, setStatus] = useState('Cargando Wompi...');
+  const [status, setStatus] = useState('⏳ Cargando Wompi...');
 
   const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
 
   useEffect(() => {
-    console.log('🔑 Public Key in client:', publicKey ? '✅ PRESENT' : '❌ MISSING');
-
     if (!publicKey) {
-      setStatus('❌ Falta NEXT_PUBLIC_WOMPI_PUBLIC_KEY');
+      setStatus('❌ Clave pública de Wompi no configurada');
       return;
     }
 
     if (window.WompiCheckout) {
       setScriptLoaded(true);
-      setStatus('✅ Wompi listo');
+      setStatus('✅ Listo para pagar');
       return;
     }
 
@@ -42,29 +40,34 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
     script.async = true;
     script.onload = () => {
       setScriptLoaded(true);
-      setStatus('✅ Wompi listo - puedes pagar');
+      setStatus('✅ Listo para pagar - haz clic en el botón');
     };
-    script.onerror = () => setStatus('❌ Error cargando Wompi');
+    script.onerror = () => setStatus('❌ Error al cargar Wompi');
     document.body.appendChild(script);
   }, [publicKey]);
 
-  const handleWompiPayment = async () => {
+  const handlePayment = async () => {
     if (!publicKey) {
-      toast.error('Falta la clave de Wompi en Vercel');
+      toast.error('Falta configurar Wompi en Vercel');
       return;
     }
     if (!scriptLoaded) {
-      toast.error('Espera que Wompi termine de cargar');
+      toast.error('Espera unos segundos más...');
       return;
     }
 
     setLoading(true);
+    setStatus('Creando orden...');
 
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gigId: gig.id, buyerId, price: gig.price }),
+        body: JSON.stringify({
+          gigId: gig.id,
+          buyerId,
+          price: gig.price
+        }),
       });
 
       const data = await res.json();
@@ -72,6 +75,7 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
 
       const orderId = data.id || data.orderId;
 
+      // Open Wompi
       const checkout = new window.WompiCheckout({
         publicKey,
         currency: 'COP',
@@ -79,16 +83,16 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
         reference: `order_${orderId}`,
         redirectUrl: `${window.location.origin}/orders/${orderId}`,
         onSuccess: () => {
-          toast.success('Pago exitoso!');
+          toast.success('¡Pago exitoso!');
           setTimeout(() => router.push(`/orders/${orderId}`), 1500);
         },
-        onError: (e: any) => toast.error('Error en el pago'),
+        onError: () => toast.error('Error en el pago'),
       });
 
       checkout.open();
 
     } catch (err: any) {
-      toast.error(err.message || 'Error inesperado');
+      toast.error(err.message || 'Error al procesar');
     } finally {
       setLoading(false);
     }
@@ -118,14 +122,14 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
         </div>
 
         <button
-          onClick={handleWompiPayment}
+          onClick={handlePayment}
           disabled={loading || !scriptLoaded}
-          className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-5 rounded-2xl text-xl transition-all flex items-center justify-center gap-3"
+          className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-5 rounded-2xl text-xl transition-all"
         >
           {loading ? 'Procesando...' : 'Pagar con Wompi 💳'}
         </button>
 
-        <p className="text-center text-sm mt-6 text-zinc-600">{status}</p>
+        <p className="text-center text-sm mt-6 text-zinc-700 font-medium">{status}</p>
       </div>
     </div>
   );
