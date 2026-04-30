@@ -29,9 +29,11 @@ export default function CreateGigPage() {
   const [isLimpieza, setIsLimpieza] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (e.target.name === 'category') {
-      setIsLimpieza(e.target.value === 'Limpieza de Hogar y Oficinas');
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+
+    if (name === 'category') {
+      setIsLimpieza(value === 'Limpieza de Hogar y Oficinas');
     }
   };
 
@@ -69,6 +71,7 @@ export default function CreateGigPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!image) return setError('Selecciona una imagen');
+    if (!formData.price) return setError('Ingresa un precio');
 
     setLoading(true);
     setError('');
@@ -142,7 +145,12 @@ export default function CreateGigPage() {
           </select>
         </div>
 
-        {/* Dynamic Fields for Limpieza - Hardcoded for testing */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Precio (COP)</label>
+          <input type="number" name="price" value={formData.price} onChange={handleInputChange} required className="w-full px-5 py-4 border rounded-2xl text-lg" placeholder="Ej: 85000" />
+        </div>
+
+        {/* Dynamic Fields for Limpieza */}
         {isLimpieza && (
           <div className="border-t pt-8">
             <h3 className="font-semibold text-lg mb-6">Detalles específicos de Limpieza</h3>
