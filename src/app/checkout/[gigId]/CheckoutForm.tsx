@@ -17,13 +17,18 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
 
   const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
 
+  // Auto-create order
   useEffect(() => {
     const createOrder = async () => {
       try {
         const res = await fetch('/api/orders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gigId: gig.id, buyerId, price: gig.price }),
+          body: JSON.stringify({
+            gigId: gig.id,
+            buyerId,
+            price: gig.price
+          }),
         });
 
         const data = await res.json();
@@ -32,7 +37,7 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
         setOrderId(data.id || data.orderId);
         setStatus('✅ Orden creada - listo para pagar');
       } catch (err: any) {
-        toast.error(err.message);
+        toast.error(err.message || 'Error al crear orden');
       }
     };
 
@@ -41,7 +46,7 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
 
   const handlePay = () => {
     if (!orderId) {
-      toast.error('Espera un momento...');
+      toast.error('Orden no lista aún');
       return;
     }
 
@@ -50,6 +55,7 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
     const amountInCents = Math.round(Number(gig.price) * 100);
     const redirectUrl = `${window.location.origin}/orders/${orderId}`;
 
+    // Clean Wompi redirect URL
     const wompiUrl = `https://checkout.wompi.co/?public-key=${publicKey}&currency=COP&amount-in-cents=${amountInCents}&reference=order_${orderId}&redirect-url=${encodeURIComponent(redirectUrl)}`;
 
     window.location.href = wompiUrl;
@@ -83,7 +89,7 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
           disabled={loading || !orderId}
           className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-5 rounded-2xl text-xl transition-all"
         >
-          {loading ? 'Redirigiendo a Wompi...' : 'Pagar con Wompi 💳'}
+          {loading ? 'Redirigiendo...' : 'Pagar con Wompi 💳'}
         </button>
 
         <p className="text-center text-sm mt-6 font-medium text-zinc-700">{status}</p>
