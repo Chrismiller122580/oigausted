@@ -158,16 +158,30 @@ export default function CreateGigPage() {
                 <div key={field.key}>
                   <label className="block text-sm font-medium mb-2">{field.label}</label>
                   {field.type === 'number' && (
-                    <input type="number" onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} className="w-full px-5 py-4 border rounded-2xl" placeholder={field.placeholder} />
+                    <input 
+                      type="number" 
+                      onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} 
+                      className="w-full px-5 py-4 border rounded-2xl" 
+                      placeholder={field.placeholder} 
+                    />
                   )}
                   {field.type === 'checkbox' && (
                     <label className="flex items-center gap-3 cursor-pointer">
-                      <input type="checkbox" onChange={(e) => handleCustomFieldChange(field.key, e.target.checked)} className="w-5 h-5 accent-orange-600" />
+                      <input 
+                        type="checkbox" 
+                        onChange={(e) => handleCustomFieldChange(field.key, e.target.checked)} 
+                        className="w-5 h-5 accent-orange-600" 
+                      />
                       <span>{field.label}</span>
                     </label>
                   )}
                   {field.type === 'text' && (
-                    <input type="text" onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} className="w-full px-5 py-4 border rounded-2xl" placeholder={field.placeholder} />
+                    <input 
+                      type="text" 
+                      onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} 
+                      className="w-full px-5 py-4 border rounded-2xl" 
+                      placeholder={field.placeholder} 
+                    />
                   )}
                 </div>
               ))}
