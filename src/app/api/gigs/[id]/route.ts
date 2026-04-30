@@ -1,34 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'   // ← Use shared instance
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: Request,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
     const gig = await prisma.gig.findUnique({
-      where: { id },
+      where: { id: params.id },
       include: {
         seller: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            businessName: true,
-            bio: true
+          select: { 
+            id: true, 
+            name: true, 
+            businessName: true 
           }
         }
       }
-    })
+    });
 
     if (!gig) {
-      return NextResponse.json({ error: "Gig not found" }, { status: 404 })
+      return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
     }
 
-    return NextResponse.json({ gig })
+    return NextResponse.json(gig);
   } catch (error) {
-    console.error("Error fetching gig:", error)
-    return NextResponse.json({ error: "Failed to fetch gig" }, { status: 500 })
+    console.error('Get gig error:', error);
+    return NextResponse.json({ error: 'Error al cargar el gig' }, { status: 500 });
   }
 }

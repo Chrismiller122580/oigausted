@@ -20,10 +20,17 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
   const [totalPrice, setTotalPrice] = useState(0);
 
   useEffect(() => {
-    if (!gigId) return;
+    if (!gigId) {
+      setError("ID de gig inválido");
+      setLoading(false);
+      return;
+    }
 
     fetch(`/api/gigs/${gigId}`)
-      .then(res => res.json())
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Gig no encontrado');
+        return res.json();
+      })
       .then(data => {
         setGig(data);
         setTotalPrice(Number(data.price) || 0);
@@ -32,7 +39,7 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
       })
       .catch(err => {
         console.error(err);
-        setError("No se pudo cargar el servicio");
+        setError("No se pudo cargar el gig. Intenta de nuevo.");
         setLoading(false);
       });
   }, [gigId]);
@@ -46,13 +53,6 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
         { key: 'deepClean', label: '¿Limpieza profunda?', type: 'checkbox', priceImpact: 40000 },
         { key: 'pets', label: '¿Hay mascotas?', type: 'checkbox', priceImpact: 10000 },
       ];
-    } else if (category.includes('Transporte') || category.includes('Mudanzas') || category.includes('Delivery')) {
-      fields = [
-        { key: 'pickupAddress', label: 'Dirección de recogida', type: 'text' },
-        { key: 'deliveryAddress', label: 'Dirección de entrega', type: 'text' },
-        { key: 'packageSize', label: 'Tamaño del paquete', type: 'select', options: ['Pequeño', 'Mediano', 'Grande'] },
-        { key: 'urgent', label: '¿Entrega urgente?', type: 'checkbox', priceImpact: 35000 },
-      ];
     }
     setBuyerFields(fields);
   };
@@ -64,9 +64,7 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
     let extra = 0;
     Object.keys(newData).forEach(k => {
       const field = buyerFields.find(f => f.key === k);
-      if (field?.priceImpact && (newData[k] === true || Number(newData[k]) > 0)) {
-        extra += field.priceImpact;
-      }
+      if (field?.priceImpact && (newData[k] === true || Number(newData[k]) > 0)) extra += field.priceImpact;
     });
     setTotalPrice((gig?.price || 0) + extra);
   };
@@ -83,28 +81,26 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          gigId: gigId,           // ← This was missing / undefined before
+          gigId,
+          buyerId: userId,
           price: totalPrice,
           customFields: customData,
         }),
       });
 
       const data = await res.json();
-      console.log("Order response:", data);
-
       if (!res.ok) throw new Error(data.error || "Error al crear la orden");
 
-      alert("✅ Orden creada correctamente!");
-      router.push(`/orders/${data.orderId || data.id}`);
+      router.push(`/orders/${data.id || data.orderId}`);
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Error desconocido");
+      setError(err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-2xl">Cargando gig...</div>;
+  if (error) return <div className="min-h-screen flex items-center justify-center text-red-600 text-xl">{error}</div>;
   if (!gig) return <div className="min-h-screen flex items-center justify-center text-2xl">Gig no encontrado</div>;
 
   return (
@@ -116,11 +112,9 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         <div>
           <h1 className="text-4xl font-bold mb-2">{gig.title}</h1>
-          <p className="text-3xl font-bold text-orange-600 mb-8">
-            ${totalPrice.toLocaleString('es-CO')} COP
-          </p>
+          <p className="text-3xl font-bold text-orange-600 mb-8">${totalPrice.toLocaleString('es-CO')} COP</p>
           {gig.imageUrl && <img src={gig.imageUrl} className="w-full rounded-3xl mb-6" alt={gig.title} />}
-          <p className="text-gray-700 text-lg">{gig.description}</p>
+          <p className="text-gray-700">{gig.description}</p>
         </div>
 
         <div className="bg-white rounded-3xl p-10 border">
@@ -130,28 +124,12 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
             {buyerFields.map((field, i) => (
               <div key={i}>
                 <label className="block text-sm font-medium mb-3">{field.label}</label>
-                {field.type === 'number' && (
-                  <input 
-                    type="number" 
-                    onChange={(e) => handleFieldChange(field.key, Number(e.target.value), field.priceImpact)} 
-                    className="w-full px-5 py-4 border rounded-2xl" 
-                    placeholder={field.placeholder} 
-                  />
-                )}
-                {field.type === 'text' && (
-                  <input type="text" onChange={(e) => handleFieldChange(field.key, e.target.value)} className="w-full px-5 py-4 border rounded-2xl" />
-                )}
+                {field.type === 'number' && <input type="number" onChange={(e) => handleFieldChange(field.key, Number(e.target.value), field.priceImpact)} className="w-full px-5 py-4 border rounded-2xl" placeholder={field.placeholder} />}
                 {field.type === 'checkbox' && (
                   <label className="flex items-center gap-3 cursor-pointer py-3">
                     <input type="checkbox" onChange={(e) => handleFieldChange(field.key, e.target.checked, field.priceImpact)} className="w-5 h-5 accent-orange-600" />
                     <span>Sí</span>
                   </label>
-                )}
-                {field.type === 'select' && field.options && (
-                  <select onChange={(e) => handleFieldChange(field.key, e.target.value)} className="w-full px-5 py-4 border rounded-2xl">
-                    <option value="">Selecciona...</option>
-                    {field.options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
                 )}
               </div>
             ))}
@@ -159,18 +137,14 @@ export default function CheckoutPage({ params }: { params: { gigId: string } }) 
 
           <div className="mt-12 pt-8 border-t">
             <div className="flex justify-between text-2xl font-semibold mb-8">
-              <span>Total a pagar</span>
+              <span>Total</span>
               <span className="text-orange-600">${totalPrice.toLocaleString('es-CO')}</span>
             </div>
 
             {error && <p className="text-red-600 mb-4">{error}</p>}
 
-            <button 
-              onClick={handleCheckout}
-              disabled={submitting}
-              className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-6 rounded-2xl text-xl transition"
-            >
-              {submitting ? 'Procesando orden...' : 'Continuar al Pago 💳'}
+            <button onClick={handleCheckout} disabled={submitting} className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-6 rounded-2xl text-xl">
+              {submitting ? 'Procesando...' : 'Continuar al Pago 💳'}
             </button>
           </div>
         </div>
