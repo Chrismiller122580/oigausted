@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package, Clock, MessageCircle, CheckCircle, AlertCircle } from "lucide-react";
+import { Package, Clock, MessageCircle } from "lucide-react";
 
 export default function OrdersPage() {
   const { data: session } = useSession();
@@ -28,7 +28,7 @@ export default function OrdersPage() {
     }
   };
 
-  const statusConfig = {
+  const statusConfig: Record<string, { label: string; color: string }> = {
     Pending: { label: "Pendiente", color: "bg-yellow-100 text-yellow-700" },
     "In Progress": { label: "En Progreso", color: "bg-blue-100 text-blue-700" },
     Completed: { label: "Completado", color: "bg-green-100 text-green-700" },
@@ -56,24 +56,24 @@ export default function OrdersPage() {
         ) : (
           <div className="space-y-6">
             {orders.map((order) => {
-              const statusInfo = statusConfig[order.status] || { label: order.status, color: "bg-gray-100" };
+              const statusInfo = statusConfig[order.status] || { label: order.status || "Desconocido", color: "bg-gray-100 text-gray-700" };
               return (
                 <Card key={order.id} className="hover:shadow-lg transition">
-                  <CardContent className="p-8 flex flex-col md:flex-row gap-8">
+                  <CardContent className="p-8 flex flex-col md:flex-row gap-8 items-center">
                     <div className="flex-1">
-                      <div className="flex justify-between">
-                        <h3 className="font-semibold text-xl">Pedido #{order.id.slice(0, 8)}</h3>
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-semibold text-xl">Pedido #{order.id?.slice(0, 8)}</h3>
                         <span className={`px-4 py-1 rounded-full text-sm font-medium ${statusInfo.color}`}>
                           {statusInfo.label}
                         </span>
                       </div>
-                      <p className="text-gray-600 mt-3 line-clamp-2">{order.gig?.title || "Servicio"}</p>
+                      <p className="text-gray-600 mt-3">{order.gig?.title || "Servicio"}</p>
                       <p className="text-2xl font-bold text-orange-600 mt-4">
                         ${Number(order.price).toLocaleString('es-CO')}
                       </p>
                     </div>
 
-                    <div className="flex flex-col md:flex-row gap-4 md:items-center">
+                    <div className="flex flex-col gap-3 w-full md:w-auto">
                       <Link href={`/orders/${order.id}`}>
                         <Button className="w-full md:w-auto flex items-center gap-2">
                           <MessageCircle size={18} /> Ver Chat
