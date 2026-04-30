@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, TrendingUp, Calendar, Download } from 'lucide-react';
+import { DollarSign, TrendingUp, Calendar, Download, Package } from 'lucide-react';
 
 export default function SellerEarningsPage() {
   const { data: session } = useSession();
@@ -23,7 +23,6 @@ export default function SellerEarningsPage() {
 
   const fetchEarnings = async () => {
     try {
-      // For now using mock data - later connect to real API
       setEarnings({
         total: 8450000,
         thisMonth: 2340000,
