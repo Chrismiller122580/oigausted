@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
-// Same-folder imports (all in layout/)
+// Same folder imports
 import AdminNavbar from './AdminNavbar';
 import BuyerNavbar from './BuyerNavbar';
 import SellerNavbar from './SellerNavbar';
