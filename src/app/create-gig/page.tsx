@@ -149,7 +149,7 @@ export default function CreateGigPage() {
           </select>
         </div>
 
-        {/* Dynamic Fields */}
+        {/* Dynamic Fields - This is the key part */}
         {selectedCategory?.buyerFields && selectedCategory.buyerFields.length > 0 && (
           <div className="border-t pt-8">
             <h3 className="font-semibold text-lg mb-6">Detalles específicos de {selectedCategory.name}</h3>
