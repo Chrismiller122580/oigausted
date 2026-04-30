@@ -11,9 +11,9 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     setIsMobileMenuOpen(false);
-    signOut({ callbackUrl: '/' });
+    await signOut({ callbackUrl: '/' });
   };
 
   return (
@@ -38,7 +38,11 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
           <div className="hidden md:flex items-center gap-8">
             <Link href="/seller" className="font-medium text-gray-700 hover:text-orange-600 transition">Dashboard</Link>
             <Link href="/gigs" className="font-medium text-gray-700 hover:text-orange-600 transition">Mis Gigs</Link>
-            <Link href="/seller/profile" className="font-medium text-gray-700 hover:text-orange-600 transition">Mi Negocio</Link>
+            
+            {/* Dedicated Mi Negocio */}
+            <Link href="/seller/profile" className="font-medium text-gray-700 hover:text-orange-600 transition font-semibold bg-orange-100 px-4 py-1 rounded-2xl">
+              Mi Negocio
+            </Link>
             
             <Link href="/create-gig">
               <Button className="bg-orange-600 hover:bg-orange-700 flex items-center gap-2 px-6">
@@ -51,12 +55,10 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
 
           {/* Right Side */}
           <div className="hidden md:flex items-center gap-6">
-            {/* Notification Bell */}
             <button className="p-2 text-gray-600 hover:text-orange-600 transition relative">
               <Bell size={22} />
             </button>
 
-            {/* Avatar → Neutral Profile Page */}
             <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition">
               <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center text-xl overflow-hidden">
                 👤
@@ -67,7 +69,6 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
               </div>
             </Link>
 
-            {/* Logout */}
             <Button
               variant="ghost"
               size="icon"
@@ -92,19 +93,12 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
         {isMobileMenuOpen && (
           <div className="md:hidden fixed inset-0 bg-white z-50 pt-20 px-6 overflow-y-auto">
             <div className="flex flex-col gap-6 text-lg">
-              <Link href="/seller" className="py-4 border-b" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link>
-              <Link href="/gigs" className="py-4 border-b" onClick={() => setIsMobileMenuOpen(false)}>Mis Gigs</Link>
-              <Link href="/seller/profile" className="py-4 border-b" onClick={() => setIsMobileMenuOpen(false)}>Mi Negocio</Link>
-              <Link href="/orders" className="py-4 border-b" onClick={() => setIsMobileMenuOpen(false)}>Mis Pedidos</Link>
+              <Link href="/seller" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link>
+              <Link href="/gigs" onClick={() => setIsMobileMenuOpen(false)}>Mis Gigs</Link>
+              <Link href="/seller/profile" onClick={() => setIsMobileMenuOpen(false)} className="font-semibold">Mi Negocio</Link>
+              <Link href="/create-gig" onClick={() => setIsMobileMenuOpen(false)}>Crear Gig</Link>
+              <Link href="/orders" onClick={() => setIsMobileMenuOpen(false)}>Mis Pedidos</Link>
               
-              <Link href="/create-gig" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button className="w-full py-6 bg-orange-600 hover:bg-orange-700 flex items-center justify-center gap-2 text-lg">
-                  <Plus size={20} /> Crear Gig
-                </Button>
-              </Link>
-
-              <Link href="/profile" className="py-4 border-b" onClick={() => setIsMobileMenuOpen(false)}>Perfil Personal</Link>
-
               <Button 
                 variant="outline" 
                 onClick={handleSignOut}
