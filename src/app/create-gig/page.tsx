@@ -26,15 +26,39 @@ export default function CreateGigPage() {
   });
 
   const [image, setImage] = useState<File | null>(null);
-  const [isLimpieza, setIsLimpieza] = useState(false);
+
+  const [dynamicFields, setDynamicFields] = useState<any[]>([]);
+
+  useEffect(() => {
+    const cat = formData.category;
+    let fields: any[] = [];
+
+    if (cat === 'Limpieza de Hogar y Oficinas') {
+      fields = [
+        { key: 'rooms', label: 'Número de habitaciones', type: 'number', placeholder: 'Ej: 3' },
+        { key: 'bathrooms', label: 'Número de baños', type: 'number', placeholder: 'Ej: 2' },
+        { key: 'deepClean', label: '¿Limpieza profunda?', type: 'checkbox' },
+        { key: 'pets', label: '¿Hay mascotas?', type: 'checkbox' },
+      ];
+    } else if (cat === 'Transporte y Mudanzas' || cat.includes('Delivery') || cat.includes('Mensajería')) {
+      fields = [
+        { key: 'pickupAddress', label: 'Dirección de recogida', type: 'text' },
+        { key: 'deliveryAddress', label: 'Dirección de entrega', type: 'text' },
+        { key: 'packageSize', label: 'Tamaño del paquete', type: 'select', options: ['Pequeño', 'Mediano', 'Grande'] },
+        { key: 'urgent', label: '¿Entrega urgente?', type: 'checkbox' },
+      ];
+    } else if (cat === 'Reparaciones y Mantenimiento del Hogar') {
+      fields = [
+        { key: 'problemType', label: 'Tipo de reparación', type: 'select', options: ['Eléctrica', 'Plomería', 'Pintura', 'Carpintería', 'Otra'] },
+        { key: 'urgency', label: 'Urgencia', type: 'select', options: ['Hoy', 'Esta semana', 'Normal'] },
+      ];
+    }
+
+    setDynamicFields(fields);
+  }, [formData.category]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-
-    if (name === 'category') {
-      setIsLimpieza(value === 'Limpieza de Hogar y Oficinas');
-    }
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleCustomFieldChange = (key: string, value: any) => {
@@ -49,19 +73,17 @@ export default function CreateGigPage() {
   };
 
   const generateDescription = async () => {
-    if (!formData.title) return setError("Escribe un título primero");
+    if (!formData.title || !formData.category) return setError("Título y categoría son obligatorios");
     setGenerating(true);
     try {
       const res = await fetch('/api/grok', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          prompt: `Escribe una descripción atractiva y profesional para un servicio de ${formData.category}: ${formData.title}.` 
-        })
+        body: JSON.stringify({ prompt: `Descripción profesional y atractiva en español colombiano para: ${formData.category} - ${formData.title}` })
       });
       const data = await res.json();
       if (data.reply) setFormData(prev => ({ ...prev, description: data.reply }));
-    } catch (err) {
+    } catch {
       setError("No se pudo generar la descripción");
     } finally {
       setGenerating(false);
@@ -82,26 +104,20 @@ export default function CreateGigPage() {
 
       const resUpload = await fetch('/api/upload', { method: 'POST', body: formDataUpload });
       const uploadData = await resUpload.json();
-      if (!resUpload.ok) throw new Error(uploadData.error);
+      if (!resUpload.ok) throw new Error(uploadData.error || 'Error subiendo imagen');
 
       const res = await fetch('/api/gigs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
-          price: parseFloat(formData.price) || 0,
-          category: formData.category,
+          ...formData,
+          price: parseFloat(formData.price),
           imageUrl: uploadData.url,
-          completionTime: formData.completionTime,
-          fields: formData.customFields,
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
-      setSuccess('¡Gig publicado con éxito!');
+      if (!res.ok) throw new Error('Error al publicar');
+      setSuccess('¡Gig publicado exitosamente!');
       setTimeout(() => router.push('/gigs'), 1500);
     } catch (err: any) {
       setError(err.message);
@@ -112,78 +128,85 @@ export default function CreateGigPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-12">
-      <Link href="/seller" className="text-orange-600 hover:underline mb-8 inline-flex items-center gap-2">← Volver al Dashboard del Vendedor</Link>
+      <Link href="/seller" className="text-orange-600 hover:underline mb-8 inline-flex items-center gap-2">← Volver</Link>
 
       <h1 className="text-5xl font-bold mb-2">Publica tu Servicio</h1>
-      <p className="text-xl text-gray-600 mb-10">Elige categoría y llena los detalles inteligentes</p>
+      <p className="text-xl text-gray-600 mb-10">Llena los datos y publica en minutos</p>
 
       <form onSubmit={handleSubmit} className="bg-white p-10 rounded-3xl border space-y-10">
+        {/* Title, Description, Category, Price - same as before */}
         <div>
-          <label className="block text-sm font-medium mb-2">Título del Gig</label>
-          <input type="text" name="title" value={formData.title} onChange={handleInputChange} required className="w-full px-5 py-4 border rounded-2xl text-lg" placeholder="Ej: Limpieza profunda de apartamentos" />
+          <label className="block text-sm font-medium mb-2">Título</label>
+          <input type="text" name="title" value={formData.title} onChange={handleInputChange} required className="w-full px-5 py-4 border rounded-2xl text-lg" placeholder="Ej: Limpieza profunda..." />
         </div>
 
         <div>
-          <div className="flex justify-between items-center mb-3">
+          <div className="flex justify-between mb-3">
             <label className="block text-sm font-medium">Descripción</label>
-            <button type="button" onClick={generateDescription} disabled={generating || !formData.title} className="flex items-center gap-2 text-orange-600 hover:text-orange-700 text-sm font-medium">
-              <Sparkles size={18} /> {generating ? "Grok pensando..." : "Generar con Grok"}
+            <button type="button" onClick={generateDescription} disabled={generating} className="text-orange-600 flex items-center gap-1 text-sm">
+              <Sparkles size={18} /> Generar con Grok
             </button>
           </div>
-          <textarea name="description" value={formData.description} onChange={handleInputChange} required rows={6} className="w-full px-5 py-4 border rounded-3xl" />
+          <textarea name="description" value={formData.description} onChange={handleInputChange} rows={5} className="w-full px-5 py-4 border rounded-3xl" />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-3">Categoría</label>
-          <select name="category" value={formData.category} onChange={handleInputChange} required className="w-full px-5 py-4 border rounded-2xl text-base">
-            <option value="">Selecciona una categoría</option>
-            {categories.map(cat => (
-              <option key={cat} value={cat}>
-                {categoryEmojis[cat] || '•'} {cat}
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium mb-2">Categoría</label>
+            <select name="category" value={formData.category} onChange={handleInputChange} required className="w-full px-5 py-4 border rounded-2xl">
+              <option value="">Selecciona una categoría</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>
+                  {categoryEmojis[cat] || '•'} {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Precio (COP)</label>
+            <input type="number" name="price" value={formData.price} onChange={handleInputChange} required className="w-full px-5 py-4 border rounded-2xl text-lg" placeholder="85000" />
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">Precio (COP)</label>
-          <input type="number" name="price" value={formData.price} onChange={handleInputChange} required className="w-full px-5 py-4 border rounded-2xl text-lg" placeholder="Ej: 85000" />
-        </div>
-
-        {/* Dynamic Fields for Limpieza */}
-        {isLimpieza && (
+        {/* Dynamic Fields */}
+        {dynamicFields.length > 0 && (
           <div className="border-t pt-8">
-            <h3 className="font-semibold text-lg mb-6">Detalles específicos de Limpieza</h3>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Número de habitaciones</label>
-                <input type="number" onChange={(e) => handleCustomFieldChange('rooms', e.target.value)} className="w-full px-5 py-4 border rounded-2xl" placeholder="Ej: 3" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Número de baños</label>
-                <input type="number" onChange={(e) => handleCustomFieldChange('bathrooms', e.target.value)} className="w-full px-5 py-4 border rounded-2xl" placeholder="Ej: 2" />
-              </div>
-              <div>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" onChange={(e) => handleCustomFieldChange('deepClean', e.target.checked)} className="w-5 h-5 accent-orange-600" />
-                  <span>¿Limpieza profunda?</span>
-                </label>
-              </div>
-              <div>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" onChange={(e) => handleCustomFieldChange('pets', e.target.checked)} className="w-5 h-5 accent-orange-600" />
-                  <span>¿Hay mascotas?</span>
-                </label>
-              </div>
+            <h3 className="font-semibold text-lg mb-6">Detalles específicos del servicio</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {dynamicFields.map((field, i) => (
+                <div key={i}>
+                  <label className="block text-sm font-medium mb-2">{field.label}</label>
+                  {field.type === 'number' && (
+                    <input type="number" onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} className="w-full px-5 py-4 border rounded-2xl" placeholder={field.placeholder} />
+                  )}
+                  {field.type === 'text' && (
+                    <input type="text" onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} className="w-full px-5 py-4 border rounded-2xl" placeholder={field.placeholder} />
+                  )}
+                  {field.type === 'checkbox' && (
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" onChange={(e) => handleCustomFieldChange(field.key, e.target.checked)} className="w-5 h-5 accent-orange-600" />
+                      <span>{field.label}</span>
+                    </label>
+                  )}
+                  {field.type === 'select' && field.options && (
+                    <select onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} className="w-full px-5 py-4 border rounded-2xl">
+                      <option value="">Selecciona...</option>
+                      {field.options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
 
+        {/* Image Upload */}
         <div>
-          <label className="block text-sm font-medium mb-3">Imagen principal</label>
+          <label className="block text-sm font-medium mb-3">Imagen del servicio</label>
           <label htmlFor="image-upload" className="cursor-pointer border-2 border-dashed border-orange-300 hover:border-orange-600 rounded-3xl p-12 flex flex-col items-center">
             <ImageIcon className="w-12 h-12 text-orange-500 mb-4" />
-            <span>Subir imagen</span>
+            <span className="font-medium">Seleccionar imagen</span>
           </label>
           <input type="file" id="image-upload" onChange={handleImageChange} className="hidden" accept="image/*" />
           {image && <p className="mt-3 text-green-600">✓ {image.name}</p>}
@@ -192,8 +215,8 @@ export default function CreateGigPage() {
         {error && <p className="text-red-600 bg-red-50 p-4 rounded-2xl">{error}</p>}
         {success && <p className="text-green-600 bg-green-50 p-4 rounded-2xl">{success}</p>}
 
-        <button type="submit" disabled={loading || !image} className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-5 rounded-2xl text-xl">
-          {loading ? 'Publicando...' : 'Publicar Gig'}
+        <button type="submit" disabled={loading || !image || !formData.price} className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-5 rounded-2xl text-xl transition">
+          {loading ? 'Publicando Gig...' : 'Publicar Gig'}
         </button>
       </form>
     </div>
