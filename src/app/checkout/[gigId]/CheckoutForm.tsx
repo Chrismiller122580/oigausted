@@ -19,92 +19,75 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string>('');
+  const [status, setStatus] = useState('Cargando Wompi...');
+
+  const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
 
   useEffect(() => {
-    console.log('🔍 CheckoutForm mounted - Public Key:', process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY ? '✅ Present' : '❌ MISSING');
+    console.log('🔑 Public Key in client:', publicKey ? '✅ PRESENT' : '❌ MISSING');
 
-    if (window.WompiCheckout) {
-      console.log('✅ Wompi already loaded');
-      setScriptLoaded(true);
+    if (!publicKey) {
+      setStatus('❌ Falta NEXT_PUBLIC_WOMPI_PUBLIC_KEY');
       return;
     }
 
-    console.log('📥 Loading Wompi script...');
+    if (window.WompiCheckout) {
+      setScriptLoaded(true);
+      setStatus('✅ Wompi listo');
+      return;
+    }
+
     const script = document.createElement('script');
     script.src = 'https://checkout.wompi.co/widget.js';
     script.async = true;
     script.onload = () => {
-      console.log('✅ Wompi script loaded successfully');
       setScriptLoaded(true);
-      setDebugInfo('Wompi listo');
+      setStatus('✅ Wompi listo - puedes pagar');
     };
-    script.onerror = () => {
-      console.error('❌ Failed to load Wompi script');
-      toast.error('No se pudo cargar Wompi');
-    };
+    script.onerror = () => setStatus('❌ Error cargando Wompi');
     document.body.appendChild(script);
-  }, []);
+  }, [publicKey]);
 
   const handleWompiPayment = async () => {
-    console.log('🟡 Button clicked');
-
-    if (!process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY) {
-      toast.error('Falta la clave pública de Wompi');
-      console.error('❌ NEXT_PUBLIC_WOMPI_PUBLIC_KEY is missing');
+    if (!publicKey) {
+      toast.error('Falta la clave de Wompi en Vercel');
       return;
     }
-
-    if (!scriptLoaded || !window.WompiCheckout) {
-      toast.error('Wompi aún se está cargando... espera 2 segundos');
-      console.warn('⚠️ Wompi not ready yet');
+    if (!scriptLoaded) {
+      toast.error('Espera que Wompi termine de cargar');
       return;
     }
 
     setLoading(true);
-    console.log('🚀 Creating order...');
 
     try {
-      const orderRes = await fetch('/api/orders', {
+      const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gigId: gig.id,
-          buyerId: buyerId,
-          price: gig.price
-        }),
+        body: JSON.stringify({ gigId: gig.id, buyerId, price: gig.price }),
       });
 
-      const orderData = await orderRes.json();
-      console.log('📦 Order response:', orderData);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error creando orden');
 
-      if (!orderRes.ok) throw new Error(orderData.error || 'Error creando orden');
+      const orderId = data.id || data.orderId;
 
-      const orderId = orderData.id || orderData.orderId;
-      console.log('✅ Order created:', orderId);
-
-      // Open Wompi
-      console.log('💳 Opening Wompi widget...');
       const checkout = new window.WompiCheckout({
-        publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
+        publicKey,
         currency: 'COP',
         amountInCents: Math.round(gig.price * 100),
         reference: `order_${orderId}`,
         redirectUrl: `${window.location.origin}/orders/${orderId}`,
         onSuccess: () => {
-          toast.success('¡Pago exitoso!');
+          toast.success('Pago exitoso!');
           setTimeout(() => router.push(`/orders/${orderId}`), 1500);
         },
-        onError: (error: any) => {
-          toast.error('Error en el pago');
-          console.error('Wompi error:', error);
-        },
+        onError: (e: any) => toast.error('Error en el pago'),
       });
 
       checkout.open();
 
     } catch (err: any) {
-      console.error('💥 Checkout error:', err);
       toast.error(err.message || 'Error inesperado');
     } finally {
       setLoading(false);
@@ -119,7 +102,7 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
         <div className="mb-10">
           <h2 className="text-2xl font-semibold">{gig.title}</h2>
           <p className="text-zinc-600 mt-3">{gig.description}</p>
-          
+
           <div className="mt-8 flex justify-between items-end">
             <div>
               <p className="text-sm text-zinc-500">Precio total</p>
@@ -142,11 +125,7 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
           {loading ? 'Procesando...' : 'Pagar con Wompi 💳'}
         </button>
 
-        {debugInfo && <p className="text-center text-xs text-green-600 mt-4">{debugInfo}</p>}
-
-        <p className="text-center text-xs text-zinc-500 mt-8">
-          Pago seguro procesado por Wompi • Dinero protegido
-        </p>
+        <p className="text-center text-sm mt-6 text-zinc-600">{status}</p>
       </div>
     </div>
   );
