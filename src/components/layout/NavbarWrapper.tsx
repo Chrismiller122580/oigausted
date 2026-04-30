@@ -18,6 +18,6 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   if (role === 'seller') return <SellerNavbar>{children}</SellerNavbar>;
   if (role === 'buyer') return <BuyerNavbar>{children}</BuyerNavbar>;
 
-  // Public / Logged out navbar
-  return <BuyerNavbar>{children}</BuyerNavbar>; // fallback
+  // Fallback for public / logged out users
+  return <BuyerNavbar>{children}</BuyerNavbar>;
 }
