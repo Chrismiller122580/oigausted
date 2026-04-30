@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { categories, categoryEmojis } from '@/lib/categories';
-import categoryRegistry from '@/lib/category-registry';
 import { Sparkles, Image as ImageIcon } from 'lucide-react';
 
 export default function CreateGigPage() {
@@ -27,19 +26,13 @@ export default function CreateGigPage() {
   });
 
   const [image, setImage] = useState<File | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<any>(null);
-
-  useEffect(() => {
-    if (formData.category) {
-      const cat = categoryRegistry.find(c => c.name === formData.category);
-      setSelectedCategory(cat || null);
-    } else {
-      setSelectedCategory(null);
-    }
-  }, [formData.category]);
+  const [isLimpieza, setIsLimpieza] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (e.target.name === 'category') {
+      setIsLimpieza(e.target.value === 'Limpieza de Hogar y Oficinas');
+    }
   };
 
   const handleCustomFieldChange = (key: string, value: any) => {
@@ -141,61 +134,39 @@ export default function CreateGigPage() {
           <label className="block text-sm font-medium mb-3">Categoría</label>
           <select name="category" value={formData.category} onChange={handleInputChange} required className="w-full px-5 py-4 border rounded-2xl text-base">
             <option value="">Selecciona una categoría</option>
-            {categoryRegistry.map(cat => (
-              <option key={cat.name} value={cat.name}>
-                {categoryEmojis[cat.name] || '•'} {cat.name}
+            {categories.map(cat => (
+              <option key={cat} value={cat}>
+                {categoryEmojis[cat] || '•'} {cat}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Dynamic Fields - This is the key part */}
-        {selectedCategory?.buyerFields && selectedCategory.buyerFields.length > 0 && (
+        {/* Dynamic Fields for Limpieza - Hardcoded for testing */}
+        {isLimpieza && (
           <div className="border-t pt-8">
-            <h3 className="font-semibold text-lg mb-6">Detalles específicos de {selectedCategory.name}</h3>
+            <h3 className="font-semibold text-lg mb-6">Detalles específicos de Limpieza</h3>
             <div className="space-y-6">
-              {selectedCategory.buyerFields.map((field: any) => (
-                <div key={field.key}>
-                  <label className="block text-sm font-medium mb-2">{field.label}</label>
-                  {field.type === 'number' && (
-                    <input 
-                      type="number" 
-                      onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} 
-                      className="w-full px-5 py-4 border rounded-2xl" 
-                      placeholder={field.placeholder} 
-                    />
-                  )}
-                  {field.type === 'checkbox' && (
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        onChange={(e) => handleCustomFieldChange(field.key, e.target.checked)} 
-                        className="w-5 h-5 accent-orange-600" 
-                      />
-                      <span>{field.label}</span>
-                    </label>
-                  )}
-                  {field.type === 'text' && (
-                    <input 
-                      type="text" 
-                      onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} 
-                      className="w-full px-5 py-4 border rounded-2xl" 
-                      placeholder={field.placeholder} 
-                    />
-                  )}
-                  {field.type === 'select' && field.options && (
-                    <select 
-                      onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} 
-                      className="w-full px-5 py-4 border rounded-2xl"
-                    >
-                      <option value="">Selecciona una opción</option>
-                      {field.options.map((opt: string) => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              ))}
+              <div>
+                <label className="block text-sm font-medium mb-2">Número de habitaciones</label>
+                <input type="number" onChange={(e) => handleCustomFieldChange('rooms', e.target.value)} className="w-full px-5 py-4 border rounded-2xl" placeholder="Ej: 3" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Número de baños</label>
+                <input type="number" onChange={(e) => handleCustomFieldChange('bathrooms', e.target.value)} className="w-full px-5 py-4 border rounded-2xl" placeholder="Ej: 2" />
+              </div>
+              <div>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" onChange={(e) => handleCustomFieldChange('deepClean', e.target.checked)} className="w-5 h-5 accent-orange-600" />
+                  <span>¿Limpieza profunda?</span>
+                </label>
+              </div>
+              <div>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" onChange={(e) => handleCustomFieldChange('pets', e.target.checked)} className="w-5 h-5 accent-orange-600" />
+                  <span>¿Hay mascotas?</span>
+                </label>
+              </div>
             </div>
           </div>
         )}
