@@ -143,7 +143,7 @@ export default function CreateGigPage() {
             <option value="">Selecciona una categoría</option>
             {categoryRegistry.map(cat => (
               <option key={cat.name} value={cat.name}>
-                {cat.emoji || '•'} {cat.name}
+                {categoryEmojis[cat.name] || '•'} {cat.name}
               </option>
             ))}
           </select>
@@ -182,6 +182,17 @@ export default function CreateGigPage() {
                       className="w-full px-5 py-4 border rounded-2xl" 
                       placeholder={field.placeholder} 
                     />
+                  )}
+                  {field.type === 'select' && field.options && (
+                    <select 
+                      onChange={(e) => handleCustomFieldChange(field.key, e.target.value)} 
+                      className="w-full px-5 py-4 border rounded-2xl"
+                    >
+                      <option value="">Selecciona una opción</option>
+                      {field.options.map((opt: string) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
                   )}
                 </div>
               ))}
