@@ -3,7 +3,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogOut, Plus, Bell } from 'lucide-react';
+import { Menu, X, LogOut, Plus, Bell, DollarSign } from 'lucide-react';
 import { useState } from 'react';
 import Image from 'next/image';
 
@@ -41,6 +41,9 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
             <Link href="/seller/profile" className="font-semibold bg-orange-100 px-4 py-1 rounded-2xl hover:bg-orange-200 transition">
               Mi Negocio
             </Link>
+            <Link href="/seller/earnings" className="flex items-center gap-2 hover:text-orange-600 transition">
+              <DollarSign size={18} /> Ganancias
+            </Link>
             <Link href="/create-gig">
               <Button className="bg-orange-600 hover:bg-orange-700 flex items-center gap-2">
                 <Plus size={18} /> Crear Gig
@@ -48,13 +51,12 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
             </Link>
           </div>
 
-          {/* Right Side - Clickable Avatar */}
+          {/* Right Side */}
           <div className="flex items-center gap-6">
             <button className="p-2 text-gray-600 hover:text-orange-600 transition relative">
               <Bell size={22} />
             </button>
 
-            {/* Clickable Profile Avatar */}
             <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition cursor-pointer">
               <div className="text-right hidden md:block">
                 <p className="font-semibold text-sm leading-none">{session?.user?.name?.split(" ")[0] || 'Vendedor'}</p>
@@ -91,6 +93,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
               <Link href="/seller" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link>
               <Link href="/gigs" onClick={() => setIsMobileMenuOpen(false)}>Mis Gigs</Link>
               <Link href="/seller/profile" onClick={() => setIsMobileMenuOpen(false)}>Mi Negocio</Link>
+              <Link href="/seller/earnings" onClick={() => setIsMobileMenuOpen(false)}>Ganancias</Link>
               <Link href="/create-gig" onClick={() => setIsMobileMenuOpen(false)}>Crear Gig</Link>
               <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>Mi Perfil</Link>
               
