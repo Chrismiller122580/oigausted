@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 
@@ -23,34 +23,36 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
     setLoading(true);
 
     try {
-      // 1. Create the order first (so we have an orderId for reference)
+      // Create order first
       const orderRes = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gigId: gig.id, price: gig.price }),
+        body: JSON.stringify({
+          gigId: gig.id,
+          buyerId: buyerId,
+          price: gig.price
+        }),
       });
 
       const orderData = await orderRes.json();
 
-      if (!orderRes.ok) {
-        throw new Error(orderData.error || 'Error al crear la orden');
-      }
+      if (!orderRes.ok) throw new Error(orderData.error || 'No se pudo crear la orden');
 
-      const orderId = orderData.orderId || orderData.id;
+      const orderId = orderData.id || orderData.orderId;
 
-      // 2. Open Wompi Checkout Widget
+      // Open Wompi Checkout
       const checkout = new window.WompiCheckout({
         publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
         currency: 'COP',
         amountInCents: Math.round(gig.price * 100),
         reference: `order_${orderId}`,
-        redirectUrl: `${window.location.origin}/orders`, // fallback
-        onSuccess: (transaction: any) => {
-          toast.success('¡Pago exitoso! Redirigiendo a tus órdenes...');
-          setTimeout(() => router.push('/orders'), 1500);
+        redirectUrl: `${window.location.origin}/orders/${orderId}`,
+        onSuccess: () => {
+          toast.success('¡Pago exitoso! Redirigiendo...');
+          setTimeout(() => router.push(`/orders/${orderId}`), 1500);
         },
         onError: (error: any) => {
-          toast.error('Error en el pago. Inténtalo de nuevo.');
+          toast.error('Error en el pago. Inténtalo nuevamente.');
           console.error(error);
         },
       });
@@ -72,7 +74,7 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
 
         <div className="mb-10">
           <h2 className="text-2xl font-semibold">{gig.title}</h2>
-          <p className="text-zinc-600 mt-3 line-clamp-3">{gig.description}</p>
+          <p className="text-zinc-600 mt-3">{gig.description}</p>
           
           <div className="mt-8 flex justify-between items-end">
             <div>
@@ -93,11 +95,7 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
           disabled={loading}
           className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-5 rounded-2xl text-xl transition-all flex items-center justify-center gap-3"
         >
-          {loading ? (
-            <>Procesando...</>
-          ) : (
-            <>Pagar con Wompi <span className="text-2xl">💳</span></>
-          )}
+          {loading ? 'Procesando pago...' : 'Pagar con Wompi 💳'}
         </button>
 
         <p className="text-center text-xs text-zinc-500 mt-8">
