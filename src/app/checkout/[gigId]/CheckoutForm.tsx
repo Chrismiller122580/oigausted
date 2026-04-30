@@ -9,12 +9,19 @@ interface Props {
   buyerId: string;
 }
 
+// Declare Wompi globally
+declare global {
+  interface Window {
+    WompiCheckout: any;
+  }
+}
+
 export default function CheckoutForm({ gig, buyerId }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
 
-  // Load Wompi script dynamically
+  // Load Wompi script
   useEffect(() => {
     if (window.WompiCheckout) {
       setScriptLoaded(true);
@@ -25,24 +32,24 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
     script.src = 'https://checkout.wompi.co/widget.js';
     script.async = true;
     script.onload = () => setScriptLoaded(true);
-    script.onerror = () => toast.error('No se pudo cargar Wompi');
+    script.onerror = () => toast.error('No se pudo cargar Wompi Checkout');
     document.body.appendChild(script);
 
     return () => {
-      // Cleanup if needed
+      // Optional cleanup
     };
   }, []);
 
   const handleWompiPayment = async () => {
-    if (!scriptLoaded) {
-      toast.error('Wompi aún no está listo. Intenta de nuevo en unos segundos.');
+    if (!scriptLoaded || !window.WompiCheckout) {
+      toast.error('Wompi aún no está listo. Espera un momento e intenta de nuevo.');
       return;
     }
 
     setLoading(true);
 
     try {
-      // 1. Create order
+      // Create order
       const orderRes = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -59,16 +66,16 @@ export default function CheckoutForm({ gig, buyerId }: Props) {
 
       const orderId = orderData.id || orderData.orderId;
 
-      // 2. Open Wompi widget
+      // Open Wompi Checkout
       const checkout = new window.WompiCheckout({
         publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
         currency: 'COP',
         amountInCents: Math.round(gig.price * 100),
         reference: `order_${orderId}`,
         redirectUrl: `${window.location.origin}/orders/${orderId}`,
-        onSuccess: (transaction: any) => {
+        onSuccess: () => {
           toast.success('¡Pago exitoso!');
-          setTimeout(() => router.push(`/orders/${orderId}`), 1200);
+          setTimeout(() => router.push(`/orders/${orderId}`), 1500);
         },
         onError: (error: any) => {
           toast.error('Error en el pago. Inténtalo nuevamente.');
