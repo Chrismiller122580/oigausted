@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
-// Same-folder imports (correct for current layout/ folder)
+// Same-folder imports (all files are in layout/)
 import AdminNavbar from './AdminNavbar';
 import BuyerNavbar from './BuyerNavbar';
 import SellerNavbar from './SellerNavbar';
@@ -26,7 +26,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   if (role === 'seller') return <SellerNavbar>{children}</SellerNavbar>;
   if (role === 'buyer') return <BuyerNavbar>{children}</BuyerNavbar>;
 
-  // Public navbar
+  // Public navbar fallback
   return (
     <>
       <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
