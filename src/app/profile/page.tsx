@@ -50,53 +50,43 @@ export default function ProfilePage() {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
     try {
       const formDataUpload = new FormData();
       formDataUpload.append('file', file);
-
       const res = await fetch('/api/upload', { method: 'POST', body: formDataUpload });
       const data = await res.json();
-
-      if (data.url) {
-        setFormData({ ...formData, imageUrl: data.url });
-        alert("✅ Foto actualizada");
-      }
+      if (data.url) setFormData({ ...formData, imageUrl: data.url });
     } catch (err) {
-      alert("❌ Error al subir foto");
+      alert("Error subiendo foto");
     } finally {
       setUploading(false);
     }
   };
 
+  const copyProfileLink = () => {
+    const userId = (session?.user as any)?.id || '';
+    const link = `${window.location.origin}/profile/${userId}`;
+    navigator.clipboard.writeText(link);
+    alert("✅ Enlace copiado: " + link);
+  };
+
   const saveProfile = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/user/profile', {
+      await fetch('/api/user/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-
-      if (res.ok) {
-        await update();
-        setIsEditing(false);
-        alert("✅ Perfil actualizado correctamente");
-      } else {
-        alert("Error al guardar");
-      }
+      await update();
+      setIsEditing(false);
+      alert("✅ Perfil guardado");
     } catch (err) {
-      alert("Error de conexión");
+      alert("Error al guardar");
     } finally {
       setLoading(false);
     }
-  };
-
-  const copyProfileLink = () => {
-    const link = `${window.location.origin}/profile/${session?.user?.id || ''}`;
-    navigator.clipboard.writeText(link);
-    alert("✅ Enlace copiado: " + link);
   };
 
   const isSeller = (session?.user as any)?.role === 'seller';
@@ -112,7 +102,6 @@ export default function ProfilePage() {
         </div>
 
         <Card className="overflow-hidden shadow-xl">
-          {/* Hero Banner */}
           <div className="h-64 bg-gradient-to-r from-orange-500 to-red-600 relative">
             <div className="absolute -bottom-16 left-8">
               <label className="cursor-pointer block">
@@ -121,11 +110,6 @@ export default function ProfilePage() {
                     <img src={formData.imageUrl} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full bg-gray-200 flex items-center justify-center text-6xl">👤</div>
-                  )}
-                  {isEditing && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <Camera className="text-white" />
-                    </div>
                   )}
                 </div>
                 <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
@@ -141,19 +125,16 @@ export default function ProfilePage() {
             </div>
 
             {isEditing ? (
-              <div className="space-y-8">
-                <Input name="name" value={formData.name} onChange={handleChange} placeholder="Nombre completo" className="text-3xl font-bold" />
-                <Input name="tagline" value={formData.tagline} onChange={handleChange} placeholder="Tagline o profesión (ej: Fotógrafo profesional en Bucaramanga)" />
-
-                <Textarea name="bio" value={formData.bio} onChange={handleChange} rows={4} placeholder="Cuéntanos sobre ti..." />
-
+              <div className="space-y-6">
+                <Input name="name" value={formData.name} onChange={handleChange} placeholder="Nombre" className="text-3xl font-bold" />
+                <Input name="tagline" value={formData.tagline} onChange={handleChange} placeholder="Tagline / Profesión" />
+                <Textarea name="bio" value={formData.bio} onChange={handleChange} rows={5} placeholder="Tu biografía..." />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Input name="phone" value={formData.phone} onChange={handleChange} placeholder="Teléfono" />
                   <Input name="whatsapp" value={formData.whatsapp} onChange={handleChange} placeholder="WhatsApp" />
                   <Input name="city" value={formData.city} onChange={handleChange} placeholder="Ciudad" />
                 </div>
-
-                <Button onClick={saveProfile} disabled={loading} className="w-full py-6 text-lg">
+                <Button onClick={saveProfile} disabled={loading} className="w-full py-6">
                   {loading ? "Guardando..." : "Guardar Cambios"}
                 </Button>
               </div>
@@ -161,26 +142,13 @@ export default function ProfilePage() {
               <div className="space-y-8">
                 <div>
                   <h2 className="text-4xl font-bold">{formData.name || "Tu Nombre"}</h2>
-                  <p className="text-xl text-orange-600 mt-1">{formData.tagline}</p>
+                  <p className="text-xl text-orange-600">{formData.tagline}</p>
                 </div>
-
-                <p className="text-lg leading-relaxed text-gray-700">{formData.bio || "Aún no tienes biografía."}</p>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-                  {formData.city && <div className="flex items-center gap-3"><MapPin /> {formData.city}</div>}
-                  {formData.phone && <div className="flex items-center gap-3"><Phone /> {formData.phone}</div>}
-                  {formData.whatsapp && <div className="flex items-center gap-3">📱 {formData.whatsapp}</div>}
+                <p className="text-lg text-gray-700">{formData.bio || "Sin biografía aún"}</p>
+                <div className="flex gap-8 text-sm">
+                  {formData.city && <div><MapPin className="inline" /> {formData.city}</div>}
+                  {formData.phone && <div><Phone className="inline" /> {formData.phone}</div>}
                 </div>
-
-                {isSeller && (
-                  <div className="bg-orange-50 border border-orange-200 rounded-3xl p-8 flex items-center gap-6">
-                    <Award className="w-12 h-12 text-orange-600" />
-                    <div>
-                      <p className="font-semibold">Vendedor Verificado</p>
-                      <p className="text-sm text-gray-600">Miembros de la comunidad confían en ti</p>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </CardContent>
