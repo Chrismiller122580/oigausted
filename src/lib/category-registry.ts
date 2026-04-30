@@ -1,6 +1,5 @@
 import { gigCategories } from '@/lib/gig-categories';
 
-// Smart Category Registry - The brain of the dynamic system
 export const categoryRegistry = gigCategories.map(cat => ({
   ...cat,
   buyerFields: getBuyerFields(cat.name),
