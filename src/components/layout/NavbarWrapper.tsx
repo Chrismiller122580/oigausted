@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
-// Correct relative imports (from layout/ folder)
-import AdminNavbar from '../AdminNavbar';
-import BuyerNavbar from '../BuyerNavbar';
-import SellerNavbar from '../SellerNavbar';
+// Same-folder imports (correct for current layout/ folder)
+import AdminNavbar from './AdminNavbar';
+import BuyerNavbar from './BuyerNavbar';
+import SellerNavbar from './SellerNavbar';
 
 export default function NavbarWrapper({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
