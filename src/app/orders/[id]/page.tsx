@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft, MessageCircle, Paperclip, Send } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -21,15 +21,13 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load order and messages
   useEffect(() => {
     Promise.all([
       fetch(`/api/orders/${orderId}`).then(r => r.json()),
       fetch(`/api/orders/${orderId}/messages`).then(r => r.json())
     ]).then(([orderData, msgData]) => {
-      const o = orderData.order || orderData;
-      setOrder(o);
-      setMessages(Array.isArray(msgData) ? msgData : (msgData.messages || []));
+      setOrder(orderData.order || orderData);
+      setMessages(Array.isArray(msgData) ? msgData : []);
       setLoading(false);
       scrollToBottom();
     }).catch(() => setLoading(false));
@@ -42,10 +40,7 @@ export default function OrderDetailPage() {
   const formatTime = (dateString: string | undefined) => {
     if (!dateString) return "ahora";
     try {
-      return new Date(dateString).toLocaleTimeString('es-CO', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
+      return new Date(dateString).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
     } catch {
       return "ahora";
     }
@@ -54,8 +49,9 @@ export default function OrderDetailPage() {
   const sendMessage = async (fileUrl?: string) => {
     if (!newMessage.trim() && !fileUrl) return;
 
-    const messagePayload = {
-      text: newMessage.trim(),
+    const payload = {
+      content: newMessage.trim(),
+      isFromBuyer: true,
       fileUrl: fileUrl || null,
     };
 
@@ -63,13 +59,15 @@ export default function OrderDetailPage() {
       const res = await fetch(`/api/orders/${orderId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(messagePayload),
+        body: JSON.stringify(payload),
       });
 
-      const savedMsg = await res.json();
-      setMessages(prev => [...prev, savedMsg]);
-      setNewMessage('');
-      scrollToBottom();
+      if (res.ok) {
+        const savedMsg = await res.json();
+        setMessages(prev => [...prev, savedMsg]);
+        setNewMessage('');
+        scrollToBottom();
+      }
     } catch (err) {
       console.error(err);
       alert("Error enviando mensaje");
@@ -88,7 +86,7 @@ export default function OrderDetailPage() {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const data = await res.json();
       if (data.url) await sendMessage(data.url);
-    } catch (err) {
+    } catch {
       alert("Error subiendo archivo");
     } finally {
       setUploading(false);
@@ -106,7 +104,6 @@ export default function OrderDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-8 space-y-8">
-          {/* Progress */}
           <Card>
             <CardContent className="p-8">
               <div className="flex justify-between mb-3">
@@ -117,7 +114,6 @@ export default function OrderDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Gig Info */}
           <Card>
             <CardContent className="p-10">
               <h1 className="text-4xl font-bold">{order.gig?.title}</h1>
@@ -126,7 +122,6 @@ export default function OrderDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Requirements */}
           {order.customFields && Object.keys(order.customFields).length > 0 && (
             <Card>
               <CardContent className="p-10">
@@ -143,7 +138,6 @@ export default function OrderDetailPage() {
             </Card>
           )}
 
-          {/* Persistent Chat */}
           <Card>
             <CardContent className="p-10">
               <h3 className="font-semibold text-2xl mb-6 flex items-center gap-3">
@@ -155,7 +149,7 @@ export default function OrderDetailPage() {
                   <div key={m.id} className={`flex ${m.senderId === (session?.user as any)?.id ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[75%] px-5 py-3 rounded-3xl ${m.senderId === (session?.user as any)?.id ? 'bg-orange-600 text-white' : 'bg-white border'}`}>
                       {m.fileUrl && <img src={m.fileUrl} className="max-w-[220px] rounded-xl mb-3" alt="attachment" />}
-                      <p>{m.text}</p>
+                      <p>{m.content || m.text}</p>
                       <p className="text-xs mt-2 opacity-70">{formatTime(m.createdAt)}</p>
                     </div>
                   </div>
@@ -186,7 +180,6 @@ export default function OrderDetailPage() {
           </Card>
         </div>
 
-        {/* Sidebar */}
         <div className="lg:col-span-4">
           <Card>
             <CardContent className="p-8">
