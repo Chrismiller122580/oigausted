@@ -17,9 +17,13 @@ model User {
   role          String    @default("buyer")
   businessName  String?
   nit           String?
-  bio           String?   // ← Added
+  bio           String?
+  tagline       String?
   phone         String?
+  whatsapp      String?
   city          String?
+  instagram     String?
+  facebook      String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
