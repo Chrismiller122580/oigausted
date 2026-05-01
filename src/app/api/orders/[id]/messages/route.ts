@@ -23,7 +23,7 @@ export async function GET(
       }
     });
 
-    return NextResponse.json({ messages });
+    return NextResponse.json(messages);
   } catch (error) {
     console.error('Messages GET error:', error);
     return NextResponse.json({ error: 'Error cargando mensajes' }, { status: 500 });
