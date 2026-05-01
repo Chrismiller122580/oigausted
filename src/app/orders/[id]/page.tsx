@@ -21,14 +21,15 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load order + messages
+  // Load order and messages
   useEffect(() => {
     Promise.all([
       fetch(`/api/orders/${orderId}`).then(r => r.json()),
       fetch(`/api/orders/${orderId}/messages`).then(r => r.json())
     ]).then(([orderData, msgData]) => {
-      setOrder(orderData.order || orderData);
-      setMessages(msgData.messages || msgData || []);
+      const o = orderData.order || orderData;
+      setOrder(o);
+      setMessages(Array.isArray(msgData) ? msgData : (msgData.messages || []));
       setLoading(false);
       scrollToBottom();
     }).catch(() => setLoading(false));
@@ -38,25 +39,41 @@ export default function OrderDetailPage() {
     setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
+  const formatTime = (dateString: string | undefined) => {
+    if (!dateString) return "ahora";
+    try {
+      return new Date(dateString).toLocaleTimeString('es-CO', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    } catch {
+      return "ahora";
+    }
+  };
+
   const sendMessage = async (fileUrl?: string) => {
     if (!newMessage.trim() && !fileUrl) return;
 
     const messagePayload = {
-      text: newMessage,
+      text: newMessage.trim(),
       fileUrl: fileUrl || null,
-      senderId: (session?.user as any)?.id
     };
 
-    const res = await fetch(`/api/orders/${orderId}/messages`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(messagePayload)
-    });
+    try {
+      const res = await fetch(`/api/orders/${orderId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(messagePayload),
+      });
 
-    const savedMsg = await res.json();
-    setMessages(prev => [...prev, savedMsg]);
-    setNewMessage('');
-    scrollToBottom();
+      const savedMsg = await res.json();
+      setMessages(prev => [...prev, savedMsg]);
+      setNewMessage('');
+      scrollToBottom();
+    } catch (err) {
+      console.error(err);
+      alert("Error enviando mensaje");
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,19 +84,19 @@ export default function OrderDetailPage() {
     const formData = new FormData();
     formData.append('file', file);
 
-    const res = await fetch('/api/upload', { method: 'POST', body: formData });
-    const data = await res.json();
-
-    if (data.url) {
-      await sendMessage(data.url);
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.url) await sendMessage(data.url);
+    } catch (err) {
+      alert("Error subiendo archivo");
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando pedido...</div>;
-  if (!order) return <div className="min-h-screen flex items-center justify-center text-red-600">Pedido no encontrado</div>;
-
-  const progress = order.status === 'Pending' ? 25 : order.status === 'Paid' ? 50 : order.status === 'In Progress' ? 75 : 100;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-2xl">Cargando pedido...</div>;
+  if (!order) return <div className="min-h-screen flex items-center justify-center text-2xl">Pedido no encontrado</div>;
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-12">
@@ -88,7 +105,6 @@ export default function OrderDetailPage() {
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* Main Area */}
         <div className="lg:col-span-8 space-y-8">
           {/* Progress */}
           <Card>
@@ -97,7 +113,7 @@ export default function OrderDetailPage() {
                 <span className="font-semibold">Progreso del Pedido</span>
                 <span className="font-medium">{order.status}</span>
               </div>
-              <Progress value={progress} className="h-3" />
+              <Progress value={order.status === 'Completed' ? 100 : order.status === 'In Progress' ? 75 : 40} className="h-3" />
             </CardContent>
           </Card>
 
@@ -106,7 +122,7 @@ export default function OrderDetailPage() {
             <CardContent className="p-10">
               <h1 className="text-4xl font-bold">{order.gig?.title}</h1>
               <p className="text-3xl font-bold text-orange-600 mt-2">${Number(order.price).toLocaleString('es-CO')} COP</p>
-              {order.gig?.imageUrl && <img src={order.gig.imageUrl} className="mt-8 rounded-3xl w-full" />}
+              {order.gig?.imageUrl && <img src={order.gig.imageUrl} className="mt-8 rounded-3xl w-full" alt={order.gig.title} />}
             </CardContent>
           </Card>
 
@@ -114,12 +130,12 @@ export default function OrderDetailPage() {
           {order.customFields && Object.keys(order.customFields).length > 0 && (
             <Card>
               <CardContent className="p-10">
-                <h3 className="font-semibold text-xl mb-6">Requisitos del Cliente</h3>
-                <div className="grid grid-cols-2 gap-6">
-                  {Object.entries(order.customFields).map(([key, val]) => (
+                <h3 className="font-semibold text-2xl mb-6">Tus Requisitos</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {Object.entries(order.customFields).map(([key, value]) => (
                     <div key={key} className="bg-gray-50 p-6 rounded-2xl">
-                      <p className="uppercase text-xs text-gray-500">{key.replace(/([A-Z])/g, ' $1')}</p>
-                      <p className="text-lg font-medium mt-1">{String(val)}</p>
+                      <p className="text-sm uppercase tracking-widest text-gray-500">{key.replace(/([A-Z])/g, ' $1')}</p>
+                      <p className="text-xl font-medium mt-2">{String(value)}</p>
                     </div>
                   ))}
                 </div>
@@ -135,12 +151,12 @@ export default function OrderDetailPage() {
               </h3>
 
               <div className="h-96 bg-gray-50 rounded-2xl p-6 overflow-y-auto border space-y-4 mb-6">
-                {messages.map(m => (
+                {messages.map((m: any) => (
                   <div key={m.id} className={`flex ${m.senderId === (session?.user as any)?.id ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[75%] px-5 py-3 rounded-3xl ${m.senderId === (session?.user as any)?.id ? 'bg-orange-600 text-white' : 'bg-white border'}`}>
-                      {m.fileUrl && <img src={m.fileUrl} className="max-w-[200px] rounded-xl mb-2" />}
+                      {m.fileUrl && <img src={m.fileUrl} className="max-w-[220px] rounded-xl mb-3" alt="attachment" />}
                       <p>{m.text}</p>
-                      <p className="text-xs mt-2 opacity-70">{new Date(m.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</p>
+                      <p className="text-xs mt-2 opacity-70">{formatTime(m.createdAt)}</p>
                     </div>
                   </div>
                 ))}
@@ -151,7 +167,7 @@ export default function OrderDetailPage() {
                 <label className="cursor-pointer">
                   <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" />
                   <Button variant="outline" disabled={uploading} className="flex items-center gap-2">
-                    <Paperclip size={18} /> {uploading ? 'Subiendo...' : 'Adjuntar'}
+                    <Paperclip size={18} /> Adjuntar
                   </Button>
                 </label>
 
