@@ -8,35 +8,24 @@ datasource db {
 }
 
 model User {
-  id              String   @id @default(uuid())
-  name            String?
-  email           String?  @unique
-  role            String   @default("buyer")
-  phone           String?
-  idNumber        String?
-  address         String?
-  instagram       String?
-  facebook        String?
-  whatsapp        String?
-  businessName    String?
-  nit             String?
-  bio             String?
-  tagline         String?
-  city            String?
-  profilePicture  String?
-  rating          Float?   @default(0)
-  reviewCount     Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            String    @id @default(uuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("buyer")
+  businessName  String?
+  phone         String?
+  city          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  gigs            Gig[]
-  ordersAsBuyer   Order[]  @relation("BuyerOrders")
-  ordersAsSeller  Order[]  @relation("SellerOrders")
-  password        String?
-  reviewsReceived Review[] @relation("ReviewToSeller")
-  reviewsGiven    Review[] @relation("ReviewToBuyer")
-  accounts        Account[]
-  sessions        Session[]
+  gigs     Gig[]
+  ordersAsBuyer  Order[] @relation("BuyerOrders")
+  ordersAsSeller Order[] @relation("SellerOrders")
+  messages Message[]
+
+  @@map("users")
 }
 
 model Gig {
@@ -50,94 +39,33 @@ model Gig {
   fields        Json?
   addons        Json?
   createdAt     DateTime @default(now())
-  sellerId      String
-  seller        User     @relation(fields: [sellerId], references: [id])
-  orders        Order[]
+
+  sellerId String
+  seller   User   @relation(fields: [sellerId], references: [id])
+
+  orders Order[]
+
+  @@map("gigs")
 }
 
 model Order {
-  id              String      @id @default(uuid())
-  price           Float
-  status          String      @default("Pending")
-  progress        Int         @default(0)
-  trackingNumber  String?
-  buyerId         String
-  sellerId        String
-  gigId           String?
-  createdAt       DateTime    @default(now())
-  buyer           User        @relation("BuyerOrders", fields: [buyerId], references: [id])
-  seller          User        @relation("SellerOrders", fields: [sellerId], references: [id])
-  gig             Gig?        @relation(fields: [gigId], references: [id])
-  files           OrderFile[]
-  messages        OrderMessage[]
-}
+  id         String   @id @default(uuid())
+  buyerId    String
+  sellerId   String
+  gigId      String
+  price      Float
+  status     String   @default("Pending")
+  progress   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-model OrderFile {
-  id          String   @id @default(uuid())
-  name        String
-  url         String
-  size        Int
-  type        String
-  uploadedBy  String
-  orderId     String
-  createdAt   DateTime @default(now())
-  order       Order    @relation(fields: [orderId], references: [id])
-}
+  buyer  User @relation("BuyerOrders", fields: [buyerId], references: [id])
+  seller User @relation("SellerOrders", fields: [sellerId], references: [id])
+  gig    Gig  @relation(fields: [gigId], references: [id])
 
-model OrderMessage {
-  id          String   @id @default(uuid())
-  content     String
-  senderId    String
-  senderRole  String
-  isFromBuyer Boolean
-  orderId     String
-  createdAt   DateTime @default(now())
-  order       Order    @relation(fields: [orderId], references: [id])
-}
+  messages Message[]
 
-model Review {
-  id        String   @id @default(uuid())
-  rating    Float
-  comment   String?
-  createdAt DateTime @default(now())
-  sellerId  String
-  buyerId   String
-  seller    User     @relation("ReviewToSeller", fields: [sellerId], references: [id])
-  buyer     User     @relation("ReviewToBuyer", fields: [buyerId], references: [id])
-}
-
-model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String? @db.Text
-  access_token       String? @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String? @db.Text
-  session_state      String?
-  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
+  @@map("orders")
 }
 
 model Message {
@@ -153,4 +81,5 @@ model Message {
   sender User  @relation(fields: [senderId], references: [id])
 
   @@index([orderId])
+  @@map("messages")
 }
