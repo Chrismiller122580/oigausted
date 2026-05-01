@@ -3,17 +3,21 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { Clock, MessageCircle, Package } from 'lucide-react';
+import { MessageCircle, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 export default function SellerOrdersPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (status === "loading") return;
+    if (!session?.user) {
+      setLoading(false);
+      return;
+    }
 
     fetch('/api/orders?role=seller')
       .then(res => res.json())
@@ -22,7 +26,7 @@ export default function SellerOrdersPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [session]);
+  }, [session, status]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -42,7 +46,7 @@ export default function SellerOrdersPage() {
       <div className="flex justify-between items-center mb-10">
         <div>
           <h1 className="text-5xl font-bold">Pedidos Recibidos</h1>
-          <p className="text-xl text-gray-600 mt-2">Gestiona los servicios solicitados</p>
+          <p className="text-xl text-gray-600 mt-2">Gestiona los servicios que te han solicitado</p>
         </div>
         <Link href="/seller" className="text-orange-600 hover:underline">← Volver al Dashboard</Link>
       </div>
@@ -67,19 +71,20 @@ export default function SellerOrdersPage() {
                 </div>
 
                 <div className="flex-1">
-                  <div className="flex justify-between">
-                    <h3 className="font-semibold text-2xl">{order.gig?.title}</h3>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold text-2xl">{order.gig?.title}</h3>
+                      <p className="text-gray-600 mt-1">Cliente: {order.buyer?.name}</p>
+                    </div>
                     <span className={`px-5 py-2 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
                       {order.status}
                     </span>
                   </div>
 
-                  <p className="text-gray-600 mt-1">Cliente: {order.buyer?.name}</p>
-
                   <div className="mt-6 flex gap-8 text-sm">
                     <div>
                       <p className="text-gray-500">Valor</p>
-                      <p className="font-semibold">${Number(order.price).toLocaleString('es-CO')}</p>
+                      <p className="font-semibold">${Number(order.price || 0).toLocaleString('es-CO')}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Fecha</p>
