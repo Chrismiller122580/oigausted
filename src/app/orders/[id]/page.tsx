@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft, MessageCircle } from 'lucide-react';
+import { ArrowLeft, MessageCircle, CheckCircle2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -34,14 +35,22 @@ export default function OrderDetailPage() {
 
   const sendMessage = () => {
     if (!newMessage.trim()) return;
-    setMessages([...messages, {
-      id: Date.now(),
-      sender: "You",
-      text: newMessage,
-      time: "ahora"
-    }]);
+    setMessages([...messages, { id: Date.now(), sender: "You", text: newMessage, time: "ahora" }]);
     setNewMessage('');
   };
+
+  // Progress calculation
+  const getProgress = (status: string) => {
+    switch (status) {
+      case 'Pending': return 25;
+      case 'Paid': return 50;
+      case 'In Progress': return 75;
+      case 'Completed': return 100;
+      default: return 25;
+    }
+  };
+
+  const progress = order ? getProgress(order.status) : 25;
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-2xl">Cargando pedido...</div>;
   if (!order) return <div className="min-h-screen flex items-center justify-center text-2xl">Pedido no encontrado</div>;
@@ -57,28 +66,29 @@ export default function OrderDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-8 space-y-8">
+          {/* Progress Bar */}
+          <Card>
+            <CardContent className="p-8">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-semibold text-lg">Estado del Pedido</h3>
+                <span className="font-medium text-orange-600">{order.status}</span>
+              </div>
+              <Progress value={progress} className="h-3" />
+              <div className="flex justify-between text-xs text-gray-500 mt-2">
+                <span>Pendiente</span>
+                <span>En Progreso</span>
+                <span>Completado</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Gig Info */}
           <Card>
             <CardContent className="p-10">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h1 className="text-4xl font-bold">{order.gig?.title}</h1>
-                  <p className="text-gray-600 mt-2">Pedido #{order.id?.slice(0,8)}...</p>
-                </div>
-                <div className="px-6 py-3 rounded-2xl bg-orange-100 text-orange-700 font-semibold">
-                  {order.status}
-                </div>
-              </div>
-
-              <div className="mt-8 flex gap-12">
-                <div>
-                  <p className="text-sm text-gray-500">Total Pagado</p>
-                  <p className="text-3xl font-bold text-orange-600">${Number(order.price || 0).toLocaleString('es-CO')}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Fecha</p>
-                  <p>{new Date(order.createdAt).toLocaleDateString('es-CO')}</p>
-                </div>
-              </div>
+              <h1 className="text-4xl font-bold mb-2">{order.gig?.title}</h1>
+              <p className="text-3xl font-bold text-orange-600">${Number(order.price).toLocaleString('es-CO')} COP</p>
+              {order.gig?.imageUrl && <img src={order.gig.imageUrl} className="mt-6 w-full rounded-3xl" alt={order.gig.title} />}
+              <p className="text-gray-700 mt-6">{order.gig?.description}</p>
             </CardContent>
           </Card>
 
@@ -86,7 +96,7 @@ export default function OrderDetailPage() {
           {order.customFields && Object.keys(order.customFields).length > 0 && (
             <Card>
               <CardContent className="p-10">
-                <h3 className="font-semibold text-2xl mb-6">Requisitos del Cliente</h3>
+                <h3 className="font-semibold text-2xl mb-6">Tus Requisitos</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {Object.entries(order.customFields).map(([key, value]) => (
                     <div key={key} className="bg-gray-50 p-6 rounded-2xl">
@@ -103,7 +113,7 @@ export default function OrderDetailPage() {
           <Card>
             <CardContent className="p-10">
               <h3 className="font-semibold text-2xl mb-6 flex items-center gap-3">
-                <MessageCircle className="text-orange-600" /> Chat con {isBuyer ? "el Vendedor" : "el Cliente"}
+                <MessageCircle className="text-orange-600" /> Chat
               </h3>
 
               <div className="h-96 bg-gray-50 rounded-2xl p-6 overflow-y-auto space-y-4 mb-6 border">
@@ -123,7 +133,7 @@ export default function OrderDetailPage() {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                  placeholder="Escribe un mensaje..."
+                  placeholder="Escribe un mensaje al vendedor..."
                   className="flex-1 px-6 py-4 border rounded-2xl focus:outline-none focus:border-orange-600"
                 />
                 <Button onClick={sendMessage}>Enviar</Button>
@@ -137,7 +147,7 @@ export default function OrderDetailPage() {
           <Card>
             <CardContent className="p-8">
               <h4 className="font-semibold mb-6">Información</h4>
-              <div className="space-y-4">
+              <div className="space-y-4 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Cliente</span>
                   <span>{order.buyer?.name}</span>
