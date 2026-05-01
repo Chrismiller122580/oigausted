@@ -7,12 +7,27 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const messages = await prisma.orderMessage.findMany({
-    where: { orderId: id },
-    orderBy: { createdAt: 'asc' }
-  });
-  return NextResponse.json({ messages });
+  try {
+    const { id: orderId } = await params;
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    const messages = await prisma.message.findMany({
+      where: { orderId },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        sender: { select: { name: true, businessName: true } }
+      }
+    });
+
+    return NextResponse.json({ messages });
+  } catch (error) {
+    console.error('Messages GET error:', error);
+    return NextResponse.json({ error: 'Error cargando mensajes' }, { status: 500 });
+  }
 }
 
 export async function POST(
@@ -20,33 +35,30 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
-
     const { id: orderId } = await params;
-    const { content } = await request.json();
+    const session = await getServerSession(authOptions);
 
-    if (!content?.trim()) {
-      return NextResponse.json({ error: 'Content is required' }, { status: 400 });
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const userRole = (session.user as any).role || 'buyer';
+    const { text, fileUrl } = await request.json();
 
-    const message = await prisma.orderMessage.create({
+    const message = await prisma.message.create({
       data: {
         orderId,
-        content: content.trim(),
         senderId: session.user.id,
-        senderRole: userRole,
-        isFromBuyer: userRole === 'buyer',
+        text: text || '',
+        fileUrl: fileUrl || null,
+      },
+      include: {
+        sender: { select: { name: true, businessName: true } }
       }
     });
 
-    return NextResponse.json({ message });
+    return NextResponse.json(message);
   } catch (error) {
-    console.error('Message send error:', error);
-    return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
+    console.error('Messages POST error:', error);
+    return NextResponse.json({ error: 'Error enviando mensaje' }, { status: 500 });
   }
 }
