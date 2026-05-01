@@ -139,3 +139,18 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+model Message {
+  id        String   @id @default(uuid())
+  orderId   String
+  senderId  String
+  text      String?
+  fileUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order  Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sender User  @relation(fields: [senderId], references: [id])
+
+  @@index([orderId])
+}
