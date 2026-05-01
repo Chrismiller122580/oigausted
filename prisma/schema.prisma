@@ -16,7 +16,8 @@ model User {
   profilePicture String?
   role          String    @default("buyer")
   businessName  String?
-  nit           String?   // ← Added for Colombian sellers
+  nit           String?
+  bio           String?   // ← Added
   phone         String?
   city          String?
   createdAt     DateTime  @default(now())
