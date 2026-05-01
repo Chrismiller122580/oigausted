@@ -13,9 +13,10 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  profilePicture String?   // ← Added
+  profilePicture String?
   role          String    @default("buyer")
   businessName  String?
+  nit           String?   // ← Added for Colombian sellers
   phone         String?
   city          String?
   createdAt     DateTime  @default(now())
