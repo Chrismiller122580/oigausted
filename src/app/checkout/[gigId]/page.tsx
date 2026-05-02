@@ -1,170 +1,103 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+
+declare global {
+  interface Window {
+    WompiCheckout?: any;
+  }
+}
 
 export default function CheckoutPage() {
-  const router = useRouter();
   const params = useParams();
-  const gigId = params.gigId as string;   // ← Correct way for client components
+  const gigId = params.gigId as string;
+  const router = useRouter();
   const { data: session } = useSession();
 
   const [gig, setGig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [wompiReady, setWompiReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [buyerFields, setBuyerFields] = useState<any[]>([]);
-  const [customData, setCustomData] = useState<Record<string, any>>({});
-  const [totalPrice, setTotalPrice] = useState(0);
-
-  console.log("🔍 Checkout Debug - gigId received:", gigId); // ← Debug log
 
   useEffect(() => {
-    if (!gigId) {
-      setError("ID de gig inválido (no se recibió el ID)");
-      setLoading(false);
+    fetch(`/api/gigs/${gigId}`)
+      .then(res => res.json())
+      .then(data => {
+        setGig(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [gigId]);
+
+  // Load Wompi script
+  useEffect(() => {
+    if (window.WompiCheckout) {
+      setWompiReady(true);
       return;
     }
 
-    fetch(`/api/gigs/${gigId}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Gig no encontrado');
-        return res.json();
-      })
-      .then(data => {
-        setGig(data);
-        setTotalPrice(Number(data.price) || 0);
-        generateBuyerFields(data.category);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setError("No se pudo cargar el gig");
-        setLoading(false);
-      });
-  }, [gigId]);
+    const script = document.createElement('script');
+    script.src = 'https://checkout.wompi.co/widget.js';
+    script.async = true;
+    script.onload = () => setWompiReady(true);
+    document.body.appendChild(script);
 
-  const generateBuyerFields = (category: string) => {
-    let fields: any[] = [];
-    if (category === 'Limpieza de Hogar y Oficinas') {
-      fields = [
-        { key: 'rooms', label: 'Número de habitaciones', type: 'number', placeholder: '3', priceImpact: 25000 },
-        { key: 'bathrooms', label: 'Número de baños', type: 'number', placeholder: '2', priceImpact: 15000 },
-        { key: 'deepClean', label: '¿Limpieza profunda?', type: 'checkbox', priceImpact: 40000 },
-        { key: 'pets', label: '¿Hay mascotas?', type: 'checkbox', priceImpact: 10000 },
-      ];
-    } else if (category.includes('Transporte') || category.includes('Mudanzas') || category.includes('Delivery')) {
-      fields = [
-        { key: 'pickupAddress', label: 'Dirección de recogida', type: 'text' },
-        { key: 'deliveryAddress', label: 'Dirección de entrega', type: 'text' },
-        { key: 'packageSize', label: 'Tamaño del paquete', type: 'select', options: ['Pequeño', 'Mediano', 'Grande'] },
-        { key: 'urgent', label: '¿Entrega urgente?', type: 'checkbox', priceImpact: 35000 },
-      ];
-    }
-    setBuyerFields(fields);
-  };
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
-  const handleFieldChange = (key: string, value: any, priceImpact: number = 0) => {
-    const newData = { ...customData, [key]: value };
-    setCustomData(newData);
+  const handleWompiPayment = () => {
+    if (!gig || !session?.user?.id || !wompiReady) return;
 
-    let extra = 0;
-    Object.keys(newData).forEach(k => {
-      const field = buyerFields.find(f => f.key === k);
-      if (field?.priceImpact && (newData[k] === true || Number(newData[k]) > 0)) extra += field.priceImpact;
+    const amountInCents = Math.round(gig.price * 100);
+    const reference = `order_${Date.now()}`;
+
+    const checkout = new window.WompiCheckout({
+      publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || 'pub_test_hhnHHaFm6UYVNyVRg8KdLOmC5wPZsQfZ',
+      amountInCents,
+      currency: 'COP',
+      reference,
+      redirectUrl: `${window.location.origin}/orders/${reference}`,
+      // You can add more options like customer data later
     });
-    setTotalPrice((gig?.price || 0) + extra);
+
+    checkout.open();
   };
 
-  const handleCheckout = async () => {
-    const userId = (session?.user as any)?.id;
-    if (!userId) return alert("Debes iniciar sesión");
-
-    setSubmitting(true);
-    setError('');
-
-    try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gigId,
-          buyerId: userId,
-          price: totalPrice,
-          customFields: customData,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error al crear la orden");
-
-      router.push(`/orders/${data.id || data.orderId}`);
-    } catch (err: any) {
-      setError(err.message);
-      console.error(err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-2xl">Cargando gig...</div>;
-  if (error) return <div className="min-h-screen flex items-center justify-center text-red-600 text-xl">{error}</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-2xl">Cargando checkout...</div>;
   if (!gig) return <div className="min-h-screen flex items-center justify-center text-2xl">Gig no encontrado</div>;
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
-      <Link href={`/gigs/${gigId}`} className="flex items-center gap-2 text-orange-600 mb-8 hover:underline">
-        <ArrowLeft size={20} /> Volver al Gig
-      </Link>
+    <div className="max-w-4xl mx-auto px-6 py-12">
+      <h1 className="text-4xl font-bold mb-8">Checkout</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">{gig.title}</h1>
-          <p className="text-3xl font-bold text-orange-600 mb-8">${totalPrice.toLocaleString('es-CO')} COP</p>
-          {gig.imageUrl && <img src={gig.imageUrl} className="w-full rounded-3xl mb-6" alt={gig.title} />}
-          <p className="text-gray-700">{gig.description}</p>
-        </div>
+      <Card>
+        <CardContent className="p-10">
+          <h2 className="text-3xl font-semibold">{gig.title}</h2>
+          <p className="text-5xl font-bold text-orange-600 mt-4">
+            ${Number(gig.price).toLocaleString('es-CO')} COP
+          </p>
 
-        <div className="bg-white rounded-3xl p-10 border">
-          <h2 className="text-2xl font-semibold mb-8">Personaliza tu pedido</h2>
-
-          <div className="space-y-8">
-            {buyerFields.map((field, i) => (
-              <div key={i}>
-                <label className="block text-sm font-medium mb-3">{field.label}</label>
-                {field.type === 'number' && (
-                  <input type="number" onChange={(e) => handleFieldChange(field.key, Number(e.target.value), field.priceImpact)} className="w-full px-5 py-4 border rounded-2xl" placeholder={field.placeholder} />
-                )}
-                {field.type === 'text' && (
-                  <input type="text" onChange={(e) => handleFieldChange(field.key, e.target.value)} className="w-full px-5 py-4 border rounded-2xl" />
-                )}
-                {field.type === 'checkbox' && (
-                  <label className="flex items-center gap-3 cursor-pointer py-3">
-                    <input type="checkbox" onChange={(e) => handleFieldChange(field.key, e.target.checked, field.priceImpact)} className="w-5 h-5 accent-orange-600" />
-                    <span>Sí</span>
-                  </label>
-                )}
-              </div>
-            ))}
+          <div className="mt-12">
+            <Button
+              onClick={handleWompiPayment}
+              disabled={!wompiReady}
+              className="w-full bg-green-600 hover:bg-green-700 text-white text-xl py-8 rounded-2xl"
+            >
+              {wompiReady ? '💳 Pagar con Wompi' : 'Cargando Wompi...'}
+            </Button>
           </div>
 
-          <div className="mt-12 pt-8 border-t">
-            <div className="flex justify-between text-2xl font-semibold mb-8">
-              <span>Total</span>
-              <span className="text-orange-600">${totalPrice.toLocaleString('es-CO')}</span>
-            </div>
-
-            {error && <p className="text-red-600 mb-4">{error}</p>}
-
-            <button onClick={handleCheckout} disabled={submitting} className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-6 rounded-2xl text-xl">
-              {submitting ? 'Procesando...' : 'Continuar al Pago 💳'}
-            </button>
-          </div>
-        </div>
-      </div>
+          <p className="text-center text-sm text-gray-500 mt-6">
+            Pago seguro con Wompi • Transacción en COP
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
