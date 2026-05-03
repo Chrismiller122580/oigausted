@@ -6,12 +6,6 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
-declare global {
-  interface Window {
-    WompiCheckout: any;
-  }
-}
-
 export default function CheckoutPage() {
   const params = useParams();
   const gigId = params.gigId as string;
@@ -22,6 +16,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [wompiReady, setWompiReady] = useState(false);
+  const [wompiStatus, setWompiStatus] = useState('Cargando...');
 
   useEffect(() => {
     fetch(`/api/gigs/${gigId}`)
@@ -33,29 +28,41 @@ export default function CheckoutPage() {
       .catch(() => setLoading(false));
   }, [gigId]);
 
-  // Load Wompi script
   useEffect(() => {
-    const loadWompi = () => {
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    const checkWompi = () => {
+      attempts++;
       if ((window as any).WompiCheckout) {
+        console.log("✅ WompiCheckout found");
         setWompiReady(true);
+        setWompiStatus('Listo');
         return;
       }
 
-      const script = document.createElement('script');
-      script.src = 'https://checkout.wompi.co/widget.js';
-      script.async = true;
-      script.onload = () => {
-        setTimeout(() => setWompiReady(true), 1000);
-      };
-      document.body.appendChild(script);
+      if (attempts < maxAttempts) {
+        setTimeout(checkWompi, 500);
+      } else {
+        setWompiStatus('Error cargando Wompi');
+      }
     };
 
-    loadWompi();
+    const script = document.createElement('script');
+    script.src = 'https://checkout.wompi.co/widget.js';
+    script.async = true;
+    script.onload = () => {
+      console.log("Wompi script loaded");
+      checkWompi();
+    };
+    document.body.appendChild(script);
   }, []);
 
   const handleWompiPayment = async () => {
+    console.log("Button clicked - wompiReady:", wompiReady);
+
     if (!gig || !session?.user?.id || !wompiReady) {
-      alert("Wompi aún se está cargando. Espera un momento e intenta de nuevo.");
+      alert("Espera a que Wompi cargue completamente");
       return;
     }
 
@@ -78,6 +85,8 @@ export default function CheckoutPage() {
       const amountInCents = Math.round(gig.price * 100);
       const reference = `order_${orderId}`;
 
+      console.log("Opening Wompi with reference:", reference);
+
       const checkout = new (window as any).WompiCheckout({
         publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || 'pub_test_hhnHHaFm6UYVNyVRg8KdLOmC5wPZsQfZ',
         amountInCents,
@@ -88,30 +97,29 @@ export default function CheckoutPage() {
 
       checkout.open();
     } catch (error: any) {
-      console.error(error);
-      alert(error.message || 'Error al abrir el pago');
+      console.error("Wompi error:", error);
+      alert(error.message || 'Error al abrir Wompi');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-2xl">Cargando checkout...</div>;
-  if (!gig) return <div className="min-h-screen flex items-center justify-center text-2xl">Gig no encontrado</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-2xl">Cargando...</div>;
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-12">
-      <h1 className="text-4xl font-bold mb-8">Checkout - {gig.title}</h1>
+      <h1 className="text-4xl font-bold mb-8">Checkout - {gig?.title}</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-7">
           <Card>
             <CardContent className="p-10">
-              {gig.imageUrl && <img src={gig.imageUrl} className="w-full h-64 object-cover rounded-3xl mb-8" alt={gig.title} />}
-              <h2 className="text-4xl font-bold">{gig.title}</h2>
+              {gig?.imageUrl && <img src={gig.imageUrl} className="w-full h-64 object-cover rounded-3xl mb-8" alt={gig.title} />}
+              <h2 className="text-4xl font-bold">{gig?.title}</h2>
               <p className="text-5xl font-bold text-orange-600 mt-4">
-                ${Number(gig.price).toLocaleString('es-CO')} COP
+                ${Number(gig?.price).toLocaleString('es-CO')} COP
               </p>
-              <p className="text-gray-600 mt-6 leading-relaxed">{gig.description}</p>
+              <p className="text-gray-600 mt-6">{gig?.description}</p>
             </CardContent>
           </Card>
         </div>
@@ -124,10 +132,10 @@ export default function CheckoutPage() {
                 disabled={submitting || !wompiReady}
                 className="w-full bg-green-600 hover:bg-green-700 text-white text-xl py-8 rounded-3xl font-semibold"
               >
-                {submitting ? 'Procesando...' : wompiReady ? '💳 Pagar con Wompi' : 'Cargando Wompi...'}
+                {submitting ? 'Procesando...' : wompiReady ? '💳 Pagar con Wompi' : wompiStatus}
               </Button>
               <p className="text-center text-xs text-gray-500 mt-6">
-                Pago seguro con Wompi • Transacción en COP
+                Estado Wompi: {wompiStatus}
               </p>
             </CardContent>
           </Card>
