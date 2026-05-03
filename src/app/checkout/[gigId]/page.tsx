@@ -29,14 +29,11 @@ export default function CheckoutPage() {
   }, [gigId]);
 
   const loadWompi = () => {
-    setWompiStatus('Cargando...');
+    setWompiStatus('Intentando cargar...');
     setWompiReady(false);
 
-    if ((window as any).WompiCheckout) {
-      setWompiReady(true);
-      setWompiStatus('Listo');
-      return;
-    }
+    // Remove old script if exists
+    document.querySelectorAll('script[src*="wompi"]').forEach(s => s.remove());
 
     const script = document.createElement('script');
     script.src = 'https://checkout.wompi.co/widget.js';
@@ -45,13 +42,13 @@ export default function CheckoutPage() {
       setTimeout(() => {
         if ((window as any).WompiCheckout) {
           setWompiReady(true);
-          setWompiStatus('Listo');
+          setWompiStatus('✅ Listo para pagar');
         } else {
-          setWompiStatus('Error - Intenta de nuevo');
+          setWompiStatus('Error - Reintenta');
         }
-      }, 1500);
+      }, 1200);
     };
-    script.onerror = () => setWompiStatus('Error cargando script');
+    script.onerror = () => setWompiStatus('Error de red - Reintenta');
     document.body.appendChild(script);
   };
 
@@ -60,8 +57,8 @@ export default function CheckoutPage() {
   }, []);
 
   const handleWompiPayment = async () => {
-    if (!gig || !session?.user?.id || !wompiReady) {
-      alert("Wompi no está listo. Usa el botón 'Reintentar Wompi'");
+    if (!wompiReady) {
+      alert("Wompi no está listo. Usa 'Reintentar Wompi'");
       return;
     }
 
@@ -97,7 +94,7 @@ export default function CheckoutPage() {
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-2xl">Cargando...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-2xl">Cargando checkout...</div>;
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-12">
@@ -112,7 +109,7 @@ export default function CheckoutPage() {
               <p className="text-5xl font-bold text-orange-600 mt-4">
                 ${Number(gig?.price).toLocaleString('es-CO')} COP
               </p>
-              <p className="text-gray-600 mt-6">{gig?.description}</p>
+              <p className="text-gray-600 mt-6 leading-relaxed whitespace-pre-line">{gig?.description}</p>
             </CardContent>
           </Card>
         </div>
@@ -128,11 +125,7 @@ export default function CheckoutPage() {
                 {submitting ? 'Procesando...' : wompiReady ? '💳 Pagar con Wompi' : 'Wompi no listo'}
               </Button>
 
-              <Button
-                onClick={loadWompi}
-                variant="outline"
-                className="w-full"
-              >
+              <Button onClick={loadWompi} variant="outline" className="w-full">
                 🔄 Reintentar Wompi
               </Button>
 
