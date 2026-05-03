@@ -56,15 +56,16 @@ model Gig {
 }
 
 model Order {
-  id         String   @id @default(uuid())
-  buyerId    String
-  sellerId   String
-  gigId      String
-  price      Float
-  status     String   @default("Pending")
-  progress   Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String   @id @default(uuid())
+  buyerId      String
+  sellerId     String
+  gigId        String
+  price        Float
+  status       String   @default("Pending")
+  progress     Int      @default(0)
+  customFields Json?    // ← Added
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   buyer  User @relation("BuyerOrders", fields: [buyerId], references: [id])
   seller User @relation("SellerOrders", fields: [sellerId], references: [id])
