@@ -16,7 +16,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [wompiReady, setWompiReady] = useState(false);
-  const [wompiStatus, setWompiStatus] = useState('Cargando...');
+  const [wompiStatus, setWompiStatus] = useState('Cargando Wompi...');
 
   useEffect(() => {
     fetch(`/api/gigs/${gigId}`)
@@ -28,41 +28,40 @@ export default function CheckoutPage() {
       .catch(() => setLoading(false));
   }, [gigId]);
 
-  useEffect(() => {
-    let attempts = 0;
-    const maxAttempts = 10;
+  const loadWompi = () => {
+    setWompiStatus('Cargando...');
+    setWompiReady(false);
 
-    const checkWompi = () => {
-      attempts++;
-      if ((window as any).WompiCheckout) {
-        console.log("✅ WompiCheckout found");
-        setWompiReady(true);
-        setWompiStatus('Listo');
-        return;
-      }
-
-      if (attempts < maxAttempts) {
-        setTimeout(checkWompi, 500);
-      } else {
-        setWompiStatus('Error cargando Wompi');
-      }
-    };
+    if ((window as any).WompiCheckout) {
+      setWompiReady(true);
+      setWompiStatus('Listo');
+      return;
+    }
 
     const script = document.createElement('script');
     script.src = 'https://checkout.wompi.co/widget.js';
     script.async = true;
     script.onload = () => {
-      console.log("Wompi script loaded");
-      checkWompi();
+      setTimeout(() => {
+        if ((window as any).WompiCheckout) {
+          setWompiReady(true);
+          setWompiStatus('Listo');
+        } else {
+          setWompiStatus('Error - Intenta de nuevo');
+        }
+      }, 1500);
     };
+    script.onerror = () => setWompiStatus('Error cargando script');
     document.body.appendChild(script);
+  };
+
+  useEffect(() => {
+    loadWompi();
   }, []);
 
   const handleWompiPayment = async () => {
-    console.log("Button clicked - wompiReady:", wompiReady);
-
     if (!gig || !session?.user?.id || !wompiReady) {
-      alert("Espera a que Wompi cargue completamente");
+      alert("Wompi no está listo. Usa el botón 'Reintentar Wompi'");
       return;
     }
 
@@ -72,10 +71,7 @@ export default function CheckoutPage() {
       const orderRes = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gigId: gig.id,
-          price: gig.price,
-        })
+        body: JSON.stringify({ gigId: gig.id, price: gig.price })
       });
 
       const orderData = await orderRes.json();
@@ -84,8 +80,6 @@ export default function CheckoutPage() {
       const orderId = orderData.orderId || orderData.id;
       const amountInCents = Math.round(gig.price * 100);
       const reference = `order_${orderId}`;
-
-      console.log("Opening Wompi with reference:", reference);
 
       const checkout = new (window as any).WompiCheckout({
         publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || 'pub_test_hhnHHaFm6UYVNyVRg8KdLOmC5wPZsQfZ',
@@ -97,7 +91,6 @@ export default function CheckoutPage() {
 
       checkout.open();
     } catch (error: any) {
-      console.error("Wompi error:", error);
       alert(error.message || 'Error al abrir Wompi');
     } finally {
       setSubmitting(false);
@@ -130,12 +123,21 @@ export default function CheckoutPage() {
               <Button
                 onClick={handleWompiPayment}
                 disabled={submitting || !wompiReady}
-                className="w-full bg-green-600 hover:bg-green-700 text-white text-xl py-8 rounded-3xl font-semibold"
+                className="w-full bg-green-600 hover:bg-green-700 text-white text-xl py-8 rounded-3xl font-semibold mb-4"
               >
-                {submitting ? 'Procesando...' : wompiReady ? '💳 Pagar con Wompi' : wompiStatus}
+                {submitting ? 'Procesando...' : wompiReady ? '💳 Pagar con Wompi' : 'Wompi no listo'}
               </Button>
-              <p className="text-center text-xs text-gray-500 mt-6">
-                Estado Wompi: {wompiStatus}
+
+              <Button
+                onClick={loadWompi}
+                variant="outline"
+                className="w-full"
+              >
+                🔄 Reintentar Wompi
+              </Button>
+
+              <p className="text-center text-sm mt-4 text-gray-500">
+                Estado: {wompiStatus}
               </p>
             </CardContent>
           </Card>
