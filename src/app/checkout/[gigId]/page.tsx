@@ -6,6 +6,12 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
+declare global {
+  interface Window {
+    WompiCheckout: any;
+  }
+}
+
 export default function CheckoutPage() {
   const params = useParams();
   const gigId = params.gigId as string;
@@ -30,7 +36,7 @@ export default function CheckoutPage() {
   // Load Wompi script
   useEffect(() => {
     const loadWompi = () => {
-      if (window.WompiCheckout) {
+      if ((window as any).WompiCheckout) {
         setWompiReady(true);
         return;
       }
@@ -39,8 +45,7 @@ export default function CheckoutPage() {
       script.src = 'https://checkout.wompi.co/widget.js';
       script.async = true;
       script.onload = () => {
-        // Small delay to ensure widget is fully initialized
-        setTimeout(() => setWompiReady(true), 800);
+        setTimeout(() => setWompiReady(true), 1000);
       };
       document.body.appendChild(script);
     };
@@ -50,7 +55,7 @@ export default function CheckoutPage() {
 
   const handleWompiPayment = async () => {
     if (!gig || !session?.user?.id || !wompiReady) {
-      alert("Wompi aún se está cargando o falta información");
+      alert("Wompi aún se está cargando. Espera un momento e intenta de nuevo.");
       return;
     }
 
@@ -73,8 +78,7 @@ export default function CheckoutPage() {
       const amountInCents = Math.round(gig.price * 100);
       const reference = `order_${orderId}`;
 
-      // Open Wompi
-      const checkout = new window.WompiCheckout({
+      const checkout = new (window as any).WompiCheckout({
         publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || 'pub_test_hhnHHaFm6UYVNyVRg8KdLOmC5wPZsQfZ',
         amountInCents,
         currency: 'COP',
