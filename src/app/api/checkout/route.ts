@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const integritySecret = process.env.WOMPI_INTEGRITY_SECRET; // Add this in Vercel!
     
     if (!integritySecret) {
-      console.error("Missing WOMPI_INTEGRITY_SECRET");
+      console.error("prod_integrity_3D6lMfLaTFkC3OsHnowKbgeXvvTuRp5g");
     }
 
     let signature = '';
