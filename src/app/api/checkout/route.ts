@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
         gigId: gig.id,
         buyerId,
         sellerId: gig.sellerId,
-        amount: gig.price,
+        price: gig.price,           // ← Changed from 'amount'
         status: 'Pending',
         reference: `order_${Date.now()}`,
       }
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       `&amount_in_cents=${Math.round(gig.price * 100)}` +
       `&currency=COP` +
       `&reference=${order.reference}` +
-      `&redirect_url=${encodeURIComponent(`${process.env.NEXTAUTH_URL || window.location.origin}/orders/${order.id}`)}`;
+      `&redirect_url=${encodeURIComponent(`${process.env.NEXTAUTH_URL || 'https://oigausted.vercel.app'}/orders/${order.id}`)}`;
 
     return NextResponse.json({
       success: true,
