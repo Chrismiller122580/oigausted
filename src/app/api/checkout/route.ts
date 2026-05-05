@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +15,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
     }
 
-    // Create order
     const order = await prisma.order.create({
       data: {
         gigId: gig.id,
@@ -22,18 +22,36 @@ export async function POST(request: NextRequest) {
         sellerId: gig.sellerId,
         price: gig.price,
         status: 'Pending',
-        // We can store Wompi reference in customFields if needed later
       }
     });
 
     const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY!;
+    const amountInCents = Math.round(gig.price * 100);
+    const reference = order.id;
+    const currency = 'COP';
 
-    // Wompi Hosted Checkout URL
+    // === Generate Integrity Signature (REQUIRED) ===
+    const integritySecret = process.env.WOMPI_INTEGRITY_SECRET; // Add this in Vercel!
+    
+    if (!integritySecret) {
+      console.error("Missing WOMPI_INTEGRITY_SECRET");
+    }
+
+    let signature = '';
+    if (integritySecret) {
+      const stringToSign = `${amountInCents}${currency}${reference}${integritySecret}`;
+      signature = crypto
+        .createHash('sha256')
+        .update(stringToSign)
+        .digest('hex');
+    }
+
     const checkoutUrl = `https://checkout.wompi.co/?` +
-      `public_key=${publicKey}` +
-      `&amount_in_cents=${Math.round(gig.price * 100)}` +
-      `&currency=COP` +
-      `&reference=${order.id}` +                    // Use order.id as reference
+      `public_key=${encodeURIComponent(publicKey)}` +
+      `&amount_in_cents=${amountInCents}` +
+      `&currency=${currency}` +
+      `&reference=${reference}` +
+      (signature ? `&signature:integrity=${signature}` : '') +
       `&redirect_url=${encodeURIComponent(
         `${process.env.NEXTAUTH_URL || 'https://oigausted.vercel.app'}/orders/${order.id}`
       )}`;
