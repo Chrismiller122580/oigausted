@@ -14,24 +14,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
     }
 
+    // Create order
     const order = await prisma.order.create({
       data: {
         gigId: gig.id,
         buyerId,
         sellerId: gig.sellerId,
-        price: gig.price,           // ← Changed from 'amount'
+        price: gig.price,
         status: 'Pending',
-        reference: `order_${Date.now()}`,
+        // We can store Wompi reference in customFields if needed later
       }
     });
 
     const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY!;
 
-    const checkoutUrl = `https://checkout.wompi.co/?public_key=${publicKey}` +
+    // Wompi Hosted Checkout URL
+    const checkoutUrl = `https://checkout.wompi.co/?` +
+      `public_key=${publicKey}` +
       `&amount_in_cents=${Math.round(gig.price * 100)}` +
       `&currency=COP` +
-      `&reference=${order.reference}` +
-      `&redirect_url=${encodeURIComponent(`${process.env.NEXTAUTH_URL || 'https://oigausted.vercel.app'}/orders/${order.id}`)}`;
+      `&reference=${order.id}` +                    // Use order.id as reference
+      `&redirect_url=${encodeURIComponent(
+        `${process.env.NEXTAUTH_URL || 'https://oigausted.vercel.app'}/orders/${order.id}`
+      )}`;
 
     return NextResponse.json({
       success: true,
@@ -41,6 +46,8 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Checkout error:', error);
-    return NextResponse.json({ error: error.message || 'Error interno' }, { status: 500 });
+    return NextResponse.json({ 
+      error: error.message || 'Error interno del servidor' 
+    }, { status: 500 });
   }
 }
