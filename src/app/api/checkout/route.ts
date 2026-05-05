@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,9 +10,7 @@ export async function POST(request: NextRequest) {
       include: { seller: true }
     });
 
-    if (!gig) {
-      return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
-    }
+    if (!gig) return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
 
     const order = await prisma.order.create({
       data: {
@@ -26,46 +23,24 @@ export async function POST(request: NextRequest) {
     });
 
     const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY!;
-    const amountInCents = Math.round(gig.price * 100);
-    const reference = order.id;
-    const currency = 'COP';
-
-    // === Generate Integrity Signature (REQUIRED) ===
-    const integritySecret = process.env.WOMPI_INTEGRITY_SECRET; // Add this in Vercel!
-    
-    if (!integritySecret) {
-      console.error("prod_integrity_3D6lMfLaTFkC3OsHnowKbgeXvvTuRp5g");
-    }
-
-    let signature = '';
-    if (integritySecret) {
-      const stringToSign = `${amountInCents}${currency}${reference}${integritySecret}`;
-      signature = crypto
-        .createHash('sha256')
-        .update(stringToSign)
-        .digest('hex');
-    }
 
     const checkoutUrl = `https://checkout.wompi.co/?` +
-      `public_key=${encodeURIComponent(publicKey)}` +
-      `&amount_in_cents=${amountInCents}` +
-      `&currency=${currency}` +
-      `&reference=${reference}` +
-      (signature ? `&signature:integrity=${signature}` : '') +
+      `public_key=${publicKey}` +
+      `&amount_in_cents=${Math.round(gig.price * 100)}` +
+      `&currency=COP` +
+      `&reference=${order.id}` +
       `&redirect_url=${encodeURIComponent(
         `${process.env.NEXTAUTH_URL || 'https://oigausted.vercel.app'}/orders/${order.id}`
       )}`;
 
-    return NextResponse.json({
-      success: true,
-      orderId: order.id,
-      checkoutUrl
+    return NextResponse.json({ 
+      success: true, 
+      orderId: order.id, 
+      checkoutUrl 
     });
 
   } catch (error: any) {
     console.error('Checkout error:', error);
-    return NextResponse.json({ 
-      error: error.message || 'Error interno del servidor' 
-    }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
