@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'react-hot-toast';
 
 export default function OrderDetailPage() {
@@ -13,14 +14,13 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [review, setReview] = useState<any>(null);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load Order + Review
+  // Load Order
   useEffect(() => {
     fetch(`/api/orders/${orderId}`)
       .then(r => r.json())
@@ -46,26 +46,29 @@ export default function OrderDetailPage() {
     return () => clearInterval(interval);
   }, [orderId]);
 
-  // Auto scroll chat
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
+
     const res = await fetch(`/api/orders/${orderId}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: newMessage })
     });
+
     if (res.ok) {
       setNewMessage('');
       loadMessages();
+    } else {
+      toast.error('Error enviando mensaje');
     }
   };
 
   const submitReview = async () => {
-    if (rating < 1 || rating > 5) return toast.error('Rating debe ser entre 1 y 5');
+    if (rating < 1 || rating > 5) return toast.error('Rating entre 1 y 5');
 
     const res = await fetch('/api/reviews', {
       method: 'POST',
@@ -74,7 +77,7 @@ export default function OrderDetailPage() {
     });
 
     if (res.ok) {
-      toast.success('✅ Gracias por tu review!');
+      toast.success('✅ Review enviada. ¡Gracias!');
       setComment('');
     } else {
       toast.error('Error enviando review');
@@ -116,7 +119,7 @@ export default function OrderDetailPage() {
       {order.metadata && Object.keys(order.metadata).length > 0 && (
         <Card className="mb-6">
           <CardContent className="p-8">
-            <h3 className="font-semibold mb-4">📋 Detalles seleccionados</h3>
+            <h3 className="font-semibold mb-4">📋 Detalles seleccionados por el comprador</h3>
             <div className="grid gap-3">
               {Object.entries(order.metadata).map(([key, value]) => (
                 <div key={key} className="flex justify-between bg-gray-50 p-4 rounded-2xl">
@@ -134,7 +137,7 @@ export default function OrderDetailPage() {
         <CardContent className="p-8">
           <h3 className="font-semibold mb-4">💬 Chat con el Vendedor</h3>
           <div className="h-80 bg-gray-50 border rounded-2xl p-4 overflow-y-auto mb-4 space-y-3">
-            {messages.length === 0 && <p className="text-center text-gray-500 py-8">No hay mensajes aún.</p>}
+            {messages.length === 0 && <p className="text-center text-gray-500 py-12">No hay mensajes aún.</p>}
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.senderId === order.buyerId ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[70%] px-4 py-3 rounded-2xl ${msg.senderId === order.buyerId ? 'bg-orange-600 text-white' : 'bg-white border'}`}>
@@ -151,36 +154,39 @@ export default function OrderDetailPage() {
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
               placeholder="Escribe tu mensaje..."
-              className="flex-1 border rounded-2xl px-5 py-3"
+              className="flex-1 border rounded-2xl px-5 py-3 focus:outline-none focus:border-orange-500"
             />
-            <Button onClick={sendMessage}>Enviar</Button>
+            <Button onClick={sendMessage} disabled={!newMessage.trim()}>Enviar</Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Review Section */}
+      {/* Review Section - Only for completed orders */}
       {order.status === 'Completed' && (
         <Card>
           <CardContent className="p-8">
-            <h3 className="font-semibold mb-4">⭐ Deja tu opinión</h3>
-            <div className="flex gap-1 mb-4">
-              {[1,2,3,4,5].map((star) => (
+            <h3 className="font-semibold mb-4">⭐ ¿Qué te pareció el servicio?</h3>
+            
+            <div className="flex gap-1 mb-6">
+              {[1,2,3,4,5].map(star => (
                 <button
                   key={star}
                   onClick={() => setRating(star)}
-                  className={`text-3xl ${star <= rating ? 'text-yellow-500' : 'text-gray-300'}`}
+                  className={`text-4xl transition-colors ${star <= rating ? 'text-yellow-500' : 'text-gray-300'}`}
                 >
                   ★
                 </button>
               ))}
             </div>
+
             <Textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="¿Qué te pareció el servicio?"
-              className="mb-4"
+              placeholder="Cuéntanos tu experiencia..."
+              className="mb-4 min-h-[100px]"
             />
-            <Button onClick={submitReview} className="w-full">
+
+            <Button onClick={submitReview} className="w-full py-6 text-lg">
               Publicar Review
             </Button>
           </CardContent>
