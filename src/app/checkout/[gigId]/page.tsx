@@ -19,11 +19,15 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [dynamicFields, setDynamicFields] = useState<any>({});
+  const [calculatedPrice, setCalculatedPrice] = useState(0);
 
   useEffect(() => {
     fetch(`/api/gigs/${gigId}`)
       .then(r => r.json())
-      .then(setGig)
+      .then(data => {
+        setGig(data);
+        setCalculatedPrice(Number(data.price || 0));
+      })
       .finally(() => setLoading(false));
   }, [gigId]);
 
@@ -43,6 +47,11 @@ export default function CheckoutPage() {
       .then(setOrder);
   }, [gig, session]);
 
+  const handleFieldsChange = (fields: any, newTotal: number) => {
+    setDynamicFields(fields);
+    setCalculatedPrice(newTotal);
+  };
+
   const simulatePayment = async () => {
     if (!order) return toast.error('Orden no creada');
 
@@ -56,7 +65,8 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           status: 'Completed',
-          metadata: dynamicFields   // ← Save buyer inputs
+          price: calculatedPrice,        // Save final price
+          metadata: dynamicFields 
         })
       });
 
@@ -86,7 +96,11 @@ export default function CheckoutPage() {
               </p>
               <p className="mt-6 text-gray-600 whitespace-pre-line">{gig?.description}</p>
 
-              <DynamicCheckoutFields gig={gig} onFieldsChange={setDynamicFields} />
+              <DynamicCheckoutFields 
+                gig={gig} 
+                basePrice={Number(gig?.price || 0)}
+                onFieldsChange={handleFieldsChange} 
+              />
             </CardContent>
           </Card>
         </div>
@@ -99,8 +113,14 @@ export default function CheckoutPage() {
                 disabled={submitting || !order}
                 className="w-full py-8 text-xl bg-orange-600 hover:bg-orange-700"
               >
-                {submitting ? 'Procesando pedido...' : '✅ Confirmar y Simular Pago'}
+                {submitting ? 'Procesando...' : '✅ Confirmar y Simular Pago'}
               </Button>
+
+              <div className="mt-6 text-center">
+                <p className="text-2xl font-bold text-orange-600">
+                  Total: ${calculatedPrice.toLocaleString('es-CO')} COP
+                </p>
+              </div>
 
               {order && (
                 <p className="text-center mt-6 text-green-600">
