@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -11,18 +11,14 @@ export default function CheckoutPage() {
   const params = useParams();
   const gigId = params.gigId as string;
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
 
   const [gig, setGig] = useState<any>(null);
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [wompiReady, setWompiReady] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('Cargando...');
 
-  const scriptRef = useRef(false);
-
-  // Load Gig
+  // Load gig
   useEffect(() => {
     fetch(`/api/gigs/${gigId}`)
       .then(r => r.json())
@@ -30,83 +26,39 @@ export default function CheckoutPage() {
       .finally(() => setLoading(false));
   }, [gigId]);
 
-  // Create Order - Explicit buyerId
+  // Create order
   useEffect(() => {
-    if (!gig?.id || !session?.user || status !== 'authenticated') return;
-
-    const buyerId = (session.user as any).id;
+    if (!gig?.id || !session?.user) return;
 
     fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         gigId: gig.id,
-        buyerId: buyerId,        // ← Explicitly send buyerId
+        buyerId: (session.user as any).id,
         price: gig.price
       })
     })
       .then(r => r.json())
-      .then(data => {
-        console.log('Order created:', data);
-        setOrder(data);
-        setStatusMessage(`✅ Orden creada #${data.id || data.orderId}`);
-        toast.success('Orden creada');
-      })
-      .catch(err => {
-        console.error('Order creation failed:', err);
-        setStatusMessage('❌ Error creando orden');
-        toast.error('Error creando orden');
-      });
-  }, [gig, session, status]);
+      .then(data => setOrder(data))
+      .catch(() => toast.error('Error creando orden'));
+  }, [gig, session]);
 
-  // Load Wompi Widget - More aggressive polling
-  useEffect(() => {
-    if (scriptRef.current) return;
-    scriptRef.current = true;
-
-    const script = document.createElement('script');
-    script.src = 'https://checkout.wompi.co/widget.js';
-    script.async = true;
-
-    script.onload = () => {
-      let attempts = 0;
-      const interval = setInterval(() => {
-        attempts++;
-        if ((window as any).WompiCheckout) {
-          clearInterval(interval);
-          setWompiReady(true);
-          setStatusMessage('✅ Wompi listo - Haz clic para pagar');
-          toast.success('Wompi listo');
-        }
-        if (attempts > 40) {
-          clearInterval(interval);
-          setStatusMessage('❌ Wompi no disponible');
-        }
-      }, 120);
-    };
-
-    document.head.appendChild(script);
-  }, []);
-
-  const handlePayment = () => {
-    if (!wompiReady || !order) {
-      return toast.error('Espera que todo cargue completamente');
-    }
+  const simulatePayment = async () => {
+    if (!order) return toast.error('Orden no creada todavía');
 
     setSubmitting(true);
-
     try {
-      const checkout = new (window as any).WompiCheckout({
-        publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY!,
-        amountInCents: Math.round(Number(gig.price) * 100),
-        currency: 'COP',
-        reference: `order_${order.id || order.orderId}`,
-        redirectUrl: `${window.location.origin}/orders/${order.id || order.orderId}`,
+      await fetch(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Completed' })
       });
 
-      checkout.open();
-    } catch (e) {
-      toast.error('Error al abrir Wompi');
+      toast.success('✅ Pago simulado con éxito');
+      setTimeout(() => router.push(`/orders/${order.id}`), 1000);
+    } catch (err) {
+      toast.error('Error simulando pago');
     } finally {
       setSubmitting(false);
     }
@@ -134,17 +86,30 @@ export default function CheckoutPage() {
 
         <div className="lg:col-span-5">
           <Card className="sticky top-8">
-            <CardContent className="p-10">
+            <CardContent className="p-10 space-y-4">
+              {/* Real Wompi button (still here for when it works) */}
               <Button 
-                onClick={handlePayment} 
-                disabled={!wompiReady || submitting || !order}
-                className="w-full py-8 text-xl bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
+                onClick={() => toast.error('Wompi widget still not initializing - use Simular Pago for now')}
+                disabled={true}
+                className="w-full py-8 text-xl bg-green-600"
               >
-                {submitting ? 'Procesando...' : wompiReady ? '💳 Pagar con Wompi' : statusMessage}
+                💳 Pagar con Wompi (no disponible)
               </Button>
 
-              <p className="text-center mt-6 text-sm text-gray-500">{statusMessage}</p>
-              {order && <p className="text-center text-xs text-green-600 mt-2">Orden creada: #{order.id || order.orderId}</p>}
+              {/* Simulation button - this works */}
+              <Button 
+                onClick={simulatePayment}
+                disabled={submitting || !order}
+                className="w-full py-8 text-xl bg-orange-600 hover:bg-orange-700"
+              >
+                {submitting ? 'Simulando pago...' : '🔧 Simular Pago (Modo Desarrollo)'}
+              </Button>
+
+              {order && (
+                <p className="text-center text-sm text-green-600">
+                  Orden creada: #{order.id}
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
