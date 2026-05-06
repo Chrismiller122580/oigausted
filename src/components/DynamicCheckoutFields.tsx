@@ -5,7 +5,6 @@ import { gigCategories } from '@/lib/gig-categories';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 
 interface Props {
   gig: any;
@@ -14,8 +13,7 @@ interface Props {
 
 export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
   const category = gigCategories.find(c => 
-    c.name === gig.category || 
-    c.slug === gig.category?.toLowerCase()
+    c.name === gig.category || c.slug === gig.category?.toLowerCase()
   );
 
   const [formData, setFormData] = useState<any>({});
@@ -27,7 +25,7 @@ export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
   };
 
   if (!category?.fields?.length) {
-    return <p className="text-gray-500 italic">No se requieren campos adicionales para esta categoría.</p>;
+    return <p className="text-gray-500 italic mt-6">No se requieren campos adicionales para esta categoría.</p>;
   }
 
   return (
@@ -36,7 +34,7 @@ export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
       
       {category.fields.map((field: any) => (
         <div key={field.key} className="space-y-2">
-          <Label className="text-base">{field.label}</Label>
+          <Label className="text-base font-medium">{field.label}</Label>
           
           {field.type === 'number' && (
             <Input 
@@ -57,15 +55,6 @@ export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
                 ))}
               </SelectContent>
             </Select>
-          )}
-
-          {field.type === 'checkbox' && (
-            <div className="flex items-center gap-3">
-              <Checkbox 
-                onCheckedChange={(checked) => handleChange(field.key, checked)}
-              />
-              <span>{field.label}</span>
-            </div>
           )}
 
           {field.type === 'text' && (
