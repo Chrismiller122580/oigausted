@@ -20,6 +20,7 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [dynamicFields, setDynamicFields] = useState<any>({});
 
+  // Load gig
   useEffect(() => {
     fetch(`/api/gigs/${gigId}`)
       .then(r => r.json())
@@ -27,6 +28,7 @@ export default function CheckoutPage() {
       .finally(() => setLoading(false));
   }, [gigId]);
 
+  // Create order
   useEffect(() => {
     if (!gig?.id || !session?.user) return;
 
@@ -41,7 +43,7 @@ export default function CheckoutPage() {
     })
       .then(r => r.json())
       .then(data => {
-        console.log("Order response:", data);
+        console.log("✅ Order created:", data);
         setOrder(data);
       })
       .catch(() => toast.error('Error creando orden'));
@@ -50,9 +52,12 @@ export default function CheckoutPage() {
   const simulatePayment = async () => {
     if (!order) return toast.error('Orden no creada todavía');
 
+    const orderId = order.id || order.orderId;
+    if (!orderId) return toast.error('No se encontró ID de orden');
+
     setSubmitting(true);
     try {
-      await fetch(`/api/orders/${order.id || order.orderId}`, {
+      await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -62,7 +67,7 @@ export default function CheckoutPage() {
       });
 
       toast.success('✅ Pago simulado con éxito');
-      setTimeout(() => router.push(`/orders/${order.id || order.orderId}`), 1200);
+      setTimeout(() => router.push(`/orders/${orderId}`), 800);
     } catch (err) {
       toast.error('Error simulando pago');
     } finally {
@@ -107,7 +112,7 @@ export default function CheckoutPage() {
 
               {order && (
                 <p className="text-center text-green-600 font-medium">
-                  Orden creada: #{orderId}
+                  Orden creada: <span className="font-mono">#{orderId}</span>
                 </p>
               )}
             </CardContent>
