@@ -16,7 +16,7 @@ export default function OrderDetailPage() {
     fetch(`/api/orders/${orderId}`)
       .then(res => res.json())
       .then(data => {
-        console.log("Order loaded:", data);
+        console.log("✅ Order data:", data);
         setOrder(data);
         setLoading(false);
       })
@@ -26,16 +26,10 @@ export default function OrderDetailPage() {
       });
   }, [orderId]);
 
-  if (loading) {
-    return <div className="p-20 text-center text-2xl">Cargando pedido...</div>;
-  }
-
-  if (!order) {
-    return <div className="p-20 text-center text-red-600">Pedido no encontrado</div>;
-  }
+  if (loading) return <div className="p-20 text-center text-2xl">Cargando pedido...</div>;
+  if (!order) return <div className="p-20 text-center text-red-600">Pedido no encontrado</div>;
 
   const price = Number(order.price || order.amount || 0);
-  const gigTitle = order.gig?.title || 'Servicio';
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -49,11 +43,10 @@ export default function OrderDetailPage() {
       </div>
 
       <div className="grid gap-6">
-        {/* Main Info */}
         <div className="bg-white border rounded-3xl p-8">
           <div className="flex justify-between items-start">
             <div>
-              <h2 className="text-2xl font-semibold">{gigTitle}</h2>
+              <h2 className="text-2xl font-semibold">{order.gig?.title || 'Servicio'}</h2>
               <p className="text-gray-600 mt-2">{order.gig?.description}</p>
             </div>
             <div className="text-right">
@@ -64,7 +57,6 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {/* Progress */}
         <div className="bg-white border rounded-3xl p-8">
           <p className="font-medium mb-3">Progreso del Pedido</p>
           <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden">
@@ -72,11 +64,8 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {/* Chat */}
         <div className="bg-white border rounded-3xl p-8">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            💬 Chat del Pedido
-          </h3>
+          <h3 className="font-semibold mb-4">💬 Chat del Pedido</h3>
           <div className="h-96 bg-gray-50 rounded-2xl border flex items-center justify-center">
             <p className="text-gray-500">Chat persistente con el vendedor (en desarrollo)</p>
           </div>
