@@ -14,38 +14,44 @@ interface Props {
 }
 
 export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }: Props) {
-  const category = gigCategories.find(c => 
-    c.name === gig.category || c.slug === gig.category?.toLowerCase()
-  );
+  const gigCat = (gig.category || '').toString().toLowerCase().trim();
+
+  // Super aggressive matching
+  const category = gigCategories.find(c => {
+    const nameLower = c.name.toLowerCase();
+    const slugLower = c.slug.toLowerCase();
+    
+    return nameLower === gigCat ||
+           slugLower === gigCat ||
+           nameLower.includes(gigCat) ||
+           gigCat.includes(slugLower) ||
+           gigCat.includes('limpieza') && nameLower.includes('limpieza') ||
+           gigCat.includes('clean') && nameLower.includes('limpieza') ||
+           nameLower.includes('hogar') && gigCat.includes('hogar');
+  });
 
   const [formData, setFormData] = useState<any>({});
   const [totalPrice, setTotalPrice] = useState(basePrice);
 
-  const handleChange = (key: string, value: any, extraPrice: number = 0) => {
+  const handleChange = (key: string, value: any, extraPrice = 0) => {
     const newData = { ...formData, [key]: value };
     setFormData(newData);
 
-    // Calculate new total
     let newTotal = basePrice;
-    
-    // Add extra prices from checkboxes/selects that have them
-    Object.keys(newData).forEach(k => {
-      // For now we use simple logic - you can extend this
-      if (newData[k] === true && extraPrice > 0) {
-        newTotal += extraPrice;
-      }
-    });
+    if (value === true && extraPrice > 0) newTotal += extraPrice;
 
     setTotalPrice(newTotal);
     onFieldsChange(newData, newTotal);
   };
+
+  console.log("🔍 Gig category:", gig.category, "→ Matched:", category?.name);
 
   if (!category?.fields?.length) {
     return (
       <div className="mt-8 p-8 bg-amber-50 border border-amber-200 rounded-3xl">
         <h3 className="text-lg font-semibold mb-2">📋 Notas adicionales</h3>
         <Textarea 
-          placeholder="Ej: Prefiero el martes por la mañana..."
+          placeholder="Ej: Prefiero el martes por la mañana, 3 habitaciones..."
           onChange={(e) => handleChange('customNotes', e.target.value)}
         />
       </div>
@@ -54,10 +60,8 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
 
   return (
     <div className="mt-8 space-y-8">
-      <div>
-        <h3 className="text-2xl font-semibold">📋 Detalles de tu servicio</h3>
-        <p className="text-gray-600 mt-1">El precio se actualizará en tiempo real.</p>
-      </div>
+      <h3 className="text-2xl font-semibold">📋 Detalles de tu servicio</h3>
+      <p className="text-gray-600">El precio se actualizará en tiempo real.</p>
 
       <div className="grid gap-6">
         {category.fields.map((field: any) => (
@@ -93,18 +97,18 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
                   className="w-5 h-5 accent-orange-600"
                 />
                 <span>{field.label}</span>
-                {field.extraPrice && <span className="text-orange-600 font-medium">+${field.extraPrice}</span>}
+                {field.extraPrice && <span className="text-sm text-orange-600">+${field.extraPrice}</span>}
               </label>
             )}
           </div>
         ))}
       </div>
 
-      {/* Live Price Update */}
-      <div className="bg-orange-50 border border-orange-200 rounded-2xl p-6 mt-8">
-        <div className="flex justify-between items-center">
-          <span className="text-lg font-medium">Total estimado</span>
-          <span className="text-4xl font-bold text-orange-600">
+      {/* Live Total */}
+      <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-3xl p-6">
+        <div className="flex justify-between items-center text-xl">
+          <span className="font-medium">Total estimado</span>
+          <span className="font-bold text-orange-600">
             ${totalPrice.toLocaleString('es-CO')} COP
           </span>
         </div>
