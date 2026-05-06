@@ -11,47 +11,55 @@ export default function CheckoutPage() {
   const params = useParams();
   const gigId = params.gigId as string;
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   const [gig, setGig] = useState<any>(null);
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [wompiReady, setWompiReady] = useState(false);
-  const [status, setStatus] = useState('Cargando...');
+  const [statusMessage, setStatusMessage] = useState('Cargando...');
 
   const scriptRef = useRef(false);
 
   // Load Gig
   useEffect(() => {
+    if (!gigId) return;
     fetch(`/api/gigs/${gigId}`)
       .then(r => r.json())
       .then(setGig)
       .finally(() => setLoading(false));
   }, [gigId]);
 
-  // Create Order
+  // Create Order (using session, not buyerId)
   useEffect(() => {
-    if (!gig?.id || !session?.user?.id) return;
+    if (!gig?.id || !session?.user || status !== 'authenticated') return;
 
     fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         gigId: gig.id,
-        buyerId: (session.user as any).id,
         price: gig.price
       })
     })
       .then(r => r.json())
       .then(data => {
-        setOrder(data);
-        setStatus('Orden creada');
+        if (data.orderId || data.id) {
+          setOrder(data);
+          setStatusMessage('✅ Orden creada');
+        } else {
+          setStatusMessage('Error creando orden');
+        }
       })
-      .catch(() => toast.error('Error creando orden'));
-  }, [gig, session]);
+      .catch(err => {
+        console.error(err);
+        setStatusMessage('Error creando orden');
+        toast.error('Error creando orden');
+      });
+  }, [gig, session, status]);
 
-  // Load Wompi Script
+  // Load Wompi Widget
   useEffect(() => {
     if (scriptRef.current) return;
     scriptRef.current = true;
@@ -64,22 +72,18 @@ export default function CheckoutPage() {
       setTimeout(() => {
         if ((window as any).WompiCheckout) {
           setWompiReady(true);
-          setStatus('✅ Wompi listo');
-          toast.success('Wompi cargado correctamente');
-        } else {
-          setStatus('Wompi no disponible');
+          setStatusMessage('✅ Wompi listo');
+          toast.success('Wompi listo para pagar');
         }
       }, 1000);
     };
-
-    script.onerror = () => setStatus('Error cargando Wompi');
 
     document.head.appendChild(script);
   }, []);
 
   const handlePayment = () => {
     if (!wompiReady || !order) {
-      return toast.error('Espera que Wompi cargue completamente');
+      return toast.error('Espera que todo cargue completamente');
     }
 
     setSubmitting(true);
@@ -89,19 +93,25 @@ export default function CheckoutPage() {
         publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY!,
         amountInCents: Math.round(Number(gig.price) * 100),
         currency: 'COP',
-        reference: `order_${order.id}`,
-        redirectUrl: `${window.location.origin}/orders/${order.id}`,
+        reference: `order_${order.id || order.orderId}`,
+        redirectUrl: `${window.location.origin}/orders/${order.id || order.orderId}`,
       });
 
       checkout.open();
     } catch (e) {
-      toast.error('No se pudo abrir Wompi');
+      toast.error('Error al abrir Wompi');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="p-20 text-center text-2xl">Cargando gig...</div>;
+  if (loading || status === 'loading') {
+    return <div className="p-20 text-center text-2xl">Cargando checkout...</div>;
+  }
+
+  if (!session) {
+    return <div className="p-20 text-center">Debes iniciar sesión para comprar</div>;
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -129,13 +139,13 @@ export default function CheckoutPage() {
                 disabled={!wompiReady || submitting || !order}
                 className="w-full py-8 text-xl bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
               >
-                {submitting ? 'Procesando...' : wompiReady ? '💳 Pagar con Wompi' : status}
+                {submitting ? 'Procesando...' : wompiReady ? '💳 Pagar con Wompi' : statusMessage}
               </Button>
 
               <p className="text-center mt-6 text-sm text-gray-500">
-                {status}
+                {statusMessage}
               </p>
-              {order && <p className="text-center text-xs text-green-600 mt-2">Orden: #{order.id}</p>}
+              {order && <p className="text-center text-xs text-green-600 mt-2">Orden creada: #{order.id || order.orderId}</p>}
             </CardContent>
           </Card>
         </div>
