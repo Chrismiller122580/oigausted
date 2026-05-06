@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const currency = 'COP';
     const reference = order.id.toString();
 
-    // Generate signature (this is the key fix)
+    // Generate signature
     let signature = '';
     if (integritySecret) {
       const stringToSign = `${reference}${amountInCents}${currency}${integritySecret}`;
@@ -53,10 +53,18 @@ export async function POST(request: NextRequest) {
         `${process.env.NEXTAUTH_URL || 'https://oigausted.vercel.app'}/orders/${order.id}`
       )}`;
 
+    // Debug response
     return NextResponse.json({
       success: true,
       orderId: order.id,
-      checkoutUrl
+      checkoutUrl,
+      debug: {
+        publicKeyPresent: !!publicKey,
+        integritySecretPresent: !!integritySecret,
+        integritySecretLength: integritySecret ? integritySecret.length : 0,
+        signatureGenerated: !!signature,
+        signaturePreview: signature ? signature.substring(0, 16) + '...' : 'NONE'
+      }
     });
 
   } catch (error: any) {
