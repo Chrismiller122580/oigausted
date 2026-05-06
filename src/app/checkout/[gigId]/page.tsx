@@ -20,7 +20,6 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [dynamicFields, setDynamicFields] = useState<any>({});
 
-  // Load gig
   useEffect(() => {
     fetch(`/api/gigs/${gigId}`)
       .then(r => r.json())
@@ -28,7 +27,6 @@ export default function CheckoutPage() {
       .finally(() => setLoading(false));
   }, [gigId]);
 
-  // Create order
   useEffect(() => {
     if (!gig?.id || !session?.user) return;
 
@@ -42,18 +40,14 @@ export default function CheckoutPage() {
       })
     })
       .then(r => r.json())
-      .then(data => {
-        console.log("✅ Order created:", data);
-        setOrder(data);
-      })
-      .catch(() => toast.error('Error creando orden'));
+      .then(setOrder);
   }, [gig, session]);
 
   const simulatePayment = async () => {
-    if (!order) return toast.error('Orden no creada todavía');
+    if (!order) return toast.error('Orden no creada');
 
     const orderId = order.id || order.orderId;
-    if (!orderId) return toast.error('No se encontró ID de orden');
+    if (!orderId) return toast.error('ID de orden no encontrado');
 
     setSubmitting(true);
     try {
@@ -62,22 +56,20 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           status: 'Completed',
-          metadata: dynamicFields 
+          metadata: dynamicFields   // ← Save buyer inputs
         })
       });
 
-      toast.success('✅ Pago simulado con éxito');
-      setTimeout(() => router.push(`/orders/${orderId}`), 800);
+      toast.success('✅ Pedido completado con éxito');
+      setTimeout(() => router.push(`/orders/${orderId}`), 1200);
     } catch (err) {
-      toast.error('Error simulando pago');
+      toast.error('Error finalizando pedido');
     } finally {
       setSubmitting(false);
     }
   };
 
   if (loading) return <div className="p-20 text-center text-2xl">Cargando checkout...</div>;
-
-  const orderId = order?.id || order?.orderId;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -101,18 +93,18 @@ export default function CheckoutPage() {
 
         <div className="lg:col-span-5">
           <Card className="sticky top-8">
-            <CardContent className="p-10 space-y-6">
+            <CardContent className="p-10">
               <Button 
                 onClick={simulatePayment}
                 disabled={submitting || !order}
                 className="w-full py-8 text-xl bg-orange-600 hover:bg-orange-700"
               >
-                {submitting ? 'Simulando pago...' : '🔧 Simular Pago (Modo Desarrollo)'}
+                {submitting ? 'Procesando pedido...' : '✅ Confirmar y Simular Pago'}
               </Button>
 
               {order && (
-                <p className="text-center text-green-600 font-medium">
-                  Orden creada: <span className="font-mono">#{orderId}</span>
+                <p className="text-center mt-6 text-green-600">
+                  Orden creada: #{order.id || order.orderId}
                 </p>
               )}
             </CardContent>
