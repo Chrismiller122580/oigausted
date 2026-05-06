@@ -18,6 +18,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [wompiReady, setWompiReady] = useState(false);
+  const [status, setStatus] = useState('Cargando...');
 
   const scriptRef = useRef(false);
 
@@ -29,9 +30,9 @@ export default function CheckoutPage() {
       .finally(() => setLoading(false));
   }, [gigId]);
 
-  // Auto create Order
+  // Create Order
   useEffect(() => {
-    if (!gig?.id || !session?.user) return;
+    if (!gig?.id || !session?.user?.id) return;
 
     fetch('/api/orders', {
       method: 'POST',
@@ -43,11 +44,14 @@ export default function CheckoutPage() {
       })
     })
       .then(r => r.json())
-      .then(setOrder)
+      .then(data => {
+        setOrder(data);
+        setStatus('Orden creada');
+      })
       .catch(() => toast.error('Error creando orden'));
   }, [gig, session]);
 
-  // Load Wompi Widget
+  // Load Wompi Script
   useEffect(() => {
     if (scriptRef.current) return;
     scriptRef.current = true;
@@ -60,22 +64,29 @@ export default function CheckoutPage() {
       setTimeout(() => {
         if ((window as any).WompiCheckout) {
           setWompiReady(true);
-          toast.success('Wompi listo');
+          setStatus('✅ Wompi listo');
+          toast.success('Wompi cargado correctamente');
+        } else {
+          setStatus('Wompi no disponible');
         }
-      }, 800);
+      }, 1000);
     };
+
+    script.onerror = () => setStatus('Error cargando Wompi');
 
     document.head.appendChild(script);
   }, []);
 
   const handlePayment = () => {
-    if (!wompiReady || !order) return toast.error('Espera un momento...');
+    if (!wompiReady || !order) {
+      return toast.error('Espera que Wompi cargue completamente');
+    }
 
     setSubmitting(true);
 
     try {
       const checkout = new (window as any).WompiCheckout({
-        publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || 'pub_test_hhnHHaFm6UYVNyVRg8KdLOmC5wPZsQfZ',
+        publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY!,
         amountInCents: Math.round(Number(gig.price) * 100),
         currency: 'COP',
         reference: `order_${order.id}`,
@@ -83,14 +94,14 @@ export default function CheckoutPage() {
       });
 
       checkout.open();
-    } catch (e: any) {
-      toast.error('Error al abrir Wompi');
+    } catch (e) {
+      toast.error('No se pudo abrir Wompi');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="p-20 text-center text-2xl">Cargando checkout...</div>;
+  if (loading) return <div className="p-20 text-center text-2xl">Cargando gig...</div>;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -113,17 +124,18 @@ export default function CheckoutPage() {
         <div className="lg:col-span-5">
           <Card className="sticky top-8">
             <CardContent className="p-10">
-              <Button
-                onClick={handlePayment}
+              <Button 
+                onClick={handlePayment} 
                 disabled={!wompiReady || submitting || !order}
-                className="w-full py-8 text-xl bg-green-600 hover:bg-green-700"
+                className="w-full py-8 text-xl bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
               >
-                {wompiReady ? '💳 Pagar con Wompi' : '⏳ Cargando Wompi...'}
+                {submitting ? 'Procesando...' : wompiReady ? '💳 Pagar con Wompi' : status}
               </Button>
 
               <p className="text-center mt-6 text-sm text-gray-500">
-                {wompiReady ? '✅ Listo para pagar' : 'Cargando sistema de pago...'}
+                {status}
               </p>
+              {order && <p className="text-center text-xs text-green-600 mt-2">Orden: #{order.id}</p>}
             </CardContent>
           </Card>
         </div>
