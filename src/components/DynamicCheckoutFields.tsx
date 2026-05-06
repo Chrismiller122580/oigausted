@@ -13,17 +13,19 @@ interface Props {
 }
 
 export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
-  // Improved fuzzy matching
-  const category = gigCategories.find(c => {
-    const gigCat = (gig.category || '').toLowerCase();
-    const catName = c.name.toLowerCase();
-    const catSlug = c.slug.toLowerCase();
+  const gigCategory = (gig.category || '').toLowerCase().trim();
 
-    return gigCat === catName || 
-           gigCat === catSlug ||
-           catName.includes(gigCat) ||
-           gigCat.includes(catSlug) ||
-           catName.includes('limpieza') && gigCat.includes('limpieza');
+  // Enhanced matching
+  const category = gigCategories.find(c => {
+    const name = c.name.toLowerCase();
+    const slug = c.slug.toLowerCase();
+    
+    return name === gigCategory ||
+           slug === gigCategory ||
+           name.includes(gigCategory) ||
+           gigCategory.includes(slug) ||
+           (gigCategory.includes('limpieza') && name.includes('limpieza')) ||
+           (gigCategory.includes('clean') && name.includes('limpieza'));
   });
 
   const [formData, setFormData] = useState<any>({});
@@ -34,41 +36,48 @@ export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
     onFieldsChange(newData);
   };
 
-  console.log("Gig category:", gig.category, "Matched:", category?.name);
+  console.log(`Gig category: "${gig.category}" → Matched: ${category?.name || 'None'}`);
 
   if (!category?.fields?.length) {
     return (
-      <div className="mt-8 p-8 bg-amber-50 border border-amber-200 rounded-3xl">
-        <h3 className="text-lg font-semibold mb-2">📋 Notas adicionales</h3>
+      <div className="mt-8 p-8 bg-blue-50 border border-blue-200 rounded-3xl">
+        <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          📝 Notas adicionales para el vendedor
+        </h3>
         <Textarea 
-          placeholder="Ej: Prefiero servicio el martes por la mañana, 3 habitaciones, etc..."
+          placeholder="Ej: Quiero el servicio el martes por la mañana, 3 habitaciones, enfocado en cocina y baños..."
+          className="min-h-[120px]"
           onChange={(e) => handleChange('customNotes', e.target.value)}
         />
+        <p className="text-xs text-blue-600 mt-3">Esta información se guardará con tu pedido.</p>
       </div>
     );
   }
 
   return (
     <div className="mt-8 space-y-8">
-      <h3 className="text-2xl font-semibold">📋 Completa los detalles de tu servicio</h3>
-      <p className="text-gray-600">Esta información ayudará al vendedor a darte el mejor servicio.</p>
+      <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-3xl p-8">
+        <h3 className="text-2xl font-semibold mb-2">📋 Detalles de tu pedido</h3>
+        <p className="text-gray-600">Ayuda al vendedor a prepararse mejor para tu servicio.</p>
+      </div>
 
-      <div className="grid gap-6">
+      <div className="space-y-6">
         {category.fields.map((field: any) => (
           <div key={field.key} className="space-y-2">
-            <Label className="text-base font-medium">{field.label}</Label>
+            <Label className="text-base font-medium text-gray-800">{field.label}</Label>
 
             {field.type === 'number' && (
               <Input 
                 type="number" 
                 placeholder="Ej: 3"
                 onChange={(e) => handleChange(field.key, Number(e.target.value))}
+                className="text-lg"
               />
             )}
 
             {field.type === 'select' && field.options && (
               <Select onValueChange={(value) => handleChange(field.key, value)}>
-                <SelectTrigger>
+                <SelectTrigger className="text-lg">
                   <SelectValue placeholder="Selecciona una opción" />
                 </SelectTrigger>
                 <SelectContent>
@@ -80,13 +89,13 @@ export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
             )}
 
             {field.type === 'checkbox' && (
-              <label className="flex items-center gap-3 cursor-pointer py-1">
+              <label className="flex items-center gap-3 cursor-pointer py-2 px-1 hover:bg-gray-50 rounded-xl">
                 <input 
                   type="checkbox"
                   onChange={(e) => handleChange(field.key, e.target.checked)}
                   className="w-5 h-5 accent-orange-600"
                 />
-                <span>{field.label}</span>
+                <span className="text-base">{field.label}</span>
               </label>
             )}
 
