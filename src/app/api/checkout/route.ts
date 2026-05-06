@@ -1,29 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
-    const { gigId } = await request.json(); // ignore buyer for now
+    const { gigId, buyerId } = await request.json();
 
-    const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
+    const gig = await prisma.gig.findUnique({
+      where: { id: gigId },
+      include: { seller: true }
+    });
 
-    if (!publicKey) {
-      return NextResponse.json({ error: 'Missing public key' }, { status: 500 });
-    }
+    if (!gig) return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
 
-    const checkoutUrl = `https://checkout.wompi.co/?` +
-      `public_key=${publicKey}` +
-      `&amount_in_cents=8500000` +     // Hardcoded 85.000 COP for testing
-      `&currency=COP` +
-      `&reference=test_${Date.now()}` + // Always unique
-      `&redirect_url=${encodeURIComponent('https://oigausted.vercel.app')}`;
+    const order = await prisma.order.create({
+      data: {
+        gigId: gig.id,
+        buyerId,
+        sellerId: gig.sellerId,
+        price: gig.price,
+        status: 'Pending',
+      }
+    });
 
-    return NextResponse.json({
-      success: true,
+    const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY!;
+    const integritySecret = process.env.WOMPI_INTEGRITY_SECRET!;
+
+    const amountInCents = Math.round(gig.price * 100);
+    const reference = order.id.toString();
+    const currency = 'COP';
+
+    // Generate signature
+    const stringToSign = `${reference}${amountInCents}${currency}${integritySecret}`;
+    const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
+
+    const checkoutUrl = `https://checkout.wompi.co/?public_key=${publicKey}` +
+      `&amount_in_cents=${amountInCents}` +
+      `&currency=${currency}` +
+      `&reference=${reference}` +
+      `&signature:integrity=${signature}` +
+      `&redirect_url=${encodeURIComponent(`${process.env.NEXTAUTH_URL || 'https://oigausted.vercel.app'}/orders/${order.id}`)}`;
+
+    return NextResponse.json({ 
+      success: true, 
       checkoutUrl,
-      message: "Minimal test - no Prisma, no signature"
+      debugSignature: signature.substring(0, 20) + '...' 
     });
 
   } catch (error: any) {
+    console.error(error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
