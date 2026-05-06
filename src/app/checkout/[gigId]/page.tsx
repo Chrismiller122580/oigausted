@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -14,9 +14,14 @@ export default function CheckoutPage() {
   const { data: session } = useSession();
 
   const [gig, setGig] = useState<any>(null);
+  const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [wompiReady, setWompiReady] = useState(false);
 
+  const scriptRef = useRef(false);
+
+  // Load Gig
   useEffect(() => {
     fetch(`/api/gigs/${gigId}`)
       .then(r => r.json())
@@ -24,37 +29,68 @@ export default function CheckoutPage() {
       .finally(() => setLoading(false));
   }, [gigId]);
 
-  const handleCheckout = async () => {
-    if (!session?.user) {
-      return toast.error('Debes iniciar sesión');
-    }
+  // Auto create Order
+  useEffect(() => {
+    if (!gig?.id || !session?.user) return;
+
+    fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gigId: gig.id,
+        buyerId: (session.user as any).id,
+        price: gig.price
+      })
+    })
+      .then(r => r.json())
+      .then(setOrder)
+      .catch(() => toast.error('Error creando orden'));
+  }, [gig, session]);
+
+  // Load Wompi Widget
+  useEffect(() => {
+    if (scriptRef.current) return;
+    scriptRef.current = true;
+
+    const script = document.createElement('script');
+    script.src = 'https://checkout.wompi.co/widget.js';
+    script.async = true;
+
+    script.onload = () => {
+      setTimeout(() => {
+        if ((window as any).WompiCheckout) {
+          setWompiReady(true);
+          toast.success('Wompi listo');
+        }
+      }, 800);
+    };
+
+    document.head.appendChild(script);
+  }, []);
+
+  const handlePayment = () => {
+    if (!wompiReady || !order) return toast.error('Espera un momento...');
 
     setSubmitting(true);
 
     try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gigId,
-          buyerId: (session.user as any).id
-        })
+      const checkout = new (window as any).WompiCheckout({
+        publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || 'pub_test_hhnHHaFm6UYVNyVRg8KdLOmC5wPZsQfZ',
+        amountInCents: Math.round(Number(gig.price) * 100),
+        currency: 'COP',
+        reference: `order_${order.id}`,
+        redirectUrl: `${window.location.origin}/orders/${order.id}`,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error);
-
-      // Redirect to Wompi Hosted Checkout
-      window.location.href = data.checkoutUrl;
-    } catch (error: any) {
-      toast.error(error.message || 'Error al procesar el pago');
+      checkout.open();
+    } catch (e: any) {
+      toast.error('Error al abrir Wompi');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="p-20 text-center text-2xl">Cargando...</div>;
+  if (loading) return <div className="p-20 text-center text-2xl">Cargando checkout...</div>;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -77,16 +113,16 @@ export default function CheckoutPage() {
         <div className="lg:col-span-5">
           <Card className="sticky top-8">
             <CardContent className="p-10">
-              <Button 
-                onClick={handleCheckout} 
-                disabled={submitting}
+              <Button
+                onClick={handlePayment}
+                disabled={!wompiReady || submitting || !order}
                 className="w-full py-8 text-xl bg-green-600 hover:bg-green-700"
               >
-                {submitting ? 'Redirigiendo a Wompi...' : '💳 Pagar con Wompi'}
+                {wompiReady ? '💳 Pagar con Wompi' : '⏳ Cargando Wompi...'}
               </Button>
 
               <p className="text-center mt-6 text-sm text-gray-500">
-                Serás redirigido al portal seguro de Wompi
+                {wompiReady ? '✅ Listo para pagar' : 'Cargando sistema de pago...'}
               </p>
             </CardContent>
           </Card>
