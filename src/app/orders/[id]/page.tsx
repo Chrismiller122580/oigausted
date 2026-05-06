@@ -13,11 +13,14 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [review, setReview] = useState<any>(null);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load Order
+  // Load Order + Review
   useEffect(() => {
     fetch(`/api/orders/${orderId}`)
       .then(r => r.json())
@@ -43,48 +46,38 @@ export default function OrderDetailPage() {
     return () => clearInterval(interval);
   }, [orderId]);
 
+  // Auto scroll chat
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
-
     const res = await fetch(`/api/orders/${orderId}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: newMessage })
     });
-
     if (res.ok) {
       setNewMessage('');
       loadMessages();
-    } else {
-      toast.error('Error enviando mensaje');
     }
   };
 
-  const handleFileUpload = async (e: any) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const submitReview = async () => {
+    if (rating < 1 || rating > 5) return toast.error('Rating debe ser entre 1 y 5');
 
-    setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
+    const res = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId, rating, comment })
+    });
 
-    try {
-      const res = await fetch(`/api/orders/${orderId}/files`, {
-        method: 'POST',
-        body: formData
-      });
-      if (res.ok) {
-        toast.success('Archivo subido');
-        loadMessages();
-      }
-    } catch (err) {
-      toast.error('Error subiendo archivo');
-    } finally {
-      setUploading(false);
+    if (res.ok) {
+      toast.success('✅ Gracias por tu review!');
+      setComment('');
+    } else {
+      toast.error('Error enviando review');
     }
   };
 
@@ -92,7 +85,6 @@ export default function OrderDetailPage() {
   if (!order) return <div className="p-20 text-center text-red-600">Pedido no encontrado</div>;
 
   const price = Number(order.price || 0);
-  const metadata = order.metadata || {};
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -121,14 +113,14 @@ export default function OrderDetailPage() {
       </Card>
 
       {/* Buyer Selections */}
-      {Object.keys(metadata).length > 0 && (
+      {order.metadata && Object.keys(order.metadata).length > 0 && (
         <Card className="mb-6">
           <CardContent className="p-8">
-            <h3 className="font-semibold mb-4">📋 Detalles seleccionados por el comprador</h3>
+            <h3 className="font-semibold mb-4">📋 Detalles seleccionados</h3>
             <div className="grid gap-3">
-              {Object.entries(metadata).map(([key, value]) => (
+              {Object.entries(order.metadata).map(([key, value]) => (
                 <div key={key} className="flex justify-between bg-gray-50 p-4 rounded-2xl">
-                  <span className="capitalize font-medium">{key.replace(/([A-Z])/g, ' $1')}</span>
+                  <span className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
                   <span className="font-semibold">{String(value)}</span>
                 </div>
               ))}
@@ -137,23 +129,12 @@ export default function OrderDetailPage() {
         </Card>
       )}
 
-      {/* Progress */}
+      {/* Chat */}
       <Card className="mb-6">
         <CardContent className="p-8">
-          <p className="font-medium mb-3">Progreso del Pedido</p>
-          <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden">
-            <div className="bg-orange-500 h-3 w-1/3 rounded-full"></div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Chat */}
-      <Card>
-        <CardContent className="p-8">
           <h3 className="font-semibold mb-4">💬 Chat con el Vendedor</h3>
-
-          <div className="h-96 bg-gray-50 border rounded-2xl p-4 overflow-y-auto mb-4 space-y-4">
-            {messages.length === 0 && <p className="text-center text-gray-500 py-12">No hay mensajes aún. ¡Inicia la conversación!</p>}
+          <div className="h-80 bg-gray-50 border rounded-2xl p-4 overflow-y-auto mb-4 space-y-3">
+            {messages.length === 0 && <p className="text-center text-gray-500 py-8">No hay mensajes aún.</p>}
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.senderId === order.buyerId ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[70%] px-4 py-3 rounded-2xl ${msg.senderId === order.buyerId ? 'bg-orange-600 text-white' : 'bg-white border'}`}>
@@ -161,7 +142,6 @@ export default function OrderDetailPage() {
                 </div>
               </div>
             ))}
-            <div ref={messagesEndRef} />
           </div>
 
           <div className="flex gap-2">
@@ -171,19 +151,41 @@ export default function OrderDetailPage() {
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
               placeholder="Escribe tu mensaje..."
-              className="flex-1 border rounded-2xl px-5 py-3 focus:outline-none focus:border-orange-500"
+              className="flex-1 border rounded-2xl px-5 py-3"
             />
-            <Button onClick={sendMessage} disabled={!newMessage.trim()}>Enviar</Button>
+            <Button onClick={sendMessage}>Enviar</Button>
           </div>
-
-          <label className="mt-4 block cursor-pointer">
-            <input type="file" onChange={handleFileUpload} className="hidden" />
-            <div className="text-center border border-dashed border-gray-300 rounded-2xl py-4 hover:bg-gray-50">
-              {uploading ? 'Subiendo archivo...' : '📎 Adjuntar archivo o foto'}
-            </div>
-          </label>
         </CardContent>
       </Card>
+
+      {/* Review Section */}
+      {order.status === 'Completed' && (
+        <Card>
+          <CardContent className="p-8">
+            <h3 className="font-semibold mb-4">⭐ Deja tu opinión</h3>
+            <div className="flex gap-1 mb-4">
+              {[1,2,3,4,5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setRating(star)}
+                  className={`text-3xl ${star <= rating ? 'text-yellow-500' : 'text-gray-300'}`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+            <Textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="¿Qué te pareció el servicio?"
+              className="mb-4"
+            />
+            <Button onClick={submitReview} className="w-full">
+              Publicar Review
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
