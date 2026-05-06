@@ -40,15 +40,19 @@ export default function CheckoutPage() {
       })
     })
       .then(r => r.json())
-      .then(setOrder);
+      .then(data => {
+        console.log("Order response:", data);
+        setOrder(data);
+      })
+      .catch(() => toast.error('Error creando orden'));
   }, [gig, session]);
 
   const simulatePayment = async () => {
-    if (!order) return toast.error('Orden no creada');
+    if (!order) return toast.error('Orden no creada todavía');
 
     setSubmitting(true);
     try {
-      await fetch(`/api/orders/${order.id}`, {
+      await fetch(`/api/orders/${order.id || order.orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -58,7 +62,7 @@ export default function CheckoutPage() {
       });
 
       toast.success('✅ Pago simulado con éxito');
-      setTimeout(() => router.push(`/orders/${order.id}`), 1200);
+      setTimeout(() => router.push(`/orders/${order.id || order.orderId}`), 1200);
     } catch (err) {
       toast.error('Error simulando pago');
     } finally {
@@ -67,6 +71,8 @@ export default function CheckoutPage() {
   };
 
   if (loading) return <div className="p-20 text-center text-2xl">Cargando checkout...</div>;
+
+  const orderId = order?.id || order?.orderId;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -90,18 +96,18 @@ export default function CheckoutPage() {
 
         <div className="lg:col-span-5">
           <Card className="sticky top-8">
-            <CardContent className="p-10">
+            <CardContent className="p-10 space-y-6">
               <Button 
                 onClick={simulatePayment}
                 disabled={submitting || !order}
                 className="w-full py-8 text-xl bg-orange-600 hover:bg-orange-700"
               >
-                {submitting ? 'Procesando...' : '🔧 Simular Pago (Modo Desarrollo)'}
+                {submitting ? 'Simulando pago...' : '🔧 Simular Pago (Modo Desarrollo)'}
               </Button>
 
               {order && (
-                <p className="text-center mt-6 text-sm text-green-600">
-                  Orden creada: #{order.id}
+                <p className="text-center text-green-600 font-medium">
+                  Orden creada: #{orderId}
                 </p>
               )}
             </CardContent>
