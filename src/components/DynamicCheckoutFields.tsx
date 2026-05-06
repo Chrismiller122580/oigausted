@@ -13,12 +13,9 @@ interface Props {
 }
 
 export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
-  // Improved matching
   const category = gigCategories.find(c => 
     c.name === gig.category || 
-    c.slug === gig.category?.toLowerCase() ||
-    c.name.toLowerCase().includes(gig.category?.toLowerCase() || '') ||
-    gig.category?.toLowerCase().includes(c.slug)
+    c.slug === gig.category?.toLowerCase()
   );
 
   const [formData, setFormData] = useState<any>({});
@@ -32,14 +29,9 @@ export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
   if (!category?.fields?.length) {
     return (
       <div className="mt-8 p-8 bg-amber-50 border border-amber-200 rounded-3xl">
-        <h3 className="text-lg font-semibold mb-2">📋 Detalles adicionales</h3>
-        <p className="text-amber-700">
-          Para esta categoría no se requieren campos específicos.<br />
-          Puedes agregar notas adicionales abajo si lo deseas.
-        </p>
+        <h3 className="text-lg font-semibold mb-2">📋 Notas adicionales</h3>
         <Textarea 
-          className="mt-4"
-          placeholder="Ej: Prefiero que sea el martes por la mañana, dirección: Calle 45 #12-34..."
+          placeholder="Ej: Prefiero servicio el martes por la mañana..."
           onChange={(e) => handleChange('customNotes', e.target.value)}
         />
       </div>
@@ -48,10 +40,8 @@ export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
 
   return (
     <div className="mt-8 space-y-8">
-      <div>
-        <h3 className="text-2xl font-semibold">📋 Completa los detalles de tu servicio</h3>
-        <p className="text-gray-600 mt-1">Esta información ayudará al vendedor a darte el mejor servicio posible.</p>
-      </div>
+      <h3 className="text-2xl font-semibold">📋 Completa los detalles de tu servicio</h3>
+      <p className="text-gray-600">Esta información ayudará al vendedor a prepararse mejor.</p>
 
       <div className="grid gap-6">
         {category.fields.map((field: any) => (
@@ -79,17 +69,21 @@ export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
               </Select>
             )}
 
+            {field.type === 'checkbox' && (
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input 
+                  type="checkbox"
+                  onChange={(e) => handleChange(field.key, e.target.checked)}
+                  className="w-5 h-5 accent-orange-600"
+                />
+                <span>{field.label}</span>
+              </label>
+            )}
+
             {field.type === 'text' && (
               <Input 
                 type="text" 
                 placeholder="Escribe aquí..."
-                onChange={(e) => handleChange(field.key, e.target.value)}
-              />
-            )}
-
-            {field.type === 'textarea' && (
-              <Textarea 
-                placeholder="Describe tus necesidades..."
                 onChange={(e) => handleChange(field.key, e.target.value)}
               />
             )}
