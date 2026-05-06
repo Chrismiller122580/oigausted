@@ -13,10 +13,18 @@ interface Props {
 }
 
 export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
-  const category = gigCategories.find(c => 
-    c.name === gig.category || 
-    c.slug === gig.category?.toLowerCase()
-  );
+  // Improved fuzzy matching
+  const category = gigCategories.find(c => {
+    const gigCat = (gig.category || '').toLowerCase();
+    const catName = c.name.toLowerCase();
+    const catSlug = c.slug.toLowerCase();
+
+    return gigCat === catName || 
+           gigCat === catSlug ||
+           catName.includes(gigCat) ||
+           gigCat.includes(catSlug) ||
+           catName.includes('limpieza') && gigCat.includes('limpieza');
+  });
 
   const [formData, setFormData] = useState<any>({});
 
@@ -26,12 +34,14 @@ export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
     onFieldsChange(newData);
   };
 
+  console.log("Gig category:", gig.category, "Matched:", category?.name);
+
   if (!category?.fields?.length) {
     return (
       <div className="mt-8 p-8 bg-amber-50 border border-amber-200 rounded-3xl">
         <h3 className="text-lg font-semibold mb-2">📋 Notas adicionales</h3>
         <Textarea 
-          placeholder="Ej: Prefiero servicio el martes por la mañana..."
+          placeholder="Ej: Prefiero servicio el martes por la mañana, 3 habitaciones, etc..."
           onChange={(e) => handleChange('customNotes', e.target.value)}
         />
       </div>
@@ -41,7 +51,7 @@ export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
   return (
     <div className="mt-8 space-y-8">
       <h3 className="text-2xl font-semibold">📋 Completa los detalles de tu servicio</h3>
-      <p className="text-gray-600">Esta información ayudará al vendedor a prepararse mejor.</p>
+      <p className="text-gray-600">Esta información ayudará al vendedor a darte el mejor servicio.</p>
 
       <div className="grid gap-6">
         {category.fields.map((field: any) => (
@@ -70,7 +80,7 @@ export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
             )}
 
             {field.type === 'checkbox' && (
-              <label className="flex items-center gap-3 cursor-pointer">
+              <label className="flex items-center gap-3 cursor-pointer py-1">
                 <input 
                   type="checkbox"
                   onChange={(e) => handleChange(field.key, e.target.checked)}
