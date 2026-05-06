@@ -16,12 +16,12 @@ export default function OrderDetailPage() {
     fetch(`/api/orders/${orderId}`)
       .then(res => res.json())
       .then(data => {
-        console.log("Full order data received:", data);
+        console.log("✅ Order data received:", data);
         setOrder(data);
         setLoading(false);
       })
       .catch(err => {
-        console.error(err);
+        console.error("Error loading order:", err);
         setLoading(false);
       });
   }, [orderId]);
@@ -43,6 +43,7 @@ export default function OrderDetailPage() {
       </div>
 
       <div className="grid gap-6">
+        {/* Service Info */}
         <div className="bg-white border rounded-3xl p-8">
           <div className="flex justify-between items-start">
             <div>
@@ -57,6 +58,7 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
+        {/* Progress */}
         <div className="bg-white border rounded-3xl p-8">
           <p className="font-medium mb-3">Progreso del Pedido</p>
           <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden">
@@ -64,6 +66,7 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
+        {/* Chat */}
         <div className="bg-white border rounded-3xl p-8">
           <h3 className="font-semibold mb-4">💬 Chat del Pedido</h3>
           <div className="h-96 bg-gray-50 rounded-2xl border flex items-center justify-center">
