@@ -9,7 +9,6 @@ export default function OrderDetailPage() {
 
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!orderId) return;
@@ -17,38 +16,45 @@ export default function OrderDetailPage() {
     fetch(`/api/orders/${orderId}`)
       .then(res => res.json())
       .then(data => {
-        console.log("📦 Order data received:", data);
+        console.log("Order loaded:", data);
         setOrder(data);
         setLoading(false);
       })
       .catch(err => {
         console.error(err);
-        setError("No se pudo cargar el pedido");
         setLoading(false);
       });
   }, [orderId]);
 
-  if (loading) return <div className="p-20 text-center text-2xl">Cargando pedido...</div>;
-  if (error) return <div className="p-20 text-center text-red-600">{error}</div>;
-  if (!order) return <div className="p-20 text-center">Pedido no encontrado</div>;
+  if (loading) {
+    return <div className="p-20 text-center text-2xl">Cargando pedido...</div>;
+  }
+
+  if (!order) {
+    return <div className="p-20 text-center text-red-600">Pedido no encontrado</div>;
+  }
 
   const price = Number(order.price || order.amount || 0);
+  const gigTitle = order.gig?.title || 'Servicio';
 
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Pedido <span className="text-orange-600">#{order.id}</span></h1>
+        <h1 className="text-3xl font-bold">
+          Pedido <span className="text-orange-600">#{order.id}</span>
+        </h1>
         <span className="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-medium">
           {order.status || 'Pendiente'}
         </span>
       </div>
 
       <div className="grid gap-6">
+        {/* Main Info */}
         <div className="bg-white border rounded-3xl p-8">
-          <div className="flex justify-between">
+          <div className="flex justify-between items-start">
             <div>
-              <h2 className="text-2xl font-semibold">{order.gig?.title || 'Servicio'}</h2>
-              <p className="text-gray-600 mt-1">{order.gig?.description}</p>
+              <h2 className="text-2xl font-semibold">{gigTitle}</h2>
+              <p className="text-gray-600 mt-2">{order.gig?.description}</p>
             </div>
             <div className="text-right">
               <p className="text-5xl font-bold text-orange-600">
@@ -58,6 +64,7 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
+        {/* Progress */}
         <div className="bg-white border rounded-3xl p-8">
           <p className="font-medium mb-3">Progreso del Pedido</p>
           <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden">
@@ -65,10 +72,13 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
+        {/* Chat */}
         <div className="bg-white border rounded-3xl p-8">
-          <h3 className="font-semibold mb-4">💬 Chat del Pedido</h3>
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            💬 Chat del Pedido
+          </h3>
           <div className="h-96 bg-gray-50 rounded-2xl border flex items-center justify-center">
-            <p className="text-gray-500">Chat con el vendedor (en desarrollo)</p>
+            <p className="text-gray-500">Chat persistente con el vendedor (en desarrollo)</p>
           </div>
         </div>
       </div>
