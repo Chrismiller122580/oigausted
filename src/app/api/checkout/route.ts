@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,45 +25,21 @@ export async function POST(request: NextRequest) {
     });
 
     const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY!;
-    const integritySecret = process.env.WOMPI_INTEGRITY_SECRET!;
-    const amountInCents = Math.round(gig.price * 100);
-    const currency = 'COP';
-    const reference = order.id.toString();
-
-    // Generate signature
-    let signature = '';
-    if (integritySecret) {
-      const stringToSign = `${reference}${amountInCents}${currency}${integritySecret}`;
-      signature = crypto
-        .createHash('sha256')
-        .update(stringToSign)
-        .digest('hex');
-    } else {
-      console.error("❌ WOMPI_INTEGRITY_SECRET is missing on server");
-    }
 
     const checkoutUrl = `https://checkout.wompi.co/?` +
       `public_key=${publicKey}` +
-      `&amount_in_cents=${amountInCents}` +
-      `&currency=${currency}` +
-      `&reference=${reference}` +
-      `&signature:integrity=${signature}` +
+      `&amount_in_cents=${Math.round(gig.price * 100)}` +
+      `&currency=COP` +
+      `&reference=${order.id}` +
       `&redirect_url=${encodeURIComponent(
         `${process.env.NEXTAUTH_URL || 'https://oigausted.vercel.app'}/orders/${order.id}`
       )}`;
 
-    // Debug response
     return NextResponse.json({
       success: true,
       orderId: order.id,
       checkoutUrl,
-      debug: {
-        publicKeyPresent: !!publicKey,
-        integritySecretPresent: !!integritySecret,
-        integritySecretLength: integritySecret ? integritySecret.length : 0,
-        signatureGenerated: !!signature,
-        signaturePreview: signature ? signature.substring(0, 16) + '...' : 'NONE'
-      }
+      message: "Test version - signature removed"
     });
 
   } catch (error: any) {
