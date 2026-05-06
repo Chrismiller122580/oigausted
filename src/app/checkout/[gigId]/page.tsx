@@ -18,48 +18,36 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [wompiReady, setWompiReady] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('Cargando...');
+  const [statusMessage, setStatusMessage] = useState('Cargando Wompi...');
 
   const scriptRef = useRef(false);
 
   // Load Gig
   useEffect(() => {
-    if (!gigId) return;
     fetch(`/api/gigs/${gigId}`)
       .then(r => r.json())
       .then(setGig)
       .finally(() => setLoading(false));
   }, [gigId]);
 
-  // Create Order (using session, not buyerId)
+  // Create Order
   useEffect(() => {
     if (!gig?.id || !session?.user || status !== 'authenticated') return;
 
     fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        gigId: gig.id,
-        price: gig.price
-      })
+      body: JSON.stringify({ gigId: gig.id, price: gig.price })
     })
       .then(r => r.json())
       .then(data => {
-        if (data.orderId || data.id) {
-          setOrder(data);
-          setStatusMessage('✅ Orden creada');
-        } else {
-          setStatusMessage('Error creando orden');
-        }
+        setOrder(data);
+        setStatusMessage('✅ Orden creada');
       })
-      .catch(err => {
-        console.error(err);
-        setStatusMessage('Error creando orden');
-        toast.error('Error creando orden');
-      });
+      .catch(() => toast.error('Error creando orden'));
   }, [gig, session, status]);
 
-  // Load Wompi Widget
+  // Load Wompi - More robust
   useEffect(() => {
     if (scriptRef.current) return;
     scriptRef.current = true;
@@ -69,22 +57,29 @@ export default function CheckoutPage() {
     script.async = true;
 
     script.onload = () => {
-      setTimeout(() => {
+      let attempts = 0;
+      const maxAttempts = 30;
+
+      const checkInterval = setInterval(() => {
+        attempts++;
         if ((window as any).WompiCheckout) {
+          clearInterval(checkInterval);
           setWompiReady(true);
-          setStatusMessage('✅ Wompi listo');
-          toast.success('Wompi listo para pagar');
+          setStatusMessage('✅ Wompi listo - Haz clic para pagar');
+          toast.success('Wompi listo');
         }
-      }, 1000);
+        if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          setStatusMessage('❌ Wompi no disponible');
+        }
+      }, 150);
     };
 
     document.head.appendChild(script);
   }, []);
 
   const handlePayment = () => {
-    if (!wompiReady || !order) {
-      return toast.error('Espera que todo cargue completamente');
-    }
+    if (!wompiReady || !order) return toast.error('Espera que Wompi termine de cargar');
 
     setSubmitting(true);
 
@@ -105,13 +100,7 @@ export default function CheckoutPage() {
     }
   };
 
-  if (loading || status === 'loading') {
-    return <div className="p-20 text-center text-2xl">Cargando checkout...</div>;
-  }
-
-  if (!session) {
-    return <div className="p-20 text-center">Debes iniciar sesión para comprar</div>;
-  }
+  if (loading) return <div className="p-20 text-center text-2xl">Cargando...</div>;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -142,10 +131,8 @@ export default function CheckoutPage() {
                 {submitting ? 'Procesando...' : wompiReady ? '💳 Pagar con Wompi' : statusMessage}
               </Button>
 
-              <p className="text-center mt-6 text-sm text-gray-500">
-                {statusMessage}
-              </p>
-              {order && <p className="text-center text-xs text-green-600 mt-2">Orden creada: #{order.id || order.orderId}</p>}
+              <p className="text-center mt-6 text-sm text-gray-500">{statusMessage}</p>
+              {order && <p className="text-center text-xs text-green-600 mt-2">Orden: #{order.id}</p>}
             </CardContent>
           </Card>
         </div>
