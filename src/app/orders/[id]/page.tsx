@@ -43,7 +43,6 @@ export default function OrderDetailPage() {
     return () => clearInterval(interval);
   }, [orderId]);
 
-  // Auto scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -104,7 +103,7 @@ export default function OrderDetailPage() {
         </span>
       </div>
 
-      {/* Service + Price */}
+      {/* Service Info */}
       <Card className="mb-6">
         <CardContent className="p-8">
           <div className="flex justify-between items-start">
@@ -128,9 +127,9 @@ export default function OrderDetailPage() {
             <h3 className="font-semibold mb-4">📋 Detalles seleccionados por el comprador</h3>
             <div className="grid gap-3">
               {Object.entries(metadata).map(([key, value]) => (
-                <div key={key} className="flex justify-between bg-gray-50 p-3 rounded-xl">
-                  <span className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-                  <span className="font-medium">{value}</span>
+                <div key={key} className="flex justify-between bg-gray-50 p-4 rounded-2xl">
+                  <span className="capitalize font-medium">{key.replace(/([A-Z])/g, ' $1')}</span>
+                  <span className="font-semibold">{String(value)}</span>
                 </div>
               ))}
             </div>
@@ -154,7 +153,7 @@ export default function OrderDetailPage() {
           <h3 className="font-semibold mb-4">💬 Chat con el Vendedor</h3>
 
           <div className="h-96 bg-gray-50 border rounded-2xl p-4 overflow-y-auto mb-4 space-y-4">
-            {messages.length === 0 && <p className="text-center text-gray-500 py-12">No hay mensajes aún.</p>}
+            {messages.length === 0 && <p className="text-center text-gray-500 py-12">No hay mensajes aún. ¡Inicia la conversación!</p>}
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.senderId === order.buyerId ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[70%] px-4 py-3 rounded-2xl ${msg.senderId === order.buyerId ? 'bg-orange-600 text-white' : 'bg-white border'}`}>
@@ -180,7 +179,7 @@ export default function OrderDetailPage() {
           <label className="mt-4 block cursor-pointer">
             <input type="file" onChange={handleFileUpload} className="hidden" />
             <div className="text-center border border-dashed border-gray-300 rounded-2xl py-4 hover:bg-gray-50">
-              {uploading ? 'Subiendo...' : '📎 Adjuntar archivo o foto'}
+              {uploading ? 'Subiendo archivo...' : '📎 Adjuntar archivo o foto'}
             </div>
           </label>
         </CardContent>
