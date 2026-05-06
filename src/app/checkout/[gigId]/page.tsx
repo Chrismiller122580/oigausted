@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'react-hot-toast';
+import DynamicCheckoutFields from '@/components/DynamicCheckoutFields';
 
 export default function CheckoutPage() {
   const params = useParams();
@@ -17,8 +18,8 @@ export default function CheckoutPage() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [dynamicFields, setDynamicFields] = useState<any>({});
 
-  // Load gig
   useEffect(() => {
     fetch(`/api/gigs/${gigId}`)
       .then(r => r.json())
@@ -26,7 +27,6 @@ export default function CheckoutPage() {
       .finally(() => setLoading(false));
   }, [gigId]);
 
-  // Create order
   useEffect(() => {
     if (!gig?.id || !session?.user) return;
 
@@ -40,23 +40,25 @@ export default function CheckoutPage() {
       })
     })
       .then(r => r.json())
-      .then(data => setOrder(data))
-      .catch(() => toast.error('Error creando orden'));
+      .then(setOrder);
   }, [gig, session]);
 
   const simulatePayment = async () => {
-    if (!order) return toast.error('Orden no creada todavía');
+    if (!order) return toast.error('Orden no creada');
 
     setSubmitting(true);
     try {
       await fetch(`/api/orders/${order.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Completed' })
+        body: JSON.stringify({ 
+          status: 'Completed',
+          metadata: dynamicFields 
+        })
       });
 
       toast.success('✅ Pago simulado con éxito');
-      setTimeout(() => router.push(`/orders/${order.id}`), 1000);
+      setTimeout(() => router.push(`/orders/${order.id}`), 1200);
     } catch (err) {
       toast.error('Error simulando pago');
     } finally {
@@ -80,33 +82,25 @@ export default function CheckoutPage() {
                 ${Number(gig?.price).toLocaleString('es-CO')} COP
               </p>
               <p className="mt-6 text-gray-600 whitespace-pre-line">{gig?.description}</p>
+
+              <DynamicCheckoutFields gig={gig} onFieldsChange={setDynamicFields} />
             </CardContent>
           </Card>
         </div>
 
         <div className="lg:col-span-5">
           <Card className="sticky top-8">
-            <CardContent className="p-10 space-y-4">
-              {/* Real Wompi button (still here for when it works) */}
-              <Button 
-                onClick={() => toast.error('Wompi widget still not initializing - use Simular Pago for now')}
-                disabled={true}
-                className="w-full py-8 text-xl bg-green-600"
-              >
-                💳 Pagar con Wompi (no disponible)
-              </Button>
-
-              {/* Simulation button - this works */}
+            <CardContent className="p-10">
               <Button 
                 onClick={simulatePayment}
                 disabled={submitting || !order}
                 className="w-full py-8 text-xl bg-orange-600 hover:bg-orange-700"
               >
-                {submitting ? 'Simulando pago...' : '🔧 Simular Pago (Modo Desarrollo)'}
+                {submitting ? 'Procesando...' : '🔧 Simular Pago (Modo Desarrollo)'}
               </Button>
 
               {order && (
-                <p className="text-center text-sm text-green-600">
+                <p className="text-center mt-6 text-sm text-green-600">
                   Orden creada: #{order.id}
                 </p>
               )}
