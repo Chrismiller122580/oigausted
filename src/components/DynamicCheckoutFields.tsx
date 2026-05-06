@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { gigCategories } from '@/lib/gig-categories';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,75 +9,72 @@ import { Textarea } from '@/components/ui/textarea';
 
 interface Props {
   gig: any;
-  onFieldsChange: (fields: any) => void;
+  basePrice: number;
+  onFieldsChange: (fields: any, totalPrice: number) => void;
 }
 
-export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
-  const gigCategory = (gig.category || '').toLowerCase().trim();
-
-  // Enhanced matching
-  const category = gigCategories.find(c => {
-    const name = c.name.toLowerCase();
-    const slug = c.slug.toLowerCase();
-    
-    return name === gigCategory ||
-           slug === gigCategory ||
-           name.includes(gigCategory) ||
-           gigCategory.includes(slug) ||
-           (gigCategory.includes('limpieza') && name.includes('limpieza')) ||
-           (gigCategory.includes('clean') && name.includes('limpieza'));
-  });
+export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }: Props) {
+  const category = gigCategories.find(c => 
+    c.name === gig.category || c.slug === gig.category?.toLowerCase()
+  );
 
   const [formData, setFormData] = useState<any>({});
+  const [totalPrice, setTotalPrice] = useState(basePrice);
 
-  const handleChange = (key: string, value: any) => {
+  const handleChange = (key: string, value: any, extraPrice: number = 0) => {
     const newData = { ...formData, [key]: value };
     setFormData(newData);
-    onFieldsChange(newData);
-  };
 
-  console.log(`Gig category: "${gig.category}" → Matched: ${category?.name || 'None'}`);
+    // Calculate new total
+    let newTotal = basePrice;
+    
+    // Add extra prices from checkboxes/selects that have them
+    Object.keys(newData).forEach(k => {
+      // For now we use simple logic - you can extend this
+      if (newData[k] === true && extraPrice > 0) {
+        newTotal += extraPrice;
+      }
+    });
+
+    setTotalPrice(newTotal);
+    onFieldsChange(newData, newTotal);
+  };
 
   if (!category?.fields?.length) {
     return (
-      <div className="mt-8 p-8 bg-blue-50 border border-blue-200 rounded-3xl">
-        <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          📝 Notas adicionales para el vendedor
-        </h3>
+      <div className="mt-8 p-8 bg-amber-50 border border-amber-200 rounded-3xl">
+        <h3 className="text-lg font-semibold mb-2">📋 Notas adicionales</h3>
         <Textarea 
-          placeholder="Ej: Quiero el servicio el martes por la mañana, 3 habitaciones, enfocado en cocina y baños..."
-          className="min-h-[120px]"
+          placeholder="Ej: Prefiero el martes por la mañana..."
           onChange={(e) => handleChange('customNotes', e.target.value)}
         />
-        <p className="text-xs text-blue-600 mt-3">Esta información se guardará con tu pedido.</p>
       </div>
     );
   }
 
   return (
     <div className="mt-8 space-y-8">
-      <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-3xl p-8">
-        <h3 className="text-2xl font-semibold mb-2">📋 Detalles de tu pedido</h3>
-        <p className="text-gray-600">Ayuda al vendedor a prepararse mejor para tu servicio.</p>
+      <div>
+        <h3 className="text-2xl font-semibold">📋 Detalles de tu servicio</h3>
+        <p className="text-gray-600 mt-1">El precio se actualizará en tiempo real.</p>
       </div>
 
-      <div className="space-y-6">
+      <div className="grid gap-6">
         {category.fields.map((field: any) => (
           <div key={field.key} className="space-y-2">
-            <Label className="text-base font-medium text-gray-800">{field.label}</Label>
+            <Label className="text-base font-medium">{field.label}</Label>
 
             {field.type === 'number' && (
               <Input 
                 type="number" 
                 placeholder="Ej: 3"
                 onChange={(e) => handleChange(field.key, Number(e.target.value))}
-                className="text-lg"
               />
             )}
 
             {field.type === 'select' && field.options && (
               <Select onValueChange={(value) => handleChange(field.key, value)}>
-                <SelectTrigger className="text-lg">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecciona una opción" />
                 </SelectTrigger>
                 <SelectContent>
@@ -89,25 +86,28 @@ export default function DynamicCheckoutFields({ gig, onFieldsChange }: Props) {
             )}
 
             {field.type === 'checkbox' && (
-              <label className="flex items-center gap-3 cursor-pointer py-2 px-1 hover:bg-gray-50 rounded-xl">
+              <label className="flex items-center gap-3 cursor-pointer py-2">
                 <input 
                   type="checkbox"
-                  onChange={(e) => handleChange(field.key, e.target.checked)}
+                  onChange={(e) => handleChange(field.key, e.target.checked, field.extraPrice || 0)}
                   className="w-5 h-5 accent-orange-600"
                 />
-                <span className="text-base">{field.label}</span>
+                <span>{field.label}</span>
+                {field.extraPrice && <span className="text-orange-600 font-medium">+${field.extraPrice}</span>}
               </label>
-            )}
-
-            {field.type === 'text' && (
-              <Input 
-                type="text" 
-                placeholder="Escribe aquí..."
-                onChange={(e) => handleChange(field.key, e.target.value)}
-              />
             )}
           </div>
         ))}
+      </div>
+
+      {/* Live Price Update */}
+      <div className="bg-orange-50 border border-orange-200 rounded-2xl p-6 mt-8">
+        <div className="flex justify-between items-center">
+          <span className="text-lg font-medium">Total estimado</span>
+          <span className="text-4xl font-bold text-orange-600">
+            ${totalPrice.toLocaleString('es-CO')} COP
+          </span>
+        </div>
       </div>
     </div>
   );
