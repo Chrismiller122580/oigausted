@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 export default function OrderDetailPage() {
   const params = useParams();
   const orderId = params.id as string;
+  const { data: session } = useSession();
 
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -14,9 +16,9 @@ export default function OrderDetailPage() {
     if (!orderId) return;
 
     fetch(`/api/orders/${orderId}`)
-      .then(res => res.json())
+      .then(r => r.json())
       .then(data => {
-        console.log("✅ Order data:", data);
+        console.log("Order data received:", data);
         setOrder(data);
         setLoading(false);
       })
@@ -34,15 +36,14 @@ export default function OrderDetailPage() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">
-          Pedido <span className="text-orange-600">#{order.id}</span>
-        </h1>
+        <h1 className="text-3xl font-bold">Pedido <span className="text-orange-600">#{order.id}</span></h1>
         <span className="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-medium">
           {order.status || 'Pendiente'}
         </span>
       </div>
 
       <div className="grid gap-6">
+        {/* Main service card */}
         <div className="bg-white border rounded-3xl p-8">
           <div className="flex justify-between items-start">
             <div>
@@ -57,6 +58,7 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
+        {/* Progress */}
         <div className="bg-white border rounded-3xl p-8">
           <p className="font-medium mb-3">Progreso del Pedido</p>
           <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden">
@@ -64,8 +66,11 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
+        {/* Chat */}
         <div className="bg-white border rounded-3xl p-8">
-          <h3 className="font-semibold mb-4">💬 Chat del Pedido</h3>
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            💬 Chat del Pedido
+          </h3>
           <div className="h-96 bg-gray-50 rounded-2xl border flex items-center justify-center">
             <p className="text-gray-500">Chat persistente con el vendedor (en desarrollo)</p>
           </div>
