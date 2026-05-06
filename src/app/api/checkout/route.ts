@@ -28,24 +28,20 @@ export async function POST(request: NextRequest) {
 
     const amountInCents = Math.round(gig.price * 100);
     const reference = order.id.toString();
-    const currency = 'COP';
 
-    // Generate signature
-    const stringToSign = `${reference}${amountInCents}${currency}${integritySecret}`;
+    const stringToSign = `${reference}${amountInCents}COP${integritySecret}`;
     const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
 
-    const checkoutUrl = `https://checkout.wompi.co/?public_key=${publicKey}` +
+    const checkoutUrl = `https://checkout.wompi.co/?` +
+      `public_key=${publicKey}` +
       `&amount_in_cents=${amountInCents}` +
-      `&currency=${currency}` +
+      `&currency=COP` +
       `&reference=${reference}` +
       `&signature:integrity=${signature}` +
+      `&customer_email=prueba@oigausted.com` +   // ← Added this
       `&redirect_url=${encodeURIComponent(`${process.env.NEXTAUTH_URL || 'https://oigausted.vercel.app'}/orders/${order.id}`)}`;
 
-    return NextResponse.json({ 
-      success: true, 
-      checkoutUrl,
-      debugSignature: signature.substring(0, 20) + '...' 
-    });
+    return NextResponse.json({ success: true, checkoutUrl });
 
   } catch (error: any) {
     console.error(error);
