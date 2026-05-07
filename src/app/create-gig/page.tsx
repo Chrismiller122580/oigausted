@@ -40,11 +40,9 @@ export default function CreateGigPage() {
       if (data.description) {
         setDescription(data.description);
         toast.success('✅ Descripción generada con Grok');
-      } else {
-        toast.error('No se pudo generar la descripción');
       }
     } catch (err) {
-      toast.error('Error al conectar con Grok');
+      toast.error('Error al generar descripción');
     } finally {
       setGenerating(false);
     }
@@ -113,7 +111,7 @@ export default function CreateGigPage() {
               disabled={generating || !title || !category}
               variant="outline"
             >
-              {generating ? '✨ Generando...' : '✨ Generar con Grok'}
+              {generating ? '✨ Generando con Grok...' : '✨ Generar con Grok'}
             </Button>
           </div>
           <Textarea 
@@ -123,6 +121,18 @@ export default function CreateGigPage() {
             placeholder="Describe tu servicio aquí..."
             required 
           />
+        </div>
+
+        {/* Photo Upload */}
+        <div>
+          <Label>Imagen Principal</Label>
+          <Input 
+            type="text" 
+            value={imageUrl} 
+            onChange={(e) => setImageUrl(e.target.value)} 
+            placeholder="URL de la imagen (o sube una foto)"
+          />
+          {/* TODO: Add real upload button here if you have uploadthing */}
         </div>
 
         <Button type="submit" className="w-full py-8 text-xl">Crear Gig</Button>
