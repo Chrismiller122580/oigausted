@@ -26,7 +26,7 @@ export default function CreateGigPage() {
   const [options, setOptions] = useState<any[]>([]);
 
   const generateWithGrok = async () => {
-    if (!title || !category) return toast.error('Título y categoría requeridos');
+    if (!title || !category) return toast.error('Título y categoría son requeridos');
 
     setGenerating(true);
     try {
@@ -39,7 +39,7 @@ export default function CreateGigPage() {
       const data = await res.json();
       if (data.description) {
         setDescription(data.description);
-        toast.success('✅ Descripción generada');
+        toast.success('✅ Descripción generada con Grok');
       }
     } catch (err) {
       toast.error('Error con Grok');
@@ -75,57 +75,87 @@ export default function CreateGigPage() {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    // submit logic...
-    toast.success('Gig creado');
-    router.push('/seller');
+    const res = await fetch('/api/gigs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, description, price: Number(price), category, completionTime, imageUrl, fields: options })
+    });
+    if (res.ok) {
+      toast.success('✅ Gig creado con éxito');
+      router.push('/seller');
+    } else toast.error('Error creando gig');
   };
 
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-4xl font-bold mb-8">Crear Nuevo Gig</h1>
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Title, Category, Price */}
         <div>
-          <Label>Título</Label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
+          <Label>Título del Servicio</Label>
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: Limpieza de Hogar Profesional" required />
         </div>
 
         <div className="grid grid-cols-2 gap-6">
           <div>
             <Label>Categoría</Label>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona categoría" />
+              </SelectTrigger>
               <SelectContent>
-                {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                {categories.map(cat => (
+                  <SelectItem key={cat} value={cat}>
+                    {categoryEmojis[cat] || ''} {cat}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label>Precio Base</Label>
+            <Label>Precio Base (COP)</Label>
             <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required />
           </div>
         </div>
 
-        {/* Grok Button */}
         <div>
-          <div className="flex justify-between mb-2">
-            <Label>Descripción</Label>
-            <Button type="button" onClick={generateWithGrok} disabled={generating}>
-              {generating ? 'Generando...' : '✨ Generar con Grok'}
+          <div className="flex justify-between items-center mb-2">
+            <Label>Descripción del Servicio</Label>
+            <Button 
+              type="button" 
+              onClick={generateWithGrok} 
+              disabled={generating || !title || !category}
+              variant="outline"
+            >
+              {generating ? '✨ Generando con Grok...' : '✨ Generar con Grok'}
             </Button>
           </div>
-          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={6} />
+          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={8} required />
         </div>
 
-        {/* Photo Upload */}
         <div>
-          <Label>Imagen Principal</Label>
-          <Input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
-          {uploading && <p>Subiendo...</p>}
-          {imageUrl && <img src={imageUrl} className="mt-2 h-32 object-cover" />}
+          <Label>Imagen Principal del Gig</Label>
+          <div className="flex items-center gap-4">
+            <Input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="flex-1" />
+            {imageUrl && <img src={imageUrl} alt="Preview" className="h-20 w-20 object-cover rounded-lg border" />}
+          </div>
+          {uploading && <p className="text-orange-600 text-sm mt-1">Subiendo imagen...</p>}
         </div>
 
-        <Button type="submit" className="w-full">Crear Gig</Button>
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <Label>Opciones Adicionales (con precio extra)</Label>
+            <Button type="button" onClick={addOption} variant="outline">+ Agregar Opción</Button>
+          </div>
+          {options.map((opt, index) => (
+            <div key={index} className="flex gap-4 mb-4 p-4 border rounded-2xl">
+              <Input placeholder="Nombre de la opción" value={opt.label} onChange={e => updateOption(index, 'label', e.target.value)} className="flex-1" />
+              <Input type="number" placeholder="Precio extra" value={opt.extraPrice} onChange={e => updateOption(index, 'extraPrice', Number(e.target.value))} className="w-32" />
+              <Button type="button" variant="destructive" onClick={() => removeOption(index)}>Eliminar</Button>
+            </div>
+          ))}
+        </div>
+
+        <Button type="submit" className="w-full py-8 text-xl">Crear Gig</Button>
       </form>
     </div>
   );
