@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { categories, categoryEmojis } from '@/lib/categories';
@@ -22,7 +23,7 @@ export default function CreateGigPage() {
   const [imageUrl, setImageUrl] = useState('');
   const [generating, setGenerating] = useState(false);
 
-  const [options, setOptions] = useState<any[]>([]); // Dynamic options with prices
+  const [options, setOptions] = useState<any[]>([]);
 
   const generateWithGrok = async () => {
     if (!title || !category) return toast.error('Título y categoría son requeridos');
@@ -46,7 +47,7 @@ export default function CreateGigPage() {
   };
 
   const addOption = () => {
-    setOptions([...options, { label: '', type: 'checkbox', extraPrice: 0 }]);
+    setOptions([...options, { label: '', extraPrice: 0 }]);
   };
 
   const updateOption = (index: number, field: string, value: any) => {
@@ -130,7 +131,7 @@ export default function CreateGigPage() {
           {options.map((option, index) => (
             <div key={index} className="flex gap-4 mb-4 p-4 border rounded-2xl">
               <Input 
-                placeholder="Nombre de la opción" 
+                placeholder="Nombre de la opción (ej: Limpieza profunda)" 
                 value={option.label} 
                 onChange={(e) => updateOption(index, 'label', e.target.value)} 
                 className="flex-1"
