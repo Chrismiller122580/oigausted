@@ -6,9 +6,10 @@ export async function POST(request: NextRequest) {
     if (!prompt) return Response.json({ error: "Prompt required" }, { status: 400 });
 
     const GROK_API_KEY = process.env.GROK_API_KEY;
+
     if (!GROK_API_KEY) {
       return Response.json({ 
-        description: "Grok no está configurado. Aquí tienes una descripción de ejemplo:\n\n¡Servicio profesional y confiable! Nuestro equipo se encarga de todo con excelencia." 
+        description: "¡${title || 'Servicio Profesional'}! Ofrecemos un servicio de alta calidad, confiable y con atención al detalle." 
       });
     }
 
