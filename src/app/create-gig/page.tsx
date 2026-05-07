@@ -22,11 +22,10 @@ export default function CreateGigPage() {
   const [completionTime, setCompletionTime] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const generateWithGrok = async () => {
-    if (!title || !category) {
-      return toast.error('Por favor ingresa un título y selecciona una categoría');
-    }
+    if (!title || !category) return toast.error('Título y categoría son requeridos');
 
     setGenerating(true);
     try {
@@ -48,6 +47,34 @@ export default function CreateGigPage() {
     }
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.url) {
+        setImageUrl(data.url);
+        toast.success('✅ Imagen subida correctamente');
+      } else {
+        toast.error('Error al subir imagen');
+      }
+    } catch (err) {
+      toast.error('Error al subir imagen');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -65,7 +92,7 @@ export default function CreateGigPage() {
     });
 
     if (res.ok) {
-      toast.success('Gig creado con éxito');
+      toast.success('✅ Gig creado con éxito');
       router.push('/seller');
     } else {
       toast.error('Error creando gig');
@@ -123,16 +150,22 @@ export default function CreateGigPage() {
           />
         </div>
 
-        {/* Photo Upload */}
+        {/* Real Photo Upload */}
         <div>
-          <Label>Imagen Principal</Label>
-          <Input 
-            type="text" 
-            value={imageUrl} 
-            onChange={(e) => setImageUrl(e.target.value)} 
-            placeholder="URL de la imagen (o sube una foto)"
-          />
-          {/* TODO: Add real upload button here if you have uploadthing */}
+          <Label>Imagen Principal del Gig</Label>
+          <div className="flex items-center gap-4">
+            <Input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleImageUpload}
+              disabled={uploading}
+              className="flex-1"
+            />
+            {imageUrl && (
+              <img src={imageUrl} alt="Preview" className="h-20 w-20 object-cover rounded-lg border" />
+            )}
+          </div>
+          {uploading && <p className="text-orange-600 text-sm mt-1">Subiendo imagen...</p>}
         </div>
 
         <Button type="submit" className="w-full py-8 text-xl">Crear Gig</Button>
