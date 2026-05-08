@@ -30,7 +30,7 @@ export default function CreateGigPage() {
 
     setGenerating(true);
     try {
-      const prompt = `Escribe una descripción atractiva y profesional para "${title}" en la categoría "${category}". Enfocado en beneficios para clientes en Colombia.`;
+      const prompt = `Escribe una descripción atractiva y profesional para "${title}" en la categoría "${category}".`;
       const res = await fetch('/api/grok/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -79,13 +79,7 @@ export default function CreateGigPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        title, 
-        description, 
-        price: Number(price), 
-        category, 
-        completionTime, 
-        imageUrl, 
-        fields: options 
+        title, description, price: Number(price), category, completionTime, imageUrl, fields: options 
       })
     });
     if (res.ok) {
@@ -113,7 +107,8 @@ export default function CreateGigPage() {
               <SelectContent>
                 {categories.map(cat => (
                   <SelectItem key={cat} value={cat}>
-                    {categoryEmojis[cat] || '•'} {cat}
+                    <span className="mr-3 text-lg">{categoryEmojis[cat] || '📌'}</span>
+                    {cat}
                   </SelectItem>
                 ))}
               </SelectContent>
