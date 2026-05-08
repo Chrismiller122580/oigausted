@@ -6,10 +6,9 @@ export async function POST(request: NextRequest) {
     if (!prompt) return Response.json({ error: "Prompt required" }, { status: 400 });
 
     const GROK_API_KEY = process.env.GROK_API_KEY;
-
     if (!GROK_API_KEY) {
       return Response.json({ 
-        description: "¡Servicio profesional de " + (prompt.includes("limpieza") ? "limpieza" : "servicio") + "! Ofrecemos calidad, puntualidad y atención al detalle." 
+        description: "¡Servicio profesional y confiable! Ofrecemos calidad, puntualidad y atención al detalle en Colombia." 
       });
     }
 
@@ -32,6 +31,6 @@ export async function POST(request: NextRequest) {
     return Response.json({ description });
   } catch (error) {
     console.error(error);
-    return Response.json({ description: "Lo siento, error con Grok." });
+    return Response.json({ description: "Lo siento, hubo un error con Grok." });
   }
 }
