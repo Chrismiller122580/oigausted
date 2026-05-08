@@ -78,7 +78,15 @@ export default function CreateGigPage() {
     const res = await fetch('/api/gigs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description, price: Number(price), category, completionTime, imageUrl, fields: options })
+      body: JSON.stringify({ 
+        title, 
+        description, 
+        price: Number(price), 
+        category, 
+        completionTime, 
+        imageUrl, 
+        fields: options 
+      })
     });
     if (res.ok) {
       toast.success('✅ Gig creado con éxito');
@@ -105,7 +113,7 @@ export default function CreateGigPage() {
               <SelectContent>
                 {categories.map(cat => (
                   <SelectItem key={cat} value={cat}>
-                    {categoryEmojis[cat] || ''} {cat}
+                    {categoryEmojis[cat] || '•'} {cat}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -139,20 +147,6 @@ export default function CreateGigPage() {
             {imageUrl && <img src={imageUrl} alt="Preview" className="h-20 w-20 object-cover rounded-lg border" />}
           </div>
           {uploading && <p className="text-orange-600 text-sm mt-1">Subiendo imagen...</p>}
-        </div>
-
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <Label>Opciones Adicionales (con precio extra)</Label>
-            <Button type="button" onClick={addOption} variant="outline">+ Agregar Opción</Button>
-          </div>
-          {options.map((opt, index) => (
-            <div key={index} className="flex gap-4 mb-4 p-4 border rounded-2xl">
-              <Input placeholder="Nombre de la opción" value={opt.label} onChange={e => updateOption(index, 'label', e.target.value)} className="flex-1" />
-              <Input type="number" placeholder="Precio extra" value={opt.extraPrice} onChange={e => updateOption(index, 'extraPrice', Number(e.target.value))} className="w-32" />
-              <Button type="button" variant="destructive" onClick={() => removeOption(index)}>Eliminar</Button>
-            </div>
-          ))}
         </div>
 
         <Button type="submit" className="w-full py-8 text-xl">Crear Gig</Button>
