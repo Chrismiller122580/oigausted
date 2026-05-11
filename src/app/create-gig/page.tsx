@@ -23,9 +23,7 @@ export default function CreateGigPage() {
   const [imageUrl, setImageUrl] = useState('');
   const [generating, setGenerating] = useState(false);
   const [uploading, setUploading] = useState(false);
-
-  // Dynamic priced addons (seller side)
-  const [options, setOptions] = useState<any[]>([]);
+  const [options, setOptions] = useState<any[]>([]); // Seller priced addons
 
   const generateWithGrok = async () => {
     if (!title || !category) return toast.error('Título y categoría son requeridos');
@@ -67,19 +65,13 @@ export default function CreateGigPage() {
     }
   };
 
-  const addOption = () => {
-    setOptions([...options, { label: '', extraPrice: 0 }]);
-  };
-
+  const addOption = () => setOptions([...options, { label: '', extraPrice: 0 }]);
   const updateOption = (index: number, field: string, value: any) => {
     const newOptions = [...options];
     newOptions[index][field] = value;
     setOptions(newOptions);
   };
-
-  const removeOption = (index: number) => {
-    setOptions(options.filter((_, i) => i !== index));
-  };
+  const removeOption = (index: number) => setOptions(options.filter((_, i) => i !== index));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +85,7 @@ export default function CreateGigPage() {
         category,
         completionTime,
         imageUrl,
-        fields: options,   // Seller-defined priced options
+        fields: options
       })
     });
 
@@ -157,10 +149,10 @@ export default function CreateGigPage() {
           {uploading && <p className="text-orange-600 text-sm mt-1">Subiendo imagen...</p>}
         </div>
 
-        {/* Dynamic Priced Addons - Seller Side */}
+        {/* Seller Dynamic Priced Addons */}
         <div>
           <div className="flex justify-between items-center mb-4">
-            <Label>Opciones Adicionales (Buyer podrá seleccionarlas y pagar extra)</Label>
+            <Label>Opciones Adicionales (el comprador podrá seleccionarlas y pagar extra)</Label>
             <Button type="button" onClick={addOption} variant="outline">+ Agregar Opción</Button>
           </div>
 
