@@ -23,6 +23,8 @@ export default function CreateGigPage() {
   const [imageUrl, setImageUrl] = useState('');
   const [generating, setGenerating] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Dynamic priced addons (seller side)
   const [options, setOptions] = useState<any[]>([]);
 
   const generateWithGrok = async () => {
@@ -65,32 +67,48 @@ export default function CreateGigPage() {
     }
   };
 
-  const addOption = () => setOptions([...options, { label: '', extraPrice: 0 }]);
-  const updateOption = (i: number, field: string, val: any) => {
-    const newOpts = [...options];
-    newOpts[i][field] = val;
-    setOptions(newOpts);
+  const addOption = () => {
+    setOptions([...options, { label: '', extraPrice: 0 }]);
   };
-  const removeOption = (i: number) => setOptions(options.filter((_, idx) => idx !== i));
 
-  const handleSubmit = async (e: any) => {
+  const updateOption = (index: number, field: string, value: any) => {
+    const newOptions = [...options];
+    newOptions[index][field] = value;
+    setOptions(newOptions);
+  };
+
+  const removeOption = (index: number) => {
+    setOptions(options.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await fetch('/api/gigs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        title, description, price: Number(price), category, completionTime, imageUrl, fields: options 
+      body: JSON.stringify({
+        title,
+        description,
+        price: Number(price),
+        category,
+        completionTime,
+        imageUrl,
+        fields: options,   // Seller-defined priced options
       })
     });
+
     if (res.ok) {
       toast.success('✅ Gig creado con éxito');
       router.push('/seller');
-    } else toast.error('Error creando gig');
+    } else {
+      toast.error('Error creando gig');
+    }
   };
 
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-4xl font-bold mb-8">Crear Nuevo Gig</h1>
+
       <form onSubmit={handleSubmit} className="space-y-8">
         <div>
           <Label>Título del Servicio</Label>
@@ -123,12 +141,7 @@ export default function CreateGigPage() {
         <div>
           <div className="flex justify-between items-center mb-2">
             <Label>Descripción del Servicio</Label>
-            <Button 
-              type="button" 
-              onClick={generateWithGrok} 
-              disabled={generating || !title || !category}
-              variant="outline"
-            >
+            <Button type="button" onClick={generateWithGrok} disabled={generating || !title || !category} variant="outline">
               {generating ? '✨ Generando con Grok...' : '✨ Generar con Grok'}
             </Button>
           </div>
@@ -142,6 +155,35 @@ export default function CreateGigPage() {
             {imageUrl && <img src={imageUrl} alt="Preview" className="h-20 w-20 object-cover rounded-lg border" />}
           </div>
           {uploading && <p className="text-orange-600 text-sm mt-1">Subiendo imagen...</p>}
+        </div>
+
+        {/* Dynamic Priced Addons - Seller Side */}
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <Label>Opciones Adicionales (Buyer podrá seleccionarlas y pagar extra)</Label>
+            <Button type="button" onClick={addOption} variant="outline">+ Agregar Opción</Button>
+          </div>
+
+          {options.map((opt, index) => (
+            <div key={index} className="flex gap-4 mb-4 p-4 border rounded-2xl">
+              <Input 
+                placeholder="Ej: Limpieza profunda de cocina" 
+                value={opt.label} 
+                onChange={(e) => updateOption(index, 'label', e.target.value)} 
+                className="flex-1"
+              />
+              <Input 
+                type="number" 
+                placeholder="Precio extra" 
+                value={opt.extraPrice} 
+                onChange={(e) => updateOption(index, 'extraPrice', Number(e.target.value))} 
+                className="w-40"
+              />
+              <Button type="button" variant="destructive" onClick={() => removeOption(index)}>
+                Eliminar
+              </Button>
+            </div>
+          ))}
         </div>
 
         <Button type="submit" className="w-full py-8 text-xl">Crear Gig</Button>
