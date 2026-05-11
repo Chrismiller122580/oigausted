@@ -23,11 +23,10 @@ export default function CreateGigPage() {
   const [imageUrl, setImageUrl] = useState('');
   const [generating, setGenerating] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [options, setOptions] = useState<any[]>([]); // Seller priced addons
+  const [options, setOptions] = useState<any[]>([]);
 
   const generateWithGrok = async () => {
     if (!title || !category) return toast.error('Título y categoría son requeridos');
-
     setGenerating(true);
     try {
       const prompt = `Escribe una descripción atractiva y profesional para "${title}" en la categoría "${category}".`;
@@ -66,41 +65,29 @@ export default function CreateGigPage() {
   };
 
   const addOption = () => setOptions([...options, { label: '', extraPrice: 0 }]);
-  const updateOption = (index: number, field: string, value: any) => {
-    const newOptions = [...options];
-    newOptions[index][field] = value;
-    setOptions(newOptions);
+  const updateOption = (i: number, field: string, val: any) => {
+    const newOpts = [...options];
+    newOpts[i][field] = val;
+    setOptions(newOpts);
   };
-  const removeOption = (index: number) => setOptions(options.filter((_, i) => i !== index));
+  const removeOption = (i: number) => setOptions(options.filter((_, idx) => idx !== i));
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     const res = await fetch('/api/gigs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title,
-        description,
-        price: Number(price),
-        category,
-        completionTime,
-        imageUrl,
-        fields: options
-      })
+      body: JSON.stringify({ title, description, price: Number(price), category, completionTime, imageUrl, fields: options })
     });
-
     if (res.ok) {
       toast.success('✅ Gig creado con éxito');
       router.push('/seller');
-    } else {
-      toast.error('Error creando gig');
-    }
+    } else toast.error('Error creando gig');
   };
 
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-4xl font-bold mb-8">Crear Nuevo Gig</h1>
-
       <form onSubmit={handleSubmit} className="space-y-8">
         <div>
           <Label>Título del Servicio</Label>
@@ -111,14 +98,11 @@ export default function CreateGigPage() {
           <div>
             <Label>Categoría</Label>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona categoría" />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Selecciona categoría" /></SelectTrigger>
               <SelectContent>
                 {categories.map(cat => (
                   <SelectItem key={cat} value={cat}>
-                    <span className="mr-3 text-lg">{categoryEmojis[cat] || '📌'}</span>
-                    {cat}
+                    <span className="mr-3 text-lg">{categoryEmojis[cat] || '📌'}</span> {cat}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -149,31 +133,16 @@ export default function CreateGigPage() {
           {uploading && <p className="text-orange-600 text-sm mt-1">Subiendo imagen...</p>}
         </div>
 
-        {/* Seller Dynamic Priced Addons */}
         <div>
           <div className="flex justify-between items-center mb-4">
-            <Label>Opciones Adicionales (el comprador podrá seleccionarlas y pagar extra)</Label>
+            <Label>Opciones Adicionales (Buyer podrá seleccionarlas)</Label>
             <Button type="button" onClick={addOption} variant="outline">+ Agregar Opción</Button>
           </div>
-
           {options.map((opt, index) => (
             <div key={index} className="flex gap-4 mb-4 p-4 border rounded-2xl">
-              <Input 
-                placeholder="Ej: Limpieza profunda de cocina" 
-                value={opt.label} 
-                onChange={(e) => updateOption(index, 'label', e.target.value)} 
-                className="flex-1"
-              />
-              <Input 
-                type="number" 
-                placeholder="Precio extra" 
-                value={opt.extraPrice} 
-                onChange={(e) => updateOption(index, 'extraPrice', Number(e.target.value))} 
-                className="w-40"
-              />
-              <Button type="button" variant="destructive" onClick={() => removeOption(index)}>
-                Eliminar
-              </Button>
+              <Input placeholder="Ej: Limpieza profunda" value={opt.label} onChange={e => updateOption(index, 'label', e.target.value)} className="flex-1" />
+              <Input type="number" placeholder="Precio extra" value={opt.extraPrice} onChange={e => updateOption(index, 'extraPrice', Number(e.target.value))} className="w-40" />
+              <Button type="button" variant="destructive" onClick={() => removeOption(index)}>Eliminar</Button>
             </div>
           ))}
         </div>
