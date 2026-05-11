@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { gigCategories } from '@/lib/gig-categories';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,14 +16,12 @@ interface Props {
 export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }: Props) {
   const gigCat = (gig.category || '').toString().toLowerCase().trim();
 
-  // Find matching category from registry
   const categoryTemplate = gigCategories.find(c => 
     c.name.toLowerCase() === gigCat || 
     c.slug?.toLowerCase() === gigCat ||
     c.name.toLowerCase().includes(gigCat)
   );
 
-  // Merge template fields + seller custom options
   const allFields = [
     ...(categoryTemplate?.fields || []),
     ...(gig.fields || [])
@@ -32,13 +30,24 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
   const [formData, setFormData] = useState<any>({});
   const [totalPrice, setTotalPrice] = useState(basePrice);
 
-  const handleChange = (key: string, value: any, extraPrice = 0) => {
+  const calculateTotal = (currentData: any) => {
+    let total = basePrice;
+
+    allFields.forEach(field => {
+      const value = currentData[field.key];
+      if (field.extraPrice && value === true) {
+        total += field.extraPrice;
+      }
+    });
+
+    return total;
+  };
+
+  const handleChange = (key: string, value: any) => {
     const newData = { ...formData, [key]: value };
     setFormData(newData);
 
-    let newTotal = basePrice;
-    if (value === true && extraPrice > 0) newTotal += extraPrice;
-
+    const newTotal = calculateTotal(newData);
     setTotalPrice(newTotal);
     onFieldsChange(newData, newTotal);
   };
@@ -77,9 +86,7 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
               <Select onValueChange={(v) => handleChange(field.key, v)}>
                 <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
                 <SelectContent>
-                  {field.options.map((opt: string) => (
-                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                  ))}
+                  {field.options.map((opt: string) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
                 </SelectContent>
               </Select>
             )}
@@ -88,7 +95,8 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
               <label className="flex items-center gap-3 cursor-pointer py-2">
                 <input 
                   type="checkbox"
-                  onChange={(e) => handleChange(field.key, e.target.checked, field.extraPrice || 0)}
+                  checked={formData[field.key] === true}
+                  onChange={(e) => handleChange(field.key, e.target.checked)}
                   className="w-5 h-5 accent-orange-600"
                 />
                 <span>{field.label}</span>
