@@ -16,7 +16,7 @@ export default function CheckoutPage() {
 
   const [gig, setGig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<Record<string, any>>({});
 
   const basePrice = Number(gig?.price || 0);
 
@@ -73,7 +73,7 @@ export default function CheckoutPage() {
       });
       const result = await res.json();
       if (result.order?.id) {
-        toast.success(`Orden creada`);
+        toast.success(`Orden creada #${result.order.id.slice(0,8)}`);
         router.push(`/orders/${result.order.id}`);
       }
     } catch (e) {
