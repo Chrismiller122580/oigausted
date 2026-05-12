@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import DynamicCheckoutFields from '@/components/DynamicCheckoutFields';
@@ -25,26 +25,32 @@ export default function CheckoutPage() {
       .then(res => res.json())
       .then(data => {
         setGig(data);
-        const initialPrice = Number(data.price || 0);
-        setCalculatedPrice(initialPrice);
+        const initial = Number(data.price || 0);
+        setCalculatedPrice(initial);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, [gigId]);
 
-  const handleFieldsChange = (fields: any, total: number) => {
+  // Force latest value
+  const handleFieldsChange = useCallback((fields: any, total: number) => {
     setDynamicFields(fields);
     setCalculatedPrice(total);
-  };
+  }, []);
 
   const simulatePayment = async () => {
-    if (!session?.user?.id || !gig) return toast.error("Falta información");
+    if (!session?.user?.id || !gig) {
+      return toast.error("Falta información");
+    }
+
+    // Use the absolute latest calculatedPrice (prevents stale closure)
+    const finalPrice = calculatedPrice;
 
     const orderData = {
       gigId: gig.id,
       buyerId: session.user.id,
       sellerId: gig.sellerId,
-      price: calculatedPrice,
+      price: finalPrice,
       status: 'Pending',
       customFields: dynamicFields,
     };
@@ -58,7 +64,7 @@ export default function CheckoutPage() {
 
       const result = await res.json();
       if (result.order?.id) {
-        toast.success(`✅ Orden creada: ${result.order.id}`);
+        toast.success(`✅ Orden creada #${result.order.id.slice(0,8)}...`);
         router.push(`/orders/${result.order.id}`);
       } else {
         toast.error("Error al crear la orden");
@@ -77,7 +83,6 @@ export default function CheckoutPage() {
       <p className="text-gray-600 mb-8">Revisa los detalles y confirma tu pedido</p>
 
       <div className="grid md:grid-cols-5 gap-8">
-        {/* Left Column - Gig Info + Dynamic Fields */}
         <div className="md:col-span-3">
           <Card>
             <CardHeader>
@@ -95,16 +100,15 @@ export default function CheckoutPage() {
           />
         </div>
 
-        {/* Right Column - Summary (now uses live calculatedPrice) */}
         <div className="md:col-span-2">
           <Card className="sticky top-6">
             <CardHeader>
               <CardTitle>Resumen del Pedido</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex justify-between text-xl">
+              <div className="flex justify-between text-2xl font-bold">
                 <span>Precio Final</span>
-                <span className="font-bold text-orange-600">
+                <span className="text-orange-600">
                   ${calculatedPrice.toLocaleString('es-CO')} COP
                 </span>
               </div>
@@ -112,6 +116,7 @@ export default function CheckoutPage() {
               <Button 
                 onClick={simulatePayment}
                 className="w-full py-8 text-xl bg-orange-600 hover:bg-orange-700"
+                disabled={calculatedPrice === 0}
               >
                 Confirmar y Simular Pago
               </Button>
