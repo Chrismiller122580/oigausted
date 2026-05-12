@@ -26,7 +26,7 @@ export default function CreateGigPage() {
   const [uploading, setUploading] = useState(false);
   const [options, setOptions] = useState<any[]>([]);
 
-  // Load category defaults when category is selected
+  // Load category defaults when category changes
   useEffect(() => {
     if (!category) return;
     const template = gigCategories.find(c => 
@@ -35,7 +35,7 @@ export default function CreateGigPage() {
     if (template?.fields) {
       setOptions(template.fields.map(f => ({
         label: f.label,
-        extraPrice: f.extraPrice || 0,   // Safe fallback
+        extraPrice: f.extraPrice ? Number(f.extraPrice) : 0,   // Safe check
         key: f.key,
         type: f.type
       })));
