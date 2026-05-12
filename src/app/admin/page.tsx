@@ -38,19 +38,10 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-10">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center text-xl">⚡</div>
-            <div>
-              <h1 className="text-4xl font-bold">OigaUsted Admin</h1>
-              <p className="text-zinc-500">Panel de Control • Datos en tiempo real</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="px-4 py-2 bg-zinc-800 rounded-full text-sm">Administrador</div>
-            <Button variant="outline">Cerrar Sesión</Button>
-          </div>
+        {/* Page Title */}
+        <div className="mb-10">
+          <h1 className="text-4xl font-bold">Panel de Administrador</h1>
+          <p className="text-zinc-500 mt-2">Gestión de usuarios, gigs, pagos y la plataforma completa • Datos en tiempo real</p>
         </div>
 
         {/* Stats Grid */}
