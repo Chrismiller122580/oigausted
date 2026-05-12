@@ -14,15 +14,13 @@ interface Props {
 
 export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }: Props) {
   const [formData, setFormData] = useState<any>({});
-  const [pendingTotal, setPendingTotal] = useState<number>(basePrice);
+  const [pendingTotal, setPendingTotal] = useState(basePrice);
 
   const categoryTemplate = gigCategories.find((c: any) => c.name === gig.category) || { fields: [] };
   const allFields = [
     ...(categoryTemplate.fields || []),
     ...(gig.fields || [])
-  ].filter((f: any, i: number, arr: any[]) => 
-    i === arr.findIndex(x => x.key === f.key)
-  );
+  ].filter((f: any, i: number, arr: any[]) => i === arr.findIndex(x => x.key === f.key));
 
   const calculateTotal = useCallback((data: any) => {
     let total = Number(basePrice) || 0;
@@ -40,16 +38,16 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
   const handleChange = (key: string, value: any) => {
     const newData = { ...formData, [key]: value };
     setFormData(newData);
-    setPendingTotal(calculateTotal(newData)); // show pending total
+    setPendingTotal(calculateTotal(newData));
   };
 
   const updatePrice = () => {
     const finalTotal = calculateTotal(formData);
+    console.log('🚀 updatePrice called → sending total:', finalTotal, 'fields:', formData);
     onFieldsChange(formData, finalTotal);
     setPendingTotal(finalTotal);
   };
 
-  // Initial load
   useEffect(() => {
     updatePrice();
   }, [basePrice]);
@@ -86,15 +84,13 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
           </div>
         ))}
 
-        <div className="pt-4 border-t">
+        <div className="pt-4 border-t bg-orange-50 p-4 rounded-xl">
           <div className="flex justify-between items-center mb-3">
-            <span className="font-medium">Total estimado ahora:</span>
-            <span className="text-xl font-bold text-orange-600">
-              ${pendingTotal.toLocaleString('es-CO')} COP
-            </span>
+            <span className="font-semibold">Total estimado ahora:</span>
+            <span className="text-2xl font-bold text-orange-600"> ${pendingTotal.toLocaleString('es-CO')} COP </span>
           </div>
-          <Button onClick={updatePrice} className="w-full" variant="default">
-            Actualizar Precio
+          <Button onClick={updatePrice} className="w-full py-6 text-lg" variant="default">
+            ✅ Actualizar Precio (Enviar al resumen)
           </Button>
         </div>
       </CardContent>
