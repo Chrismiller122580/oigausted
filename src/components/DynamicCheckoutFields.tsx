@@ -22,6 +22,7 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
 
   const calculateTotal = useCallback((data: Record<string, any>) => {
     let total = Number(basePrice) || 0;
+
     allFields.forEach((field: any) => {
       const val = data[field.key];
       if (val == null || val === '') return;
@@ -30,7 +31,8 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
 
       if (field.type === 'checkbox' && val === true) {
         total += extra;
-      } else if (field.type === 'number') {
+      } 
+      else if (field.type === 'number') {
         const confirmedKey = field.key + '_confirmed';
         if (data[confirmedKey] === true) {
           total += extra * (Number(val) || 0);
@@ -62,6 +64,11 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
     const newTotal = calculateTotal(newData);
     onFieldsChange(newData, newTotal);
   };
+
+  // Initial price
+  useEffect(() => {
+    onFieldsChange(formData, calculateTotal(formData));
+  }, [basePrice]);
 
   return (
     <Card className="mt-6">
