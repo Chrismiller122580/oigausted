@@ -22,7 +22,6 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
     c.name.toLowerCase().includes(gigCat)
   );
 
-  // Merge and deduplicate by key
   const allFields = [
     ...(categoryTemplate?.fields || []),
     ...(gig.fields || [])
@@ -40,12 +39,14 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
       const value = data[field.key];
       if (!value) return;
 
-      if (field.type === 'checkbox' && value === true && field.extraPrice) {
-        total += Number(field.extraPrice);
+      const extra = Number(field.extraPrice || 0);
+
+      if (field.type === 'checkbox' && value === true && extra > 0) {
+        total += extra;
       } 
-      else if (field.type === 'number' && field.extraPrice) {
-        // Per-unit pricing for number fields (rooms, bathrooms, etc.)
-        total += Number(field.extraPrice) * Number(value);
+      else if (field.type === 'number' && extra > 0) {
+        // Per-unit pricing: multiply by quantity entered
+        total += extra * Number(value);
       }
     });
 
