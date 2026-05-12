@@ -32,10 +32,7 @@ export default function CheckoutPage() {
 
   const handleFieldsChange = useCallback((fields: any, total: number) => {
     setDynamicFields(fields);
-    setCalculatedPrice(prev => {
-      if (prev !== total) console.log('✅ Price updated to', total); // debug
-      return total;
-    });
+    setCalculatedPrice(total);
   }, []);
 
   const simulatePayment = async () => {
@@ -51,7 +48,11 @@ export default function CheckoutPage() {
     };
 
     try {
-      const res = await fetch('/api/orders', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(orderData) });
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      });
       const result = await res.json();
       if (result.order?.id) {
         toast.success(`Orden creada #${result.order.id.slice(0,8)}`);
@@ -66,7 +67,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-4xl font-bold mb-2">Checkout - {gig.title}</h1>
+      <h1 className="text-4xl font-bold mb-8">Checkout - {gig.title}</h1>
 
       <div className="grid md:grid-cols-5 gap-8">
         <div className="md:col-span-3 space-y-6">
@@ -95,7 +96,7 @@ export default function CheckoutPage() {
                 Confirmar y Simular Pago
               </Button>
 
-              <p className="text-xs text-center text-gray-500">Simulación - pago real con Wompi</p>
+              <p className="text-xs text-center text-gray-500">Esto es una simulación</p>
             </CardContent>
           </Card>
         </div>

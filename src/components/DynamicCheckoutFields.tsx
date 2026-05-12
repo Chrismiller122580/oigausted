@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 interface Props {
   gig: any;
@@ -13,12 +14,15 @@ interface Props {
 
 export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }: Props) {
   const [formData, setFormData] = useState<any>({});
+  const [pendingTotal, setPendingTotal] = useState<number>(basePrice);
 
   const categoryTemplate = gigCategories.find((c: any) => c.name === gig.category) || { fields: [] };
   const allFields = [
     ...(categoryTemplate.fields || []),
     ...(gig.fields || [])
-  ].filter((f: any, i: number, arr: any[]) => i === arr.findIndex(x => x.key === f.key));
+  ].filter((f: any, i: number, arr: any[]) => 
+    i === arr.findIndex(x => x.key === f.key)
+  );
 
   const calculateTotal = useCallback((data: any) => {
     let total = Number(basePrice) || 0;
@@ -36,21 +40,25 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
   const handleChange = (key: string, value: any) => {
     const newData = { ...formData, [key]: value };
     setFormData(newData);
-    const newTotal = calculateTotal(newData);
-    onFieldsChange(newData, newTotal);
+    setPendingTotal(calculateTotal(newData)); // show pending total
   };
 
-  // Force sync on every render
+  const updatePrice = () => {
+    const finalTotal = calculateTotal(formData);
+    onFieldsChange(formData, finalTotal);
+    setPendingTotal(finalTotal);
+  };
+
+  // Initial load
   useEffect(() => {
-    const total = calculateTotal(formData);
-    onFieldsChange(formData, total);
-  }, [formData, calculateTotal, onFieldsChange]);
+    updatePrice();
+  }, [basePrice]);
 
   return (
     <Card className="mt-6">
       <CardHeader>
         <CardTitle>Detalles de tu servicio</CardTitle>
-        <p className="text-sm text-gray-500">El precio se actualizará en tiempo real.</p>
+        <p className="text-sm text-gray-500">Cambia los valores y pulsa Actualizar Precio</p>
       </CardHeader>
       <CardContent className="space-y-6">
         {allFields.map((field: any) => (
@@ -77,6 +85,18 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
             )}
           </div>
         ))}
+
+        <div className="pt-4 border-t">
+          <div className="flex justify-between items-center mb-3">
+            <span className="font-medium">Total estimado ahora:</span>
+            <span className="text-xl font-bold text-orange-600">
+              ${pendingTotal.toLocaleString('es-CO')} COP
+            </span>
+          </div>
+          <Button onClick={updatePrice} className="w-full" variant="default">
+            Actualizar Precio
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
