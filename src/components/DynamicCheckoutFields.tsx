@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Props {
@@ -17,7 +16,7 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
   const [formData, setFormData] = useState<any>({});
   const [totalPrice, setTotalPrice] = useState(basePrice);
 
-  // Merge category defaults + seller custom fields (deduplicated by key)
+  // Merge category defaults + seller custom fields (deduplicated)
   const categoryTemplate = gigCategories.find((c: any) => c.name === gig.category) || { fields: [] };
   const allFields = [
     ...(categoryTemplate.fields || []),
@@ -43,18 +42,15 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
     return Math.round(total);
   };
 
-  // 🔥 SYNCHRONOUS callback – this is the new root-cause fix
   const handleChange = (key: string, value: any) => {
     const newFormData = { ...formData, [key]: value };
     setFormData(newFormData);
 
-    // Calculate and send to parent IMMEDIATELY (before async setState)
     const newTotal = calculateTotal(newFormData);
     setTotalPrice(newTotal);
     onFieldsChange(newFormData, newTotal);
   };
 
-  // Safety useEffect (keeps everything in sync)
   useEffect(() => {
     const newTotal = calculateTotal(formData);
     setTotalPrice(newTotal);
@@ -71,6 +67,7 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
         {allFields.map((field: any) => (
           <div key={field.key} className="space-y-2">
             <Label>{field.label}</Label>
+            
             {field.type === 'number' && (
               <Input
                 type="number"
@@ -79,14 +76,17 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
                 placeholder={`Ej: 3`}
               />
             )}
+
             {field.type === 'checkbox' && (
-              <div className="flex items-center gap-2">
-                <Checkbox
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
                   checked={!!formData[field.key]}
-                  onCheckedChange={(checked) => handleChange(field.key, checked)}
+                  onChange={(e) => handleChange(field.key, e.target.checked)}
+                  className="w-5 h-5 accent-orange-600"
                 />
-                <span>{field.label} +${field.extraPrice}</span>
-              </div>
+                <span className="text-base">{field.label} +${field.extraPrice}</span>
+              </label>
             )}
           </div>
         ))}
@@ -102,5 +102,5 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
   );
 }
 
-// Import at bottom (keeps all existing imports untouched)
+// Keep existing import
 import { gigCategories } from '@/lib/gig-categories';
