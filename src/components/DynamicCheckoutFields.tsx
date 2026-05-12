@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { gigCategories } from '@/lib/gig-categories';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,17 +30,16 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
   const [formData, setFormData] = useState<any>({});
   const [totalPrice, setTotalPrice] = useState(basePrice);
 
-  const calculateTotal = (currentData: any) => {
-    let total = basePrice;
+  const calculateTotal = (data: any) => {
+    let total = basePrice || 0;
 
     allFields.forEach(field => {
-      const value = currentData[field.key];
-      if (field.extraPrice && value === true) {
-        total += field.extraPrice;
+      if (field.extraPrice && data[field.key] === true) {
+        total += Number(field.extraPrice);
       }
     });
 
-    return total;
+    return Math.round(total);
   };
 
   const handleChange = (key: string, value: any) => {
@@ -78,7 +77,7 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
               <Input 
                 type="number" 
                 placeholder="Ej: 3"
-                onChange={(e) => handleChange(field.key, Number(e.target.value))}
+                onChange={(e) => handleChange(field.key, Number(e.target.value) || 0)}
               />
             )}
 
@@ -95,7 +94,7 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
               <label className="flex items-center gap-3 cursor-pointer py-2">
                 <input 
                   type="checkbox"
-                  checked={formData[field.key] === true}
+                  checked={!!formData[field.key]}
                   onChange={(e) => handleChange(field.key, e.target.checked)}
                   className="w-5 h-5 accent-orange-600"
                 />
