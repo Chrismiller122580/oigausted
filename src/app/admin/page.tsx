@@ -15,7 +15,7 @@ export default function AdminDashboard() {
     activeChats: 23
   });
 
-  const [recentActivity, setRecentActivity] = useState([
+  const [recentActivity] = useState([
     { id: 1, action: "Nuevo gig creado", detail: "Limpieza Premium en Bogotá", time: "hace 12 min" },
     { id: 2, action: "Pedido completado", detail: "#A7K92 - $245.000", time: "hace 47 min" },
     { id: 3, action: "Usuario registrado", detail: "Maria Rodriguez", time: "hace 2 horas" },
@@ -38,7 +38,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Page Title */}
+        {/* Page Header */}
         <div className="mb-10">
           <h1 className="text-4xl font-bold">Panel de Administrador</h1>
           <p className="text-zinc-500 mt-2">Gestión de usuarios, gigs, pagos y la plataforma completa • Datos en tiempo real</p>
