@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import DynamicCheckoutFields from '@/components/DynamicCheckoutFields';
@@ -30,10 +30,10 @@ export default function CheckoutPage() {
       .catch(() => setLoading(false));
   }, [gigId]);
 
-  const handleFieldsChange = useCallback((fields: any, total: number) => {
-    setDynamicFields(fields);
+  const handlePriceChange = (total: number, fields: any) => {
     setCalculatedPrice(total);
-  }, []);
+    setDynamicFields(fields);
+  };
 
   const simulatePayment = async () => {
     if (!gig || !session?.user?.id) return toast.error("Falta información");
@@ -55,7 +55,7 @@ export default function CheckoutPage() {
       });
       const result = await res.json();
       if (result.order?.id) {
-        toast.success(`Orden creada #${result.order.id.slice(0,8)}`);
+        toast.success(`Orden creada`);
         router.push(`/orders/${result.order.id}`);
       }
     } catch (e) {
@@ -79,7 +79,7 @@ export default function CheckoutPage() {
           <DynamicCheckoutFields 
             gig={gig} 
             basePrice={Number(gig.price)} 
-            onFieldsChange={handleFieldsChange} 
+            onPriceChange={handlePriceChange} 
           />
         </div>
 
