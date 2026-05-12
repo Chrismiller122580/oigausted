@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { gigCategories } from '@/lib/gig-categories';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,7 +22,6 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
     c.name.toLowerCase().includes(gigCat)
   );
 
-  // Deduplicate by key
   const allFields = [
     ...(categoryTemplate?.fields || []),
     ...(gig.fields || [])
@@ -47,20 +46,23 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
         total += extraPrice;
       } else if (field.type === 'number') {
         const qty = Number(value) || 0;
-        total += extraPrice * qty;   // ← This is the multiplication for rooms/bathrooms
+        total += extraPrice * qty;
       }
     });
 
     return Math.round(total);
   };
 
+  // ← THIS IS THE SIMPLE MISSING PIECE (forces live update without removing anything)
+  useEffect(() => {
+    const newTotal = calculateTotal(formData);
+    setTotalPrice(newTotal);
+    onFieldsChange(formData, newTotal);
+  }, [formData, basePrice]);
+
   const handleChange = (key: string, value: any) => {
     const newData = { ...formData, [key]: value };
     setFormData(newData);
-
-    const newTotal = calculateTotal(newData);
-    setTotalPrice(newTotal);
-    onFieldsChange(newData, newTotal);
   };
 
   if (allFields.length === 0) {
