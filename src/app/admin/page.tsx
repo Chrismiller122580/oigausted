@@ -21,27 +21,29 @@ export default function AdminDashboard() {
     { id: 3, action: "Usuario registrado", detail: "Maria Rodriguez", time: "hace 2 horas" },
   ]);
 
-  const fetchLiveStats = () => {
-    setStats(prev => ({
-      ...prev,
-      users: prev.users + Math.floor(Math.random() * 3),
-      orders: prev.orders + Math.floor(Math.random() * 2),
-      revenue: prev.revenue + Math.floor(Math.random() * 450000)
-    }));
-  };
-
+  // Real-time SSE connection
   useEffect(() => {
-    const interval = setInterval(fetchLiveStats, 8000);
-    return () => clearInterval(interval);
+    const eventSource = new EventSource('/api/admin/live');
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      setStats(data);
+    };
+
+    eventSource.onerror = () => {
+      console.error('SSE connection error');
+      eventSource.close();
+    };
+
+    return () => eventSource.close();
   }, []);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Only content - no header */}
         <div className="mb-10">
           <h1 className="text-4xl font-bold">Panel de Administrador</h1>
-          <p className="text-zinc-500 mt-2">Gestión de usuarios, gigs, pagos y la plataforma completa • Datos en tiempo real</p>
+          <p className="text-zinc-500 mt-2">Gestión de usuarios, gigs, pagos y la plataforma completa • <span className="text-emerald-500">Datos en tiempo real</span></p>
         </div>
 
         {/* Stats Grid */}
@@ -50,7 +52,7 @@ export default function AdminDashboard() {
             <CardHeader className="pb-3"><CardTitle className="text-zinc-400 text-sm">Usuarios Totales</CardTitle></CardHeader>
             <CardContent>
               <div className="text-5xl font-bold">{stats.users.toLocaleString()}</div>
-              <p className="text-emerald-500 text-sm mt-2">↑ 18 hoy</p>
+              <p className="text-emerald-500 text-sm mt-2">↑ Actualizando en vivo</p>
             </CardContent>
           </Card>
 
@@ -58,7 +60,6 @@ export default function AdminDashboard() {
             <CardHeader className="pb-3"><CardTitle className="text-zinc-400 text-sm">Gigs Publicados</CardTitle></CardHeader>
             <CardContent>
               <div className="text-5xl font-bold">{stats.gigs}</div>
-              <p className="text-emerald-500 text-sm mt-2">↑ 7 hoy</p>
             </CardContent>
           </Card>
 
@@ -76,7 +77,6 @@ export default function AdminDashboard() {
               <div className="text-5xl font-bold text-orange-500">
                 ${(stats.revenue / 1000000).toFixed(1)}M
               </div>
-              <p className="text-emerald-500 text-sm mt-2">+14% vs mes pasado</p>
             </CardContent>
           </Card>
 
