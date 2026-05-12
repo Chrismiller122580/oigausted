@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 
 interface Props {
   gig: any;
@@ -14,7 +13,6 @@ interface Props {
 
 export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }: Props) {
   const [formData, setFormData] = useState<any>({});
-  const [pendingTotal, setPendingTotal] = useState(basePrice);
 
   const categoryTemplate = gigCategories.find((c: any) => c.name === gig.category) || { fields: [] };
   const allFields = [
@@ -29,53 +27,84 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
       if (val == null || val === '') return;
       const extra = Number(field.extraPrice || 0);
       if (extra === 0) return;
-      if (field.type === 'checkbox' && val === true) total += extra;
-      else if (field.type === 'number') total += extra * (Number(val) || 0);
+
+      if (field.type === 'checkbox' && val === true) {
+        total += extra;
+      } else if (field.type === 'number') {
+        // Only apply if user has "confirmed" it (we'll store confirmed value)
+        const confirmedKey = field.key + '_confirmed';
+        if (data[confirmedKey] === true) {
+          total += extra * (Number(val) || 0);
+        }
+      }
     });
     return Math.round(total);
   }, [basePrice, allFields]);
 
-  const handleChange = (key: string, value: any) => {
-    const newData = { ...formData, [key]: value };
+  const handleNumberChange = (key: string, value: string) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const toggleConfirm = (key: string) => {
+    const confirmedKey = key + '_confirmed';
+    const newData = { 
+      ...formData, 
+      [confirmedKey]: !formData[confirmedKey] 
+    };
     setFormData(newData);
-    setPendingTotal(calculateTotal(newData));
+    
+    const newTotal = calculateTotal(newData);
+    onFieldsChange(newData, newTotal);
   };
 
-  const updatePrice = () => {
-    const finalTotal = calculateTotal(formData);
-    console.log('🚀 updatePrice called → sending total:', finalTotal, 'fields:', formData);
-    onFieldsChange(formData, finalTotal);
-    setPendingTotal(finalTotal);
+  // Auto-update when checkboxes change
+  const handleCheckboxChange = (key: string, checked: boolean) => {
+    const newData = { ...formData, [key]: checked };
+    setFormData(newData);
+    const newTotal = calculateTotal(newData);
+    onFieldsChange(newData, newTotal);
   };
-
-  useEffect(() => {
-    updatePrice();
-  }, [basePrice]);
 
   return (
     <Card className="mt-6">
       <CardHeader>
         <CardTitle>Detalles de tu servicio</CardTitle>
-        <p className="text-sm text-gray-500">Cambia los valores y pulsa Actualizar Precio</p>
+        <p className="text-sm text-gray-500">Ingresa cantidad y marca el check para aplicar</p>
       </CardHeader>
       <CardContent className="space-y-6">
         {allFields.map((field: any) => (
-          <div key={field.key} className="space-y-2">
-            <Label>{field.label}</Label>
+          <div key={field.key} className="flex items-center gap-4">
+            <div className="flex-1">
+              <Label>{field.label}</Label>
+              {field.type === 'number' && (
+                <Input
+                  type="number"
+                  value={formData[field.key] ?? ''}
+                  onChange={(e) => handleNumberChange(field.key, e.target.value)}
+                  placeholder="Ej: 3"
+                  className="mt-1"
+                />
+              )}
+            </div>
+
             {field.type === 'number' && (
-              <Input
-                type="number"
-                value={formData[field.key] ?? ''}
-                onChange={(e) => handleChange(field.key, e.target.value)}
-                placeholder="Ej: 3"
-              />
+              <label className="flex flex-col items-center cursor-pointer pt-6">
+                <input
+                  type="checkbox"
+                  checked={!!formData[field.key + '_confirmed']}
+                  onChange={() => toggleConfirm(field.key)}
+                  className="w-6 h-6 accent-orange-600"
+                />
+                <span className="text-xs text-gray-500 mt-1">Aplicar</span>
+              </label>
             )}
+
             {field.type === 'checkbox' && (
-              <label className="flex items-center gap-3 cursor-pointer">
+              <label className="flex items-center gap-3 cursor-pointer flex-1">
                 <input
                   type="checkbox"
                   checked={!!formData[field.key]}
-                  onChange={(e) => handleChange(field.key, e.target.checked)}
+                  onChange={(e) => handleCheckboxChange(field.key, e.target.checked)}
                   className="w-5 h-5 accent-orange-600"
                 />
                 <span>{field.label} +${field.extraPrice}</span>
@@ -83,16 +112,6 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
             )}
           </div>
         ))}
-
-        <div className="pt-4 border-t bg-orange-50 p-4 rounded-xl">
-          <div className="flex justify-between items-center mb-3">
-            <span className="font-semibold">Total estimado ahora:</span>
-            <span className="text-2xl font-bold text-orange-600"> ${pendingTotal.toLocaleString('es-CO')} COP </span>
-          </div>
-          <Button onClick={updatePrice} className="w-full py-6 text-lg" variant="default">
-            ✅ Actualizar Precio (Enviar al resumen)
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );

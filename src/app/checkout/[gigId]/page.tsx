@@ -95,8 +95,6 @@ export default function CheckoutPage() {
               <Button onClick={simulatePayment} className="w-full py-8 text-xl bg-orange-600 hover:bg-orange-700">
                 Confirmar y Simular Pago
               </Button>
-
-              <p className="text-xs text-center text-gray-500">Esto es una simulación</p>
             </CardContent>
           </Card>
         </div>
