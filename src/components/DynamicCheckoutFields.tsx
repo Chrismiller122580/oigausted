@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }: Props) {
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<Record<string, any>>({});
 
   const categoryTemplate = gigCategories.find((c: any) => c.name === gig.category) || { fields: [] };
   const allFields = [
@@ -20,7 +20,7 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
     ...(gig.fields || [])
   ].filter((f: any, i: number, arr: any[]) => i === arr.findIndex(x => x.key === f.key));
 
-  const calculateTotal = useCallback((data: any) => {
+  const calculateTotal = useCallback((data: Record<string, any>) => {
     let total = Number(basePrice) || 0;
     allFields.forEach((field: any) => {
       const val = data[field.key];
@@ -31,7 +31,6 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
       if (field.type === 'checkbox' && val === true) {
         total += extra;
       } else if (field.type === 'number') {
-        // Only apply if user has "confirmed" it (we'll store confirmed value)
         const confirmedKey = field.key + '_confirmed';
         if (data[confirmedKey] === true) {
           total += extra * (Number(val) || 0);
@@ -57,7 +56,6 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
     onFieldsChange(newData, newTotal);
   };
 
-  // Auto-update when checkboxes change
   const handleCheckboxChange = (key: string, checked: boolean) => {
     const newData = { ...formData, [key]: checked };
     setFormData(newData);
@@ -69,11 +67,11 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
     <Card className="mt-6">
       <CardHeader>
         <CardTitle>Detalles de tu servicio</CardTitle>
-        <p className="text-sm text-gray-500">Ingresa cantidad y marca el check para aplicar</p>
+        <p className="text-sm text-gray-500">Ingresa cantidad y marca el check para aplicar al precio</p>
       </CardHeader>
       <CardContent className="space-y-6">
         {allFields.map((field: any) => (
-          <div key={field.key} className="flex items-center gap-4">
+          <div key={field.key} className="flex items-start gap-4">
             <div className="flex-1">
               <Label>{field.label}</Label>
               {field.type === 'number' && (
@@ -100,7 +98,7 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
             )}
 
             {field.type === 'checkbox' && (
-              <label className="flex items-center gap-3 cursor-pointer flex-1">
+              <label className="flex items-center gap-3 cursor-pointer flex-1 pt-6">
                 <input
                   type="checkbox"
                   checked={!!formData[field.key]}
