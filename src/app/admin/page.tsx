@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'react-hot-toast';
 
 export default function AdminDashboard() {
@@ -16,14 +15,13 @@ export default function AdminDashboard() {
     activeChats: 23
   });
 
-  const [recentActivity, setRecentActivity] = useState<any[]>([
+  const [recentActivity, setRecentActivity] = useState([
     { id: 1, action: "Nuevo gig creado", detail: "Limpieza Premium en Bogotá", time: "hace 12 min" },
     { id: 2, action: "Pedido completado", detail: "#A7K92 - $245.000", time: "hace 47 min" },
     { id: 3, action: "Usuario registrado", detail: "Maria Rodriguez", time: "hace 2 horas" },
   ]);
 
-  const fetchLiveStats = async () => {
-    // Simulate real API call (replace with real /api/admin/stats later)
+  const fetchLiveStats = () => {
     setStats(prev => ({
       ...prev,
       users: prev.users + Math.floor(Math.random() * 3),
@@ -50,15 +48,15 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Badge variant="secondary" className="px-4 py-2">Administrador</Badge>
+            <div className="px-4 py-2 bg-zinc-800 rounded-full text-sm">Administrador</div>
             <Button variant="outline">Cerrar Sesión</Button>
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-12">
           <Card className="bg-zinc-900 border-zinc-800">
-            <CardHeader><CardTitle className="text-zinc-400">Usuarios Totales</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-zinc-400 text-sm">Usuarios Totales</CardTitle></CardHeader>
             <CardContent>
               <div className="text-5xl font-bold">{stats.users.toLocaleString()}</div>
               <p className="text-emerald-500 text-sm mt-2">↑ 18 hoy</p>
@@ -66,7 +64,7 @@ export default function AdminDashboard() {
           </Card>
 
           <Card className="bg-zinc-900 border-zinc-800">
-            <CardHeader><CardTitle className="text-zinc-400">Gigs Publicados</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-zinc-400 text-sm">Gigs Publicados</CardTitle></CardHeader>
             <CardContent>
               <div className="text-5xl font-bold">{stats.gigs}</div>
               <p className="text-emerald-500 text-sm mt-2">↑ 7 hoy</p>
@@ -74,7 +72,7 @@ export default function AdminDashboard() {
           </Card>
 
           <Card className="bg-zinc-900 border-zinc-800">
-            <CardHeader><CardTitle className="text-zinc-400">Pedidos Totales</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-zinc-400 text-sm">Pedidos Totales</CardTitle></CardHeader>
             <CardContent>
               <div className="text-5xl font-bold">{stats.orders}</div>
               <p className="text-amber-500 text-sm mt-2">12 pendientes</p>
@@ -82,7 +80,7 @@ export default function AdminDashboard() {
           </Card>
 
           <Card className="bg-zinc-900 border-zinc-800">
-            <CardHeader><CardTitle className="text-zinc-400">Volumen este mes</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-zinc-400 text-sm">Volumen este mes</CardTitle></CardHeader>
             <CardContent>
               <div className="text-5xl font-bold text-orange-500">
                 ${(stats.revenue / 1000000).toFixed(1)}M
@@ -92,7 +90,7 @@ export default function AdminDashboard() {
           </Card>
 
           <Card className="bg-zinc-900 border-zinc-800">
-            <CardHeader><CardTitle className="text-zinc-400">Soporte Pendiente</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-zinc-400 text-sm">Soporte Pendiente</CardTitle></CardHeader>
             <CardContent>
               <div className="text-5xl font-bold text-red-500">{stats.pendingSupport}</div>
             </CardContent>
@@ -106,8 +104,8 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentActivity.map((item) => (
-                <div key={item.id} className="flex justify-between items-center py-3 border-b border-zinc-800 last:border-0">
+              {recentActivity.map((item: any) => (
+                <div key={item.id} className="flex justify-between items-center py-4 border-b border-zinc-800 last:border-0">
                   <div>
                     <p className="font-medium">{item.action}</p>
                     <p className="text-sm text-zinc-500">{item.detail}</p>
@@ -123,24 +121,24 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader><CardTitle>Usuarios</CardTitle></CardHeader>
-            <CardContent>
-              <Button className="w-full mb-3">Ver Todos los Usuarios</Button>
+            <CardContent className="space-y-3">
+              <Button className="w-full">Ver Todos los Usuarios</Button>
               <Button variant="outline" className="w-full">Usuarios Suspendidos</Button>
             </CardContent>
           </Card>
 
           <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader><CardTitle>Gigs</CardTitle></CardHeader>
-            <CardContent>
-              <Button className="w-full mb-3">Moderación de Gigs</Button>
+            <CardContent className="space-y-3">
+              <Button className="w-full">Moderación de Gigs</Button>
               <Button variant="outline" className="w-full">Gigs Destacados</Button>
             </CardContent>
           </Card>
 
           <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader><CardTitle>Reportes</CardTitle></CardHeader>
-            <CardContent>
-              <Button className="w-full mb-3">Exportar Reporte Mensual</Button>
+            <CardContent className="space-y-3">
+              <Button className="w-full">Exportar Reporte Mensual</Button>
               <Button variant="outline" className="w-full">Ver Disputas</Button>
             </CardContent>
           </Card>
