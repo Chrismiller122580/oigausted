@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +12,6 @@ import { gigCategories } from '@/lib/gig-categories';
 export default function OrderDetailPage() {
   const params = useParams();
   const orderId = params.id as string;
-  const router = useRouter();
   const { data: session } = useSession();
 
   const [order, setOrder] = useState<any>(null);
@@ -27,7 +26,6 @@ export default function OrderDetailPage() {
   const isSeller = order?.sellerId === session?.user?.id;
   const isCompleted = order?.status === 'Completed';
 
-  // Fetch order + messages
   useEffect(() => {
     if (!orderId) return;
     Promise.all([
@@ -48,12 +46,12 @@ export default function OrderDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: newMessage })
       });
-      if (!res.ok) throw new Error('Failed');
+      if (!res.ok) throw new Error();
       const data = await res.json();
       setMessages(prev => [...prev, data.message]);
       setNewMessage('');
       toast.success('✅ Mensaje enviado');
-    } catch (e) {
+    } catch {
       toast.error('Error enviando mensaje');
     }
   }, [newMessage, orderId]);
@@ -65,11 +63,11 @@ export default function OrderDetailPage() {
     formData.append('file', file);
     try {
       const res = await fetch(`/api/orders/${orderId}/messages`, { method: 'POST', body: formData });
-      if (!res.ok) throw new Error('Failed');
+      if (!res.ok) throw new Error();
       const data = await res.json();
       setMessages(prev => [...prev, data.message]);
       toast.success('📎 Archivo subido');
-    } catch (e) {
+    } catch {
       toast.error('Error subiendo archivo');
     }
   }, [orderId]);
@@ -83,7 +81,7 @@ export default function OrderDetailPage() {
       });
       toast.success(`Estado actualizado: ${status}`);
       window.location.reload();
-    } catch (e) {
+    } catch {
       toast.error('Error actualizando');
     }
   };
@@ -96,10 +94,10 @@ export default function OrderDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rating: reviewRating, comment: reviewText })
       });
-      toast.success("¡Reseña enviada! Gracias");
+      toast.success("¡Reseña enviada!");
       setReviewText('');
       window.location.reload();
-    } catch (e) {
+    } catch {
       toast.error("Error enviando reseña");
     }
   };
@@ -109,7 +107,7 @@ export default function OrderDetailPage() {
 
   const categoryInfo = gigCategories.find(c => c.name === order.gig?.category) || {};
   const emoji = (categoryInfo as any).icon || (categoryInfo as any).emoji || '📦';
-  const isCleaningGig = order.gig?.category?.includes("Limpieza");
+  const isCleaningGig = order.gig?.category?.toLowerCase().includes("limpieza");
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -152,7 +150,7 @@ export default function OrderDetailPage() {
         ))}
       </div>
 
-      {/* OVERVIEW */}
+      {/* OVERVIEW + BEFORE/AFTER */}
       {activeTab === 'overview' && (
         <div className="grid md:grid-cols-12 gap-8">
           <div className="md:col-span-8">
@@ -171,21 +169,21 @@ export default function OrderDetailPage() {
             {isCleaningGig && (
               <Card className="mt-8">
                 <CardHeader><CardTitle>📸 Antes y Después</CardTitle></CardHeader>
-                <CardContent className="text-gray-500">
-                  El vendedor subirá fotos aquí una vez completado el servicio.
+                <CardContent className="text-gray-500 py-8 text-center">
+                  El vendedor subirá fotos aquí una vez completado.
                 </CardContent>
               </Card>
             )}
           </div>
 
-          <div className="md:col-span-4 space-y-6">
+          <div className="md:col-span-4">
             <Card>
               <CardHeader><CardTitle>Acciones</CardTitle></CardHeader>
-              <CardContent className="space-y-3 pt-2">
+              <CardContent className="space-y-3">
                 {isSeller && (
                   <>
-                    <Button onClick={() => updateStatus('In Progress')} className="w-full text-lg py-6">🚀 Iniciar Trabajo</Button>
-                    <Button onClick={() => updateStatus('Completed')} variant="default" className="w-full text-lg py-6">✅ Marcar como Completado</Button>
+                    <Button onClick={() => updateStatus('In Progress')} className="w-full">🚀 Iniciar Trabajo</Button>
+                    <Button onClick={() => updateStatus('Completed')} variant="default" className="w-full">✅ Completado</Button>
                   </>
                 )}
               </CardContent>
@@ -194,21 +192,25 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {/* CHAT */}
+      {/* CHAT - Fixed */}
       {activeTab === 'chat' && (
         <Card className="h-[650px] flex flex-col shadow-lg">
           <CardHeader><CardTitle>💬 Chat en Vivo</CardTitle></CardHeader>
           <CardContent className="flex-1 overflow-y-auto p-6 space-y-5 bg-gray-50">
-            {messages.length === 0 && <div className="text-center py-20 text-gray-400">No hay mensajes aún. ¡Escribe el primero!</div>}
-            {messages.map((msg: any) => (
-              <div key={msg.id} className={`flex ${msg.senderId === session?.user?.id ? 'justify-end' : ''}`}>
-                <div className={`max-w-[80%] px-5 py-3.5 rounded-3xl text-[17px] ${msg.senderId === session?.user?.id ? 'bg-orange-600 text-white' : 'bg-white border shadow-sm'}`}>
-                  {msg.content}
+            {messages.length === 0 && (
+              <div className="text-center py-20 text-gray-400">No hay mensajes aún. ¡Escribe el primero!</div>
+            )}
+            {messages.map((msg: any, idx: number) => (
+              <div key={msg.id || idx} className={`flex ${msg.senderId === session?.user?.id ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] px-5 py-3.5 rounded-3xl text-[17px] ${
+                  msg.senderId === session?.user?.id ? 'bg-orange-600 text-white' : 'bg-white border shadow-sm'
+                }`}>
+                  {msg.content || ''}
                   {msg.fileUrl && (
                     <div className="mt-3">
                       <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
-                        {msg.fileUrl.match(/\.(jpg|jpeg|png|gif)$/i) ? (
-                          <img src={msg.fileUrl} alt="preview" className="max-h-48 rounded-xl cursor-pointer border" />
+                        {msg.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                          <img src={msg.fileUrl} alt="preview" className="max-h-48 rounded-xl cursor-pointer" />
                         ) : (
                           <span className="text-blue-200 underline">📎 Ver archivo</span>
                         )}
@@ -256,6 +258,7 @@ export default function OrderDetailPage() {
                 </div>
               ))}
             </div>
+
             {isSeller && (
               <div className="mt-12 flex gap-4">
                 <Button onClick={() => updateStatus('In Progress')} size="lg">🚀 En Progreso</Button>
