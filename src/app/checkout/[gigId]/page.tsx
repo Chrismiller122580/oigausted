@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { toast } from 'react-hot-toast';
 import DynamicCheckoutFields from '@/components/DynamicCheckoutFields';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'react-hot-toast';
 
 export default function CheckoutPage() {
   const params = useParams();
@@ -15,118 +15,109 @@ export default function CheckoutPage() {
   const { data: session } = useSession();
 
   const [gig, setGig] = useState<any>(null);
-  const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [dynamicFields, setDynamicFields] = useState<any>({});
   const [calculatedPrice, setCalculatedPrice] = useState(0);
 
   useEffect(() => {
+    if (!gigId) return;
     fetch(`/api/gigs/${gigId}`)
-      .then(r => r.json())
+      .then(res => res.json())
       .then(data => {
         setGig(data);
         setCalculatedPrice(Number(data.price || 0));
+        setLoading(false);
       })
-      .finally(() => setLoading(false));
+      .catch(() => setLoading(false));
   }, [gigId]);
 
-  useEffect(() => {
-    if (!gig?.id || !session?.user) return;
-
-    fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        gigId: gig.id,
-        buyerId: (session.user as any).id,
-        price: gig.price
-      })
-    })
-      .then(r => r.json())
-      .then(setOrder);
-  }, [gig, session]);
-
-  const handleFieldsChange = (fields: any, newTotal: number) => {
+  const handleFieldsChange = (fields: any, total: number) => {
     setDynamicFields(fields);
-    setCalculatedPrice(newTotal);
+    setCalculatedPrice(total);
   };
 
   const simulatePayment = async () => {
-    if (!order) return toast.error('Orden no creada');
+    if (!session?.user?.id || !gig) return toast.error("Falta información");
 
-    const orderId = order.id || order.orderId;
-    if (!orderId) return toast.error('ID de orden no encontrado');
+    const orderData = {
+      gigId: gig.id,
+      buyerId: session.user.id,
+      sellerId: gig.sellerId,
+      price: calculatedPrice,           // ← Use the real calculated total
+      status: 'Pending',
+      customFields: dynamicFields,      // Save buyer selections
+    };
 
-    setSubmitting(true);
     try {
-      await fetch(`/api/orders/${orderId}`, {
-        method: 'PATCH',
+      const res = await fetch('/api/orders', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          status: 'Completed',
-          price: calculatedPrice,        // Save final price
-          metadata: dynamicFields 
-        })
+        body: JSON.stringify(orderData)
       });
 
-      toast.success('✅ Pedido completado con éxito');
-      setTimeout(() => router.push(`/orders/${orderId}`), 1200);
+      const result = await res.json();
+      if (result.order?.id) {
+        toast.success(`✅ Orden creada: ${result.order.id}`);
+        router.push(`/orders/${result.order.id}`);
+      } else {
+        toast.error("Error al crear la orden");
+      }
     } catch (err) {
-      toast.error('Error finalizando pedido');
-    } finally {
-      setSubmitting(false);
+      toast.error("Error en el servidor");
     }
   };
 
-  if (loading) return <div className="p-20 text-center text-2xl">Cargando checkout...</div>;
+  if (loading) return <div className="p-20 text-center">Cargando gig...</div>;
+  if (!gig) return <div className="p-20 text-center text-red-600">Gig no encontrado</div>;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-4xl font-bold mb-8">Checkout - {gig?.title}</h1>
+      <h1 className="text-4xl font-bold mb-2">Checkout - {gig.title}</h1>
+      <p className="text-gray-600 mb-8">Revisa los detalles y confirma tu pedido</p>
 
-      <div className="grid lg:grid-cols-12 gap-10">
-        <div className="lg:col-span-7">
+      <div className="grid md:grid-cols-5 gap-8">
+        {/* Left Column - Gig Info + Dynamic Fields */}
+        <div className="md:col-span-3">
           <Card>
-            <CardContent className="p-10">
-              {gig?.imageUrl && <img src={gig.imageUrl} className="w-full h-64 object-cover rounded-3xl mb-8" />}
-              <h2 className="text-4xl font-bold">{gig?.title}</h2>
-              <p className="text-5xl font-bold text-orange-600 mt-4">
-                ${Number(gig?.price).toLocaleString('es-CO')} COP
-              </p>
-              <p className="mt-6 text-gray-600 whitespace-pre-line">{gig?.description}</p>
-
-              <DynamicCheckoutFields 
-                gig={gig} 
-                basePrice={Number(gig?.price || 0)}
-                onFieldsChange={handleFieldsChange} 
-              />
+            <CardHeader>
+              <CardTitle>Descripción del Servicio</CardTitle>
+            </CardHeader>
+            <CardContent className="prose">
+              <p>{gig.description}</p>
             </CardContent>
           </Card>
+
+          <DynamicCheckoutFields 
+            gig={gig} 
+            basePrice={Number(gig.price)} 
+            onFieldsChange={handleFieldsChange} 
+          />
         </div>
 
-        <div className="lg:col-span-5">
-          <Card className="sticky top-8">
-            <CardContent className="p-10">
-              <Button 
-                onClick={simulatePayment}
-                disabled={submitting || !order}
-                className="w-full py-8 text-xl bg-orange-600 hover:bg-orange-700"
-              >
-                {submitting ? 'Procesando...' : '✅ Confirmar y Simular Pago'}
-              </Button>
-
-              <div className="mt-6 text-center">
-                <p className="text-2xl font-bold text-orange-600">
-                  Total: ${calculatedPrice.toLocaleString('es-CO')} COP
-                </p>
+        {/* Right Column - Summary */}
+        <div className="md:col-span-2">
+          <Card className="sticky top-6">
+            <CardHeader>
+              <CardTitle>Resumen del Pedido</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex justify-between text-xl">
+                <span>Precio Final</span>
+                <span className="font-bold text-orange-600">
+                  ${calculatedPrice.toLocaleString('es-CO')} COP
+                </span>
               </div>
 
-              {order && (
-                <p className="text-center mt-6 text-green-600">
-                  Orden creada: #{order.id || order.orderId}
-                </p>
-              )}
+              <Button 
+                onClick={simulatePayment}
+                className="w-full py-8 text-xl bg-orange-600 hover:bg-orange-700"
+              >
+                Confirmar y Simular Pago
+              </Button>
+
+              <p className="text-xs text-center text-gray-500">
+                Esto es una simulación - el pago real se hará con Wompi
+              </p>
             </CardContent>
           </Card>
         </div>
