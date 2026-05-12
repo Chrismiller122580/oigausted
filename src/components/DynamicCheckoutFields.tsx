@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,6 @@ interface Props {
 
 export default function DynamicCheckoutFields({ gig, basePrice, onPriceChange }: Props) {
   const [formData, setFormData] = useState<any>({});
-  const [currentTotal, setCurrentTotal] = useState(basePrice);
 
   const categoryTemplate = gigCategories.find((c: any) => c.name === gig.category) || { fields: [] };
   const allFields = [
@@ -21,10 +20,11 @@ export default function DynamicCheckoutFields({ gig, basePrice, onPriceChange }:
     ...(gig.fields || [])
   ].filter((f: any, i: number, arr: any[]) => i === arr.findIndex(x => x.key === f.key));
 
-  const calculateTotal = (data: any) => {
+  const calculateAndSend = (newData: any) => {
     let total = Number(basePrice) || 0;
+
     allFields.forEach((field: any) => {
-      const val = data[field.key];
+      const val = newData[field.key];
       if (val == null || val === '') return;
       const extra = Number(field.extraPrice || 0);
       if (extra === 0) return;
@@ -32,24 +32,15 @@ export default function DynamicCheckoutFields({ gig, basePrice, onPriceChange }:
       if (field.type === 'checkbox' && val === true) total += extra;
       else if (field.type === 'number') total += extra * (Number(val) || 0);
     });
-    return Math.round(total);
+
+    onPriceChange(Math.round(total), newData);
   };
 
   const handleChange = (key: string, value: any) => {
     const newData = { ...formData, [key]: value };
     setFormData(newData);
-    
-    const newTotal = calculateTotal(newData);
-    setCurrentTotal(newTotal);
-    onPriceChange(newTotal, newData);
+    calculateAndSend(newData);
   };
-
-  // Force sync when base price changes
-  useEffect(() => {
-    const initialTotal = calculateTotal(formData);
-    setCurrentTotal(initialTotal);
-    onPriceChange(initialTotal, formData);
-  }, [basePrice]);
 
   return (
     <Card className="mt-6">

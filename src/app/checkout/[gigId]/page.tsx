@@ -55,7 +55,7 @@ export default function CheckoutPage() {
       });
       const result = await res.json();
       if (result.order?.id) {
-        toast.success(`Orden creada`);
+        toast.success(`Orden creada #${result.order.id.slice(0,8)}`);
         router.push(`/orders/${result.order.id}`);
       }
     } catch (e) {
