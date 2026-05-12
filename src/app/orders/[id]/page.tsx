@@ -85,8 +85,8 @@ export default function OrderDetailPage() {
   if (loading) return <div className="p-20 text-center text-2xl">Cargando pedido...</div>;
   if (!order) return <div className="p-20 text-center text-red-600">Pedido no encontrado</div>;
 
-  const categoryInfo = gigCategories.find(c => c.name === order.gig?.category) || { emoji: '📦' };
-  const emoji = categoryInfo.emoji || '📦';
+  const categoryInfo = gigCategories.find(c => c.name === order.gig?.category) || {};
+  const emoji = (categoryInfo as any).icon || (categoryInfo as any).emoji || '📦';
 
   return (
     <div className="max-w-6xl mx-auto p-6">
