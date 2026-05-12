@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -13,42 +13,38 @@ interface Props {
 
 export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }: Props) {
   const [formData, setFormData] = useState<any>({});
-  const [totalPrice, setTotalPrice] = useState(basePrice);
 
   const categoryTemplate = gigCategories.find((c: any) => c.name === gig.category) || { fields: [] };
   const allFields = [
     ...(categoryTemplate.fields || []),
     ...(gig.fields || [])
-  ].filter((field: any, index: number, self: any[]) =>
-    index === self.findIndex((f: any) => f.key === field.key)
-  );
+  ].filter((f: any, i: number, arr: any[]) => i === arr.findIndex(x => x.key === f.key));
 
-  const calculateTotal = (data: any) => {
+  const calculateTotal = useCallback((data: any) => {
     let total = Number(basePrice) || 0;
     allFields.forEach((field: any) => {
-      const value = data[field.key];
-      if (value === undefined || value === null || value === '') return;
+      const val = data[field.key];
+      if (!val) return;
       const extra = Number(field.extraPrice || 0);
-      if (extra === 0) return;
-      if (field.type === 'checkbox' && value === true) total += extra;
-      else if (field.type === 'number') total += extra * (Number(value) || 0);
+      if (!extra) return;
+      if (field.type === 'checkbox' && val === true) total += extra;
+      else if (field.type === 'number') total += extra * (Number(val) || 0);
     });
     return Math.round(total);
-  };
+  }, [basePrice, allFields]);
 
   const handleChange = (key: string, value: any) => {
     const newData = { ...formData, [key]: value };
     setFormData(newData);
     const newTotal = calculateTotal(newData);
-    setTotalPrice(newTotal);
-    onFieldsChange(newData, newTotal);   // ← synchronous push
+    onFieldsChange(newData, newTotal);   // Immediate push
   };
 
+  // Safety sync
   useEffect(() => {
-    const newTotal = calculateTotal(formData);
-    setTotalPrice(newTotal);
-    onFieldsChange(formData, newTotal);
-  }, [formData, basePrice]);
+    const total = calculateTotal(formData);
+    onFieldsChange(formData, total);
+  }, [formData, calculateTotal, onFieldsChange]);
 
   return (
     <Card className="mt-6">
@@ -63,7 +59,7 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
             {field.type === 'number' && (
               <Input
                 type="number"
-                value={formData[field.key] || ''}
+                value={formData[field.key] ?? ''}
                 onChange={(e) => handleChange(field.key, e.target.value)}
                 placeholder="Ej: 3"
               />
@@ -81,13 +77,6 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
             )}
           </div>
         ))}
-
-        <div className="pt-4 border-t bg-orange-50 p-4 rounded-xl">
-          <div className="flex justify-between text-xl font-semibold">
-            <span>Total estimado</span>
-            <span className="text-orange-600">${totalPrice.toLocaleString('es-CO')} COP</span>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

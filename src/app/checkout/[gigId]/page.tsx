@@ -24,8 +24,7 @@ export default function CheckoutPage() {
       .then(r => r.json())
       .then(data => {
         setGig(data);
-        const init = Number(data.price || 0);
-        setCalculatedPrice(init);
+        setCalculatedPrice(Number(data.price || 0));
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -33,10 +32,10 @@ export default function CheckoutPage() {
 
   const handleFieldsChange = useCallback((fields: any, total: number) => {
     setDynamicFields(fields);
-    setCalculatedPrice(total);
+    setCalculatedPrice(total);   // Force update
   }, []);
 
-  const simulatePayment = () => {
+  const simulatePayment = async () => {
     if (!gig || !session?.user?.id) return toast.error("Falta información");
 
     const orderData = {
@@ -48,19 +47,20 @@ export default function CheckoutPage() {
       customFields: dynamicFields,
     };
 
-    fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(orderData)
-    })
-      .then(r => r.json())
-      .then(result => {
-        if (result.order?.id) {
-          toast.success(`Orden creada #${result.order.id.slice(0,8)}`);
-          router.push(`/orders/${result.order.id}`);
-        } else toast.error("Error creando orden");
-      })
-      .catch(() => toast.error("Error de conexión"));
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      });
+      const result = await res.json();
+      if (result.order?.id) {
+        toast.success(`Orden creada`);
+        router.push(`/orders/${result.order.id}`);
+      }
+    } catch (e) {
+      toast.error("Error creando orden");
+    }
   };
 
   if (loading || !gig) return <div className="p-20 text-center">Cargando...</div>;
@@ -73,7 +73,7 @@ export default function CheckoutPage() {
         <div className="md:col-span-3 space-y-6">
           <Card>
             <CardHeader><CardTitle>Descripción del Servicio</CardTitle></CardHeader>
-            <CardContent><p>{gig.description}</p></CardContent>
+            <CardContent className="prose"><p>{gig.description}</p></CardContent>
           </Card>
 
           <DynamicCheckoutFields 
