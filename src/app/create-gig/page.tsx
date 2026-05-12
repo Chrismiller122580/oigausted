@@ -35,7 +35,7 @@ export default function CreateGigPage() {
     if (template?.fields) {
       setOptions(template.fields.map(f => ({
         label: f.label,
-        extraPrice: f.extraPrice ? Number(f.extraPrice) : 0,   // Safe check
+        extraPrice: (f as any).extraPrice ? Number((f as any).extraPrice) : 0,
         key: f.key,
         type: f.type
       })));
