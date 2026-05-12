@@ -38,7 +38,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Page Header */}
+        {/* Only content - no header */}
         <div className="mb-10">
           <h1 className="text-4xl font-bold">Panel de Administrador</h1>
           <p className="text-zinc-500 mt-2">Gestión de usuarios, gigs, pagos y la plataforma completa • Datos en tiempo real</p>
