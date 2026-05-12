@@ -24,9 +24,9 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
     let total = Number(basePrice) || 0;
     allFields.forEach((field: any) => {
       const val = data[field.key];
-      if (!val) return;
+      if (val == null || val === '') return;
       const extra = Number(field.extraPrice || 0);
-      if (!extra) return;
+      if (extra === 0) return;
       if (field.type === 'checkbox' && val === true) total += extra;
       else if (field.type === 'number') total += extra * (Number(val) || 0);
     });
@@ -37,10 +37,10 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
     const newData = { ...formData, [key]: value };
     setFormData(newData);
     const newTotal = calculateTotal(newData);
-    onFieldsChange(newData, newTotal);   // Immediate push
+    onFieldsChange(newData, newTotal);
   };
 
-  // Safety sync
+  // Force sync on every render
   useEffect(() => {
     const total = calculateTotal(formData);
     onFieldsChange(formData, total);

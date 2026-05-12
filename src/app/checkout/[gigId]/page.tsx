@@ -32,7 +32,10 @@ export default function CheckoutPage() {
 
   const handleFieldsChange = useCallback((fields: any, total: number) => {
     setDynamicFields(fields);
-    setCalculatedPrice(total);   // Force update
+    setCalculatedPrice(prev => {
+      if (prev !== total) console.log('✅ Price updated to', total); // debug
+      return total;
+    });
   }, []);
 
   const simulatePayment = async () => {
@@ -48,14 +51,10 @@ export default function CheckoutPage() {
     };
 
     try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
-      });
+      const res = await fetch('/api/orders', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(orderData) });
       const result = await res.json();
       if (result.order?.id) {
-        toast.success(`Orden creada`);
+        toast.success(`Orden creada #${result.order.id.slice(0,8)}`);
         router.push(`/orders/${result.order.id}`);
       }
     } catch (e) {
