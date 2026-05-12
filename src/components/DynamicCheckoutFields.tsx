@@ -22,6 +22,7 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
     c.name.toLowerCase().includes(gigCat)
   );
 
+  // Deduplicate by key
   const allFields = [
     ...(categoryTemplate?.fields || []),
     ...(gig.fields || [])
@@ -35,18 +36,18 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
   const calculateTotal = (data: any) => {
     let total = Number(basePrice) || 0;
 
-    allFields.forEach(field => {
+    allFields.forEach((field: any) => {
       const value = data[field.key];
-      if (!value) return;
+      if (value === undefined || value === null || value === '') return;
 
-      const extra = Number(field.extraPrice || 0);
+      const extraPrice = Number(field.extraPrice || 0);
+      if (extraPrice === 0) return;
 
-      if (field.type === 'checkbox' && value === true && extra > 0) {
-        total += extra;
-      } 
-      else if (field.type === 'number' && extra > 0) {
-        // Per-unit pricing: multiply by quantity entered
-        total += extra * Number(value);
+      if (field.type === 'checkbox' && value === true) {
+        total += extraPrice;
+      } else if (field.type === 'number') {
+        const qty = Number(value) || 0;
+        total += extraPrice * qty;   // ← This is the multiplication for rooms/bathrooms
       }
     });
 
@@ -88,6 +89,7 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
               <Input 
                 type="number" 
                 placeholder="Ej: 3"
+                value={formData[field.key] || ''}
                 onChange={(e) => handleChange(field.key, Number(e.target.value) || 0)}
               />
             )}
