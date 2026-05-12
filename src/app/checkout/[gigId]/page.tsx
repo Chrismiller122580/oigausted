@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import DynamicCheckoutFields from '@/components/DynamicCheckoutFields';
@@ -16,23 +16,41 @@ export default function CheckoutPage() {
 
   const [gig, setGig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [dynamicFields, setDynamicFields] = useState<any>({});
-  const [calculatedPrice, setCalculatedPrice] = useState(0);
+  const [formData, setFormData] = useState<any>({});
+
+  const basePrice = Number(gig?.price || 0);
+
+  const calculatedPrice = useMemo(() => {
+    let total = basePrice;
+    const allFields = [
+      ...(gig?.fields || []),
+      ...((gigCategories.find((c: any) => c.name === gig?.category) || {}).fields || [])
+    ];
+
+    allFields.forEach((field: any) => {
+      const val = formData[field.key];
+      if (val == null || val === '') return;
+      const extra = Number(field.extraPrice || 0);
+      if (extra === 0) return;
+
+      if (field.type === 'checkbox' && val === true) total += extra;
+      else if (field.type === 'number') total += extra * (Number(val) || 0);
+    });
+    return Math.round(total);
+  }, [basePrice, formData, gig]);
 
   useEffect(() => {
     fetch(`/api/gigs/${gigId}`)
       .then(r => r.json())
       .then(data => {
         setGig(data);
-        setCalculatedPrice(Number(data.price || 0));
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, [gigId]);
 
-  const handlePriceChange = (total: number, fields: any) => {
-    setCalculatedPrice(total);
-    setDynamicFields(fields);
+  const handleFieldChange = (key: string, value: any) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
   };
 
   const simulatePayment = async () => {
@@ -44,7 +62,7 @@ export default function CheckoutPage() {
       sellerId: gig.sellerId,
       price: calculatedPrice,
       status: 'Pending',
-      customFields: dynamicFields,
+      customFields: formData,
     };
 
     try {
@@ -55,7 +73,7 @@ export default function CheckoutPage() {
       });
       const result = await res.json();
       if (result.order?.id) {
-        toast.success(`Orden creada #${result.order.id.slice(0,8)}`);
+        toast.success(`Orden creada`);
         router.push(`/orders/${result.order.id}`);
       }
     } catch (e) {
@@ -78,8 +96,8 @@ export default function CheckoutPage() {
 
           <DynamicCheckoutFields 
             gig={gig} 
-            basePrice={Number(gig.price)} 
-            onPriceChange={handlePriceChange} 
+            formData={formData}
+            onChange={handleFieldChange} 
           />
         </div>
 
@@ -102,3 +120,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+import { gigCategories } from '@/lib/gig-categories';

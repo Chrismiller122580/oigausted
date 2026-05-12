@@ -1,46 +1,21 @@
 'use client';
 
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
 interface Props {
   gig: any;
-  basePrice: number;
-  onPriceChange: (total: number, fields: any) => void;
+  formData: any;
+  onChange: (key: string, value: any) => void;
 }
 
-export default function DynamicCheckoutFields({ gig, basePrice, onPriceChange }: Props) {
-  const [formData, setFormData] = useState<any>({});
-
+export default function DynamicCheckoutFields({ gig, formData, onChange }: Props) {
   const categoryTemplate = gigCategories.find((c: any) => c.name === gig.category) || { fields: [] };
   const allFields = [
     ...(categoryTemplate.fields || []),
     ...(gig.fields || [])
   ].filter((f: any, i: number, arr: any[]) => i === arr.findIndex(x => x.key === f.key));
-
-  const calculateAndSend = (newData: any) => {
-    let total = Number(basePrice) || 0;
-
-    allFields.forEach((field: any) => {
-      const val = newData[field.key];
-      if (val == null || val === '') return;
-      const extra = Number(field.extraPrice || 0);
-      if (extra === 0) return;
-
-      if (field.type === 'checkbox' && val === true) total += extra;
-      else if (field.type === 'number') total += extra * (Number(val) || 0);
-    });
-
-    onPriceChange(Math.round(total), newData);
-  };
-
-  const handleChange = (key: string, value: any) => {
-    const newData = { ...formData, [key]: value };
-    setFormData(newData);
-    calculateAndSend(newData);
-  };
 
   return (
     <Card className="mt-6">
@@ -56,7 +31,7 @@ export default function DynamicCheckoutFields({ gig, basePrice, onPriceChange }:
               <Input
                 type="number"
                 value={formData[field.key] ?? ''}
-                onChange={(e) => handleChange(field.key, e.target.value)}
+                onChange={(e) => onChange(field.key, e.target.value)}
                 placeholder="Ej: 3"
               />
             )}
@@ -65,7 +40,7 @@ export default function DynamicCheckoutFields({ gig, basePrice, onPriceChange }:
                 <input
                   type="checkbox"
                   checked={!!formData[field.key]}
-                  onChange={(e) => handleChange(field.key, e.target.checked)}
+                  onChange={(e) => onChange(field.key, e.target.checked)}
                   className="w-5 h-5 accent-orange-600"
                 />
                 <span>{field.label} +${field.extraPrice}</span>
