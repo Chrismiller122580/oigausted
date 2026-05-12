@@ -25,7 +25,8 @@ export default function CheckoutPage() {
       .then(res => res.json())
       .then(data => {
         setGig(data);
-        setCalculatedPrice(Number(data.price || 0));
+        const initialPrice = Number(data.price || 0);
+        setCalculatedPrice(initialPrice);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -43,9 +44,9 @@ export default function CheckoutPage() {
       gigId: gig.id,
       buyerId: session.user.id,
       sellerId: gig.sellerId,
-      price: calculatedPrice,           // ← Use the real calculated total
+      price: calculatedPrice,
       status: 'Pending',
-      customFields: dynamicFields,      // Save buyer selections
+      customFields: dynamicFields,
     };
 
     try {
@@ -94,7 +95,7 @@ export default function CheckoutPage() {
           />
         </div>
 
-        {/* Right Column - Summary */}
+        {/* Right Column - Summary (now uses live calculatedPrice) */}
         <div className="md:col-span-2">
           <Card className="sticky top-6">
             <CardHeader>
