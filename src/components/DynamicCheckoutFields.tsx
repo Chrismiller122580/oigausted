@@ -22,20 +22,30 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
     c.name.toLowerCase().includes(gigCat)
   );
 
+  // Merge and deduplicate by key
   const allFields = [
     ...(categoryTemplate?.fields || []),
     ...(gig.fields || [])
-  ];
+  ].filter((field, index, self) => 
+    index === self.findIndex(f => f.key === field.key)
+  );
 
   const [formData, setFormData] = useState<any>({});
   const [totalPrice, setTotalPrice] = useState(basePrice);
 
   const calculateTotal = (data: any) => {
-    let total = basePrice || 0;
+    let total = Number(basePrice) || 0;
 
     allFields.forEach(field => {
-      if (field.extraPrice && data[field.key] === true) {
+      const value = data[field.key];
+      if (!value) return;
+
+      if (field.type === 'checkbox' && value === true && field.extraPrice) {
         total += Number(field.extraPrice);
+      } 
+      else if (field.type === 'number' && field.extraPrice) {
+        // Per-unit pricing for number fields (rooms, bathrooms, etc.)
+        total += Number(field.extraPrice) * Number(value);
       }
     });
 
@@ -94,7 +104,7 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
               <label className="flex items-center gap-3 cursor-pointer py-2">
                 <input 
                   type="checkbox"
-                  checked={!!formData[field.key]}
+                  checked={formData[field.key] === true}
                   onChange={(e) => handleChange(field.key, e.target.checked)}
                   className="w-5 h-5 accent-orange-600"
                 />
