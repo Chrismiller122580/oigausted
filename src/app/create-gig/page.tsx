@@ -26,7 +26,7 @@ export default function CreateGigPage() {
   const [uploading, setUploading] = useState(false);
   const [options, setOptions] = useState<any[]>([]);
 
-  // Load category defaults when category changes
+  // Load category defaults when category is selected
   useEffect(() => {
     if (!category) return;
     const template = gigCategories.find(c => 
@@ -35,7 +35,7 @@ export default function CreateGigPage() {
     if (template?.fields) {
       setOptions(template.fields.map(f => ({
         label: f.label,
-        extraPrice: f.extraPrice || 0,
+        extraPrice: f.extraPrice || 0,   // Safe fallback
         key: f.key,
         type: f.type
       })));
@@ -165,7 +165,7 @@ export default function CreateGigPage() {
           </div>
           {options.map((opt, index) => (
             <div key={index} className="flex gap-4 mb-4 p-4 border rounded-2xl">
-              <Input placeholder="Nombre de la opción" value={opt.label} onChange={e => updateOption(index, 'label', e.target.value)} className="flex-1" />
+              <Input placeholder="Ej: Limpieza profunda" value={opt.label} onChange={e => updateOption(index, 'label', e.target.value)} className="flex-1" />
               <Input type="number" placeholder="Precio extra" value={opt.extraPrice} onChange={e => updateOption(index, 'extraPrice', Number(e.target.value))} className="w-40" />
               <Button type="button" variant="destructive" onClick={() => removeOption(index)}>Eliminar</Button>
             </div>
