@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Props {
   gig: any;
@@ -16,7 +15,6 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
   const [formData, setFormData] = useState<any>({});
   const [totalPrice, setTotalPrice] = useState(basePrice);
 
-  // Merge category defaults + seller custom fields (deduplicated)
   const categoryTemplate = gigCategories.find((c: any) => c.name === gig.category) || { fields: [] };
   const allFields = [
     ...(categoryTemplate.fields || []),
@@ -30,32 +28,27 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
     allFields.forEach((field: any) => {
       const value = data[field.key];
       if (value === undefined || value === null || value === '') return;
-      const extraPrice = Number(field.extraPrice || 0);
-      if (extraPrice === 0) return;
-      if (field.type === 'checkbox' && value === true) {
-        total += extraPrice;
-      } else if (field.type === 'number') {
-        const qty = Number(value) || 0;
-        total += extraPrice * qty;
-      }
+      const extra = Number(field.extraPrice || 0);
+      if (extra === 0) return;
+      if (field.type === 'checkbox' && value === true) total += extra;
+      else if (field.type === 'number') total += extra * (Number(value) || 0);
     });
     return Math.round(total);
   };
 
   const handleChange = (key: string, value: any) => {
-    const newFormData = { ...formData, [key]: value };
-    setFormData(newFormData);
-
-    const newTotal = calculateTotal(newFormData);
+    const newData = { ...formData, [key]: value };
+    setFormData(newData);
+    const newTotal = calculateTotal(newData);
     setTotalPrice(newTotal);
-    onFieldsChange(newFormData, newTotal);
+    onFieldsChange(newData, newTotal);   // ← synchronous push
   };
 
   useEffect(() => {
     const newTotal = calculateTotal(formData);
     setTotalPrice(newTotal);
     onFieldsChange(formData, newTotal);
-  }, [formData, basePrice, onFieldsChange]);
+  }, [formData, basePrice]);
 
   return (
     <Card className="mt-6">
@@ -67,16 +60,14 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
         {allFields.map((field: any) => (
           <div key={field.key} className="space-y-2">
             <Label>{field.label}</Label>
-            
             {field.type === 'number' && (
               <Input
                 type="number"
                 value={formData[field.key] || ''}
                 onChange={(e) => handleChange(field.key, e.target.value)}
-                placeholder={`Ej: 3`}
+                placeholder="Ej: 3"
               />
             )}
-
             {field.type === 'checkbox' && (
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
@@ -85,14 +76,14 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
                   onChange={(e) => handleChange(field.key, e.target.checked)}
                   className="w-5 h-5 accent-orange-600"
                 />
-                <span className="text-base">{field.label} +${field.extraPrice}</span>
+                <span>{field.label} +${field.extraPrice}</span>
               </label>
             )}
           </div>
         ))}
 
         <div className="pt-4 border-t bg-orange-50 p-4 rounded-xl">
-          <div className="flex justify-between items-center text-xl font-semibold">
+          <div className="flex justify-between text-xl font-semibold">
             <span>Total estimado</span>
             <span className="text-orange-600">${totalPrice.toLocaleString('es-CO')} COP</span>
           </div>
@@ -102,5 +93,4 @@ export default function DynamicCheckoutFields({ gig, basePrice, onFieldsChange }
   );
 }
 
-// Keep existing import
 import { gigCategories } from '@/lib/gig-categories';
