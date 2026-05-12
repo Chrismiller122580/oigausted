@@ -85,7 +85,7 @@ export default function OrderDetailPage() {
   if (loading) return <div className="p-20 text-center text-2xl">Cargando pedido...</div>;
   if (!order) return <div className="p-20 text-center text-red-600">Pedido no encontrado</div>;
 
-  const categoryInfo = gigCategories.find(c => c.name === order.gig?.category) || {};
+  const categoryInfo = gigCategories.find(c => c.name === order.gig?.category) || { emoji: '📦' };
   const emoji = categoryInfo.emoji || '📦';
 
   return (
@@ -122,8 +122,8 @@ export default function OrderDetailPage() {
             }`}
           >
             {tab === 'overview' && 'Resumen'}
-            {tab === 'chat' && 'Chat'}
-            {tab === 'progress' && 'Progreso'}
+            {tab === 'chat' && '💬 Chat'}
+            {tab === 'progress' && '📈 Progreso'}
           </button>
         ))}
       </div>
