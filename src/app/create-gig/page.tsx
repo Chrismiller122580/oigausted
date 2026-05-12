@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { categories, categoryEmojis } from '@/lib/categories';
 import { gigCategories } from '@/lib/gig-categories';
 import { toast } from 'react-hot-toast';
 
@@ -22,97 +21,54 @@ export default function CreateGigPage() {
   const [category, setCategory] = useState('');
   const [completionTime, setCompletionTime] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [generating, setGenerating] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [options, setOptions] = useState<any[]>([]);
+  const [customOptions, setCustomOptions] = useState<any[]>([]);
 
-  // Load category defaults when category changes
-  useEffect(() => {
-    if (!category) return;
-    const template = gigCategories.find(c => 
-      c.name === category || c.slug === category.toLowerCase()
-    );
-    if (template?.fields) {
-      setOptions(template.fields.map(f => ({
-        label: f.label,
-        extraPrice: (f as any).extraPrice ? Number((f as any).extraPrice) : 0,
-        key: f.key,
-        type: f.type
-      })));
-    }
-  }, [category]);
+  const addCustomOption = () => {
+    setCustomOptions([...customOptions, { key: '', label: '', type: 'number', extraPrice: 0 }]);
+  };
 
-  const generateWithGrok = async () => {
-    if (!title || !category) return toast.error('Título y categoría son requeridos');
-    setGenerating(true);
+  const updateCustomOption = (index: number, field: string, value: any) => {
+    const updated = [...customOptions];
+    updated[index] = { ...updated[index], [field]: value };
+    setCustomOptions(updated);
+  };
+
+  const removeCustomOption = (index: number) => {
+    setCustomOptions(customOptions.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title || !category || !price) return toast.error("Faltan campos obligatorios");
+
+    const gigData = {
+      title,
+      description,
+      price: Number(price),
+      category,
+      completionTime,
+      imageUrl: imageUrl || null,
+      fields: customOptions.filter(o => o.label && o.key),
+    };
+
     try {
-      const prompt = `Escribe una descripción atractiva y profesional para "${title}" en la categoría "${category}".`;
-      const res = await fetch('/api/grok/generate', {
+      const res = await fetch('/api/gigs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify(gigData)
       });
       const data = await res.json();
-      if (data.description) {
-        setDescription(data.description);
-        toast.success('✅ Descripción generada con Grok');
-      }
+      toast.success("Gig creado exitosamente!");
+      router.push(`/gigs/${data.id}`);
     } catch (err) {
-      toast.error('Error con Grok');
-    } finally {
-      setGenerating(false);
+      toast.error("Error creando el gig");
     }
-  };
-
-  const handleImageUpload = async (e: any) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.url) setImageUrl(data.url);
-    } catch (err) {
-      toast.error('Error subiendo imagen');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const addOption = () => setOptions([...options, { label: '', extraPrice: 0 }]);
-  const updateOption = (index: number, field: string, val: any) => {
-    const newOpts = [...options];
-    newOpts[index][field] = val;
-    setOptions(newOpts);
-  };
-  const removeOption = (index: number) => setOptions(options.filter((_, i) => i !== index));
-
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-    const res = await fetch('/api/gigs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        title, 
-        description, 
-        price: Number(price), 
-        category, 
-        completionTime, 
-        imageUrl, 
-        fields: options 
-      })
-    });
-    if (res.ok) {
-      toast.success('✅ Gig creado con éxito');
-      router.push('/seller');
-    } else toast.error('Error creando gig');
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-4xl font-bold mb-8">Crear Nuevo Gig</h1>
+    <div className="max-w-4xl mx-auto p-8">
+      <h1 className="text-4xl font-bold mb-8">Crear Nuevo Servicio</h1>
+
       <form onSubmit={handleSubmit} className="space-y-8">
         <div>
           <Label>Título del Servicio</Label>
@@ -123,11 +79,13 @@ export default function CreateGigPage() {
           <div>
             <Label>Categoría</Label>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger><SelectValue placeholder="Selecciona categoría" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona categoría" />
+              </SelectTrigger>
               <SelectContent>
-                {categories.map(cat => (
-                  <SelectItem key={cat} value={cat}>
-                    <span className="mr-3 text-lg">{categoryEmojis[cat] || '📌'}</span> {cat}
+                {gigCategories.map(cat => (
+                  <SelectItem key={cat.name} value={cat.name}>
+                    {cat.icon} {cat.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -140,39 +98,45 @@ export default function CreateGigPage() {
         </div>
 
         <div>
-          <div className="flex justify-between items-center mb-2">
-            <Label>Descripción del Servicio</Label>
-            <Button type="button" onClick={generateWithGrok} disabled={generating || !title || !category} variant="outline">
-              {generating ? '✨ Generando con Grok...' : '✨ Generar con Grok'}
-            </Button>
-          </div>
-          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={8} required />
+          <Label>Descripción del Servicio</Label>
+          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} />
         </div>
 
-        <div>
-          <Label>Imagen Principal del Gig</Label>
-          <div className="flex items-center gap-4">
-            <Input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="flex-1" />
-            {imageUrl && <img src={imageUrl} alt="Preview" className="h-20 w-20 object-cover rounded-lg border" />}
-          </div>
-          {uploading && <p className="text-orange-600 text-sm mt-1">Subiendo imagen...</p>}
-        </div>
-
+        {/* Custom Options */}
         <div>
           <div className="flex justify-between items-center mb-4">
             <Label>Opciones Adicionales (Buyer podrá seleccionarlas)</Label>
-            <Button type="button" onClick={addOption} variant="outline">+ Agregar Opción Personalizada</Button>
+            <Button type="button" onClick={addCustomOption} variant="outline">+ Agregar Opción Personalizada</Button>
           </div>
-          {options.map((opt, index) => (
-            <div key={index} className="flex gap-4 mb-4 p-4 border rounded-2xl">
-              <Input placeholder="Ej: Limpieza profunda" value={opt.label} onChange={e => updateOption(index, 'label', e.target.value)} className="flex-1" />
-              <Input type="number" placeholder="Precio extra" value={opt.extraPrice} onChange={e => updateOption(index, 'extraPrice', Number(e.target.value))} className="w-40" />
-              <Button type="button" variant="destructive" onClick={() => removeOption(index)}>Eliminar</Button>
+
+          {customOptions.map((opt, index) => (
+            <div key={index} className="flex gap-4 items-end border p-4 rounded-xl mb-4">
+              <div className="flex-1">
+                <Label>Etiqueta</Label>
+                <Input value={opt.label} onChange={(e) => updateCustomOption(index, 'label', e.target.value)} placeholder="Ej: Número de invitados" />
+              </div>
+              <div className="flex-1">
+                <Label>Tipo</Label>
+                <Select value={opt.type} onValueChange={(v) => updateCustomOption(index, 'type', v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="number">Número (con precio por unidad)</SelectItem>
+                    <SelectItem value="checkbox">Checkbox (precio fijo)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1">
+                <Label>Precio Extra</Label>
+                <Input type="number" value={opt.extraPrice} onChange={(e) => updateCustomOption(index, 'extraPrice', Number(e.target.value))} placeholder="0" />
+              </div>
+              <Button type="button" variant="destructive" onClick={() => removeCustomOption(index)}>Eliminar</Button>
             </div>
           ))}
         </div>
 
-        <Button type="submit" className="w-full py-8 text-xl">Crear Gig</Button>
+        <Button type="submit" className="w-full py-8 text-xl">Publicar Servicio</Button>
       </form>
     </div>
   );
