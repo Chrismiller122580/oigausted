@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { categories, categoryEmojis } from '@/lib/categories';
+import { gigCategories } from '@/lib/gig-categories';
 import { toast } from 'react-hot-toast';
 
 export default function CreateGigPage() {
@@ -24,6 +25,22 @@ export default function CreateGigPage() {
   const [generating, setGenerating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [options, setOptions] = useState<any[]>([]);
+
+  // Load category defaults when category changes
+  useEffect(() => {
+    if (!category) return;
+    const template = gigCategories.find(c => 
+      c.name === category || c.slug === category.toLowerCase()
+    );
+    if (template?.fields) {
+      setOptions(template.fields.map(f => ({
+        label: f.label,
+        extraPrice: f.extraPrice || 0,
+        key: f.key,
+        type: f.type
+      })));
+    }
+  }, [category]);
 
   const generateWithGrok = async () => {
     if (!title || !category) return toast.error('Título y categoría son requeridos');
@@ -65,19 +82,27 @@ export default function CreateGigPage() {
   };
 
   const addOption = () => setOptions([...options, { label: '', extraPrice: 0 }]);
-  const updateOption = (i: number, field: string, val: any) => {
+  const updateOption = (index: number, field: string, val: any) => {
     const newOpts = [...options];
-    newOpts[i][field] = val;
+    newOpts[index][field] = val;
     setOptions(newOpts);
   };
-  const removeOption = (i: number) => setOptions(options.filter((_, idx) => idx !== i));
+  const removeOption = (index: number) => setOptions(options.filter((_, i) => i !== index));
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     const res = await fetch('/api/gigs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description, price: Number(price), category, completionTime, imageUrl, fields: options })
+      body: JSON.stringify({ 
+        title, 
+        description, 
+        price: Number(price), 
+        category, 
+        completionTime, 
+        imageUrl, 
+        fields: options 
+      })
     });
     if (res.ok) {
       toast.success('✅ Gig creado con éxito');
@@ -136,11 +161,11 @@ export default function CreateGigPage() {
         <div>
           <div className="flex justify-between items-center mb-4">
             <Label>Opciones Adicionales (Buyer podrá seleccionarlas)</Label>
-            <Button type="button" onClick={addOption} variant="outline">+ Agregar Opción</Button>
+            <Button type="button" onClick={addOption} variant="outline">+ Agregar Opción Personalizada</Button>
           </div>
           {options.map((opt, index) => (
             <div key={index} className="flex gap-4 mb-4 p-4 border rounded-2xl">
-              <Input placeholder="Ej: Limpieza profunda" value={opt.label} onChange={e => updateOption(index, 'label', e.target.value)} className="flex-1" />
+              <Input placeholder="Nombre de la opción" value={opt.label} onChange={e => updateOption(index, 'label', e.target.value)} className="flex-1" />
               <Input type="number" placeholder="Precio extra" value={opt.extraPrice} onChange={e => updateOption(index, 'extraPrice', Number(e.target.value))} className="w-40" />
               <Button type="button" variant="destructive" onClick={() => removeOption(index)}>Eliminar</Button>
             </div>
