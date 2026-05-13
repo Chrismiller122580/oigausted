@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   const stream = new ReadableStream({
     start(controller) {
-      // Initial data
       controller.enqueue(`data: ${JSON.stringify({
         users: 1284,
         gigs: 342,
@@ -13,7 +12,6 @@ export async function GET() {
         activeChats: 23
       })}\n\n`);
 
-      // Live updates
       const interval = setInterval(() => {
         const update = {
           users: 1284 + Math.floor(Math.random() * 35),
