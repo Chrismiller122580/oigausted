@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -18,25 +18,59 @@ export default function CreateGigPage() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
+  const [basePrice, setBasePrice] = useState(0);
   const [category, setCategory] = useState('');
-  const [completionTime, setCompletionTime] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [customOptions, setCustomOptions] = useState<any[]>([]);
   const [generating, setGenerating] = useState(false);
 
+  const [formData, setFormData] = useState<Record<string, any>>({});
   const selectedCategory = gigCategories.find(c => c.name === category);
+
+  // Calculate live total
+  const calculateTotal = () => {
+    let total = basePrice || 0;
+
+    // Smart fields
+    if (selectedCategory) {
+      selectedCategory.fields.forEach((field: any) => {
+        if (field.type === 'number' && formData[field.key]) {
+          total += Number(formData[field.key]) * (field.extraPrice || 0);
+        } else if (field.type === 'checkbox' && formData[field.key]) {
+          total += field.extraPrice || 0;
+        }
+      });
+    }
+
+    // Custom options
+    customOptions.forEach(opt => {
+      if (opt.extraPrice) total += Number(opt.extraPrice);
+    });
+
+    return Math.round(total);
+  };
+
+  const totalPrice = calculateTotal();
+
+  const handleSmartFieldChange = (key: string, value: any) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const addCustomOption = () => {
+    setCustomOptions([...customOptions, { label: '', extraPrice: 0 }]);
+  };
 
   const handleImageUpload = async (e: any) => {
     const file = e.target.files[0];
     if (!file) return;
     const formData = new FormData();
     formData.append('file', file);
+
     const res = await fetch('/api/upload', { method: 'POST', body: formData });
     const data = await res.json();
     if (data.url) {
       setImageUrl(data.url);
-      toast.success("Imagen subida");
+      toast.success("Imagen subida correctamente");
     }
   };
 
@@ -51,7 +85,7 @@ export default function CreateGigPage() {
       });
       const data = await res.json();
       setDescription(data.description || '');
-      toast.success("Grok generó descripción y precio sugerido");
+      toast.success("Grok generó descripción");
     } catch (e) {
       toast.error("Grok no respondió");
     }
@@ -60,7 +94,7 @@ export default function CreateGigPage() {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    if (!session) return toast.error("Inicia sesión");
+    if (!session) return toast.error("Debes iniciar sesión");
 
     const res = await fetch('/api/gigs', {
       method: 'POST',
@@ -68,38 +102,39 @@ export default function CreateGigPage() {
       body: JSON.stringify({
         title,
         description,
-        price: Number(price),
+        price: totalPrice,
         category,
-        completionTime,
         imageUrl,
         fields: selectedCategory?.fields || [],
-        addons: customOptions
+        addons: customOptions,
+        completionTime: "2-5 días"
       })
     });
 
     if (res.ok) {
-      toast.success("¡Servicio publicado!");
+      toast.success("¡Servicio publicado exitosamente!");
       router.push('/seller');
     } else {
-      toast.error("Error al publicar");
+      toast.error("Error al publicar el servicio");
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto p-8">
-      <h1 className="text-4xl font-bold mb-8">Crear Nuevo Servicio</h1>
+      <h1 className="text-4xl font-bold mb-2">Crear Nuevo Servicio</h1>
+      <p className="text-gray-600 mb-8">Llena los detalles y publica tu gig en minutos</p>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="grid md:grid-cols-2 gap-6">
           <div>
             <Label>Título del Servicio</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="Ej: Clases de Inglés Conversacional" />
           </div>
           <div>
             <Label>Categoría</Label>
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecciona categoría" />
+                <SelectValue placeholder="Selecciona una categoría" />
               </SelectTrigger>
               <SelectContent>
                 {gigCategories.map(cat => (
@@ -112,21 +147,33 @@ export default function CreateGigPage() {
           </div>
         </div>
 
-        {/* SMART FIELDS */}
+        {/* Smart Fields */}
         {selectedCategory && (
           <Card>
             <CardHeader>
               <CardTitle>Detalles específicos de {selectedCategory.name}</CardTitle>
             </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-6 pt-2">
-              {selectedCategory.fields.map((f: any, i: number) => (
+            <CardContent className="grid md:grid-cols-2 gap-6">
+              {selectedCategory.fields.map((field: any, i: number) => (
                 <div key={i}>
-                  <Label>{f.label} {f.extraPrice ? `(+$${f.extraPrice})` : ''}</Label>
-                  {f.type === 'number' && <Input type="number" className="mt-1" placeholder="Ej: 3" />}
-                  {f.type === 'checkbox' && (
+                  <Label>{field.label} {field.extraPrice ? `(+$${field.extraPrice})` : ''}</Label>
+                  {field.type === 'number' && (
+                    <Input 
+                      type="number" 
+                      value={formData[field.key] || ''} 
+                      onChange={(e) => handleSmartFieldChange(field.key, e.target.value)}
+                      className="mt-1"
+                    />
+                  )}
+                  {field.type === 'checkbox' && (
                     <label className="flex items-center gap-3 mt-2 cursor-pointer">
-                      <input type="checkbox" className="w-5 h-5 accent-orange-600" />
-                      <span>{f.label}</span>
+                      <input 
+                        type="checkbox" 
+                        checked={!!formData[field.key]} 
+                        onChange={(e) => handleSmartFieldChange(field.key, e.target.checked)}
+                        className="w-5 h-5 accent-orange-600"
+                      />
+                      <span>{field.label}</span>
                     </label>
                   )}
                 </div>
@@ -137,13 +184,18 @@ export default function CreateGigPage() {
 
         <div>
           <Label>Precio Base (COP)</Label>
-          <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required />
+          <Input 
+            type="number" 
+            value={basePrice} 
+            onChange={(e) => setBasePrice(Number(e.target.value))} 
+            required 
+          />
         </div>
 
         <div>
           <Label>Imagen del Servicio</Label>
           <input type="file" accept="image/*" onChange={handleImageUpload} className="mt-2 block w-full" />
-          {imageUrl && <img src={imageUrl} alt="preview" className="mt-4 max-h-48 rounded-xl" />}
+          {imageUrl && <img src={imageUrl} alt="preview" className="mt-4 max-h-48 rounded-2xl shadow" />}
         </div>
 
         <div>
@@ -156,7 +208,20 @@ export default function CreateGigPage() {
           <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} />
         </div>
 
-        <Button type="submit" className="w-full py-6 text-lg">Publicar Servicio</Button>
+        {/* Live Total */}
+        <Card className="bg-orange-50 border-orange-200">
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center text-xl">
+              <span className="font-semibold">Precio Total Estimado</span>
+              <span className="font-bold text-3xl text-orange-600">${totalPrice.toLocaleString('es-CO')}</span>
+            </div>
+            <p className="text-sm text-gray-500 mt-1">Este es el precio que verá el comprador</p>
+          </CardContent>
+        </Card>
+
+        <Button type="submit" className="w-full py-7 text-lg font-semibold">
+          Publicar Servicio
+        </Button>
       </form>
     </div>
   );
