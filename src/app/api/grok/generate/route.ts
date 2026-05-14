@@ -29,7 +29,7 @@ Responde SOLO con la descripción, sin introducciones.`;
         'Authorization': `Bearer ${process.env.GROK_API_KEY || process.env.XAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "grok-3-mini",   // or grok-beta if you have access
+        model: "grok-3-mini",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
         max_tokens: 400,
@@ -40,20 +40,21 @@ Responde SOLO con la descripción, sin introducciones.`;
 
     if (!response.ok) {
       console.error("Grok API error:", data);
-      return NextResponse.json({ 
-        description: `Ofrezco ${title} en la categoría de ${category}. Servicio profesional y confiable en Colombia. Contáctame para más detalles.` 
-      });
+      throw new Error("Grok API failed");
     }
 
     const description = data.choices?.[0]?.message?.content?.trim() || 
-      `Servicio profesional de ${title} en ${category}. Calidad garantizada.`;
+      `Ofrezco ${title} en la categoría de ${category}. Servicio profesional y confiable en Colombia.`;
 
     return NextResponse.json({ description });
 
   } catch (error) {
     console.error("Grok generate error:", error);
+    // Fallback using the title from the request (safe)
+    const { title = "este servicio" } = await req.json().catch(() => ({}));
+    
     return NextResponse.json({ 
-      description: `Ofrezco ${title || "este servicio"} de forma profesional y confiable. Contáctame para coordinar.` 
+      description: `Ofrezco ${title} de forma profesional y confiable. Contáctame para coordinar detalles.` 
     });
   }
 }
