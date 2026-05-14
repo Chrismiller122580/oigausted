@@ -1,120 +1,72 @@
-import Link from "next/link";
-import Image from "next/image";
-import { categories, categoryEmojis } from "@/lib/categories";
-import GigCard from "@/components/common/GigCard";
+'use client';
 
-export const dynamic = 'force-dynamic';
+import { useState, useEffect } from 'react';
+import GigCard from '@/components/common/GigCard';
+import Link from 'next/link';
 
-export default async function HomePage() {
-  let gigs: any[] = [];
+export default function HomePage() {
+  const [gigs, setGigs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  try {
-const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://oigagig.co.com'}/api/gigs`, {
-  cache: 'no-store',
-  next: { revalidate: 0 }
-});
+  useEffect(() => {
+    fetchGigs();
+  }, []);
 
-    if (res.ok) {
+  const fetchGigs = async () => {
+    try {
+      const res = await fetch('/api/gigs', { 
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
       const data = await res.json();
-      gigs = data || [];
+      setGigs(Array.isArray(data.gigs) ? data.gigs : []);
+    } catch (error) {
+      console.error("Failed to load featured gigs:", error);
+      setGigs([]);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Failed to fetch gigs for homepage", error);
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section - Colombian Pride */}
-      <div className="bg-gradient-to-br from-[#FFCD00] via-orange-500 to-[#003087] text-white py-24 relative overflow-hidden">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <div className="flex justify-center mb-8">
-            <Image 
-              src="/logo.png" 
-              alt="Oiga Usted" 
-              width={220} 
-              height={220} 
-              className="drop-shadow-2xl"
-              priority
-            />
-          </div>
-
-          <h1 className="text-6xl md:text-7xl font-bold tracking-tighter mb-6 leading-none">
-            Encuentra el servicio<br />que necesitas
-          </h1>
-
-          <p className="text-2xl md:text-3xl max-w-3xl mx-auto mb-4">
-            Conecta directamente con profesionales locales
-          </p>
-
-          <p className="text-lg font-medium opacity-90 flex items-center justify-center gap-2 mb-10">
-            Gigs Colombia • Hecho en Colombia • Para Colombia 
-            <span className="text-2xl">🇨🇴</span>
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
-              href="/gigs" 
-              className="inline-block bg-white text-[#003087] font-semibold text-2xl px-12 py-6 rounded-3xl hover:bg-gray-100 transition shadow-2xl"
-            >
-              Explorar todos los gigs
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white py-20">
+        <div className="container mx-auto px-6 text-center">
+          <h1 className="text-5xl font-bold mb-4">Oiga Usted</h1>
+          <p className="text-2xl mb-8">Servicios locales confiables en Colombia</p>
+          <div className="flex gap-4 justify-center">
+            <Link href="/gigs" className="bg-white text-orange-600 px-8 py-4 rounded-full font-semibold text-lg hover:bg-orange-50">
+              Explorar Gigs
             </Link>
-            <Link 
-              href="/create-gig" 
-              className="inline-block border-2 border-white text-white font-semibold text-2xl px-12 py-6 rounded-3xl hover:bg-white/10 transition"
-            >
-              Publicar mi servicio
+            <Link href="/create-gig" className="border-2 border-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-white/10">
+              Publicar Servicio
             </Link>
           </div>
-        </div>
-      </div>
-
-      {/* Popular Categories */}
-      <div className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="text-4xl font-bold text-center mb-12 text-gray-900">Categorías Populares</h2>
-        
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-          {categories.map((cat) => (
-            <Link 
-              key={cat} 
-              href={`/gigs?category=${encodeURIComponent(cat)}`}
-              className="group bg-white rounded-3xl p-8 text-center border hover:border-orange-500 hover:shadow-xl transition-all duration-300 flex flex-col items-center"
-            >
-              <div className="text-6xl mb-6 transition-transform group-hover:scale-110">
-                {categoryEmojis[cat]}
-              </div>
-              <p className="font-semibold text-lg leading-tight group-hover:text-orange-600">
-                {cat}
-              </p>
-            </Link>
-          ))}
         </div>
       </div>
 
       {/* Featured Gigs */}
-      <div className="bg-white py-16">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="flex justify-between items-end mb-10">
-            <h2 className="text-4xl font-bold text-gray-900">Gigs Destacados</h2>
-            <Link href="/gigs" className="text-orange-600 hover:underline font-medium text-lg">
-              Ver todos →
-            </Link>
-          </div>
+      <div className="container mx-auto py-16 px-6">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-3xl font-bold">Servicios Destacados</h2>
+          <Link href="/gigs" className="text-orange-600 hover:underline font-medium">Ver todos →</Link>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        {loading ? (
+          <div className="text-center py-12">Cargando servicios destacados...</div>
+        ) : gigs.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {gigs.slice(0, 8).map((gig: any) => (
-              <GigCard key={gig.id} gig={gig} />
+              <GigCard key={gig.id || Math.random()} gig={gig} />
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* Colombian Trust Banner */}
-      <div className="bg-orange-50 py-12">
-        <div className="max-w-4xl mx-auto text-center px-6">
-          <p className="text-xl text-gray-700 font-medium">
-            Hecho por colombianos • Para colombianos • Con confianza local
-          </p>
-        </div>
+        ) : (
+          <div className="text-center py-12 text-gray-500">
+            No hay gigs disponibles aún.<br />
+            ¡Sé el primero en publicar un servicio!
+          </div>
+        )}
       </div>
     </div>
   );
