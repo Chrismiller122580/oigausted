@@ -42,8 +42,117 @@ export const gigCategories = [
       { key: "delivery", label: "Entrega a domicilio", type: "checkbox", extraPrice: 35000 }
     ]
   },
-  // ... (full 20 categories restored - the rest are included below in the actual file)
-  // I kept this short for the message, but the command above contains the full version with all categories.
+  {
+    name: "Fotografía y Video",
+    icon: "📸",
+    fields: [
+      { key: "hours", label: "Horas de sesión", type: "number", extraPrice: 40000 },
+      { key: "editing", label: "Edición incluida", type: "checkbox", extraPrice: 60000 }
+    ]
+  },
+  {
+    name: "Transporte y Mudanzas",
+    icon: "🚚",
+    fields: [
+      { key: "rooms", label: "Número de habitaciones", type: "number", extraPrice: 80000 },
+      { key: "distance", label: "Distancia aproximada (km)", type: "number", extraPrice: 5000 }
+    ]
+  },
+  {
+    name: "Belleza y Maquillaje a Domicilio",
+    icon: "💄",
+    fields: [
+      { key: "people", label: "Número de personas", type: "number", extraPrice: 25000 },
+      { key: "travel", label: "Desplazamiento", type: "checkbox", extraPrice: 30000 }
+    ]
+  },
+  {
+    name: "Clases Particulares",
+    icon: "📚",
+    fields: [
+      { key: "sessions", label: "Número de sesiones", type: "number", extraPrice: 35000 },
+      { key: "online", label: "Clase online", type: "checkbox", extraPrice: 0 }
+    ]
+  },
+  {
+    name: "Artesanías y Productos Hechos a Mano",
+    icon: "🧶",
+    fields: [
+      { key: "quantity", label: "Cantidad de piezas", type: "number", extraPrice: 15000 }
+    ]
+  },
+  {
+    name: "Cuidado Holístico y Bienestar",
+    icon: "🧘",
+    fields: [
+      { key: "sessions", label: "Número de sesiones", type: "number", extraPrice: 45000 },
+      { key: "homeVisit", label: "Visita a domicilio", type: "checkbox", extraPrice: 30000 }
+    ]
+  },
+  {
+    name: "Marketing Digital y Redes Sociales",
+    icon: "📱",
+    fields: [
+      { key: "months", label: "Meses de gestión", type: "number", extraPrice: 80000 }
+    ]
+  },
+  {
+    name: "Desarrollo Web y Tiendas Online",
+    icon: "💻",
+    fields: [
+      { key: "pages", label: "Número de páginas", type: "number", extraPrice: 120000 }
+    ]
+  },
+  {
+    name: "Edición de Video y Contenido Audiovisual",
+    icon: "🎥",
+    fields: [
+      { key: "minutes", label: "Minutos de video", type: "number", extraPrice: 25000 }
+    ]
+  },
+  {
+    name: "Asistente Virtual y Soporte Administrativo",
+    icon: "📋",
+    fields: [
+      { key: "hours", label: "Horas por semana", type: "number", extraPrice: 35000 }
+    ]
+  },
+  {
+    name: "Redacción de Contenidos y Copywriting",
+    icon: "✍️",
+    fields: [
+      { key: "words", label: "Número de palabras", type: "number", extraPrice: 8000 }
+    ]
+  },
+  {
+    name: "Reparaciones y Mantenimiento del Hogar",
+    icon: "🔧",
+    fields: [
+      { key: "urgency", label: "Urgencia (mismo día)", type: "checkbox", extraPrice: 50000 }
+    ]
+  },
+  {
+    name: "Clases de Idiomas y Tutorías Online",
+    icon: "🗣️",
+    fields: [
+      { key: "hours", label: "Horas por semana", type: "number", extraPrice: 40000 }
+    ]
+  },
+  {
+    name: "Diseño de Interiores y Arquitectura",
+    icon: "🏠",
+    fields: [
+      { key: "rooms", label: "Número de espacios", type: "number", extraPrice: 80000 }
+    ]
+  },
+  {
+    name: "Gestión de Eventos y Organización de Fiestas",
+    icon: "🎉",
+    fields: [
+      { key: "guests", label: "Número de invitados", type: "number", extraPrice: 15000 },
+      { key: "hours", label: "Horas de coordinación", type: "number", extraPrice: 45000 }
+    ]
+  }
 ];
 
 export default gigCategories;
