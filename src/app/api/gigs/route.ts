@@ -1,58 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 
-export async function POST(req: NextRequest) {
+export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Debes iniciar sesión" }, { status: 401 });
-    }
-
-    const body = await req.json();
-    const { 
-      title, 
-      description, 
-      price, 
-      category, 
-      imageUrl, 
-      fields = [], 
-      addons = [], 
-      completionTime = "2-5 días" 
-    } = body;
-
-    if (!title || !category || !price) {
-      return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
-    }
-
-    const gig = await prisma.gig.create({
-      data: {
-        title,
-        description,
-        price: Number(price),
-        category,
-        imageUrl: imageUrl || null,
-        fields: fields,
-        addons: addons,
-        completionTime,
-        sellerId: session.user.id,
+    const gigs = await prisma.gig.findMany({
+      include: {
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            businessName: true,
+            image: true
+          }
+        }
       },
+      orderBy: { createdAt: 'desc' }
     });
 
-    console.log("✅ Gig created successfully:", gig.id);
+    console.log(`📦 API returned ${gigs.length} gigs to buyers`);
 
     return NextResponse.json({ 
-      success: true, 
-      gigId: gig.id,
-      message: "Servicio publicado correctamente" 
+      gigs: gigs || [],
+      count: gigs.length 
     });
-
-  } catch (error: any) {
-    console.error("❌ Error creating gig:", error);
+  } catch (error) {
+    console.error("❌ Error fetching gigs:", error);
     return NextResponse.json({ 
-      error: "Error al guardar en la base de datos", 
-      details: error.message 
+      gigs: [], 
+      error: "Failed to load gigs" 
     }, { status: 500 });
   }
 }
