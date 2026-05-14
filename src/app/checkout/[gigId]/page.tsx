@@ -1,12 +1,17 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import DynamicCheckoutFields from '@/components/DynamicCheckoutFields';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
+
+declare global {
+  interface Window {
+    WompiCheckout?: any;
+  }
+}
 
 export default function CheckoutPage() {
   const params = useParams();
@@ -15,110 +20,110 @@ export default function CheckoutPage() {
   const { data: session } = useSession();
 
   const [gig, setGig] = useState<any>(null);
+  const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState<Record<string, any>>({});
-
-  const basePrice = Number(gig?.price || 0);
-
-  const calculatedPrice = useMemo(() => {
-    let total = basePrice;
-    const allFields = [
-      ...(gig?.fields || []),
-      ...((gigCategories.find((c: any) => c.name === gig?.category) || {}).fields || [])
-    ];
-
-    allFields.forEach((field: any) => {
-      const val = formData[field.key];
-      if (val == null || val === '') return;
-      const extra = Number(field.extraPrice || 0);
-      if (extra === 0) return;
-
-      if (field.type === 'checkbox' && val === true) total += extra;
-      else if (field.type === 'number') total += extra * (Number(val) || 0);
-    });
-    return Math.round(total);
-  }, [basePrice, formData, gig]);
+  const [opening, setOpening] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/gigs/${gigId}`)
-      .then(r => r.json())
-      .then(data => {
-        setGig(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    if (!gigId) return;
+    loadGigAndCreateOrder();
   }, [gigId]);
 
-  const handleFieldChange = (key: string, value: any) => {
-    setFormData(prev => ({ ...prev, [key]: value }));
-  };
-
-  const simulatePayment = async () => {
-    if (!gig || !session?.user?.id) return toast.error("Falta información");
-
-    const orderData = {
-      gigId: gig.id,
-      buyerId: session.user.id,
-      sellerId: gig.sellerId,
-      price: calculatedPrice,
-      status: 'Pending',
-      customFields: formData,
-    };
-
+  const loadGigAndCreateOrder = async () => {
     try {
-      const res = await fetch('/api/orders', {
+      // Load gig details
+      const gigRes = await fetch(`/api/gigs/${gigId}`);
+      const gigData = await gigRes.json();
+      setGig(gigData);
+
+      // Create order first (Pending)
+      const orderRes = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
+        body: JSON.stringify({ gigId })
       });
-      const result = await res.json();
-      if (result.order?.id) {
-        toast.success(`Orden creada #${result.order.id.slice(0,8)}`);
-        router.push(`/orders/${result.order.id}`);
-      }
-    } catch (e) {
-      toast.error("Error creando orden");
+
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.error);
+      
+      setOrder(orderData.order);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load checkout");
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (loading || !gig) return <div className="p-20 text-center">Cargando...</div>;
+  const openWompiWidget = async () => {
+    if (!order || !gig) return;
+    setOpening(true);
+
+    try {
+      const res = await fetch('/api/checkout/wompi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id })
+      });
+
+      const { checkoutUrl, error } = await res.json();
+      if (error) throw new Error(error);
+
+      // Open Wompi Widget
+      if (window.WompiCheckout) {
+        const checkout = new window.WompiCheckout({
+          publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
+          currency: 'COP',
+          amountInCents: order.price * 100,   // Important: cents
+          reference: order.id,
+          redirectUrl: `${window.location.origin}/orders/${order.id}`,
+          // Optional: customer data
+          customerData: {
+            email: session?.user?.email || '',
+            fullName: session?.user?.name || '',
+          }
+        });
+        checkout.open();
+      } else {
+        // Fallback: redirect to checkout URL
+        window.location.href = checkoutUrl;
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Could not open Wompi");
+    } finally {
+      setOpening(false);
+    }
+  };
+
+  if (loading) return <div className="p-20 text-center">Loading checkout...</div>;
+  if (!gig || !order) return <div className="p-20 text-center text-red-600">Error loading order</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-4xl font-bold mb-8">Checkout - {gig.title}</h1>
+    <div className="max-w-2xl mx-auto p-8">
+      <h1 className="text-3xl font-bold mb-8">Checkout</h1>
 
-      <div className="grid md:grid-cols-5 gap-8">
-        <div className="md:col-span-3 space-y-6">
-          <Card>
-            <CardHeader><CardTitle>Descripción del Servicio</CardTitle></CardHeader>
-            <CardContent className="prose"><p>{gig.description}</p></CardContent>
-          </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{gig.title}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex justify-between text-xl">
+            <span>Total to pay:</span>
+            <span className="font-bold">${order.price.toLocaleString('es-CO')}</span>
+          </div>
 
-          <DynamicCheckoutFields 
-            gig={gig} 
-            formData={formData}
-            onChange={handleFieldChange} 
-          />
-        </div>
+          <Button 
+            onClick={openWompiWidget} 
+            disabled={opening}
+            className="w-full py-8 text-lg bg-green-600 hover:bg-green-700"
+          >
+            {opening ? "Opening Wompi..." : "Pay with Wompi"}
+          </Button>
 
-        <div className="md:col-span-2">
-          <Card className="sticky top-6">
-            <CardHeader><CardTitle>Resumen del Pedido</CardTitle></CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex justify-between text-3xl font-bold">
-                <span>Precio Final</span>
-                <span className="text-orange-600">${calculatedPrice.toLocaleString('es-CO')} COP</span>
-              </div>
-
-              <Button onClick={simulatePayment} className="w-full py-8 text-xl bg-orange-600 hover:bg-orange-700">
-                Confirmar y Simular Pago
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+          <p className="text-center text-sm text-gray-500">
+            You will be redirected back after payment
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-
-import { gigCategories } from '@/lib/gig-categories';
