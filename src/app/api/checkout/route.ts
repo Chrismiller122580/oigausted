@@ -6,12 +6,18 @@ import { authOptions } from '@/lib/auth';
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { gigId } = await req.json();
-    const gig = await prisma.gig.findUnique({ where: { id: gigId } });
+    const gig = await prisma.gig.findUnique({ 
+      where: { id: gigId } 
+    });
 
-    if (!gig) return NextResponse.json({ error: "Gig not found" }, { status: 404 });
+    if (!gig) {
+      return NextResponse.json({ error: "Gig not found" }, { status: 404 });
+    }
 
     const order = await prisma.order.create({
       data: {
@@ -20,13 +26,23 @@ export async function POST(req: NextRequest) {
         gigId: gig.id,
         price: gig.price,
         status: 'Pending',
-        reference: `order_${Date.now()}`,
+        // reference removed - not in schema
+        customFields: {},   // Store any dynamic data here if needed
       }
     });
 
-    return NextResponse.json({ order });
+    console.log("✅ Order created:", order.id);
+
+    return NextResponse.json({ 
+      success: true, 
+      order 
+    });
+
   } catch (error: any) {
-    console.error(error);
-    return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
+    console.error("Checkout error:", error);
+    return NextResponse.json({ 
+      error: "Failed to create order", 
+      details: error.message 
+    }, { status: 500 });
   }
 }
