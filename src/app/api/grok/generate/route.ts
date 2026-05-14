@@ -1,37 +1,59 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const { prompt } = await request.json();
-    if (!prompt) return Response.json({ error: "Prompt required" }, { status: 400 });
+    const { title, category } = await req.json();
 
-    const GROK_API_KEY = process.env.GROK_API_KEY;
-
-    if (!GROK_API_KEY) {
-      return Response.json({ 
-        description: "¡Servicio profesional y confiable en Colombia! Ofrecemos calidad, atención al detalle y resultados garantizados." 
-      });
+    if (!title || !category) {
+      return NextResponse.json({ error: "Title and category are required" }, { status: 400 });
     }
 
-    const res = await fetch("https://api.x.ai/v1/chat/completions", {
-      method: "POST",
+    const prompt = `Eres un experto en servicios locales en Colombia. 
+Crea una descripción atractiva, profesional y persuasiva (máximo 250 palabras) para este gig:
+
+Título: ${title}
+Categoría: ${category}
+
+Incluye:
+- Qué ofrece exactamente
+- Beneficios para el cliente
+- Por qué elegir este servicio en Colombia
+- Tono cercano y confiable
+
+Responde SOLO con la descripción, sin introducciones.`;
+
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROK_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROK_API_KEY || process.env.XAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "grok-3",
+        model: "grok-3-mini",   // or grok-beta if you have access
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
-        max_tokens: 600,
+        max_tokens: 400,
       }),
     });
 
-    const data = await res.json();
-    const description = data.choices?.[0]?.message?.content || "No pude generar la descripción.";
-    return Response.json({ description });
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Grok API error:", data);
+      return NextResponse.json({ 
+        description: `Ofrezco ${title} en la categoría de ${category}. Servicio profesional y confiable en Colombia. Contáctame para más detalles.` 
+      });
+    }
+
+    const description = data.choices?.[0]?.message?.content?.trim() || 
+      `Servicio profesional de ${title} en ${category}. Calidad garantizada.`;
+
+    return NextResponse.json({ description });
+
   } catch (error) {
-    console.error(error);
-    return Response.json({ description: "Lo siento, error con Grok." });
+    console.error("Grok generate error:", error);
+    return NextResponse.json({ 
+      description: `Ofrezco ${title || "este servicio"} de forma profesional y confiable. Contáctame para coordinar.` 
+    });
   }
 }
