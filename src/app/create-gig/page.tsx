@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { gigCategories } from '@/lib/gig-categories';
 import { toast } from 'react-hot-toast';
 
@@ -34,20 +34,27 @@ export default function CreateGigPage() {
     formData.append('file', file);
     const res = await fetch('/api/upload', { method: 'POST', body: formData });
     const data = await res.json();
-    if (data.url) setImageUrl(data.url);
+    if (data.url) {
+      setImageUrl(data.url);
+      toast.success("Imagen subida");
+    }
   };
 
   const generateWithGrok = async () => {
     if (!title || !category) return toast.error("Título y categoría son obligatorios");
     setGenerating(true);
-    const res = await fetch('/api/grok/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, category })
-    });
-    const data = await res.json();
-    setDescription(data.description || '');
-    toast.success("Descripción y precio sugerido generados con Grok");
+    try {
+      const res = await fetch('/api/grok/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, category })
+      });
+      const data = await res.json();
+      setDescription(data.description || '');
+      toast.success("Grok generó descripción y precio sugerido");
+    } catch (e) {
+      toast.error("Grok no respondió");
+    }
     setGenerating(false);
   };
 
@@ -59,8 +66,12 @@ export default function CreateGigPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title, description, price: Number(price), category,
-        completionTime, imageUrl,
+        title,
+        description,
+        price: Number(price),
+        category,
+        completionTime,
+        imageUrl,
         fields: selectedCategory?.fields || [],
         addons: customOptions
       })
@@ -69,7 +80,9 @@ export default function CreateGigPage() {
     if (res.ok) {
       toast.success("¡Servicio publicado!");
       router.push('/seller');
-    } else toast.error("Error al publicar");
+    } else {
+      toast.error("Error al publicar");
+    }
   };
 
   return (
@@ -99,30 +112,25 @@ export default function CreateGigPage() {
           </div>
         </div>
 
-        {/* Smart Fields - now with prices */}
+        {/* SMART FIELDS */}
         {selectedCategory && (
           <Card>
-            <CardContent className="pt-6">
-              <h3 className="font-semibold mb-4">Detalles específicos de {selectedCategory.name}</h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                {selectedCategory.fields.map((f: any, i: number) => (
-                  <div key={i}>
-                    <Label>{f.label} {f.extraPrice ? `(+$${f.extraPrice})` : ''}</Label>
-                    {f.type === 'number' && <Input type="number" className="mt-1" />}
-                    {f.type === 'checkbox' && <input type="checkbox" className="mt-2 accent-orange-600" />}
-                    {f.type === 'select' && (
-                      <Select>
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Selecciona" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {f.options?.map((opt: string) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                ))}
-              </div>
+            <CardHeader>
+              <CardTitle>Detalles específicos de {selectedCategory.name}</CardTitle>
+            </CardHeader>
+            <CardContent className="grid md:grid-cols-2 gap-6 pt-2">
+              {selectedCategory.fields.map((f: any, i: number) => (
+                <div key={i}>
+                  <Label>{f.label} {f.extraPrice ? `(+$${f.extraPrice})` : ''}</Label>
+                  {f.type === 'number' && <Input type="number" className="mt-1" placeholder="Ej: 3" />}
+                  {f.type === 'checkbox' && (
+                    <label className="flex items-center gap-3 mt-2 cursor-pointer">
+                      <input type="checkbox" className="w-5 h-5 accent-orange-600" />
+                      <span>{f.label}</span>
+                    </label>
+                  )}
+                </div>
+              ))}
             </CardContent>
           </Card>
         )}
@@ -134,12 +142,12 @@ export default function CreateGigPage() {
 
         <div>
           <Label>Imagen del Servicio</Label>
-          <input type="file" accept="image/*" onChange={handleImageUpload} className="mt-2 block" />
+          <input type="file" accept="image/*" onChange={handleImageUpload} className="mt-2 block w-full" />
           {imageUrl && <img src={imageUrl} alt="preview" className="mt-4 max-h-48 rounded-xl" />}
         </div>
 
         <div>
-          <div className="flex justify-between mb-2">
+          <div className="flex justify-between items-center mb-2">
             <Label>Descripción del Servicio</Label>
             <Button type="button" onClick={generateWithGrok} disabled={generating || !title || !category}>
               {generating ? "Generando..." : "✨ Generar con Grok"}
