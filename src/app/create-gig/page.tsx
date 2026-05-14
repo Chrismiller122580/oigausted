@@ -21,17 +21,15 @@ export default function CreateGigPage() {
   const [basePrice, setBasePrice] = useState(0);
   const [category, setCategory] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [customOptions, setCustomOptions] = useState<any[]>([]);
   const [generating, setGenerating] = useState(false);
 
   const [formData, setFormData] = useState<Record<string, any>>({});
   const selectedCategory = gigCategories.find(c => c.name === category);
 
-  // Calculate live total
   const calculateTotal = () => {
     let total = basePrice || 0;
-
-    // Smart fields
     if (selectedCategory) {
       selectedCategory.fields.forEach((field: any) => {
         if (field.type === 'number' && formData[field.key]) {
@@ -41,12 +39,9 @@ export default function CreateGigPage() {
         }
       });
     }
-
-    // Custom options
     customOptions.forEach(opt => {
-      if (opt.extraPrice) total += Number(opt.extraPrice);
+      if (opt.extraPrice) total += Number(opt.extraPrice || 0);
     });
-
     return Math.round(total);
   };
 
@@ -56,38 +51,48 @@ export default function CreateGigPage() {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
-  const addCustomOption = () => {
-    setCustomOptions([...customOptions, { label: '', extraPrice: 0 }]);
-  };
-
   const handleImageUpload = async (e: any) => {
     const file = e.target.files[0];
     if (!file) return;
+    setUploading(true);
     const formData = new FormData();
     formData.append('file', file);
 
-    const res = await fetch('/api/upload', { method: 'POST', body: formData });
-    const data = await res.json();
-    if (data.url) {
-      setImageUrl(data.url);
-      toast.success("Imagen subida correctamente");
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.url) {
+        setImageUrl(data.url);
+        toast.success("Imagen subida correctamente");
+      } else {
+        toast.error("Error subiendo imagen");
+      }
+    } catch (err) {
+      toast.error("Error al subir la imagen");
     }
+    setUploading(false);
   };
 
   const generateWithGrok = async () => {
-    if (!title || !category) return toast.error("Título y categoría son obligatorios");
+    if (!title || !category) {
+      return toast.error("Escribe un título y selecciona categoría");
+    }
     setGenerating(true);
     try {
       const res = await fetch('/api/grok/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, category })
+        body: JSON.stringify({ title, category, type: 'gig-description' })
       });
       const data = await res.json();
-      setDescription(data.description || '');
-      toast.success("Grok generó descripción");
-    } catch (e) {
-      toast.error("Grok no respondió");
+      if (data.description) {
+        setDescription(data.description);
+        toast.success("✅ Descripción generada con Grok");
+      } else {
+        toast.error("Grok no devolvió descripción");
+      }
+    } catch (err) {
+      toast.error("No se pudo conectar con Grok");
     }
     setGenerating(false);
   };
@@ -115,7 +120,7 @@ export default function CreateGigPage() {
       toast.success("¡Servicio publicado exitosamente!");
       router.push('/seller');
     } else {
-      toast.error("Error al publicar el servicio");
+      toast.error("Error al publicar");
     }
   };
 
@@ -128,7 +133,7 @@ export default function CreateGigPage() {
         <div className="grid md:grid-cols-2 gap-6">
           <div>
             <Label>Título del Servicio</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="Ej: Clases de Inglés Conversacional" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
           </div>
           <div>
             <Label>Categoría</Label>
@@ -147,7 +152,6 @@ export default function CreateGigPage() {
           </div>
         </div>
 
-        {/* Smart Fields */}
         {selectedCategory && (
           <Card>
             <CardHeader>
@@ -184,42 +188,39 @@ export default function CreateGigPage() {
 
         <div>
           <Label>Precio Base (COP)</Label>
-          <Input 
-            type="number" 
-            value={basePrice} 
-            onChange={(e) => setBasePrice(Number(e.target.value))} 
-            required 
-          />
+          <Input type="number" value={basePrice} onChange={(e) => setBasePrice(Number(e.target.value))} required />
         </div>
 
         <div>
           <Label>Imagen del Servicio</Label>
           <input type="file" accept="image/*" onChange={handleImageUpload} className="mt-2 block w-full" />
-          {imageUrl && <img src={imageUrl} alt="preview" className="mt-4 max-h-48 rounded-2xl shadow" />}
+          {imageUrl && <img src={imageUrl} alt="preview" className="mt-4 max-h-64 rounded-2xl shadow-md" />}
+          {uploading && <p>Subiendo imagen...</p>}
         </div>
 
         <div>
           <div className="flex justify-between items-center mb-2">
             <Label>Descripción del Servicio</Label>
             <Button type="button" onClick={generateWithGrok} disabled={generating || !title || !category}>
-              {generating ? "Generando..." : "✨ Generar con Grok"}
+              {generating ? "Generando con Grok..." : "✨ Generar con Grok"}
             </Button>
           </div>
-          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} />
+          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={6} />
         </div>
 
-        {/* Live Total */}
-        <Card className="bg-orange-50 border-orange-200">
+        <Card className="bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200">
           <CardContent className="pt-6">
-            <div className="flex justify-between items-center text-xl">
-              <span className="font-semibold">Precio Total Estimado</span>
-              <span className="font-bold text-3xl text-orange-600">${totalPrice.toLocaleString('es-CO')}</span>
+            <div className="flex justify-between items-baseline">
+              <span className="text-lg font-medium">Precio Total Estimado</span>
+              <span className="text-4xl font-bold text-orange-600">
+                ${totalPrice.toLocaleString('es-CO')}
+              </span>
             </div>
-            <p className="text-sm text-gray-500 mt-1">Este es el precio que verá el comprador</p>
+            <p className="text-sm text-gray-500 mt-1">Este precio se mostrará al comprador</p>
           </CardContent>
         </Card>
 
-        <Button type="submit" className="w-full py-7 text-lg font-semibold">
+        <Button type="submit" className="w-full py-7 text-lg font-semibold bg-orange-600 hover:bg-orange-700">
           Publicar Servicio
         </Button>
       </form>
