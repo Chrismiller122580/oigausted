@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import Image from "next/image"
+import { toast } from 'react-hot-toast'
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -39,7 +40,7 @@ export default function SignUpPage() {
         return
       }
 
-      alert(`¡Registro exitoso como ${formData.role === "buyer" ? "Comprador" : "Vendedor"}!`)
+      toast.success(`¡Registro exitoso como ${formData.role === "buyer" ? "Comprador" : "Vendedor"}!`)
 
       if (formData.role === "seller") {
         router.push("/seller")

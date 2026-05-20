@@ -2,17 +2,21 @@
 
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera, Sparkles, Share2, MapPin, Phone, Award } from "lucide-react";
+import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 export default function ProfilePage() {
   const { data: session, update } = useSession();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [realStats, setRealStats] = useState({ rating: 0, reviewCount: 0, gigCount: 0 });
+  const [recentReviews, setRecentReviews] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -38,8 +42,29 @@ export default function ProfilePage() {
         city: user.city || "",
         instagram: user.instagram || "",
         facebook: user.facebook || "",
-        imageUrl: user.image || "",
+        imageUrl: user.image || user.profilePicture || "",
       });
+
+      // Load real reputation data for sellers
+      if (user.role === 'seller' && user.id) {
+        setRealStats({
+          rating: user.rating || 0,
+          reviewCount: user.reviewCount || 0,
+          gigCount: 0
+        });
+
+        // Fetch recent reviews
+        fetch(`/api/reviews?sellerId=${user.id}&limit=3`)
+          .then(r => r.json())
+          .then(data => setRecentReviews(data.reviews || []))
+          .catch(() => {});
+
+        // Fetch gig count
+        fetch('/api/seller/gigs')
+          .then(r => r.json())
+          .then(data => setRealStats(prev => ({ ...prev, gigCount: data.count || 0 })))
+          .catch(() => {});
+      }
     }
   }, [session]);
 
@@ -58,63 +83,144 @@ export default function ProfilePage() {
       const data = await res.json();
       if (data.url) setFormData({ ...formData, imageUrl: data.url });
     } catch (err) {
-      alert("Error subiendo foto");
+      toast.error("Error subiendo la foto");
     } finally {
       setUploading(false);
     }
   };
 
   const generateBio = async () => {
-    if (!formData.name) return alert("Escribe tu nombre primero");
+    if (!formData.name) return toast.error("Escribe tu nombre primero");
     try {
-      const res = await fetch('/api/grok', {
+      const res = await fetch('/api/grok/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          prompt: `Escribe una bio profesional y atractiva (máximo 180 caracteres) para ${formData.name} en OigaUsted.` 
+          title: formData.name,
+          category: "Perfil Personal",
+          type: 'bio'
         })
       });
       const data = await res.json();
-      if (data.reply || data.description) {
-        setFormData(prev => ({ ...prev, bio: data.reply || data.description }));
+      if (data.description || data.reply) {
+        setFormData(prev => ({ ...prev, bio: data.description || data.reply }));
+        toast.success("Bio generada con Grok");
       }
     } catch (err) {
-      alert("No se pudo generar bio");
+      toast.error("No se pudo generar la bio");
     }
   };
 
   const copyProfileLink = () => {
-    const userId = (session?.user as any)?.id || '';
-    const link = `${window.location.origin}/profile/${userId}`;
+    const user = session?.user as any;
+    const link = user?.role === 'seller' 
+      ? `${window.location.origin}/sellers/${user.id}`
+      : `${window.location.origin}/profile`;
+    
     navigator.clipboard.writeText(link);
-    alert("✅ Enlace copiado: " + link);
+    toast.success("Enlace del perfil copiado");
   };
 
   const saveProfile = async () => {
     setLoading(true);
     try {
-      await fetch('/api/user/profile', {
+      const res = await fetch('/api/user/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-      await update();
-      setIsEditing(false);
-      alert("✅ Perfil guardado correctamente");
+      
+      if (res.ok) {
+        await update();
+        setIsEditing(false);
+        toast.success("Perfil actualizado correctamente");
+      } else {
+        toast.error("Error al guardar el perfil");
+      }
     } catch (err) {
-      alert("Error al guardar");
+      toast.error("Error de conexión");
     } finally {
       setLoading(false);
     }
   };
 
-  const isSeller = (session?.user as any)?.role === 'seller';
+  const user = session?.user as any;
+  
+  // Local state to reflect role changes without full reload
+  const [currentRole, setCurrentRole] = useState(user?.role || 'buyer');
+  const isSeller = currentRole === 'seller';
+  const isBuyer = currentRole === 'buyer' || !currentRole;
+
+  const [showBecomeSeller, setShowBecomeSeller] = useState(false);
+  const [becomingSeller, setBecomingSeller] = useState(false);
+  const [sellerForm, setSellerForm] = useState({
+    businessName: '',
+    nit: '',
+    bio: '',
+  });
+
+  const handleBecomeSeller = async () => {
+    if (!sellerForm.businessName.trim()) {
+      return toast.error("El nombre del negocio es obligatorio");
+    }
+
+    setBecomingSeller(true);
+    try {
+      const res = await fetch('/api/user/become-seller', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          businessName: sellerForm.businessName,
+          nit: sellerForm.nit,
+          bio: sellerForm.bio || formData.bio,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("¡Felicidades! Ahora eres vendedor");
+        await update(); // refresh session data
+        
+        // Optimistic update for smooth UX (no full reload)
+        setCurrentRole('seller');
+        setShowBecomeSeller(false);
+        
+        // Show next steps message
+        setTimeout(() => {
+          toast.success("¡Listo! Ya puedes publicar tu primer gig", { duration: 5000 });
+        }, 1200);
+      } else {
+        toast.error(data.error || "No se pudo completar el proceso");
+      }
+    } catch (err) {
+      toast.error("Error al convertirte en vendedor");
+    } finally {
+      setBecomingSeller(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-4xl mx-auto px-6">
         <div className="flex justify-between items-center mb-10">
-          <h1 className="text-5xl font-bold">Mi Perfil</h1>
+          <div>
+            <h1 className="text-5xl font-bold">Mi Perfil</h1>
+            <div className="mt-1">
+              {isSeller && (
+                <span className="inline-block bg-orange-100 text-orange-700 px-4 py-1 rounded-full text-sm font-medium">
+                  Vendedor
+                </span>
+              )}
+              {isBuyer && (
+                <span className="inline-block bg-blue-100 text-blue-700 px-4 py-1 rounded-full text-sm font-medium">
+                  Comprador
+                </span>
+              )}
+            </div>
+          </div>
+
           <div className="flex gap-3">
             <Button onClick={copyProfileLink} variant="outline">
               <Share2 size={18} className="mr-2" /> Compartir Perfil
@@ -145,6 +251,120 @@ export default function ProfilePage() {
           </div>
 
           <CardContent className="pt-20 px-10 pb-12">
+            {/* Seller Quick Links */}
+            {isSeller && !isEditing && (
+              <div className="mb-8 flex flex-wrap gap-3">
+                <Link href="/seller/profile">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    Mi Negocio <ExternalLink size={16} />
+                  </Button>
+                </Link>
+                <Link href={`/sellers/${user?.id}`} target="_blank">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    Ver perfil público <ExternalLink size={16} />
+                  </Button>
+                </Link>
+                <Link href="/create-gig">
+                  <Button className="bg-orange-600 hover:bg-orange-700">
+                    Publicar nuevo gig
+                  </Button>
+                </Link>
+              </div>
+            )}
+
+            {/* Become a Seller CTA for Buyers */}
+            {isBuyer && !isEditing && (
+              <div className="mb-10 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-3xl p-8">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-semibold text-orange-800 mb-2">
+                      ¿Quieres empezar a vender tus servicios?
+                    </h3>
+                    <p className="text-orange-700 mb-4">
+                      Únete a cientos de profesionales locales que ya están generando ingresos en OigaUsted.
+                    </p>
+                    <ul className="text-sm text-orange-600 space-y-1">
+                      <li>✓ Publica tus propios gigs</li>
+                      <li>✓ Recibe pedidos y ganancias directas</li>
+                      <li>✓ Construye tu reputación con reseñas</li>
+                    </ul>
+                  </div>
+                  <div className="lg:shrink-0">
+                    <Button 
+                      onClick={() => setShowBecomeSeller(true)} 
+                      className="w-full lg:w-auto bg-orange-600 hover:bg-orange-700 text-lg px-10 py-6 rounded-2xl"
+                    >
+                      Convertirme en Vendedor
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Become Seller Form */}
+            {showBecomeSeller && isBuyer && (
+              <div className="mb-10 bg-white border border-orange-200 rounded-3xl p-8">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-semibold">Datos de tu Negocio</h3>
+                  <p className="text-gray-600 mt-1">Esta información aparecerá en tu perfil público de vendedor.</p>
+                </div>
+                
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">Nombre del Negocio <span className="text-red-500">*</span></label>
+                    <Input 
+                      value={sellerForm.businessName} 
+                      onChange={(e) => setSellerForm({ ...sellerForm, businessName: e.target.value })}
+                      placeholder="Ej: Limpieza Profesional Bucaramanga"
+                      className="text-lg"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Este nombre se mostrará a tus clientes.</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5">NIT (opcional)</label>
+                      <Input 
+                        value={sellerForm.nit} 
+                        onChange={(e) => setSellerForm({ ...sellerForm, nit: e.target.value })}
+                        placeholder="Ej: 901234567-8"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5">Descripción corta (opcional)</label>
+                      <Input 
+                        value={sellerForm.bio} 
+                        onChange={(e) => setSellerForm({ ...sellerForm, bio: e.target.value })}
+                        placeholder="Limpieza profunda de hogares y oficinas"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 mt-8">
+                  <Button 
+                    onClick={handleBecomeSeller} 
+                    disabled={becomingSeller || !sellerForm.businessName.trim()}
+                    className="flex-1 py-6 text-lg bg-orange-600 hover:bg-orange-700"
+                  >
+                    {becomingSeller ? "Procesando..." : "Confirmar y Convertirme en Vendedor"}
+                  </Button>
+                  <Button 
+                    onClick={() => setShowBecomeSeller(false)} 
+                    variant="outline"
+                    className="flex-1 py-6 text-lg"
+                    disabled={becomingSeller}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+
+                <p className="text-xs text-center text-gray-500 mt-4">
+                  Podrás editar más detalles (fotos, redes, etc.) en la sección <strong>Mi Negocio</strong> después.
+                </p>
+              </div>
+            )}
+
             {isEditing ? (
               <div className="space-y-8">
                 <Input name="name" value={formData.name} onChange={handleChange} className="text-4xl font-bold" placeholder="Tu nombre" />
@@ -161,6 +381,8 @@ export default function ProfilePage() {
                   <Input name="phone" value={formData.phone} onChange={handleChange} placeholder="Teléfono" />
                   <Input name="whatsapp" value={formData.whatsapp} onChange={handleChange} placeholder="WhatsApp" />
                   <Input name="city" value={formData.city} onChange={handleChange} placeholder="Ciudad" />
+                  <Input name="instagram" value={formData.instagram} onChange={handleChange} placeholder="Instagram" />
+                  <Input name="facebook" value={formData.facebook} onChange={handleChange} placeholder="Facebook" />
                 </div>
 
                 <Button onClick={saveProfile} disabled={loading} className="w-full py-6 text-lg">
@@ -180,15 +402,52 @@ export default function ProfilePage() {
                   {formData.city && <div className="flex items-center gap-3"><MapPin /> {formData.city}</div>}
                   {formData.phone && <div className="flex items-center gap-3"><Phone /> {formData.phone}</div>}
                   {formData.whatsapp && <div className="flex items-center gap-3">💬 {formData.whatsapp}</div>}
+                  {formData.instagram && <div className="flex items-center gap-3">📷 {formData.instagram}</div>}
                 </div>
 
+                {/* Seller Reputation Section */}
                 {isSeller && (
-                  <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-8 rounded-3xl flex items-center gap-6">
-                    <Award className="w-14 h-14 text-orange-600" />
-                    <div>
-                      <p className="font-semibold text-xl">Vendedor Verificado</p>
-                      <p className="text-gray-600">Parte de la comunidad confiable de OigaUsted</p>
+                  <div className="bg-white border rounded-3xl p-8">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <Award className="w-8 h-8 text-orange-600" />
+                          <span className="font-semibold text-xl">Tu Reputación</span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-5xl font-bold text-yellow-600">
+                            {realStats.rating ? realStats.rating.toFixed(1) : "—"}
+                          </span>
+                          <span className="text-2xl text-yellow-500">★</span>
+                        </div>
+                        <p className="text-gray-600 mt-1">
+                          {realStats.reviewCount} reseñas • {realStats.gigCount} servicios
+                        </p>
+                      </div>
+
+                      <Link href={`/sellers/${(session?.user as any)?.id}`} target="_blank">
+                        <Button variant="outline" className="flex items-center gap-2">
+                          Ver perfil público <ExternalLink size={16} />
+                        </Button>
+                      </Link>
                     </div>
+
+                    {/* Mini recent reviews */}
+                    {recentReviews.length > 0 && (
+                      <div className="mt-6 pt-6 border-t">
+                        <p className="text-sm font-medium text-gray-500 mb-3">Últimas reseñas</p>
+                        <div className="space-y-3">
+                          {recentReviews.map((r, idx) => (
+                            <div key={idx} className="flex gap-3 text-sm">
+                              <div className="flex text-yellow-500 shrink-0">
+                                {[1,2,3,4,5].map(n => <span key={n}>{n <= r.rating ? "★" : "☆"}</span>)}
+                              </div>
+                              <p className="text-gray-600 line-clamp-2">"{r.comment || 'Sin comentario'}"</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

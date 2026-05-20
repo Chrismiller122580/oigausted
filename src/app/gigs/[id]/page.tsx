@@ -13,24 +13,29 @@ export default function GigDetailPage() {
   const { data: session, status } = useSession();
 
   const [gig, setGig] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (status === "loading") return;
-    if (!session?.user) {
-      router.push(`/login?callbackUrl=/gigs/${params.id}`);
-      return;
-    }
     fetchGig();
-  }, [session, status, params.id, router]);
+  }, [status, params.id]);
 
   const fetchGig = async () => {
     try {
       const res = await fetch(`/api/gigs/${params.id}`);
       if (!res.ok) throw new Error("Gig no encontrado");
       const data = await res.json();
-      setGig(data.gig || data);
+      const loadedGig = data.gig || data;
+      setGig(loadedGig);
+
+      // Load reviews for this seller (or this specific gig)
+      if (loadedGig?.seller?.id) {
+        const reviewsRes = await fetch(`/api/reviews?sellerId=${loadedGig.seller.id}&limit=4`);
+        const reviewsData = await reviewsRes.json();
+        setReviews(reviewsData.reviews || []);
+      }
     } catch (err: any) {
       setError(err.message || "Error al cargar el gig");
     } finally {
@@ -40,14 +45,58 @@ export default function GigDetailPage() {
 
   const handleBuyNow = () => {
     if (!gig) return;
+
+    if (!session?.user) {
+      router.push(`/login?callbackUrl=/gigs/${params.id}`);
+      return;
+    }
+
     router.push(`/checkout/${gig.id}`);
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-xl">Cargando gig...</div>;
-  if (error || !gig) return <div className="min-h-screen flex items-center justify-center text-red-600">{error || "Gig no encontrado"}</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-lg text-gray-600">Cargando servicio...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !gig) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 text-xl mb-4">{error || "Gig no encontrado"}</p>
+          <Link href="/gigs" className="text-emerald-600 hover:underline">
+            Volver al listado de gigs
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const userId = (session?.user as any)?.id;
   const isOwnGig = userId && (userId === gig.sellerId || userId === gig.seller?.id);
+
+  // Helper to safely parse fields/addons which are stored as JSON strings
+  const parseJsonField = (field: any) => {
+    if (!field) return [];
+    if (Array.isArray(field)) return field;
+    if (typeof field === 'string') {
+      try {
+        const parsed = JSON.parse(field);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  const gigFields = parseJsonField(gig?.fields);
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -95,18 +144,75 @@ export default function GigDetailPage() {
               </p>
             </div>
 
-            {gig.fields && Object.keys(gig.fields).length > 0 && (
+            {/* Reviews Section */}
+            <div>
+              <h2 className="text-2xl font-semibold mb-4 flex items-center justify-between">
+                Reseñas
+                {reviews.length > 0 && (
+                  <span className="text-sm font-normal text-gray-500">
+                    {reviews.length} recientes
+                  </span>
+                )}
+              </h2>
+
+              {reviews.length > 0 ? (
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <div key={review.id || review.createdAt} className="bg-white border rounded-3xl p-6">
+                      <div className="flex gap-1 text-xl mb-3">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <span key={n}>{n <= review.rating ? '⭐' : '☆'}</span>
+                        ))}
+                      </div>
+                      {review.comment && (
+                        <p className="text-gray-700 mb-4">"{review.comment}"</p>
+                      )}
+                      <div className="text-sm text-gray-500 flex items-center justify-between">
+                        <span>— {review.reviewer?.name || 'Cliente anónimo'}</span>
+                        <span className="text-xs">
+                          {new Date(review.createdAt).toLocaleDateString('es-CO')}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white border rounded-3xl p-8 text-center text-gray-500">
+                  Aún no hay reseñas para este vendedor.
+                  <br />
+                  <span className="text-sm">Sé el primero en dejar una después de tu compra.</span>
+                </div>
+              )}
+
+              {gig.seller?.id && reviews.length > 0 && (
+                <div className="mt-4 text-right">
+                  <Link
+                    href={`/sellers/${gig.seller.id}`}
+                    className="inline-flex items-center gap-1 text-sm text-emerald-600 hover:underline font-medium"
+                  >
+                    Ver todas las reseñas del vendedor →
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {gigFields.length > 0 && (
               <div>
-                <h2 className="text-2xl font-semibold mb-6">Detalles específicos del servicio</h2>
+                <h2 className="text-2xl font-semibold mb-6">Opciones del servicio</h2>
                 <div className="grid gap-4">
-                  {Object.entries(gig.fields).map(([key, value]) => (
-                    <div key={key} className="bg-white p-6 rounded-3xl border">
+                  {gigFields.map((field: any, index: number) => (
+                    <div key={index} className="bg-white p-6 rounded-3xl border">
                       <p className="text-sm uppercase tracking-widest text-gray-500 mb-1">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                        {field.label || field.key}
                       </p>
                       <p className="text-lg font-medium text-gray-900">
-                        {String(value) || "No especificado"}
+                        {field.extraPrice 
+                          ? `+$${field.extraPrice.toLocaleString('es-CO')} COP` 
+                          : "Incluido"}
                       </p>
+                      {field.type && (
+                        <p className="text-xs text-gray-500 mt-1">Tipo: {field.type}</p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -115,7 +221,7 @@ export default function GigDetailPage() {
           </div>
 
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-3xl p-8 shadow-sm border sticky top-8">
+            <div className="bg-white rounded-3xl p-8 shadow-sm border lg:sticky lg:top-8">
               <div className="text-5xl sm:text-6xl font-bold text-emerald-600 mb-1">
                 ${gig.price?.toLocaleString("es-CO")}
               </div>
@@ -137,16 +243,26 @@ export default function GigDetailPage() {
 
               <div className="border-t pt-8">
                 <p className="text-sm text-gray-500 mb-3">Vendido por</p>
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-3xl">
-                    👤
+                <Link href={`/sellers/${gig.seller?.id}`} className="group block">
+                  <div className="flex items-center gap-4 hover:bg-gray-50 -mx-2 px-2 py-2 rounded-2xl transition">
+                    <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0">
+                      👤
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-lg group-hover:text-emerald-600 transition">
+                        {gig.seller?.businessName || gig.seller?.name || "Vendedor"}
+                      </p>
+                      {gig.seller?.rating && gig.seller.rating > 0 && (
+                        <div className="flex items-center gap-1 text-sm text-amber-600">
+                          ⭐ {gig.seller.rating.toFixed(1)}
+                          {gig.seller.reviewCount > 0 && (
+                            <span className="text-gray-400">({gig.seller.reviewCount} reseñas)</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-lg">
-                      {gig.seller?.businessName || gig.seller?.name || "Vendedor"}
-                    </p>
-                  </div>
-                </div>
+                </Link>
               </div>
             </div>
           </div>

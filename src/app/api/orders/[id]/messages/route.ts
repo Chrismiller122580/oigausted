@@ -15,14 +15,12 @@ export async function GET(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const messages = await prisma.message.findMany({
+    const messages = await prisma.orderMessage.findMany({
       where: { orderId },
-      orderBy: { createdAt: 'asc' },
-      include: {
-        sender: { select: { name: true, businessName: true } }
-      }
+      orderBy: { createdAt: 'asc' }
     });
 
+    // Return in a shape the frontend can consume (array or {messages: [...]})
     return NextResponse.json(messages);
   } catch (error) {
     console.error('Messages GET error:', error);
@@ -42,21 +40,40 @@ export async function POST(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { text, fileUrl } = await request.json();
+    const contentType = request.headers.get('content-type') || '';
 
-    const message = await prisma.message.create({
+    let content = '';
+    let isFromBuyer = true;
+
+    if (contentType.includes('multipart/form-data')) {
+      // File upload path (basic support - files should ideally go to /api/upload + OrderFile)
+      // For now we store a placeholder message; real file handling can be improved later
+      const formData = await request.formData();
+      const file = formData.get('file') as File | null;
+      content = file ? `📎 Archivo: ${file.name}` : '📎 Archivo adjunto';
+    } else {
+      // JSON text message
+      const body = await request.json().catch(() => ({}));
+      content = body.content || body.text || '';
+    }
+
+    // Determine direction (best effort using order)
+    try {
+      const order = await prisma.order.findUnique({ where: { id: orderId }, select: { buyerId: true } });
+      if (order) {
+        isFromBuyer = session.user.id === order.buyerId;
+      }
+    } catch {}
+
+    const message = await prisma.orderMessage.create({
       data: {
         orderId,
-        senderId: session.user.id,
-        text: text || '',
-        fileUrl: fileUrl || null,
-      },
-      include: {
-        sender: { select: { name: true, businessName: true } }
+        content: content || '(sin contenido)',
+        isFromBuyer,
       }
     });
 
-    return NextResponse.json(message);
+    return NextResponse.json({ message }); // frontend does data.message in some paths
   } catch (error) {
     console.error('Messages POST error:', error);
     return NextResponse.json({ error: 'Error enviando mensaje' }, { status: 500 });

@@ -23,18 +23,46 @@ export default function SellerEarningsPage() {
 
   const fetchEarnings = async () => {
     try {
+      const res = await fetch('/api/orders?role=seller');
+      const data = await res.json();
+      const sellerOrders = Array.isArray(data) ? data : [];
+
+      const completedOrders = sellerOrders.filter(o => o.status === 'Completed');
+      const pendingOrders = sellerOrders.filter(o => o.status === 'Completed' && o.paymentStatus !== 'Paid'); // adjust if you have paymentStatus
+
+      const total = completedOrders.reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+
+      // This month calculation
+      const now = new Date();
+      const thisMonth = completedOrders
+        .filter(o => new Date(o.createdAt).getMonth() === now.getMonth() && new Date(o.createdAt).getFullYear() === now.getFullYear())
+        .reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+
+      // For "pending", we'll treat orders that are Completed but not yet paid (you may want to refine this)
+      const pendingAmount = sellerOrders
+        .filter(o => o.status === 'Completed' && (o.paymentStatus !== 'Paid'))
+        .reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+
       setEarnings({
-        total: 8450000,
-        thisMonth: 2340000,
-        pending: 890000,
-        completedGigs: 23,
+        total,
+        thisMonth,
+        pending: pendingAmount,
+        completedGigs: completedOrders.length,
       });
 
-      setTransactions([
-        { id: 1, date: "15 Abr 2026", gig: "Limpieza profunda oficina", amount: 450000, status: "Pagado" },
-        { id: 2, date: "08 Abr 2026", gig: "DJ para boda", amount: 1200000, status: "Pagado" },
-        { id: 3, date: "02 Abr 2026", gig: "Sesión fotográfica", amount: 850000, status: "Pendiente" },
-      ]);
+      // Build transaction list from completed orders
+      const tx = completedOrders
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 15)
+        .map(o => ({
+          id: o.id,
+          date: new Date(o.createdAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }),
+          gig: o.gig?.title || 'Servicio',
+          amount: Number(o.price) || 0,
+          status: o.paymentStatus === 'Paid' ? 'Pagado' : 'Pendiente',
+        }));
+
+      setTransactions(tx);
     } catch (error) {
       console.error(error);
     } finally {
@@ -42,7 +70,16 @@ export default function SellerEarningsPage() {
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando ganancias...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-lg text-gray-600">Cargando ganancias...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -98,27 +135,33 @@ export default function SellerEarningsPage() {
         <Card>
           <CardContent className="p-10">
             <h3 className="text-2xl font-semibold mb-8">Historial de Pagos</h3>
-            <div className="space-y-4">
-              {transactions.map((t) => (
-                <div key={t.id} className="flex items-center justify-between border-b pb-6 last:border-0">
-                  <div>
-                    <p className="font-medium">{t.gig}</p>
-                    <p className="text-sm text-gray-500">{t.date}</p>
+            {transactions.length > 0 ? (
+              <div className="space-y-4">
+                {transactions.map((t) => (
+                  <div key={t.id} className="flex items-center justify-between border-b pb-6 last:border-0">
+                    <div>
+                      <p className="font-medium">{t.gig}</p>
+                      <p className="text-sm text-gray-500">{t.date}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-green-600">+${t.amount.toLocaleString('es-CO')}</p>
+                      <p className={`text-sm ${t.status === 'Pagado' ? 'text-green-600' : 'text-amber-600'}`}>
+                        {t.status}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-green-600">+${t.amount.toLocaleString('es-CO')}</p>
-                    <p className={`text-sm ${t.status === 'Pagado' ? 'text-green-600' : 'text-amber-600'}`}>
-                      {t.status}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-10 text-gray-500">
+                Aún no tienes transacciones registradas.
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <div className="mt-12 text-center text-gray-500">
-          Próximamente: Retiros a cuenta bancaria y reportes detallados
+        <div className="mt-12 text-center text-gray-500 text-sm">
+          Los retiros a cuenta bancaria y reportes avanzados estarán disponibles próximamente.
         </div>
       </div>
     </div>

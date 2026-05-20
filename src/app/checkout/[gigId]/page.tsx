@@ -24,6 +24,9 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState(false);
 
+  // Dynamic fields selections
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
+
   useEffect(() => {
     if (!gigId) return;
     loadGigAndCreateOrder();
@@ -31,22 +34,26 @@ export default function CheckoutPage() {
 
   const loadGigAndCreateOrder = async () => {
     try {
-      // Load gig details
+      // Load gig details (the API now returns { gig: ... } or the gig directly)
       const gigRes = await fetch(`/api/gigs/${gigId}`);
-      const gigData = await gigRes.json();
+      const gigResponse = await gigRes.json();
+      const gigData = gigResponse.gig || gigResponse;
+
+      if (!gigData) throw new Error("Gig not found");
+
       setGig(gigData);
 
-      // Create order first (Pending)
+      // Create order (Pending) — this happens before payment
       const orderRes = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ gigId })
       });
 
-      const orderData = await orderRes.json();
-      if (!orderRes.ok) throw new Error(orderData.error);
+      const orderResponse = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderResponse.error || "Failed to create order");
       
-      setOrder(orderData.order);
+      setOrder(orderResponse.order || orderResponse);
     } catch (err: any) {
       toast.error(err.message || "Failed to load checkout");
     } finally {
@@ -59,33 +66,48 @@ export default function CheckoutPage() {
     setOpening(true);
 
     try {
+      // 1. Save the buyer's selections + final price to the order before payment
+      const updateRes = await fetch(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          price: finalPrice,
+          customFields: selectedOptions,
+        }),
+      });
+
+      if (!updateRes.ok) {
+        const errData = await updateRes.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to save your selections');
+      }
+
+      // 2. Prepare Wompi checkout
       const res = await fetch('/api/checkout/wompi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId: order.id })
       });
 
-      const { checkoutUrl, error } = await res.json();
-      if (error) throw new Error(error);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
 
-      // Open Wompi Widget
-      if (window.WompiCheckout) {
+      const checkoutData = data.checkoutData;
+
+      // 3. Open Wompi with the final amount
+      if (window.WompiCheckout && checkoutData) {
         const checkout = new window.WompiCheckout({
-          publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
-          currency: 'COP',
-          amountInCents: order.price * 100,   // Important: cents
-          reference: order.id,
-          redirectUrl: `${window.location.origin}/orders/${order.id}`,
-          // Optional: customer data
-          customerData: {
-            email: session?.user?.email || '',
-            fullName: session?.user?.name || '',
-          }
+          publicKey: checkoutData.publicKey,
+          currency: checkoutData.currency,
+          amountInCents: finalPrice * 100,
+          reference: checkoutData.reference,
+          redirectUrl: checkoutData.redirectUrl,
+          customerData: checkoutData.customerData,
         });
         checkout.open();
+      } else if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
       } else {
-        // Fallback: redirect to checkout URL
-        window.location.href = checkoutUrl;
+        toast.error("No se pudo iniciar el pago con Wompi");
       }
     } catch (err: any) {
       toast.error(err.message || "Could not open Wompi");
@@ -94,33 +116,217 @@ export default function CheckoutPage() {
     }
   };
 
-  if (loading) return <div className="p-20 text-center">Loading checkout...</div>;
-  if (!gig || !order) return <div className="p-20 text-center text-red-600">Error loading order</div>;
+  // Parse dynamic fields safely
+  const getFields = () => {
+    if (!gig?.fields) return [];
+    if (Array.isArray(gig.fields)) return gig.fields;
+    if (typeof gig.fields === 'string') {
+      try {
+        const parsed = JSON.parse(gig.fields);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  const fields = getFields();
+
+  // Calculate extra cost from selections
+  const calculateExtra = () => {
+    let extra = 0;
+    fields.forEach((field: any) => {
+      const value = selectedOptions[field.key];
+      if (!value) return;
+
+      if (field.type === 'number' && typeof value === 'number') {
+        extra += value * (field.extraPrice || 0);
+      } else if (field.type === 'checkbox' && value === true) {
+        extra += field.extraPrice || 0;
+      }
+    });
+    return extra;
+  };
+
+  const extraCost = calculateExtra();
+  const finalPrice = (gig?.price || 0) + extraCost;
+
+  // Handle field change
+  const handleFieldChange = (key: string, value: any) => {
+    setSelectedOptions(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-lg text-gray-600">Cargando checkout...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!gig || !order) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 text-xl mb-4">Error cargando el checkout</p>
+          <Button onClick={() => router.push('/gigs')} variant="outline">
+            Volver a los gigs
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const isOwnGig = session?.user && gig?.sellerId && (session.user as any).id === gig.sellerId;
+
+  if (isOwnGig) {
+    return (
+      <div className="max-w-2xl mx-auto p-8 text-center">
+        <h1 className="text-2xl font-bold mb-4">No puedes comprar tu propio gig</h1>
+        <p className="text-gray-600 mb-6">Este servicio te pertenece.</p>
+        <Button onClick={() => router.push('/seller')} variant="outline">
+          Ir a Mi Negocio
+        </Button>
+      </div>
+    );
+  }
+
+  // Render interactive dynamic fields
+  const renderDynamicFields = () => {
+    if (!fields || fields.length === 0) return null;
+
+    return (
+      <div className="bg-gray-50 p-6 rounded-2xl">
+        <p className="font-semibold text-gray-800 mb-4">Personaliza tu servicio</p>
+        <div className="space-y-5">
+          {fields.map((field: any, index: number) => {
+            const currentValue = selectedOptions[field.key];
+
+            return (
+              <div key={index}>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  {field.label}
+                  {field.extraPrice && (
+                    <span className="text-orange-600 ml-1">
+                      (+${field.extraPrice.toLocaleString('es-CO')})
+                    </span>
+                  )}
+                </label>
+
+                {field.type === 'number' && (
+                  <input
+                    type="number"
+                    min="0"
+                    value={currentValue ?? ''}
+                    onChange={(e) => handleFieldChange(field.key, parseInt(e.target.value) || 0)}
+                    className="w-full border rounded-xl px-4 py-3 text-lg"
+                    placeholder="0"
+                  />
+                )}
+
+                {field.type === 'checkbox' && (
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!currentValue}
+                      onChange={(e) => handleFieldChange(field.key, e.target.checked)}
+                      className="w-5 h-5 accent-orange-600"
+                    />
+                    <span className="text-gray-700">Sí, incluir</span>
+                  </label>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-2xl mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-8">Checkout</h1>
+      <h1 className="text-3xl font-bold mb-8">Confirmar Compra</h1>
 
       <Card>
         <CardHeader>
-          <CardTitle>{gig.title}</CardTitle>
+          <CardTitle className="text-2xl">{gig.title}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex justify-between text-xl">
-            <span>Total to pay:</span>
-            <span className="font-bold">${order.price.toLocaleString('es-CO')}</span>
+          <div>
+            <p className="text-sm text-gray-500">Vendedor</p>
+            <p className="font-medium">{gig.seller?.businessName || gig.seller?.name}</p>
+          </div>
+
+          {/* Dynamic fields configuration */}
+          {renderDynamicFields()}
+
+          {/* Payment Breakdown */}
+          <div className="bg-white border rounded-2xl p-5 text-sm">
+            <p className="font-semibold text-gray-800 mb-3">Resumen del pago</p>
+
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Precio base del servicio</span>
+                <span>${(gig?.price || 0).toLocaleString('es-CO')}</span>
+              </div>
+
+              {Object.keys(selectedOptions).length > 0 && (
+                <div className="pl-2 border-l-2 border-gray-200">
+                  {Object.entries(selectedOptions).map(([key, value], idx) => {
+                    // Find the field definition to show the extra price
+                    const fieldDef = fields.find((f: any) => f.key === key);
+                    let extra = 0;
+
+                    if (fieldDef) {
+                      if (fieldDef.type === 'number' && typeof value === 'number') {
+                        extra = value * (fieldDef.extraPrice || 0);
+                      } else if (fieldDef.type === 'checkbox' && value === true) {
+                        extra = fieldDef.extraPrice || 0;
+                      }
+                    }
+
+                    return (
+                      <div key={idx} className="flex justify-between text-gray-600">
+                        <span>{key} {value && `(${value})`}</span>
+                        <span>+${extra.toLocaleString('es-CO')}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t mt-3 pt-3 flex justify-between font-semibold text-base">
+              <span>Total a pagar</span>
+              <span className="text-orange-600">${finalPrice.toLocaleString('es-CO')} COP</span>
+            </div>
+          </div>
+
+          <div className="border-t pt-4 flex justify-between text-2xl font-semibold">
+            <span>Total a pagar</span>
+            <span className="text-orange-600">
+              ${finalPrice.toLocaleString('es-CO')} COP
+            </span>
           </div>
 
           <Button 
             onClick={openWompiWidget} 
-            disabled={opening}
+            disabled={opening || !order}
             className="w-full py-8 text-lg bg-green-600 hover:bg-green-700"
           >
-            {opening ? "Opening Wompi..." : "Pay with Wompi"}
+            {opening ? "Abriendo Wompi..." : `Pagar con Wompi — $${finalPrice.toLocaleString('es-CO')}`}
           </Button>
 
-          <p className="text-center text-sm text-gray-500">
-            You will be redirected back after payment
+          <p className="text-center text-xs text-gray-500">
+            Serás redirigido a Wompi para completar el pago de forma segura. 
+            Una vez pagado, volverás automáticamente a tus pedidos.
           </p>
         </CardContent>
       </Card>

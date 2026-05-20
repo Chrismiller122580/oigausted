@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { gigCategories } from '@/lib/gig-categories';
 
 export default function OrderDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const orderId = params.id as string;
   const { data: session } = useSession();
 
@@ -19,8 +20,10 @@ export default function OrderDetailPage() {
   const [newMessage, setNewMessage] = useState('');
   const [reviewText, setReviewText] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
+  const [existingReview, setExistingReview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'progress' | 'review'>('overview');
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const isBuyer = order?.buyerId === session?.user?.id;
   const isSeller = order?.sellerId === session?.user?.id;
@@ -30,13 +33,39 @@ export default function OrderDetailPage() {
     if (!orderId) return;
     Promise.all([
       fetch(`/api/orders/${orderId}`).then(r => r.json()),
-      fetch(`/api/orders/${orderId}/messages`).then(r => r.json().catch(() => ({ messages: [] })))
-    ]).then(([orderData, msgData]) => {
+      fetch(`/api/orders/${orderId}/messages`).then(r => r.json().catch(() => ({ messages: [] }))),
+      fetch(`/api/orders/${orderId}/review`).then(r => r.json().catch(() => ({ review: null })))
+    ]).then(([orderData, msgData, reviewData]) => {
       setOrder(orderData.order || orderData);
       setMessages(msgData.messages || []);
+      setExistingReview(reviewData.review || null);
+      if (reviewData.review) {
+        setReviewRating(reviewData.review.rating);
+        setReviewText(reviewData.review.comment || '');
+      }
+
+      // Smart default tab
+      const urlTab = searchParams.get('tab') as any;
+      const needsReview = (orderData.order || orderData)?.status === 'Completed' && !reviewData.review;
+
+      if (urlTab === 'review' && (orderData.order || orderData)?.status === 'Completed') {
+        setActiveTab('review');
+      } else if (needsReview) {
+        setActiveTab('review');
+      } else if (urlTab) {
+        setActiveTab(urlTab);
+      }
+
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [orderId]);
+  }, [orderId, searchParams]);
+
+  // Auto-scroll chat to bottom when messages update
+  useEffect(() => {
+    if (activeTab === 'chat' && chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages, activeTab]);
 
   const sendMessage = useCallback(async () => {
     if (!newMessage.trim() || !orderId) return;
@@ -74,13 +103,20 @@ export default function OrderDetailPage() {
 
   const updateStatus = async (status: string) => {
     try {
-      await fetch(`/api/orders/${orderId}`, {
+      const res = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
       });
-      toast.success(`Estado actualizado: ${status}`);
-      window.location.reload();
+      
+      if (res.ok) {
+        toast.success(`Estado actualizado: ${status}`);
+        // Refetch order data
+        const updatedOrder = await fetch(`/api/orders/${orderId}`).then(r => r.json());
+        setOrder(updatedOrder.order || updatedOrder);
+      } else {
+        toast.error('Error actualizando estado');
+      }
     } catch {
       toast.error('Error actualizando');
     }
@@ -89,21 +125,45 @@ export default function OrderDetailPage() {
   const submitReview = async () => {
     if (!reviewText.trim()) return toast.error("Escribe una reseña");
     try {
-      await fetch(`/api/orders/${orderId}/review`, {
+      const res = await fetch(`/api/orders/${orderId}/review`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rating: reviewRating, comment: reviewText })
       });
-      toast.success("¡Reseña enviada!");
-      setReviewText('');
-      window.location.reload();
+      
+      if (res.ok) {
+        toast.success("¡Reseña enviada! Gracias por tu opinión.");
+        // Refetch to update existingReview
+        const reviewRes = await fetch(`/api/orders/${orderId}/review`).then(r => r.json());
+        setExistingReview(reviewRes.review || null);
+        setActiveTab('overview'); // Switch away after submitting
+      } else {
+        toast.error("Error enviando reseña");
+      }
     } catch {
       toast.error("Error enviando reseña");
     }
   };
 
-  if (loading) return <div className="p-20 text-center text-2xl">Cargando pedido...</div>;
-  if (!order) return <div className="p-20 text-center text-red-600">Pedido no encontrado</div>;
+  if (loading) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-lg text-gray-600">Cargando pedido...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="max-w-4xl mx-auto p-12 text-center">
+        <p className="text-2xl text-red-600 mb-4">Pedido no encontrado</p>
+        <a href="/orders" className="text-orange-600 hover:underline">Volver a mis pedidos →</a>
+      </div>
+    );
+  }
 
   const categoryInfo = gigCategories.find(c => c.name === order.gig?.category) || {};
   const emoji = (categoryInfo as any).icon || (categoryInfo as any).emoji || '📦';
@@ -112,12 +172,21 @@ export default function OrderDetailPage() {
   return (
     <div className="max-w-6xl mx-auto p-6">
       {/* HEADER */}
+      <div className="mb-4">
+        <a href="/orders" className="text-sm text-orange-600 hover:underline flex items-center gap-1">
+          ← Volver a mis pedidos
+        </a>
+      </div>
+
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 bg-white p-6 rounded-3xl shadow">
         <div className="flex items-center gap-4">
           <span className="text-6xl">{emoji}</span>
           <div>
             <h1 className="text-3xl font-bold">Pedido #{order.id.slice(0, 8)}</h1>
             <p className="text-xl text-gray-600">{order.gig?.title}</p>
+            <p className="text-sm text-gray-500 mt-1">
+              {isBuyer ? 'Vendedor' : 'Comprador'}: {isBuyer ? (order.seller?.businessName || order.seller?.name) : (order.buyer?.name)}
+            </p>
           </div>
         </div>
         <div className="text-right">
@@ -182,9 +251,19 @@ export default function OrderDetailPage() {
               <CardContent className="space-y-3">
                 {isSeller && (
                   <>
-                    <Button onClick={() => updateStatus('In Progress')} className="w-full">🚀 Iniciar Trabajo</Button>
-                    <Button onClick={() => updateStatus('Completed')} variant="default" className="w-full">✅ Completado</Button>
+                    {order.status === 'Pending' && (
+                      <Button onClick={() => updateStatus('In Progress')} className="w-full bg-blue-600 hover:bg-blue-700">🚀 Aceptar e Iniciar</Button>
+                    )}
+                    {['Pending', 'In Progress'].includes(order.status) && (
+                      <Button onClick={() => updateStatus('Completed')} className="w-full">✅ Marcar como Completado</Button>
+                    )}
+                    {order.status !== 'Completed' && order.status !== 'Cancelled' && (
+                      <Button onClick={() => updateStatus('Cancelled')} variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">Cancelar Pedido</Button>
+                    )}
                   </>
+                )}
+                {!isSeller && !isCompleted && (
+                  <p className="text-sm text-gray-500 text-center py-2">El vendedor actualizará el progreso aquí.</p>
                 )}
               </CardContent>
             </Card>
@@ -192,46 +271,70 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {/* CHAT - Fixed */}
+      {/* CHAT - Improved */}
       {activeTab === 'chat' && (
-        <Card className="h-[650px] flex flex-col shadow-lg">
-          <CardHeader><CardTitle>💬 Chat en Vivo</CardTitle></CardHeader>
-          <CardContent className="flex-1 overflow-y-auto p-6 space-y-5 bg-gray-50">
+        <Card className="h-[620px] flex flex-col shadow-lg overflow-hidden">
+          <CardHeader className="border-b">
+            <CardTitle className="flex items-center gap-2">💬 Chat en Vivo</CardTitle>
+            <p className="text-sm text-gray-500">Comunicación directa con {isBuyer ? 'el vendedor' : 'el comprador'}</p>
+          </CardHeader>
+          
+          <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
             {messages.length === 0 && (
-              <div className="text-center py-20 text-gray-400">No hay mensajes aún. ¡Escribe el primero!</div>
-            )}
-            {messages.map((msg: any, idx: number) => (
-              <div key={msg.id || idx} className={`flex ${msg.senderId === session?.user?.id ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] px-5 py-3.5 rounded-3xl text-[17px] ${
-                  msg.senderId === session?.user?.id ? 'bg-orange-600 text-white' : 'bg-white border shadow-sm'
-                }`}>
-                  {msg.content || ''}
-                  {msg.fileUrl && (
-                    <div className="mt-3">
-                      <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
-                        {msg.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                          <img src={msg.fileUrl} alt="preview" className="max-h-48 rounded-xl cursor-pointer" />
-                        ) : (
-                          <span className="text-blue-200 underline">📎 Ver archivo</span>
-                        )}
-                      </a>
-                    </div>
-                  )}
-                </div>
+              <div className="text-center py-16 text-gray-400">
+                <div className="text-4xl mb-3">💬</div>
+                <p>No hay mensajes aún.</p>
+                <p className="text-sm mt-1">¡Envía el primero para coordinar!</p>
               </div>
-            ))}
-          </CardContent>
-          <div className="p-5 border-t bg-white flex gap-3">
-            <label className="cursor-pointer px-5 py-3 border rounded-2xl hover:bg-gray-100 text-2xl">📎</label>
-            <input type="file" onChange={uploadFile} className="hidden" />
+            )}
+            {messages.map((msg: any, idx: number) => {
+              const isMine = msg.senderId === session?.user?.id;
+              return (
+                <div key={msg.id || idx} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-[15px] ${
+                    isMine ? 'bg-orange-600 text-white' : 'bg-white border shadow-sm'
+                  }`}>
+                    {!isMine && (
+                      <div className="text-[12px] opacity-70 mb-0.5 font-medium">
+                        {isBuyer ? 'Vendedor' : 'Comprador'}
+                      </div>
+                    )}
+                    {msg.content && <div>{msg.content}</div>}
+                    {msg.fileUrl && (
+                      <div className="mt-2">
+                        <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="block">
+                          {msg.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                            <img src={msg.fileUrl} alt="adjunto" className="max-h-48 rounded-xl" />
+                          ) : (
+                            <span className="underline">📎 Ver archivo adjunto</span>
+                          )}
+                        </a>
+                      </div>
+                    )}
+                    <div className={`text-[10px] mt-1.5 opacity-70 ${isMine ? 'text-right' : ''}`}>
+                      {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="p-4 border-t bg-white flex gap-2 items-end">
+            <label className="cursor-pointer flex items-center justify-center w-11 h-11 border rounded-2xl hover:bg-gray-100 text-xl flex-shrink-0" title="Adjuntar archivo">
+              📎
+              <input type="file" onChange={uploadFile} className="hidden" />
+            </label>
             <Textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Escribe aquí..."
-              className="flex-1 resize-y min-h-[52px] text-base"
+              placeholder="Escribe un mensaje..."
+              className="flex-1 resize-y min-h-[44px] max-h-[120px] text-base"
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendMessage())}
             />
-            <Button onClick={sendMessage} className="px-8">Enviar</Button>
+            <Button onClick={sendMessage} disabled={!newMessage.trim()} className="px-7 h-[44px]">
+              Enviar
+            </Button>
           </div>
         </Card>
       )}
@@ -260,9 +363,16 @@ export default function OrderDetailPage() {
             </div>
 
             {isSeller && (
-              <div className="mt-12 flex gap-4">
-                <Button onClick={() => updateStatus('In Progress')} size="lg">🚀 En Progreso</Button>
-                <Button onClick={() => updateStatus('Completed')} size="lg" variant="default">✅ Completado</Button>
+              <div className="mt-12 flex flex-wrap gap-3">
+                {order.status !== 'In Progress' && order.status !== 'Completed' && (
+                  <Button onClick={() => updateStatus('In Progress')} size="lg">🚀 Iniciar Trabajo</Button>
+                )}
+                {order.status !== 'Completed' && (
+                  <Button onClick={() => updateStatus('Completed')} size="lg">✅ Marcar Completado</Button>
+                )}
+                {order.status !== 'Cancelled' && order.status !== 'Completed' && (
+                  <Button onClick={() => updateStatus('Cancelled')} size="lg" variant="outline" className="text-red-600">Cancelar</Button>
+                )}
               </div>
             )}
           </CardContent>
@@ -272,22 +382,49 @@ export default function OrderDetailPage() {
       {/* REVIEW */}
       {activeTab === 'review' && isBuyer && isCompleted && (
         <Card className="max-w-2xl mx-auto">
-          <CardHeader><CardTitle>⭐ ¿Cómo te fue con el servicio?</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>
+              {existingReview ? '⭐ Tu reseña' : '⭐ ¿Cómo te fue con el servicio?'}
+            </CardTitle>
+          </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex gap-2 text-4xl">
-              {[1,2,3,4,5].map(n => (
-                <button key={n} onClick={() => setReviewRating(n)} className="hover:scale-110 transition">
-                  {n <= reviewRating ? '⭐' : '☆'}
-                </button>
-              ))}
-            </div>
-            <Textarea
-              value={reviewText}
-              onChange={(e) => setReviewText(e.target.value)}
-              placeholder="Cuéntanos tu experiencia..."
-              className="min-h-[160px]"
-            />
-            <Button onClick={submitReview} className="w-full py-6 text-lg">Publicar Reseña</Button>
+            {existingReview ? (
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-6">
+                <div className="flex gap-1 text-3xl mb-4">
+                  {[1,2,3,4,5].map(n => (
+                    <span key={n}>{n <= existingReview.rating ? '⭐' : '☆'}</span>
+                  ))}
+                </div>
+                <p className="text-gray-700 text-lg">
+                  {existingReview.comment || "No dejaste comentario."}
+                </p>
+                <p className="text-xs text-gray-500 mt-4">
+                  Enviada el {new Date(existingReview.createdAt).toLocaleDateString('es-CO')}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-1 text-5xl">
+                  {[1,2,3,4,5].map(n => (
+                    <button 
+                      key={n} 
+                      onClick={() => setReviewRating(n)} 
+                      className="hover:scale-125 transition active:scale-95"
+                    >
+                      {n <= reviewRating ? '⭐' : '☆'}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-500 -mt-1">Tu calificación: {reviewRating} / 5</p>
+                <Textarea
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  placeholder="Cuéntanos tu experiencia con el servicio..."
+                  className="min-h-[160px]"
+                />
+                <Button onClick={submitReview} className="w-full py-6 text-lg">Publicar Reseña</Button>
+              </>
+            )}
           </CardContent>
         </Card>
       )}

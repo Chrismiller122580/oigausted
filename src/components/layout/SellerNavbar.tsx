@@ -37,7 +37,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8 font-medium">
             <Link href="/seller" className="hover:text-orange-600 transition">Dashboard</Link>
-            <Link href="/gigs" className="hover:text-orange-600 transition">Mis Gigs</Link>
+            <Link href="/seller/gigs" className="hover:text-orange-600 transition">Mis Gigs</Link>
             <Link href="/seller/profile" className="font-semibold bg-orange-100 px-4 py-1 rounded-2xl hover:bg-orange-200 transition">
               Mi Negocio
             </Link>
@@ -91,7 +91,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
           <div className="md:hidden fixed inset-0 bg-white z-50 pt-20 px-6 overflow-y-auto">
             <div className="flex flex-col gap-6 text-lg">
               <Link href="/seller" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link>
-              <Link href="/gigs" onClick={() => setIsMobileMenuOpen(false)}>Mis Gigs</Link>
+              <Link href="/seller/gigs" onClick={() => setIsMobileMenuOpen(false)}>Mis Gigs</Link>
               <Link href="/seller/profile" onClick={() => setIsMobileMenuOpen(false)}>Mi Negocio</Link>
               <Link href="/seller/earnings" onClick={() => setIsMobileMenuOpen(false)}>Ganancias</Link>
               <Link href="/create-gig" onClick={() => setIsMobileMenuOpen(false)}>Crear Gig</Link>

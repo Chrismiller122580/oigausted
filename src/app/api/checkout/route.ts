@@ -26,8 +26,7 @@ export async function POST(req: NextRequest) {
         gigId: gig.id,
         price: gig.price,
         status: 'Pending',
-        // reference removed - not in schema
-        customFields: {},   // Store any dynamic data here if needed
+        customFields: null
       }
     });
 

@@ -3,7 +3,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogOut, Users, Package, TrendingUp, Home, Settings, BarChart3 } from 'lucide-react';
+import { Menu, X, LogOut, Users, Package, TrendingUp, Home, Settings, BarChart3, DollarSign, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 
 export default function AdminNavbar({ children }: { children: React.ReactNode }) {
@@ -43,11 +43,17 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
             <Link href="/admin/earnings" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
               <TrendingUp size={18} /> Ganancias
             </Link>
+            <Link href="/admin/payouts" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
+              <DollarSign size={18} /> Pagos
+            </Link>
             <Link href="/admin/reports" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
               <BarChart3 size={18} /> Reportes
             </Link>
+            <Link href="/admin/support" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
+              <MessageCircle size={18} /> Soporte
+            </Link>
             <Link href="/admin/settings" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
-              <Settings size={18} /> Configuración
+              <Settings size={18} /> Ajustes
             </Link>
 
             <div className="flex items-center gap-4 pl-8 border-l border-zinc-800">
@@ -109,6 +115,13 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
                 <TrendingUp size={22} /> Ganancias
               </Link>
               <Link 
+                href="/admin/payouts" 
+                className="flex items-center gap-3 py-4 border-b border-zinc-800 text-white hover:text-red-500"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <DollarSign size={22} /> Pagos
+              </Link>
+              <Link 
                 href="/admin/reports" 
                 className="flex items-center gap-3 py-4 border-b border-zinc-800 text-white hover:text-red-500"
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -116,11 +129,18 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
                 <BarChart3 size={22} /> Reportes
               </Link>
               <Link 
+                href="/admin/support" 
+                className="flex items-center gap-3 py-4 border-b border-zinc-800 text-white hover:text-red-500"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <MessageCircle size={22} /> Soporte
+              </Link>
+              <Link 
                 href="/admin/settings" 
                 className="flex items-center gap-3 py-4 border-b border-zinc-800 text-white hover:text-red-500"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <Settings size={22} /> Configuración
+                <Settings size={22} /> Ajustes
               </Link>
 
               <Button 

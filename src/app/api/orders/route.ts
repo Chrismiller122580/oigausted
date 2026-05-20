@@ -49,7 +49,7 @@ export async function POST(request: Request) {
         sellerId: gig.sellerId,
         gigId: gig.id,
         price: Number(price),
-        customFields,
+        customFields: customFields ? JSON.stringify(customFields) : null,
         status: 'Pending',
       },
       include: {

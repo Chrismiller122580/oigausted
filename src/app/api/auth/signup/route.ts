@@ -1,29 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '../../../../lib/prisma'   // relative import - safe
+import { prisma } from '../../../../lib/prisma'
+import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password, role } = await request.json()
+    const { name, email, password, role = 'buyer' } = await request.json()
 
-    if (!name || !email || !role) {
-      return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 })
+    if (!name || !email || !password) {
+      return NextResponse.json({ error: "Faltan campos requeridos (nombre, email, contraseña)" }, { status: 400 })
     }
 
+    // Prevent public admin creation (only allow buyer/seller via signup)
+    const safeRole = role === 'admin' ? 'buyer' : role
+
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    })
+    const existingUser = await prisma.user.findUnique({ where: { email } })
 
     if (existingUser) {
       return NextResponse.json({ error: "Este correo ya está registrado" }, { status: 400 })
     }
 
-    // Create user in real database
+    const hashedPassword = await bcrypt.hash(password, 10)
+
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
-        role,
+        role: safeRole,
+        password: hashedPassword,
       }
     })
 

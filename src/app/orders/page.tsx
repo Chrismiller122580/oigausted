@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 export default function BuyerOrdersPage() {
   const { data: session, status } = useSession();
   const [orders, setOrders] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,14 +21,24 @@ export default function BuyerOrdersPage() {
       return;
     }
 
-    fetch('/api/orders?role=buyer')
-      .then(res => res.json())
-      .then(data => {
-        setOrders(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    const userId = session.user.id;
+
+    Promise.all([
+      fetch('/api/orders?role=buyer').then(res => res.json()),
+      fetch(`/api/reviews?reviewerId=${userId}&limit=100`).then(res => res.json()).catch(() => ({ reviews: [] }))
+    ])
+    .then(([ordersData, reviewsData]) => {
+      setOrders(Array.isArray(ordersData) ? ordersData : []);
+      setReviews(reviewsData.reviews || []);
+      setLoading(false);
+    })
+    .catch(() => setLoading(false));
   }, [session, status]);
+
+  // Orders that are completed but have no review yet
+  const reviewedOrderIds = new Set(reviews.map(r => r.orderId));
+  const needsReview = (order: any) =>
+    order.status === 'Completed' && !reviewedOrderIds.has(order.id);
 
   const getProgress = (status: string) => {
     switch (status) {
@@ -50,7 +61,16 @@ export default function BuyerOrdersPage() {
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-2xl">Cargando tus pedidos...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-lg text-gray-600">Cargando tus pedidos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-12">
@@ -91,9 +111,16 @@ export default function BuyerOrdersPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
                       <h3 className="font-semibold text-2xl line-clamp-2">{order.gig?.title}</h3>
-                      <span className={`px-5 py-2 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-                        {order.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-5 py-2 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
+                          {order.status}
+                        </span>
+                        {needsReview(order) && (
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                            Reseña pendiente
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <p className="text-gray-600 mt-1">Proveedor: {order.seller?.businessName || order.seller?.name}</p>
@@ -124,11 +151,21 @@ export default function BuyerOrdersPage() {
                   </div>
 
                   <div className="flex flex-col gap-3 w-full md:w-52 pt-4">
-                    <Link href={`/orders/${order.id}`}>
-                      <Button className="w-full">Ver Detalles</Button>
-                    </Link>
-                    <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                      <MessageCircle size={18} /> Chatear
+                    {needsReview(order) ? (
+                      <Link href={`/orders/${order.id}?tab=review`}>
+                        <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                          Dejar reseña
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Link href={`/orders/${order.id}`}>
+                        <Button className="w-full">Ver Detalles</Button>
+                      </Link>
+                    )}
+                    <Button variant="outline" className="w-full flex items-center justify-center gap-2" asChild>
+                      <Link href={`/orders/${order.id}`}>
+                        <MessageCircle size={18} /> Chatear
+                      </Link>
                     </Button>
                   </div>
                 </CardContent>

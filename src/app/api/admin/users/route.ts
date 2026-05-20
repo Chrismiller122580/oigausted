@@ -1,0 +1,72 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    if ((session?.user as any)?.role !== 'admin') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    }
+
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        businessName: true,
+        phone: true,
+        createdAt: true,
+        rating: true,
+        reviewCount: true,
+        _count: {
+          select: {
+            gigs: true,
+            ordersAsBuyer: true,
+            ordersAsSeller: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100
+    });
+
+    return NextResponse.json({ users });
+  } catch (error) {
+    console.error('Admin users error:', error);
+    return NextResponse.json({ error: 'Error cargando usuarios' }, { status: 500 });
+  }
+}
+
+// PATCH - Update user role or basic fields (admin only)
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if ((session?.user as any)?.role !== 'admin') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    }
+
+    const { userId, role, name, businessName } = await req.json();
+
+    if (!userId) {
+      return NextResponse.json({ error: 'userId requerido' }, { status: 400 });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(role && { role }),
+        ...(name && { name }),
+        ...(businessName !== undefined && { businessName }),
+      },
+      select: { id: true, name: true, email: true, role: true, businessName: true }
+    });
+
+    return NextResponse.json({ success: true, user: updated });
+  } catch (error) {
+    console.error('Admin user update error:', error);
+    return NextResponse.json({ error: 'Error actualizando usuario' }, { status: 500 });
+  }
+}

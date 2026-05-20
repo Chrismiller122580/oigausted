@@ -1,0 +1,100 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions, resolveDemoUserId } from '@/lib/auth';
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
+    }
+
+    const sellerId = resolveDemoUserId(session.user.id);
+
+    const gigs = await prisma.gig.findMany({
+      where: { sellerId },
+      include: {
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            businessName: true,
+            profilePicture: true,
+            rating: true,
+            reviewCount: true,
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Compute performance stats per gig (orders + revenue)
+    const gigIds = gigs.map(g => g.id);
+
+    const orderAggregates = await prisma.order.groupBy({
+      by: ['gigId'],
+      where: {
+        gigId: { in: gigIds },
+        sellerId
+      },
+      _count: { _all: true },
+      _sum: { price: true }
+    });
+
+    // Also get completed revenue separately for accuracy
+    const completedAggregates = await prisma.order.groupBy({
+      by: ['gigId'],
+      where: {
+        gigId: { in: gigIds },
+        sellerId,
+        status: 'Completed'
+      },
+      _count: { _all: true },
+      _sum: { price: true }
+    });
+
+    const statsMap = new Map<string, any>();
+    for (const agg of orderAggregates) {
+      statsMap.set(agg.gigId, {
+        orderCount: agg._count._all || 0,
+        totalRevenue: Number(agg._sum.price || 0),
+        completedCount: 0,
+        completedRevenue: 0
+      });
+    }
+    for (const agg of completedAggregates) {
+      const existing = statsMap.get(agg.gigId) || {};
+      statsMap.set(agg.gigId, {
+        ...existing,
+        completedCount: agg._count._all || 0,
+        completedRevenue: Number(agg._sum.price || 0)
+      });
+    }
+
+    const gigsWithStats = gigs.map(gig => ({
+      ...gig,
+      stats: statsMap.get(gig.id) || {
+        orderCount: 0,
+        totalRevenue: 0,
+        completedCount: 0,
+        completedRevenue: 0
+      }
+    }));
+
+    console.log(`📦 /api/seller/gigs returned ${gigs.length} gigs + stats for seller ${sellerId}`);
+
+    return NextResponse.json({
+      gigs: gigsWithStats,
+      count: gigsWithStats.length
+    });
+  } catch (error: any) {
+    console.error("❌ /api/seller/gigs failed:", error.message);
+    return NextResponse.json({
+      gigs: [],
+      count: 0,
+      error: error.message
+    }, { status: 500 });
+  }
+}
