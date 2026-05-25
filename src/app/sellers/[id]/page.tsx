@@ -74,7 +74,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
   const hasContact = seller.whatsapp || seller.instagram;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header / Profile Banner */}
       <div className="bg-gradient-to-br from-orange-600 via-red-600 to-rose-600 text-white py-12">
         <div className="max-w-5xl mx-auto px-6">
@@ -157,7 +157,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
         <div className="flex items-end justify-between mb-8">
           <div>
             <h2 className="text-3xl font-bold">Servicios de {displayName}</h2>
-            <p className="text-gray-600 mt-1">Elige el que mejor se adapte a lo que necesitas</p>
+            <p className="text-muted-foreground mt-1">Elige el que mejor se adapte a lo que necesitas</p>
           </div>
           {gigs.length > 0 && (
             <Link href={`/gigs?categoria=${encodeURIComponent(gigs[0]?.category || '')}`} className="text-orange-600 hover:underline text-sm">
@@ -182,7 +182,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
         {reviews.length > 0 && (
           <div className="mt-16">
             <h3 className="text-2xl font-semibold mb-6 flex items-center gap-3">
-              Reseñas de clientes <span className="text-base font-normal text-gray-500">({reviews.length} recientes)</span>
+              Reseñas de clientes <span className="text-base font-normal text-muted-foreground">({reviews.length} recientes)</span>
             </h3>
             <div className="grid md:grid-cols-2 gap-6">
               {reviews.map((review) => (
@@ -213,7 +213,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
                       ) : (
                         <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px]">👤</div>
                       )}
-                      <span className="text-gray-600 font-medium">
+                      <span className="text-foreground font-medium">
                         {review.reviewer?.name || 'Cliente'}
                       </span>
                     </div>
@@ -236,7 +236,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
 
       {/* Footer CTA */}
       <div className="border-t py-8 bg-white">
-        <div className="max-w-4xl mx-auto px-6 text-center text-sm text-gray-600">
+        <div className="max-w-4xl mx-auto px-6 text-center text-sm text-muted-foreground">
           ¿Te gusta lo que ves? <Link href="/gigs" className="text-orange-600 hover:underline">Explora más servicios locales</Link> o publica tu propia necesidad.
         </div>
       </div>

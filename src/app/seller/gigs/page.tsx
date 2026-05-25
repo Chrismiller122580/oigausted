@@ -126,23 +126,23 @@ export default function SellerGigsManagement() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Cargando tus servicios...</p>
+          <p className="text-lg text-muted-foreground">Cargando tus servicios...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-background py-12">
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10">
           <div>
-            <h1 className="text-5xl font-bold tracking-tight">Mis Servicios</h1>
-            <p className="text-xl text-gray-600 mt-2">Gestiona, pausa o edita tus gigs</p>
+            <h1 className="text-5xl font-bold tracking-tight text-foreground">Mis Servicios</h1>
+            <p className="text-xl text-muted-foreground mt-2">Gestiona, pausa o edita tus gigs</p>
           </div>
           <Link href="/create-gig">
             <Button className="bg-orange-600 hover:bg-orange-700 text-lg px-8 py-6 rounded-2xl flex items-center gap-3">
@@ -155,25 +155,25 @@ export default function SellerGigsManagement() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
           <Card>
             <CardContent className="p-6">
-              <p className="text-sm text-gray-500">Total de Gigs</p>
-              <p className="text-4xl font-bold mt-1">{totalGigs}</p>
+              <p className="text-sm text-muted-foreground">Total de Gigs</p>
+              <p className="text-4xl font-bold mt-1 text-foreground">{totalGigs}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-6">
-              <p className="text-sm text-gray-500">Activos</p>
+              <p className="text-sm text-muted-foreground">Activos</p>
               <p className="text-4xl font-bold mt-1 text-green-600">{activeGigs}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-6">
-              <p className="text-sm text-gray-500">Pausados</p>
-              <p className="text-4xl font-bold mt-1 text-gray-600">{pausedGigs}</p>
+              <p className="text-sm text-muted-foreground">Pausados</p>
+              <p className="text-4xl font-bold mt-1 text-foreground">{pausedGigs}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-6">
-              <p className="text-sm text-gray-500">Pedidos Recibidos</p>
+              <p className="text-sm text-muted-foreground">Pedidos Recibidos</p>
               <p className="text-4xl font-bold mt-1 text-orange-600">{totalOrders}</p>
             </CardContent>
           </Card>
@@ -223,7 +223,7 @@ export default function SellerGigsManagement() {
               <Card key={gig.id} className="overflow-hidden hover:shadow-lg transition">
                 <CardContent className="p-0">
                   {/* Header with image + status */}
-                  <div className="relative h-48 bg-gray-100">
+                  <div className="relative h-48 bg-muted">
                     {gig.imageUrl ? (
                       <img 
                         src={gig.imageUrl} 
@@ -254,7 +254,7 @@ export default function SellerGigsManagement() {
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="text-2xl font-semibold leading-tight">{gig.title}</h3>
-                        <p className="text-sm text-gray-500 mt-1">{gig.category}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{gig.category}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-3xl font-bold text-orange-600">
@@ -264,12 +264,12 @@ export default function SellerGigsManagement() {
                     </div>
 
                     {/* Performance Stats */}
-                    <div className="flex gap-6 text-sm text-gray-600 mb-6 pt-4 border-t">
+                    <div className="flex gap-6 text-sm text-muted-foreground mb-6 pt-4 border-t">
                       <div>
-                        <span className="font-medium text-gray-900">{gig.stats?.orderCount || 0}</span> pedidos
+                        <span className="font-medium text-foreground">{gig.stats?.orderCount || 0}</span> pedidos
                       </div>
                       <div>
-                        <span className="font-medium text-gray-900">{gig.stats?.completedCount || 0}</span> completados
+                        <span className="font-medium text-foreground">{gig.stats?.completedCount || 0}</span> completados
                       </div>
                       <div className="text-green-600 font-medium">
                         ${((gig.stats?.completedRevenue || 0) / 1000).toFixed(0)}k ganados
@@ -315,10 +315,10 @@ export default function SellerGigsManagement() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-20 bg-white rounded-3xl border">
+          <div className="text-center py-20 bg-card rounded-3xl border">
             <div className="text-6xl mb-6">📭</div>
-            <h3 className="text-2xl font-semibold mb-2">No tienes servicios aquí</h3>
-            <p className="text-gray-600 mb-8 max-w-sm mx-auto">
+            <h3 className="text-2xl font-semibold mb-2 text-foreground">No tienes servicios aquí</h3>
+            <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
               {searchTerm || statusFilter !== 'all' 
                 ? 'No hay gigs que coincidan con tu filtro.' 
                 : 'Publica tu primer servicio y empieza a recibir pedidos.'}
@@ -332,7 +332,7 @@ export default function SellerGigsManagement() {
         )}
 
         {/* Footer tip */}
-        <p className="text-center text-sm text-gray-500 mt-10">
+        <p className="text-center text-sm text-muted-foreground mt-10">
           Los gigs pausados no aparecen en búsquedas ni en el marketplace.
         </p>
       </div>

@@ -113,14 +113,14 @@ export default function MiNegocioPage() {
   const totalEarnings = "12.450.000";
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
+    <div className="min-h-screen bg-background pb-12">
       <div className="max-w-6xl mx-auto px-6 py-10">
         <Link href="/seller" className="inline-flex items-center gap-2 text-orange-600 hover:underline mb-8 text-lg">
           <ArrowLeft size={22} /> Volver al Dashboard
         </Link>
 
         <div className="flex flex-col md:flex-row justify-between md:items-center mb-10 gap-4">
-          <h1 className="text-4xl font-bold">Mi Negocio</h1>
+          <h1 className="text-4xl font-bold text-foreground">Mi Negocio</h1>
           <div className="flex gap-3">
             <Link href={`/sellers/${(session?.user as any)?.id}`} target="_blank">
               <Button variant="outline">
@@ -138,11 +138,11 @@ export default function MiNegocioPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8 bg-white rounded-3xl p-10 shadow-sm border">
+          <div className="lg:col-span-8 bg-card rounded-3xl p-10 shadow-sm border border-border">
             {/* ... same nice layout as before ... */}
             <div className="flex gap-10">
               <div className="flex-shrink-0">
-                <div className="w-52 h-52 bg-gradient-to-br from-orange-100 to-amber-100 rounded-3xl overflow-hidden border-4 border-white shadow-inner">
+                <div className="w-52 h-52 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/40 dark:to-amber-900/40 rounded-3xl overflow-hidden border-4 border-white dark:border-zinc-700 shadow-inner">
                   {formData.profilePicture ? (
                     <img src={formData.profilePicture} alt="Logo" className="w-full h-full object-cover" />
                   ) : (
@@ -150,7 +150,7 @@ export default function MiNegocioPage() {
                   )}
                 </div>
                 {isEditing && (
-                  <div className="mt-3 text-xs text-center text-gray-500">
+                  <div className="mt-3 text-xs text-center text-muted-foreground">
                     (Sube tu foto/logo en el editor de perfil general)
                   </div>
                 )}
@@ -160,36 +160,36 @@ export default function MiNegocioPage() {
                 <div>
                   <label className="block text-sm font-medium mb-2">Nombre del Negocio</label>
                   <input name="businessName" value={formData.businessName} onChange={handleChange} disabled={!isEditing}
-                    className="w-full px-6 py-5 text-2xl font-semibold border rounded-2xl focus:border-orange-500" />
+                    className="w-full px-6 py-5 text-2xl font-semibold bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Tagline</label>
                   <input name="tagline" value={formData.tagline} onChange={handleChange} disabled={!isEditing}
-                    className="w-full px-6 py-4 border rounded-2xl focus:border-orange-500" />
+                    className="w-full px-6 py-4 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Descripción</label>
                   <textarea name="bio" value={formData.bio} onChange={handleChange} disabled={!isEditing} rows={5}
-                    className="w-full px-6 py-5 border rounded-2xl focus:border-orange-500" />
+                    className="w-full px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium mb-2">Teléfono / WhatsApp</label>
                     <input name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing}
-                      className="w-full px-6 py-5 border rounded-2xl focus:border-orange-500" />
+                      className="w-full px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Ubicación</label>
                     <input name="location" value={formData.location} onChange={handleChange} disabled={!isEditing}
-                      className="w-full px-6 py-5 border rounded-2xl focus:border-orange-500" />
+                      className="w-full px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Instagram</label>
                     <input name="instagram" value={formData.instagram} onChange={handleChange} disabled={!isEditing}
-                      className="w-full px-6 py-5 border rounded-2xl focus:border-orange-500" placeholder="@tu_negocio" />
+                      className="w-full px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" placeholder="@tu_negocio" />
                   </div>
                 </div>
               </div>
@@ -207,7 +207,7 @@ export default function MiNegocioPage() {
                   </div>
                   <div>
                     <div className="flex text-3xl text-yellow-500">★★★★☆</div>
-                    <p className="text-gray-600 mt-1">{realStats.reviewCount} reseñas</p>
+                    <p className="text-muted-foreground mt-1">{realStats.reviewCount} reseñas</p>
                   </div>
                 </div>
               </CardContent>
@@ -240,8 +240,8 @@ export default function MiNegocioPage() {
                         <div className="flex gap-1 text-yellow-500">
                           {[1,2,3,4,5].map(n => <span key={n}>{n <= r.rating ? "★" : "☆"}</span>)}
                         </div>
-                        <p className="text-gray-600 mt-1 line-clamp-2">"{r.comment || 'Sin comentario'}"</p>
-                        <p className="text-xs text-gray-400 mt-1">— {r.reviewer?.name}</p>
+                        <p className="text-muted-foreground mt-1 line-clamp-2">"{r.comment || 'Sin comentario'}"</p>
+                        <p className="text-xs text-muted-foreground mt-1">— {r.reviewer?.name}</p>
                       </div>
                     ))}
                   </div>
