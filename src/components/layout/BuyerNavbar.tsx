@@ -4,28 +4,29 @@ import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { Home, Package, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ModeToggle } from '@/components/ui/mode-toggle';
 
 export default function BuyerNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
 
   return (
     <>
-      <nav className="bg-white border-b sticky top-0 z-50 shadow-sm">
+      <nav className="bg-background border-b sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3">
               <div className="w-9 h-9 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold">OU</div>
-              <span className="font-bold text-2xl">Oiga Usted</span>
+              <span className="font-bold text-2xl text-foreground">Oiga Usted</span>
             </Link>
 
             {/* Navigation */}
             <div className="hidden md:flex items-center gap-8 font-medium">
-              <Link href="/gigs" className="hover:text-orange-600 transition">Explorar Gigs</Link>
+              <Link href="/gigs" className="text-muted-foreground hover:text-foreground transition">Explorar Gigs</Link>
               <Link href="/buyer" className="flex items-center gap-2 text-orange-600 font-semibold border-b-2 border-orange-600 pb-1">
                 <Home size={18} /> Dashboard
               </Link>
-              <Link href="/orders" className="flex items-center gap-2 hover:text-orange-600 transition">
+              <Link href="/orders" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
                 <Package size={18} /> Mis Pedidos
               </Link>
             </div>
@@ -35,19 +36,20 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
               {session?.user && (
                 <Link href="/profile" className="hidden md:flex items-center gap-3 hover:opacity-80 transition">
                   <div className="text-right">
-                    <p className="font-medium text-sm">Hola, {session.user.name?.split(" ")[0]}</p>
-                    <p className="text-xs text-gray-500">Comprador</p>
+                    <p className="font-medium text-sm text-foreground">Hola, {session.user.name?.split(" ")[0]}</p>
+                    <p className="text-xs text-muted-foreground">Comprador</p>
                   </div>
-                  <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center text-2xl cursor-pointer hover:ring-2 hover:ring-orange-600 transition">
+                  <div className="w-9 h-9 bg-orange-100 dark:bg-orange-900/40 rounded-full flex items-center justify-center text-2xl cursor-pointer hover:ring-2 hover:ring-orange-600 transition">
                     👤
                   </div>
                 </Link>
               )}
 
+              <ModeToggle />
               <Button 
                 onClick={() => signOut({ callbackUrl: '/' })} 
                 variant="ghost" 
-                className="flex items-center gap-2 text-red-600 hover:bg-red-50"
+                className="flex items-center gap-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
               >
                 <LogOut size={18} /> Salir
               </Button>

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
+import { ModeToggle } from '@/components/ui/mode-toggle';
 
 // Same-folder imports (all files are in layout/)
 import AdminNavbar from './AdminNavbar';
@@ -36,15 +37,19 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
             <span className="text-2xl font-bold text-orange-600">OigaUsted</span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-4">
             <Link href="/gigs" className="hover:text-orange-600">Explorar Gigs</Link>
             <Link href="/login"><Button variant="outline">Iniciar Sesión</Button></Link>
             <Link href="/signup"><Button className="bg-orange-600">Registrarse</Button></Link>
+            <ModeToggle />
           </div>
 
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden">
-            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-          </button>
+          <div className="md:hidden flex items-center gap-2">
+            <ModeToggle />
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+              {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+            </button>
+          </div>
         </div>
       </nav>
       <main>{children}</main>

@@ -4,6 +4,7 @@ import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Menu, X, LogOut, Users, Package, TrendingUp, Home, Settings, BarChart3, DollarSign, MessageCircle } from 'lucide-react';
+import { ModeToggle } from '@/components/ui/mode-toggle';
 import { useState } from 'react';
 
 export default function AdminNavbar({ children }: { children: React.ReactNode }) {
@@ -61,6 +62,7 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
                 <p className="font-semibold text-white">{session?.user?.name || 'Admin'}</p>
                 <p className="text-xs text-zinc-500">Administrador</p>
               </div>
+              <ModeToggle />
               <Button
                 variant="ghost"
                 size="icon"
@@ -72,14 +74,17 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
             </div>
           </div>
 
-          {/* Hamburger Button - Visible only on mobile */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-zinc-400 hover:text-white transition"
-            aria-label="Toggle menu"
-          >
-            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-          </button>
+          {/* Mobile actions */}
+          <div className="md:hidden flex items-center gap-1">
+            <ModeToggle />
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2 text-zinc-400 hover:text-white transition"
+              aria-label="Toggle menu"
+            >
+              {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu - Full screen overlay */}
