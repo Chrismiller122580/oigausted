@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'react-hot-toast';
 import { gigCategories } from '@/lib/gig-categories';
+import { parseCustomFields } from '@/lib/utils';
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -150,7 +151,7 @@ export default function OrderDetailPage() {
       <div className="min-h-[70vh] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Cargando pedido...</p>
+          <p className="text-lg text-muted-foreground">Cargando pedido...</p>
         </div>
       </div>
     );
@@ -183,8 +184,8 @@ export default function OrderDetailPage() {
           <span className="text-6xl">{emoji}</span>
           <div>
             <h1 className="text-3xl font-bold">Pedido #{order.id.slice(0, 8)}</h1>
-            <p className="text-xl text-gray-600">{order.gig?.title}</p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-xl text-foreground">{order.gig?.title}</p>
+            <p className="text-sm text-muted-foreground mt-1">
               {isBuyer ? 'Vendedor' : 'Comprador'}: {isBuyer ? (order.seller?.businessName || order.seller?.name) : (order.buyer?.name)}
             </p>
           </div>
@@ -193,7 +194,7 @@ export default function OrderDetailPage() {
           <div className="text-5xl font-bold text-orange-600">
             ${Number(order.price || 0).toLocaleString('es-CO')}
           </div>
-          <div className="text-sm uppercase tracking-widest text-gray-500 mt-1">
+          <div className="text-sm uppercase tracking-widest text-muted-foreground mt-1">
             {order.status}
           </div>
         </div>
@@ -211,7 +212,7 @@ export default function OrderDetailPage() {
             key={tab.key}
             onClick={() => setActiveTab(tab.key as any)}
             className={`flex-1 md:flex-none px-8 py-5 font-medium text-lg border-b-4 transition-all ${
-              activeTab === tab.key ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              activeTab === tab.key ? 'border-orange-600 text-orange-600' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             {tab.label}
@@ -226,9 +227,9 @@ export default function OrderDetailPage() {
             <Card>
               <CardHeader><CardTitle>Detalles del Servicio</CardTitle></CardHeader>
               <CardContent className="space-y-4 pt-6">
-                {Object.entries(order.customFields || {}).map(([key, val]) => (
+                {Object.entries(parseCustomFields(order.customFields)).map(([key, val]) => (
                   <div key={key} className="flex justify-between py-4 border-b last:border-0 text-lg">
-                    <span className="capitalize text-gray-700">{key.replace(/([A-Z])/g, ' $1')}</span>
+                    <span className="capitalize text-foreground">{key.replace(/([A-Z])/g, ' $1')}</span>
                     <span className="font-semibold">{String(val)}</span>
                   </div>
                 ))}
@@ -238,7 +239,7 @@ export default function OrderDetailPage() {
             {isCleaningGig && (
               <Card className="mt-8">
                 <CardHeader><CardTitle>📸 Antes y Después</CardTitle></CardHeader>
-                <CardContent className="text-gray-500 py-8 text-center">
+                <CardContent className="text-muted-foreground py-8 text-center">
                   El vendedor subirá fotos aquí una vez completado.
                 </CardContent>
               </Card>
@@ -263,7 +264,7 @@ export default function OrderDetailPage() {
                   </>
                 )}
                 {!isSeller && !isCompleted && (
-                  <p className="text-sm text-gray-500 text-center py-2">El vendedor actualizará el progreso aquí.</p>
+                  <p className="text-sm text-muted-foreground text-center py-2">El vendedor actualizará el progreso aquí.</p>
                 )}
               </CardContent>
             </Card>
@@ -276,12 +277,12 @@ export default function OrderDetailPage() {
         <Card className="h-[620px] flex flex-col shadow-lg overflow-hidden">
           <CardHeader className="border-b">
             <CardTitle className="flex items-center gap-2">💬 Chat en Vivo</CardTitle>
-            <p className="text-sm text-gray-500">Comunicación directa con {isBuyer ? 'el vendedor' : 'el comprador'}</p>
+            <p className="text-sm text-muted-foreground">Comunicación directa con {isBuyer ? 'el vendedor' : 'el comprador'}</p>
           </CardHeader>
           
-          <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
+          <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-muted/30">
             {messages.length === 0 && (
-              <div className="text-center py-16 text-gray-400">
+              <div className="text-center py-16 text-muted-foreground">
                 <div className="text-4xl mb-3">💬</div>
                 <p>No hay mensajes aún.</p>
                 <p className="text-sm mt-1">¡Envía el primero para coordinar!</p>
@@ -292,10 +293,10 @@ export default function OrderDetailPage() {
               return (
                 <div key={msg.id || idx} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-[15px] ${
-                    isMine ? 'bg-orange-600 text-white' : 'bg-white border shadow-sm'
+                    isMine ? 'bg-orange-600 text-white' : 'bg-background border shadow-sm'
                   }`}>
                     {!isMine && (
-                      <div className="text-[12px] opacity-70 mb-0.5 font-medium">
+                      <div className="text-[12px] opacity-70 mb-0.5 font-medium text-muted-foreground">
                         {isBuyer ? 'Vendedor' : 'Comprador'}
                       </div>
                     )}
@@ -356,7 +357,7 @@ export default function OrderDetailPage() {
                   </div>
                   <div>
                     <p className={`font-semibold ${s.done ? 'text-green-600' : ''}`}>{s.step}</p>
-                    {s.date && <p className="text-sm text-gray-500">{new Date(s.date).toLocaleString('es-CO')}</p>}
+                    {s.date && <p className="text-sm text-muted-foreground">{new Date(s.date).toLocaleString('es-CO')}</p>}
                   </div>
                 </div>
               ))}
@@ -395,10 +396,10 @@ export default function OrderDetailPage() {
                     <span key={n}>{n <= existingReview.rating ? '⭐' : '☆'}</span>
                   ))}
                 </div>
-                <p className="text-gray-700 text-lg">
+                <p className="text-foreground text-lg">
                   {existingReview.comment || "No dejaste comentario."}
                 </p>
-                <p className="text-xs text-gray-500 mt-4">
+                <p className="text-xs text-muted-foreground mt-4">
                   Enviada el {new Date(existingReview.createdAt).toLocaleDateString('es-CO')}
                 </p>
               </div>
@@ -415,7 +416,7 @@ export default function OrderDetailPage() {
                     </button>
                   ))}
                 </div>
-                <p className="text-sm text-gray-500 -mt-1">Tu calificación: {reviewRating} / 5</p>
+                <p className="text-sm text-muted-foreground -mt-1">Tu calificación: {reviewRating} / 5</p>
                 <Textarea
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value)}

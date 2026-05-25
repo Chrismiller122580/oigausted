@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock } from 'lucide-react';
+import { parseJsonArrayField } from "@/lib/utils";
 
 export default function GigDetailPage() {
   const params = useParams();
@@ -59,7 +60,7 @@ export default function GigDetailPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Cargando servicio...</p>
+          <p className="text-lg text-muted-foreground">Cargando servicio...</p>
         </div>
       </div>
     );
@@ -81,25 +82,11 @@ export default function GigDetailPage() {
   const userId = (session?.user as any)?.id;
   const isOwnGig = userId && (userId === gig.sellerId || userId === gig.seller?.id);
 
-  // Helper to safely parse fields/addons which are stored as JSON strings
-  const parseJsonField = (field: any) => {
-    if (!field) return [];
-    if (Array.isArray(field)) return field;
-    if (typeof field === 'string') {
-      try {
-        const parsed = JSON.parse(field);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  };
-
-  const gigFields = parseJsonField(gig?.fields);
+  const gigFields = parseJsonArrayField(gig?.fields);
+  const gigAddons = parseJsonArrayField(gig?.addons);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-background py-12">
       <div className="max-w-6xl mx-auto px-6">
         <Link href="/gigs" className="flex items-center gap-2 text-emerald-600 hover:underline mb-8 inline-block">
           <ArrowLeft size={20} /> Volver a todos los gigs
@@ -122,7 +109,7 @@ export default function GigDetailPage() {
 
             <div>
               <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">{gig.title}</h1>
-              <div className="flex flex-wrap items-center gap-4 text-gray-600">
+              <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
                 {gig.category && (
                   <span className="font-medium bg-emerald-100 text-emerald-700 px-4 py-1 rounded-full">
                     {gig.category}
@@ -139,7 +126,7 @@ export default function GigDetailPage() {
 
             <div>
               <h2 className="text-2xl font-semibold mb-4">Descripción</h2>
-              <p className="text-gray-700 leading-relaxed text-lg whitespace-pre-line">
+              <p className="text-foreground leading-relaxed text-lg whitespace-pre-line">
                 {gig.description || "Sin descripción"}
               </p>
             </div>
@@ -149,7 +136,7 @@ export default function GigDetailPage() {
               <h2 className="text-2xl font-semibold mb-4 flex items-center justify-between">
                 Reseñas
                 {reviews.length > 0 && (
-                  <span className="text-sm font-normal text-gray-500">
+                  <span className="text-sm font-normal text-muted-foreground">
                     {reviews.length} recientes
                   </span>
                 )}
@@ -165,9 +152,9 @@ export default function GigDetailPage() {
                         ))}
                       </div>
                       {review.comment && (
-                        <p className="text-gray-700 mb-4">"{review.comment}"</p>
+                        <p className="text-foreground mb-4">"{review.comment}"</p>
                       )}
-                      <div className="text-sm text-gray-500 flex items-center justify-between">
+                      <div className="text-sm text-muted-foreground flex items-center justify-between">
                         <span>— {review.reviewer?.name || 'Cliente anónimo'}</span>
                         <span className="text-xs">
                           {new Date(review.createdAt).toLocaleDateString('es-CO')}
@@ -177,7 +164,7 @@ export default function GigDetailPage() {
                   ))}
                 </div>
               ) : (
-                <div className="bg-white border rounded-3xl p-8 text-center text-gray-500">
+                <div className="bg-card border border-border rounded-3xl p-8 text-center text-muted-foreground">
                   Aún no hay reseñas para este vendedor.
                   <br />
                   <span className="text-sm">Sé el primero en dejar una después de tu compra.</span>
@@ -202,16 +189,16 @@ export default function GigDetailPage() {
                 <div className="grid gap-4">
                   {gigFields.map((field: any, index: number) => (
                     <div key={index} className="bg-white p-6 rounded-3xl border">
-                      <p className="text-sm uppercase tracking-widest text-gray-500 mb-1">
+                      <p className="text-sm uppercase tracking-widest text-muted-foreground mb-1">
                         {field.label || field.key}
                       </p>
-                      <p className="text-lg font-medium text-gray-900">
+                      <p className="text-lg font-medium text-foreground">
                         {field.extraPrice 
                           ? `+$${field.extraPrice.toLocaleString('es-CO')} COP` 
                           : "Incluido"}
                       </p>
                       {field.type && (
-                        <p className="text-xs text-gray-500 mt-1">Tipo: {field.type}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Tipo: {field.type}</p>
                       )}
                     </div>
                   ))}
@@ -225,7 +212,7 @@ export default function GigDetailPage() {
               <div className="text-5xl sm:text-6xl font-bold text-emerald-600 mb-1">
                 ${gig.price?.toLocaleString("es-CO")}
               </div>
-              <p className="text-gray-500 mb-10">COP</p>
+              <p className="text-muted-foreground mb-10">COP</p>
 
               {!isOwnGig ? (
                 <Button
@@ -242,9 +229,9 @@ export default function GigDetailPage() {
               )}
 
               <div className="border-t pt-8">
-                <p className="text-sm text-gray-500 mb-3">Vendido por</p>
+                <p className="text-sm text-muted-foreground mb-3">Vendido por</p>
                 <Link href={`/sellers/${gig.seller?.id}`} className="group block">
-                  <div className="flex items-center gap-4 hover:bg-gray-50 -mx-2 px-2 py-2 rounded-2xl transition">
+                  <div className="flex items-center gap-4 hover:bg-muted -mx-2 px-2 py-2 rounded-2xl transition">
                     <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0">
                       👤
                     </div>
@@ -256,7 +243,7 @@ export default function GigDetailPage() {
                         <div className="flex items-center gap-1 text-sm text-amber-600">
                           ⭐ {gig.seller.rating.toFixed(1)}
                           {gig.seller.reviewCount > 0 && (
-                            <span className="text-gray-400">({gig.seller.reviewCount} reseñas)</span>
+                            <span className="text-muted-foreground">({gig.seller.reviewCount} reseñas)</span>
                           )}
                         </div>
                       )}

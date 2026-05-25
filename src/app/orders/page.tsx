@@ -7,6 +7,7 @@ import { MessageCircle, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { parseCustomFields } from '@/lib/utils';
 
 export default function BuyerOrdersPage() {
   const { data: session, status } = useSession();
@@ -66,18 +67,19 @@ export default function BuyerOrdersPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Cargando tus pedidos...</p>
+          <p className="text-lg text-muted-foreground">Cargando tus pedidos...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
+    <div className="min-h-screen bg-background py-12">
+      <div className="max-w-6xl mx-auto px-6">
       <div className="flex justify-between items-center mb-10">
         <div>
-          <h1 className="text-5xl font-bold">Mis Pedidos</h1>
-          <p className="text-xl text-gray-600 mt-2">Seguimiento en tiempo real</p>
+          <h1 className="text-5xl font-bold text-foreground">Mis Pedidos</h1>
+          <p className="text-xl text-muted-foreground mt-2">Seguimiento en tiempo real</p>
         </div>
         <Link href="/gigs" className="text-orange-600 hover:underline flex items-center gap-2">
           Explorar más gigs →
@@ -86,9 +88,9 @@ export default function BuyerOrdersPage() {
 
       {orders.length === 0 ? (
         <Card className="p-16 text-center">
-          <Package className="w-20 h-20 mx-auto text-gray-300 mb-6" />
-          <h3 className="text-2xl font-semibold mb-3">Aún no tienes pedidos</h3>
-          <p className="text-gray-600 mb-8">Cuando contrates un servicio aparecerá aquí</p>
+          <Package className="w-20 h-20 mx-auto text-muted-foreground mb-6" />
+          <h3 className="text-2xl font-semibold mb-3 text-foreground">Aún no tienes pedidos</h3>
+          <p className="text-muted-foreground mb-8">Cuando contrates un servicio aparecerá aquí</p>
           <Button asChild size="lg">
             <Link href="/gigs">Explorar Gigs</Link>
           </Button>
@@ -123,11 +125,11 @@ export default function BuyerOrdersPage() {
                       </div>
                     </div>
 
-                    <p className="text-gray-600 mt-1">Proveedor: {order.seller?.businessName || order.seller?.name}</p>
+                    <p className="text-muted-foreground mt-1">Proveedor: {order.seller?.businessName || order.seller?.name}</p>
 
                     <div className="mt-6">
                       <Progress value={progress} className="h-3" />
-                      <div className="flex justify-between text-xs text-gray-500 mt-2">
+                      <div className="flex justify-between text-xs text-muted-foreground mt-2">
                         <span>Pendiente</span>
                         <span>En Progreso</span>
                         <span>Completado</span>
@@ -135,13 +137,13 @@ export default function BuyerOrdersPage() {
                     </div>
 
                     {/* Custom Requirements Summary */}
-                    {order.customFields && Object.keys(order.customFields).length > 0 && (
-                      <div className="mt-6 bg-gray-50 p-5 rounded-2xl text-sm">
+                    {Object.keys(parseCustomFields(order.customFields)).length > 0 && (
+                      <div className="mt-6 bg-muted p-5 rounded-2xl text-sm">
                         <p className="font-medium mb-3">Tus requisitos:</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1">
-                          {Object.entries(order.customFields).slice(0, 4).map(([key, val]) => (
+                          {Object.entries(parseCustomFields(order.customFields)).slice(0, 4).map(([key, val]) => (
                             <div key={key} className="flex justify-between">
-                              <span className="text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+                              <span className="text-foreground capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
                               <span className="font-medium">{String(val)}</span>
                             </div>
                           ))}
@@ -174,6 +176,7 @@ export default function BuyerOrdersPage() {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }

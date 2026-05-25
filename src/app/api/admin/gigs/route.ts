@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (!isAdmin(session)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (!isAdmin(session)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -84,7 +84,7 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (!isAdmin(session)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 

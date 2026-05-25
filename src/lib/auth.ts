@@ -19,6 +19,12 @@ export function resolveDemoUserId(rawId: string | undefined): string {
   return rawId
 }
 
+/** Type-safe admin check (works with both JWT session.user and token shapes) */
+export function isAdmin(userOrSession: any): boolean {
+  const role = userOrSession?.role ?? (userOrSession as any)?.user?.role
+  return role === 'admin'
+}
+
 export const authOptions = {
   providers: [
     CredentialsProvider({
@@ -28,23 +34,41 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
+        if (!credentials?.email || !credentials?.password) {
+          console.warn('[auth] Missing email or password in credentials')
+          return null
+        }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase() },
-        })
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email.toLowerCase() },
+          })
 
-        if (!user || !user.password) return null
+          if (!user) {
+            console.warn('[auth] No user found for email:', credentials.email.toLowerCase())
+            return null
+          }
+          if (!user.password) {
+            console.warn('[auth] User has no password set (OAuth-only account?):', user.email)
+            return null
+          }
 
-        const isValid = await bcrypt.compare(credentials.password, user.password)
-        if (!isValid) return null
+          const isValid = await bcrypt.compare(credentials.password, user.password)
+          if (!isValid) {
+            console.warn('[auth] Password mismatch for:', user.email)
+            return null
+          }
 
-        // Return the shape NextAuth expects
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
+          // Return the shape NextAuth expects
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+          }
+        } catch (err) {
+          console.error('[auth] Unexpected error in Credentials authorize:', err)
+          return null
         }
       },
     }),

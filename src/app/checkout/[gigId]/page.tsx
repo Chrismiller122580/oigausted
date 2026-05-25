@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
+import { parseJsonArrayField } from '@/lib/utils';
 
 declare global {
   interface Window {
@@ -93,16 +94,25 @@ export default function CheckoutPage() {
 
       const checkoutData = data.checkoutData;
 
-      // 3. Open Wompi with the final amount
+      // 3. Open Wompi with the final amount (include integrity signature if available)
       if (window.WompiCheckout && checkoutData) {
-        const checkout = new window.WompiCheckout({
+        const widgetConfig: any = {
           publicKey: checkoutData.publicKey,
           currency: checkoutData.currency,
           amountInCents: finalPrice * 100,
           reference: checkoutData.reference,
           redirectUrl: checkoutData.redirectUrl,
           customerData: checkoutData.customerData,
-        });
+        };
+
+        // Pass integrity signature for better security (when backend provides it)
+        if (checkoutData.signature?.integrity) {
+          widgetConfig.signature = {
+            integrity: checkoutData.signature.integrity,
+          };
+        }
+
+        const checkout = new window.WompiCheckout(widgetConfig);
         checkout.open();
       } else if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
@@ -116,22 +126,7 @@ export default function CheckoutPage() {
     }
   };
 
-  // Parse dynamic fields safely
-  const getFields = () => {
-    if (!gig?.fields) return [];
-    if (Array.isArray(gig.fields)) return gig.fields;
-    if (typeof gig.fields === 'string') {
-      try {
-        const parsed = JSON.parse(gig.fields);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  };
-
-  const fields = getFields();
+  const fields = parseJsonArrayField(gig?.fields);
 
   // Calculate extra cost from selections
   const calculateExtra = () => {
@@ -165,7 +160,7 @@ export default function CheckoutPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Cargando checkout...</p>
+          <p className="text-lg text-muted-foreground">Cargando checkout...</p>
         </div>
       </div>
     );
@@ -190,7 +185,7 @@ export default function CheckoutPage() {
     return (
       <div className="max-w-2xl mx-auto p-8 text-center">
         <h1 className="text-2xl font-bold mb-4">No puedes comprar tu propio gig</h1>
-        <p className="text-gray-600 mb-6">Este servicio te pertenece.</p>
+        <p className="text-muted-foreground mb-6">Este servicio te pertenece.</p>
         <Button onClick={() => router.push('/seller')} variant="outline">
           Ir a Mi Negocio
         </Button>
@@ -203,7 +198,7 @@ export default function CheckoutPage() {
     if (!fields || fields.length === 0) return null;
 
     return (
-      <div className="bg-gray-50 p-6 rounded-2xl">
+      <div className="bg-muted p-6 rounded-2xl">
         <p className="font-semibold text-gray-800 mb-4">Personaliza tu servicio</p>
         <div className="space-y-5">
           {fields.map((field: any, index: number) => {
@@ -260,7 +255,7 @@ export default function CheckoutPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <p className="text-sm text-gray-500">Vendedor</p>
+            <p className="text-sm text-muted-foreground">Vendedor</p>
             <p className="font-medium">{gig.seller?.businessName || gig.seller?.name}</p>
           </div>
 
@@ -273,7 +268,7 @@ export default function CheckoutPage() {
 
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-gray-600">Precio base del servicio</span>
+                <span className="text-muted-foreground">Precio base del servicio</span>
                 <span>${(gig?.price || 0).toLocaleString('es-CO')}</span>
               </div>
 
@@ -293,7 +288,7 @@ export default function CheckoutPage() {
                     }
 
                     return (
-                      <div key={idx} className="flex justify-between text-gray-600">
+                      <div key={idx} className="flex justify-between text-muted-foreground">
                         <span>{key} {value && `(${value})`}</span>
                         <span>+${extra.toLocaleString('es-CO')}</span>
                       </div>
@@ -324,7 +319,7 @@ export default function CheckoutPage() {
             {opening ? "Abriendo Wompi..." : `Pagar con Wompi — $${finalPrice.toLocaleString('es-CO')}`}
           </Button>
 
-          <p className="text-center text-xs text-gray-500">
+          <p className="text-center text-xs text-muted-foreground">
             Serás redirigido a Wompi para completar el pago de forma segura. 
             Una vez pagado, volverás automáticamente a tus pedidos.
           </p>
