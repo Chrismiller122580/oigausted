@@ -192,7 +192,7 @@ export default function CreateGigPage() {
       <div className="max-w-4xl mx-auto p-8 flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Cargando servicio para editar...</p>
+          <p className="text-lg text-muted-foreground">Cargando servicio para editar...</p>
         </div>
       </div>
     );
@@ -204,7 +204,7 @@ export default function CreateGigPage() {
         <h1 className="text-4xl font-bold tracking-tight">
           {isEditing ? "Editar Servicio" : "Publica tu Servicio"}
         </h1>
-        <p className="text-gray-600 mt-2 text-lg">
+        <p className="text-muted-foreground mt-2 text-lg">
           {isEditing 
             ? "Actualiza los detalles. Los cambios se reflejarán inmediatamente en tu perfil y en búsquedas."
             : "Crea un servicio atractivo para que los compradores te encuentren fácilmente."}
@@ -289,7 +289,7 @@ export default function CreateGigPage() {
             {customOptions.length > 0 && (
               <div className="space-y-2">
                 {customOptions.map((opt, index) => (
-                  <div key={index} className="flex gap-3 items-center bg-gray-50 p-3 rounded-xl">
+                  <div key={index} className="flex gap-3 items-center bg-muted p-3 rounded-xl">
                     <div className="flex-1">
                       <Input 
                         value={opt.name} 
@@ -334,7 +334,7 @@ export default function CreateGigPage() {
             >
               + Agregar opción adicional
             </Button>
-            <p className="text-xs text-gray-500">Los compradores podrán elegir estas opciones durante el checkout.</p>
+            <p className="text-xs text-muted-foreground">Los compradores podrán elegir estas opciones durante el checkout.</p>
           </CardContent>
         </Card>
 
@@ -372,7 +372,7 @@ export default function CreateGigPage() {
               <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 hover:border-orange-400 rounded-2xl p-8 cursor-pointer transition">
                 <div className="text-4xl mb-2">📷</div>
                 <span className="font-medium">Subir imagen del servicio</span>
-                <span className="text-sm text-gray-500 mt-1">PNG, JPG hasta 5MB</span>
+                <span className="text-sm text-muted-foreground mt-1">PNG, JPG hasta 5MB</span>
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -428,11 +428,11 @@ export default function CreateGigPage() {
                 ${totalPrice.toLocaleString('es-CO')}
               </span>
             </div>
-            <p className="text-sm text-gray-500 mt-1">Este es el precio que verán los compradores (incluye addons seleccionados).</p>
+            <p className="text-sm text-muted-foreground mt-1">Este es el precio que verán los compradores (incluye addons seleccionados).</p>
           </CardContent>
         </Card>
 
-        <div className="text-xs text-gray-500 text-center">
+        <div className="text-xs text-muted-foreground text-center">
           Al publicar, tu servicio aparecerá en el marketplace y podrás gestionarlo desde <span className="font-medium">"Mis Gigs"</span>.
         </div>
 

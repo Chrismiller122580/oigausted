@@ -30,7 +30,7 @@ export default function HomePage() {
   }, [session, status, router]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 text-center">
         <div className="animate-spin w-12 h-12 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-6"></div>
         <h2 className="text-2xl font-bold mb-2">Redirecting...</h2>

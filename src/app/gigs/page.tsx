@@ -86,7 +86,7 @@ export default function GigsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Cargando servicios...</p>
+          <p className="text-lg text-muted-foreground">Cargando servicios...</p>
         </div>
       </div>
     );
@@ -97,7 +97,7 @@ export default function GigsPage() {
       <div className="mb-8">
         <h1 className="text-5xl font-bold tracking-tight">Encuentra Servicios Locales</h1>
         <div className="flex items-center gap-3 mt-3">
-          <p className="text-xl text-gray-600">
+          <p className="text-xl text-muted-foreground">
             {filteredGigs.length} gigs disponibles
             {selectedCategory !== "Todas" && ` en ${selectedCategory}`}
           </p>
@@ -149,7 +149,7 @@ export default function GigsPage() {
             className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition ${
               selectedCategory === "Todas"
                 ? "bg-orange-600 text-white border-orange-600"
-                : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
+                : "bg-background hover:bg-muted border-border text-foreground"
             }`}
           >
             Todas
@@ -161,7 +161,7 @@ export default function GigsPage() {
               className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition flex items-center gap-1.5 ${
                 selectedCategory === cat
                   ? "bg-orange-600 text-white border-orange-600"
-                  : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
+                  : "bg-background hover:bg-muted border-border text-foreground"
               }`}
             >
               <span>{categoryEmojis[cat] || ''}</span>
@@ -179,9 +179,9 @@ export default function GigsPage() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-16 border rounded-3xl bg-gray-50">
+        <div className="text-center py-16 border rounded-3xl bg-card">
           <p className="text-2xl text-gray-400 mb-2">No se encontraron gigs</p>
-          <p className="text-gray-500 mb-6">Prueba con otra búsqueda o categoría</p>
+          <p className="text-muted-foreground mb-6">Prueba con otra búsqueda o categoría</p>
           <button
             onClick={() => {
               setSearchTerm("");
