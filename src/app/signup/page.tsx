@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -42,10 +43,23 @@ export default function SignUpPage() {
 
       toast.success(`¡Registro exitoso como ${formData.role === "buyer" ? "Comprador" : "Vendedor"}!`)
 
-      if (formData.role === "seller") {
-        router.push("/seller")
+      // Auto sign-in so the user lands inside the app immediately
+      const loginResult = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      })
+
+      if (loginResult?.ok) {
+        // Route based on chosen role
+        if (formData.role === "seller") {
+          router.push("/seller")
+        } else {
+          router.push("/")
+        }
       } else {
-        router.push("/")
+        // Fallback: send them to login page
+        router.push("/login")
       }
     } catch (err) {
       setError("Error de conexión. Inténtalo de nuevo.")

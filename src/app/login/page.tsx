@@ -63,6 +63,33 @@ export default function LoginPage() {
     signIn('google', { callbackUrl });
   };
 
+  const quickDemoLogin = async (demoEmail: string) => {
+    setIsLoading(true);
+    setError('');
+
+    const callbackUrl = new URLSearchParams(window.location.search).get('callbackUrl') || '/';
+
+    const result = await signIn('credentials', {
+      email: demoEmail,
+      password: 'demo1234',
+      redirect: false,
+    });
+
+    if (result?.error) {
+      setError('Demo login failed. Please try the manual form or contact support.');
+      setIsLoading(false);
+      return;
+    }
+
+    const session = await getSession();
+    if (session?.user) {
+      router.replace(callbackUrl);
+    } else {
+      router.replace('/');
+    }
+    setIsLoading(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-xl">
@@ -146,29 +173,38 @@ export default function LoginPage() {
             </div>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <div className="font-medium mb-2">Quick Demo Accounts (click to copy)</div>
-            <div className="space-y-1 text-xs">
-              <div 
-                onClick={() => { navigator.clipboard.writeText('buyer@demo.com'); toast.success('Copied buyer@demo.com'); }}
-                className="cursor-pointer hover:bg-orange-50 p-1 rounded transition"
+          <div className="mt-6">
+            <div className="text-center text-sm text-gray-500 mb-3 font-medium">Or jump in instantly with a demo account</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full py-5 text-sm border-orange-200 hover:bg-orange-50"
+                disabled={isLoading}
+                onClick={() => quickDemoLogin('buyer@demo.com')}
               >
-                <strong>Buyer:</strong> buyer@demo.com
-              </div>
-              <div 
-                onClick={() => { navigator.clipboard.writeText('seller@demo.com'); toast.success('Copied seller@demo.com'); }}
-                className="cursor-pointer hover:bg-orange-50 p-1 rounded transition"
+                Login as <strong className="ml-1">Buyer</strong>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full py-5 text-sm border-orange-200 hover:bg-orange-50"
+                disabled={isLoading}
+                onClick={() => quickDemoLogin('seller@demo.com')}
               >
-                <strong>Seller:</strong> seller@demo.com
-              </div>
-              <div 
-                onClick={() => { navigator.clipboard.writeText('admin@demo.com'); toast.success('Copied admin@demo.com'); }}
-                className="cursor-pointer hover:bg-orange-50 p-1 rounded transition"
+                Login as <strong className="ml-1">Seller</strong>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full py-5 text-sm border-orange-200 hover:bg-orange-50"
+                disabled={isLoading}
+                onClick={() => quickDemoLogin('admin@demo.com')}
               >
-                <strong>Admin:</strong> admin@demo.com
-              </div>
-              <div className="text-amber-600 mt-1">Password for all demos: <strong>demo1234</strong></div>
+                Login as <strong className="ml-1">Admin</strong>
+              </Button>
             </div>
+            <p className="text-center text-[10px] text-gray-400 mt-2">Password for demos: demo1234</p>
           </div>
 
           <div className="my-6 relative">

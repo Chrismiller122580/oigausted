@@ -202,7 +202,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-background py-12">
       <div className="max-w-4xl mx-auto px-6">
         <div className="flex justify-between items-center mb-10">
           <div>
@@ -306,7 +306,7 @@ export default function ProfilePage() {
               <div className="mb-10 bg-white border border-orange-200 rounded-3xl p-8">
                 <div className="mb-6">
                   <h3 className="text-2xl font-semibold">Datos de tu Negocio</h3>
-                  <p className="text-gray-600 mt-1">Esta información aparecerá en tu perfil público de vendedor.</p>
+                  <p className="text-muted-foreground mt-1">Esta información aparecerá en tu perfil público de vendedor.</p>
                 </div>
                 
                 <div className="space-y-6">
@@ -318,7 +318,7 @@ export default function ProfilePage() {
                       placeholder="Ej: Limpieza Profesional Bucaramanga"
                       className="text-lg"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Este nombre se mostrará a tus clientes.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Este nombre se mostrará a tus clientes.</p>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -359,7 +359,7 @@ export default function ProfilePage() {
                   </Button>
                 </div>
 
-                <p className="text-xs text-center text-gray-500 mt-4">
+                <p className="text-xs text-center text-muted-foreground mt-4">
                   Podrás editar más detalles (fotos, redes, etc.) en la sección <strong>Mi Negocio</strong> después.
                 </p>
               </div>
@@ -420,7 +420,7 @@ export default function ProfilePage() {
                           </span>
                           <span className="text-2xl text-yellow-500">★</span>
                         </div>
-                        <p className="text-gray-600 mt-1">
+                        <p className="text-muted-foreground mt-1">
                           {realStats.reviewCount} reseñas • {realStats.gigCount} servicios
                         </p>
                       </div>
