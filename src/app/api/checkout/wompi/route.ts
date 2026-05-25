@@ -2,9 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import crypto from 'crypto';
 
 const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
-const WOMPI_INTEGRITY_KEY = process.env.WOMPI_INTEGRITY_KEY; // Optional but recommended for signatures
+const WOMPI_INTEGRITY_KEY = process.env.WOMPI_INTEGRITY_KEY;
+
+function generateIntegritySignature(
+  amountInCents: number,
+  currency: string,
+  reference: string
+): string | null {
+  if (!WOMPI_INTEGRITY_KEY) {
+    return null;
+  }
+
+  const stringToSign = `${amountInCents}${currency}${WOMPI_PUBLIC_KEY}${reference}`;
+
+  return crypto
+    .createHmac('sha256', WOMPI_INTEGRITY_KEY)
+    .update(stringToSign)
+    .digest('hex');
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,12 +55,13 @@ export async function POST(req: NextRequest) {
 
     const amountInCents = Math.round(order.price * 100);
     const reference = `order_${order.id}`;
+    const currency = 'COP';
 
-    // For now, we return the data needed for the Wompi Widget.
-    // The frontend will either use the widget or fall back to a hosted URL.
-    const checkoutData = {
+    const integritySignature = generateIntegritySignature(amountInCents, currency, reference);
+
+    const checkoutData: any = {
       publicKey: WOMPI_PUBLIC_KEY,
-      currency: 'COP',
+      currency,
       amountInCents,
       reference,
       redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/orders/${order.id}`,
@@ -52,14 +71,18 @@ export async function POST(req: NextRequest) {
       },
     };
 
-    // Optional: In the future we can generate a hosted checkout URL here
-    // using Wompi's API if needed.
+    // Add integrity signature when the key is available (recommended for production)
+    if (integritySignature) {
+      checkoutData.signature = {
+        integrity: integritySignature,
+      };
+    }
 
     return NextResponse.json({
       success: true,
-      checkoutData,           // Used by the widget
+      checkoutData,
       reference,
-      // checkoutUrl can be added later if using hosted checkout
+      hasIntegritySignature: !!integritySignature,
     });
 
   } catch (error: any) {
