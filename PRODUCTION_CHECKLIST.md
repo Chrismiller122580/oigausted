@@ -66,6 +66,25 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
 - [ ] Set up proper monitoring / error tracking (optional but recommended)
 - [ ] Remove or further restrict any remaining dev testing tools if desired
 
+### Deployment Log
+
+- **2026-05-26**: First production deploy attempt on Vercel (branch: `fix/post-review-blockers`).
+  - Using temporary `prisma db push --accept-data-loss` due to SQLite → Postgres migration history incompatibility.
+  - Target domain: https://oigagig.co.com (and Vercel preview)
+
+### Switching from `db push` back to proper migrations (recommended after first deploy)
+
+After the first successful deploy:
+
+1. In `vercel.json`, change the build command back to:
+   ```json
+   "buildCommand": "prisma generate && prisma migrate deploy && next build"
+   ```
+
+2. Commit and push the change (or redeploy manually from Vercel).
+
+3. Future deploys will use real migrations.
+
 ## Useful Commands
 
 ```bash
