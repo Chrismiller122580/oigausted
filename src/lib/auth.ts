@@ -139,7 +139,6 @@ export const authOptions = {
             where: { id: token.id as string },
             select: {
               name: true,
-              image: true,
               profilePicture: true,
               businessName: true,
               bio: true,
@@ -147,14 +146,13 @@ export const authOptions = {
               whatsapp: true,
               instagram: true,
               facebook: true,
-              city: true,
               rating: true,
               reviewCount: true,
             }
           })
           if (dbUser) {
             (session.user as any).name = dbUser.name
-            ;(session.user as any).image = dbUser.image || dbUser.profilePicture
+            ;(session.user as any).image = dbUser.profilePicture
             ;(session.user as any).profilePicture = dbUser.profilePicture
             ;(session.user as any).businessName = dbUser.businessName
             ;(session.user as any).bio = dbUser.bio
@@ -162,7 +160,6 @@ export const authOptions = {
             ;(session.user as any).whatsapp = dbUser.whatsapp
             ;(session.user as any).instagram = dbUser.instagram
             ;(session.user as any).facebook = dbUser.facebook
-            ;(session.user as any).city = dbUser.city
             ;(session.user as any).rating = dbUser.rating
             ;(session.user as any).reviewCount = dbUser.reviewCount
           }

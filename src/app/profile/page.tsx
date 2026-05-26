@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import { toast } from "react-hot-toast";
 
 export default function ProfilePage() {
   const { data: session, update } = useSession();
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
