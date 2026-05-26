@@ -4,6 +4,10 @@ import crypto from 'crypto'
 
 const WOMPI_EVENTS_KEY = process.env.WOMPI_EVENTS_KEY
 
+if (process.env.NODE_ENV === 'production' && WOMPI_EVENTS_KEY?.includes('test')) {
+  console.warn('⚠️  WARNING: Using Wompi SANDBOX keys in production! Webhook processing is in test mode.');
+}
+
 function verifyWompiSignature(body: any, receivedSignature: string): boolean {
   if (!WOMPI_EVENTS_KEY) {
     console.error('[Wompi] WOMPI_EVENTS_KEY is not set in environment')

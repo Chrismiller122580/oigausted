@@ -17,7 +17,32 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [googleEnabled, setGoogleEnabled] = useState(false);
   const router = useRouter();
+
+  // Handle NextAuth error redirects (e.g. ?error=OAuthSignin)
+  useEffect(() => {
+    const urlError = new URLSearchParams(window.location.search).get('error');
+    if (urlError) {
+      const friendlyMessage = 
+        urlError === 'OAuthSignin' 
+          ? 'Google sign-in failed. This is common in temporary dev environments (changing URLs). Try the email/password form instead.'
+          : 'There was a problem signing in. Please try again.';
+      
+      setError(friendlyMessage);
+      
+      // Clean the URL
+      window.history.replaceState({}, '', '/login');
+    }
+  }, []);
+
+  // Check if Google OAuth is configured (for production polish)
+  useEffect(() => {
+    fetch('/api/auth/config')
+      .then(res => res.json())
+      .then(data => setGoogleEnabled(data.googleEnabled ?? false))
+      .catch(() => setGoogleEnabled(false));
+  }, []);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -36,79 +61,54 @@ export default function LoginPage() {
 
     const callbackUrl = new URLSearchParams(window.location.search).get('callbackUrl') || '/';
 
-    const result = await signIn('credentials', {
+    // Use NextAuth's built-in redirect for credentials login.
+    // This is more reliable than redirect: false + manual handling,
+    // especially with custom navigation testing scripts or in remote dev environments.
+    await signIn('credentials', {
       email,
       password,
-      redirect: false,
+      callbackUrl,
     });
 
-    if (result?.error) {
-      setError('Invalid email or password. Please try again or use one of the demo accounts below.');
-      setIsLoading(false);
-      return;
-    }
-
-    // Successful login - redirect to callbackUrl or home
-    const session = await getSession();
-    if (session?.user) {
-      router.replace(callbackUrl);
-    } else {
-      router.replace('/');
-    }
-    setIsLoading(false);
+    // Note: signIn with redirect will handle the navigation.
+    // We don't need to manually setIsLoading(false) or redirect here.
   };
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     const callbackUrl = new URLSearchParams(window.location.search).get('callbackUrl') || '/';
-    signIn('google', { callbackUrl });
-  };
-
-  const quickDemoLogin = async (demoEmail: string) => {
-    setIsLoading(true);
-    setError('');
-
-    const callbackUrl = new URLSearchParams(window.location.search).get('callbackUrl') || '/';
-
-    const result = await signIn('credentials', {
-      email: demoEmail,
-      password: 'demo1234',
-      redirect: false,
-    });
-
-    if (result?.error) {
-      setError('Demo login failed. Please try the manual form or contact support.');
-      setIsLoading(false);
-      return;
+    
+    try {
+      // This will redirect on success. On failure it redirects to the error page we created.
+      await signIn('google', { callbackUrl });
+    } catch (err) {
+      console.error('Google sign-in error:', err);
+      // The error page should catch most cases, but this helps in console during dev
     }
-
-    const session = await getSession();
-    if (session?.user) {
-      router.replace(callbackUrl);
-    } else {
-      router.replace('/');
-    }
-    setIsLoading(false);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="text-center pb-2">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center text-white text-4xl font-black">
+        <CardHeader className="text-center pb-4">
+          <div className="flex justify-center mb-3">
+            <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center text-white text-3xl font-black">
               O
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold text-gray-900">
-            Welcome to <span className="text-orange-600">OigaUsted</span>
+          <CardTitle className="text-2xl font-bold text-gray-900">
+            Welcome back
           </CardTitle>
-          <p className="text-gray-600 mt-2">Connect with local talent in Colombia</p>
+          <p className="text-sm text-gray-500 mt-1">Sign in to OigaUsted</p>
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="mb-4">
+            <p className="text-sm font-medium text-gray-700 mb-3">Sign in with your account</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="email">Email address</Label>
+              <Label htmlFor="email" className="text-sm">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -121,7 +121,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm">Password</Label>
               <div className="relative mt-1">
                 <Input
                   id="password"
@@ -142,18 +142,14 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">
                 {error}
               </div>
             )}
 
-            <p className="text-[10px] text-center text-gray-400 -mt-1">
-              Demo accounts use password: <strong>demo1234</strong>
-            </p>
-
             <Button
               type="submit"
-              className="w-full bg-orange-600 hover:bg-orange-700 text-lg py-6"
+              className="w-full bg-orange-600 hover:bg-orange-700 text-base py-6 mt-2"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -165,72 +161,85 @@ export default function LoginPage() {
                 'Sign In'
               )}
             </Button>
-
-            <div className="text-center">
-              <Link href="/forgot-password" className="text-sm text-orange-600 hover:underline">
-                Forgot your password?
-              </Link>
-            </div>
           </form>
 
-          <div className="mt-6">
-            <div className="text-center text-sm text-gray-500 mb-3 font-medium">Or jump in instantly with a demo account</div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full py-5 text-sm border-orange-200 hover:bg-orange-50"
-                disabled={isLoading}
-                onClick={() => quickDemoLogin('buyer@demo.com')}
-              >
-                Login as <strong className="ml-1">Buyer</strong>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full py-5 text-sm border-orange-200 hover:bg-orange-50"
-                disabled={isLoading}
-                onClick={() => quickDemoLogin('seller@demo.com')}
-              >
-                Login as <strong className="ml-1">Seller</strong>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full py-5 text-sm border-orange-200 hover:bg-orange-50"
-                disabled={isLoading}
-                onClick={() => quickDemoLogin('admin@demo.com')}
-              >
-                Login as <strong className="ml-1">Admin</strong>
-              </Button>
-            </div>
-            <p className="text-center text-[10px] text-gray-400 mt-2">Password for demos: demo1234</p>
+          <div className="text-center mt-4">
+            <Link href="/forgot-password" className="text-sm text-orange-600 hover:underline">
+              Forgot your password?
+            </Link>
           </div>
 
-          <div className="my-6 relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-4 text-gray-500">OR</span>
-            </div>
-          </div>
+          {googleEnabled && (
+            <>
+              <div className="my-6 relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-white px-3 text-gray-400">or</span>
+                </div>
+              </div>
 
-          <Button
-            onClick={handleGoogleSignIn}
-            variant="outline"
-            className="w-full py-6 text-base"
-          >
-            <img src="https://authjs.dev/img/providers/google.svg" alt="Google" className="w-5 h-5 mr-2" />
-            Continue with Google
-          </Button>
+              <Button
+                onClick={handleGoogleSignIn}
+                variant="outline"
+                className="w-full py-5 text-base flex items-center justify-center gap-2"
+              >
+                <img src="https://authjs.dev/img/providers/google.svg" alt="Google" className="w-5 h-5" />
+                Continue with Google
+              </Button>
+            </>
+          )}
 
           <p className="text-center text-sm text-gray-600 mt-8">
-            Don&apos;t have an account?{' '}
+            New here?{' '}
             <Link href="/signup" className="font-medium text-orange-600 hover:underline">
-              Sign up for free
+              Create an account
             </Link>
           </p>
+
+          {/* Dev-only helper while testing */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-6 p-4 bg-yellow-100 border-2 border-yellow-400 rounded-2xl text-sm text-yellow-900">
+              <div className="font-semibold mb-2 text-yellow-800">🚀 Dev Testing Accounts (click to login directly)</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+                <Button
+                  size="sm"
+                  onClick={() => signIn('credentials', { 
+                    email: 'buyer@demo.com', 
+                    password: 'demo1234', 
+                    callbackUrl: '/buyer' 
+                  })}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Login as Buyer
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => signIn('credentials', { 
+                    email: 'seller@demo.com', 
+                    password: 'demo1234', 
+                    callbackUrl: '/seller' 
+                  })}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Login as Seller
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => signIn('credentials', { 
+                    email: 'admin@demo.com', 
+                    password: 'demo1234', 
+                    callbackUrl: '/admin' 
+                  })}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  Login as Admin
+                </Button>
+              </div>
+              <p className="text-[10px] text-yellow-700 mt-2">Bypasses the normal form. Uses direct callback to avoid redirect loops in this environment.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

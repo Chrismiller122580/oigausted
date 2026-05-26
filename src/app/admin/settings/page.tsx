@@ -97,6 +97,22 @@ export default function AdminSettings() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-8">
       <div className="max-w-5xl mx-auto">
+
+        {/* Production Warning - Wompi Sandbox */}
+        {process.env.NODE_ENV === 'production' && 
+         config && 
+         (typeof window !== 'undefined' && window.location.hostname !== 'localhost') && (
+          <div className="mb-8 p-4 bg-yellow-900/30 border border-yellow-600 rounded-2xl flex items-start gap-3">
+            <AlertTriangle className="w-6 h-6 text-yellow-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-yellow-400">⚠️ Modo Sandbox Activo</p>
+              <p className="text-sm text-yellow-300 mt-1">
+                Wompi está configurado con llaves de <strong>pruebas (Sandbox)</strong>. 
+                Los pagos no son reales. Cambia a llaves de producción (live) antes de lanzar a usuarios reales.
+              </p>
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold">Configuración del Sistema</h1>

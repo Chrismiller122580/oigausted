@@ -50,26 +50,57 @@ Oiga Usted conecta personas que necesitan servicios con freelancers y negocios l
 # 1. Instalar dependencias
 npm install
 
-# 2. Generar cliente de Prisma
-npx prisma generate
+# 2. Copia las variables de entorno de ejemplo
+cp .env.example .env.local
 
-# 3. Aplicar esquema a la base de datos local
-npx prisma db push
+# 3. (Opcional pero recomendado) Resetea la base de datos y siembra datos de prueba
+npm run db:reset
 
-# 4. Sembrar datos de prueba (incluye las 3 cuentas demo)
-npm run seed
-
-# 5. Iniciar el servidor de desarrollo
+# 4. Iniciar el servidor de desarrollo
 npm run dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000) y usa las cuentas demo para iniciar sesión.
+Abre [http://localhost:3000](http://localhost:3000) y usa las cuentas demo:
+
+## Despliegue en Vercel (Producción)
+
+For a complete step-by-step checklist, see [PRODUCTION_CHECKLIST.md](./PRODUCTION_CHECKLIST.md).
+
+## Despliegue en Vercel (Producción)
+
+1. Conecta el repositorio a Vercel.
+2. En Vercel Dashboard → Settings → Environment Variables, agrega todas las variables de `.env.example` (usa PostgreSQL para `DATABASE_URL`).
+3. **Importante para Auth**:
+   - `NEXTAUTH_URL` debe ser tu dominio de producción: `https://oigagig.co.com`
+   - Configura Google OAuth con el redirect URI de producción: `https://oigagig.co.com/api/auth/callback/google`
+   - Asegúrate de tener HTTPS configurado en tu dominio personalizado (Vercel lo maneja automáticamente cuando agregas el dominio).
+4. El build command ya incluye `prisma migrate deploy`, así que las migraciones se aplicarán automáticamente.
+5. **Wompi**: Actualmente estamos usando llaves de **Sandbox (pruebas)**. Para recibir pagos reales debes cambiar a las llaves de producción (live).
+
+### ⚠️ Estado Actual del Despliegue
+
+- **Wompi**: Usando modo Sandbox (pagos de prueba). No se procesan pagos reales.
+- Las herramientas de testing (botones de simulación, forzar estados de órdenes, etc.) están disponibles solo en desarrollo.
+
+### Crear el primer usuario Admin (después del deploy)
+
+Después del primer despliegue exitoso, ejecuta localmente con tu `DATABASE_URL` de producción:
+
+```bash
+# Crear admin con email y contraseña personalizados
+DATABASE_URL="postgresql://..." npm run create-admin admin@oigagig.co.com TuPasswordSeguro123!
+```
+
+O usa Prisma Studio conectado directamente a tu base de datos de producción.
 
 ### Comandos útiles
 
 ```bash
-npm run seed          # Re-sembrar cuentas demo
+npm run db:reset      # Fuerza reset + seed (solo desarrollo local)
+npm run seed          # Solo re-sembrar cuentas demo (solo desarrollo)
 npx prisma studio     # Explorar la base de datos
+npm run build         # Verificar que todo compila correctamente
+npm run create-admin  # Crear usuario admin (útil en producción)
 ```
 
 ## Dark Mode

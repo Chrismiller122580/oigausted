@@ -132,6 +132,41 @@ export const authOptions = {
       if (session.user) {
         (session.user as any).id = token.id as string
         (session.user as any).role = token.role as string
+
+        // Pull fresh data from DB so profile updates are reflected immediately
+        if (token.id) {
+          const dbUser = await prisma.user.findUnique({ 
+            where: { id: token.id as string },
+            select: {
+              name: true,
+              image: true,
+              profilePicture: true,
+              businessName: true,
+              bio: true,
+              phone: true,
+              whatsapp: true,
+              instagram: true,
+              facebook: true,
+              city: true,
+              rating: true,
+              reviewCount: true,
+            }
+          })
+          if (dbUser) {
+            (session.user as any).name = dbUser.name
+            ;(session.user as any).image = dbUser.image || dbUser.profilePicture
+            ;(session.user as any).profilePicture = dbUser.profilePicture
+            ;(session.user as any).businessName = dbUser.businessName
+            ;(session.user as any).bio = dbUser.bio
+            ;(session.user as any).phone = dbUser.phone
+            ;(session.user as any).whatsapp = dbUser.whatsapp
+            ;(session.user as any).instagram = dbUser.instagram
+            ;(session.user as any).facebook = dbUser.facebook
+            ;(session.user as any).city = dbUser.city
+            ;(session.user as any).rating = dbUser.rating
+            ;(session.user as any).reviewCount = dbUser.reviewCount
+          }
+        }
       }
       return session
     },

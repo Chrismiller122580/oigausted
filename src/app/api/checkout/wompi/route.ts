@@ -7,6 +7,10 @@ import crypto from 'crypto';
 const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
 const WOMPI_INTEGRITY_KEY = process.env.WOMPI_INTEGRITY_KEY;
 
+if (process.env.NODE_ENV === 'production' && WOMPI_PUBLIC_KEY?.includes('test')) {
+  console.warn('⚠️  WARNING: Using Wompi SANDBOX keys in production! Real payments will not be processed.');
+}
+
 function generateIntegritySignature(
   amountInCents: number,
   currency: string,

@@ -94,11 +94,20 @@ export default function MiNegocioPage() {
       });
 
       if (res.ok) {
-        await update();
+        await update({
+          ...formData,
+          profilePicture: formData.profilePicture,
+          image: formData.profilePicture,
+        });
         toast.success("Información del negocio guardada correctamente");
         setIsEditing(false);
       } else {
-        toast.error("Error al guardar");
+        if (res.status === 401) {
+          toast.error("Tu sesión expiró. Por favor inicia sesión de nuevo.");
+          window.location.href = `/login?callbackUrl=${encodeURIComponent('/seller/profile')}`;
+        } else {
+          toast.error("Error al guardar");
+        }
       }
     } catch (err) {
       toast.error("Error de conexión");
@@ -136,6 +145,31 @@ export default function MiNegocioPage() {
             </Button>
           </div>
         </div>
+
+        {/* DEV TESTING TOOLS - only in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-8 p-4 border-2 border-dashed border-orange-500 rounded-2xl bg-orange-50 dark:bg-orange-950/40">
+            <div className="font-semibold text-orange-700 dark:text-orange-400 mb-3">🧪 DEV TESTING — Simulate Stats</div>
+            <div className="flex flex-wrap gap-2 text-sm">
+              <Button size="sm" variant="outline" onClick={() => {
+                setRealStats({ rating: 4.9, reviewCount: 87, gigCount: 24 });
+                toast.success('Stats simulated for testing');
+              }}>
+                Simulate High Reputation
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => {
+                setRealStats({ rating: 3.2, reviewCount: 12, gigCount: 3 });
+                toast.success('Stats simulated for testing');
+              }}>
+                Simulate New Seller
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+                Reload Page
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">These only affect the local UI for testing seller dashboard states.</p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 bg-card rounded-3xl p-10 shadow-sm border border-border">

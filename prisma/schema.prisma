@@ -3,8 +3,12 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  // Use PostgreSQL for production (Vercel, Supabase, Neon, etc.)
+  // For local development you can temporarily switch to SQLite:
+  // provider = "sqlite"
+  // url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // Your models (clean version)
@@ -62,6 +66,16 @@ model User {
   reviewsGiven  Review[]  @relation("ReviewToBuyer")
   accounts      Account[]
   sessions      Session[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }
 
 model Gig {

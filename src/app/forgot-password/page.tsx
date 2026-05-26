@@ -89,8 +89,7 @@ export default function ForgotPasswordPage() {
           )}
 
           <div className="mt-8 pt-6 border-t text-xs text-center text-gray-500">
-            For demo accounts (buyer@demo.com, seller@demo.com, admin@demo.com), just use any password.
-            No password reset is needed.
+            Password reset via email is coming soon.
           </div>
         </CardContent>
       </Card>

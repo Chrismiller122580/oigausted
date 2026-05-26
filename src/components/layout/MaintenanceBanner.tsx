@@ -10,6 +10,7 @@ export default function MaintenanceBanner() {
     const fetchConfig = async () => {
       try {
         const res = await fetch('/api/admin/config');
+        // Only treat 2xx as success. 403 is now expected for non-admins (we return limited public data instead).
         if (res.ok) {
           const data = await res.json();
           if (data.maintenanceMode) {
@@ -20,9 +21,12 @@ export default function MaintenanceBanner() {
           } else {
             setMaintenance(null);
           }
+        } else if (res.status === 403) {
+          // Non-admin or unauthenticated — this is normal, just ensure banner is hidden
+          setMaintenance(null);
         }
       } catch (e) {
-        // silently fail
+        // Network error or other issue — silently ignore so we don't spam console during testing
       }
     };
 

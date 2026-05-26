@@ -81,9 +81,24 @@ export default function ProfilePage() {
       formDataUpload.append('file', file);
       const res = await fetch('/api/upload', { method: 'POST', body: formDataUpload });
       const data = await res.json();
-      if (data.url) setFormData({ ...formData, imageUrl: data.url });
-    } catch (err) {
-      toast.error("Error subiendo la foto");
+
+      if (!res.ok) {
+        if (data.uploadDisabled) {
+          toast.error("Subida de archivos no disponible en este entorno. Usa el campo 'URL de imagen' abajo.");
+          // Scroll to the manual URL field
+          setTimeout(() => {
+            const urlInput = document.querySelector('input[name="imageUrl"]') as HTMLInputElement;
+            if (urlInput) urlInput.focus();
+          }, 300);
+        } else {
+          throw new Error(data.error || 'Upload failed');
+        }
+      } else if (data.url) {
+        setFormData({ ...formData, imageUrl: data.url });
+        toast.success("Imagen subida correctamente");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Error subiendo la foto. Usa el campo URL de imagen abajo.");
     } finally {
       setUploading(false);
     }
@@ -131,11 +146,23 @@ export default function ProfilePage() {
       });
       
       if (res.ok) {
-        await update();
+        // Force session update with latest data so UI reflects immediately
+        await update({
+          ...formData,
+          image: formData.imageUrl,
+          profilePicture: formData.imageUrl,
+        });
         setIsEditing(false);
         toast.success("Perfil actualizado correctamente");
       } else {
-        toast.error("Error al guardar el perfil");
+        const err = await res.json().catch(() => ({}));
+        
+        if (res.status === 401) {
+          toast.error("Tu sesión expiró. Por favor inicia sesión de nuevo.");
+          router.push(`/login?callbackUrl=${encodeURIComponent('/profile')}`);
+        } else {
+          toast.error(err.error || "Error al guardar el perfil");
+        }
       }
     } catch (err) {
       toast.error("Error de conexión");
@@ -383,6 +410,12 @@ export default function ProfilePage() {
                   <Input name="city" value={formData.city} onChange={handleChange} placeholder="Ciudad" />
                   <Input name="instagram" value={formData.instagram} onChange={handleChange} placeholder="Instagram" />
                   <Input name="facebook" value={formData.facebook} onChange={handleChange} placeholder="Facebook" />
+                  <Input 
+                    name="imageUrl" 
+                    value={formData.imageUrl} 
+                    onChange={handleChange} 
+                    placeholder="URL de imagen de perfil (o sube una arriba)" 
+                  />
                 </div>
 
                 <Button onClick={saveProfile} disabled={loading} className="w-full py-6 text-lg">

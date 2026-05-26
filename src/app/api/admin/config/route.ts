@@ -6,9 +6,7 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-    }
+    const isAdmin = (session?.user as any)?.role === 'admin';
 
     let config = await prisma.platformConfig.findFirst();
 
@@ -24,6 +22,15 @@ export async function GET() {
           maintenanceMode: false,
           maintenanceMessage: "Estamos realizando mejoras. Volveremos pronto.",
         },
+      });
+    }
+
+    // For non-admins (including unauthenticated users), only expose public fields
+    // so the MaintenanceBanner doesn't spam 403 errors in the console during normal testing.
+    if (!isAdmin) {
+      return NextResponse.json({
+        maintenanceMode: config.maintenanceMode,
+        maintenanceMessage: config.maintenanceMessage,
       });
     }
 

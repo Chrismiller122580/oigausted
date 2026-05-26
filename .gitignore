@@ -41,6 +41,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Local databases
+prisma/dev.db
+*.db
+prisma/*.db
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

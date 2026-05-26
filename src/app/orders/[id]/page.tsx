@@ -200,6 +200,31 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
+      {/* DEV TESTING - Force Order Status */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mb-6 p-4 border-2 border-dashed border-orange-500 rounded-2xl bg-orange-50 dark:bg-orange-950/40">
+          <div className="font-semibold text-orange-700 dark:text-orange-400 mb-3 flex items-center gap-2">
+            🧪 DEV TESTING — Force Order Status
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {['Pending', 'Paid', 'In Progress', 'Completed', 'Cancelled'].map((s) => (
+              <Button
+                key={s}
+                size="sm"
+                variant={order.status === s ? "default" : "outline"}
+                onClick={() => updateStatus(s)}
+                className={order.status === s ? "bg-orange-600 hover:bg-orange-700" : ""}
+              >
+                {s}
+              </Button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Quickly jump between states to test seller dashboards, reviews, earnings, etc.
+          </p>
+        </div>
+      )}
+
       {/* TABS */}
       <div className="flex border-b mb-8 bg-white rounded-t-2xl">
         {[
