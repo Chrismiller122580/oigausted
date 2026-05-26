@@ -74,8 +74,16 @@ For a complete step-by-step checklist, see [PRODUCTION_CHECKLIST.md](./PRODUCTIO
    - `NEXTAUTH_URL` debe ser tu dominio de producción: `https://oigagig.co.com`
    - Configura Google OAuth con el redirect URI de producción: `https://oigagig.co.com/api/auth/callback/google`
    - Asegúrate de tener HTTPS configurado en tu dominio personalizado (Vercel lo maneja automáticamente cuando agregas el dominio).
-4. El build command ya incluye `prisma migrate deploy`, así que las migraciones se aplicarán automáticamente.
-5. **Wompi**: Actualmente estamos usando llaves de **Sandbox (pruebas)**. Para recibir pagos reales debes cambiar a las llaves de producción (live).
+4. **Primer despliegue**: El comando de build usa temporalmente `prisma db push --accept-data-loss` porque el historial de migraciones fue creado contra SQLite en desarrollo. Esto permite crear el schema en una base Postgres nueva sin errores.
+
+5. **Después del primer despliegue exitoso** (recomendado):
+   - Cambia el build command en `vercel.json` de vuelta a:
+     ```json
+     "buildCommand": "prisma generate && prisma migrate deploy && next build"
+     ```
+   - Haz commit y push (o redeploy manual). A partir de ese momento usarás migraciones reales.
+
+6. **Wompi**: Actualmente estamos usando llaves de **Sandbox (pruebas)**. Para recibir pagos reales debes cambiar a las llaves de producción (live).
 
 ### ⚠️ Estado Actual del Despliegue
 
