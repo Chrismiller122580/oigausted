@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import { loadGoogleMaps } from '@/lib/googleMapsLoader';
 
 interface AddressAutocompleteProps {
   value: string;
@@ -17,31 +18,16 @@ export default function AddressAutocomplete({
 }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const loadGooglePlaces = () => {
-      if (window.google && window.google.maps && window.google.maps.places) {
-        initAutocomplete();
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
-      script.async = true;
-      script.onload = () => {
-        setIsLoaded(true);
-        initAutocomplete();
-      };
-      document.head.appendChild(script);
-    };
+    let isMounted = true;
 
     const initAutocomplete = () => {
-      if (!inputRef.current || !window.google) return;
+      if (!inputRef.current || !window.google || !isMounted) return;
 
       autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
         types: ['address'],
-        componentRestrictions: { country: 'co' }, // Restrict to Colombia
+        componentRestrictions: { country: 'co' },
       });
 
       autocompleteRef.current.addListener('place_changed', () => {
@@ -56,7 +42,17 @@ export default function AddressAutocomplete({
       });
     };
 
-    loadGooglePlaces();
+    loadGoogleMaps()
+      .then(() => {
+        if (isMounted) initAutocomplete();
+      })
+      .catch((error) => {
+        console.error('Failed to load Google Maps for autocomplete:', error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { loadGoogleMaps } from '@/lib/googleMapsLoader';
 
 interface GoogleMapProps {
   center: { lat: number; lng: number };
@@ -9,34 +10,15 @@ interface GoogleMapProps {
   height?: string;
 }
 
-declare global {
-  interface Window {
-    google: any;
-  }
-}
-
 export default function GoogleMap({ center, zoom = 14, markers = [], height = '400px' }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
 
   useEffect(() => {
-    const loadGoogleMaps = () => {
-      if (window.google && mapRef.current) {
-        initMap();
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
-      script.async = true;
-      script.onload = () => {
-        if (mapRef.current) initMap();
-      };
-      document.head.appendChild(script);
-    };
+    let isMounted = true;
 
     const initMap = () => {
-      if (!mapRef.current || !window.google) return;
+      if (!mapRef.current || !window.google || !isMounted) return;
 
       mapInstance.current = new window.google.maps.Map(mapRef.current, {
         center,
@@ -46,7 +28,6 @@ export default function GoogleMap({ center, zoom = 14, markers = [], height = '4
         fullscreenControl: false,
       });
 
-      // Add markers
       markers.forEach((marker) => {
         new window.google.maps.Marker({
           position: { lat: marker.lat, lng: marker.lng },
@@ -56,7 +37,17 @@ export default function GoogleMap({ center, zoom = 14, markers = [], height = '4
       });
     };
 
-    loadGoogleMaps();
+    loadGoogleMaps()
+      .then(() => {
+        if (isMounted) initMap();
+      })
+      .catch((error) => {
+        console.error('Failed to load Google Maps:', error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [center, zoom, markers]);
 
   return (
