@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
+import { notifications } from '@/lib/notifications'
 
 const WOMPI_EVENTS_KEY = process.env.WOMPI_EVENTS_KEY
 
@@ -81,10 +82,31 @@ export async function POST(request: Request) {
           return NextResponse.json({ received: true, event })
       }
 
-      await prisma.order.update({
+      const updatedOrder = await prisma.order.update({
         where: { id: orderId },
         data: updateData,
+        include: {
+          buyer: { select: { id: true, name: true } },
+          gig: { select: { title: true } }
+        }
       })
+
+      if (transaction.status === 'APPROVED' && updatedOrder.buyer) {
+        await notifications.sendEmail(
+          updatedOrder.buyer.id,
+          '¡Pago confirmado!',
+          `Tu pago por el servicio "${updatedOrder.gig.title}" ha sido confirmado. El vendedor ya puede comenzar.`,
+          `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.co.com'}/orders/${orderId}`
+        )
+
+        await notifications.sendInApp(
+          updatedOrder.buyer.id,
+          'payment',
+          '¡Pago confirmado!',
+          `Tu pago por "${updatedOrder.gig.title}" fue exitoso.`,
+          `/orders/${orderId}`
+        )
+      }
     }
 
     return NextResponse.json({ received: true, event })

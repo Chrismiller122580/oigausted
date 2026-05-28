@@ -92,6 +92,14 @@ export async function POST(
           `${senderRole} te ha enviado un mensaje sobre "${order.gig.title}".`,
           `/orders/${orderId}`
         );
+
+        // Also send email for new messages
+        await notifications.sendEmail(
+          recipientId,
+          `Nuevo mensaje sobre "${order.gig.title}"`,
+          `${senderRole} te ha enviado un mensaje: "${content?.substring(0, 100) || 'Ver mensaje completo'}..."`,
+          `/orders/${orderId}`
+        );
       }
     } catch (notifErr) {
       console.error('Failed to send message notification', notifErr);

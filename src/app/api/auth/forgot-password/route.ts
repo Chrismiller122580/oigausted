@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
+import { notifications } from '@/lib/notifications'
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,18 +37,19 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // TODO: Send email with reset link using Resend / your email provider
-    // For now this is beta: in development we return the token so you can test the reset flow manually.
+    const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.co.com'}/reset-password?token=${token}`
 
-    const isDev = process.env.NODE_ENV === 'development';
-    console.log(`[DEV] Password reset token for ${email}: ${token}`);
+    // Send real password reset email
+    await notifications.sendEmail(
+      user.id,
+      'Restablece tu contraseña en OigaUsted',
+      `Recibimos una solicitud para restablecer tu contraseña. Haz clic en el siguiente enlace para crear una nueva:\n\n${resetLink}\n\nEste enlace expirará en 1 hora. Si no solicitaste esto, puedes ignorar este correo.`,
+      resetLink
+    )
 
     return NextResponse.json({ 
       success: true,
-      message: isDev 
-        ? "Dev mode: use the token below to test reset" 
-        : "If an account exists, reset instructions were sent.",
-      devToken: isDev ? token : undefined
+      message: "If an account exists, password reset instructions have been sent to your email."
     })
   } catch (error) {
     console.error('Forgot password error:', error)

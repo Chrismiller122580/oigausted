@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import bcrypt from 'bcryptjs'
+import { notifications } from '@/lib/notifications'
 
 // Simple in-memory rate limiter (replace with Upstash/Redis in production)
 const signupAttempts = new Map<string, { count: number; resetTime: number }>()
@@ -70,6 +71,14 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
       }
     })
+
+    // Send welcome email
+    await notifications.sendEmail(
+      newUser.id,
+      '¡Bienvenido a OigaUsted!',
+      `Hola ${name}, gracias por registrarte. Ya puedes explorar servicios o publicar los tuyos.`,
+      `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.co.com'}/gigs`
+    )
 
     return NextResponse.json({ 
       success: true, 
