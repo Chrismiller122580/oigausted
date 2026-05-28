@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,9 @@ import { Eye, EyeOff } from "lucide-react"
 
 export default function SignUpPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const refCode = searchParams.get('ref') || searchParams.get('referral') || ''
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -33,7 +36,10 @@ export default function SignUpPage() {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          referralCode: refCode || undefined,
+        }),
       })
 
       const data = await response.json()

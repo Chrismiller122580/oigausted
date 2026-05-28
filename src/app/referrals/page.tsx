@@ -1,33 +1,59 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
 import { Copy, Users, DollarSign, TrendingUp, Share2 } from 'lucide-react';
 
+interface ReferralData {
+  referralCode: string;
+  referralLink: string;
+  stats: {
+    totalReferred: number;
+    activeSellers: number;
+    totalEarned: number;
+    pendingEarnings: number;
+    referralRate: number;
+  };
+  referredUsers: Array<{
+    id: string;
+    name: string;
+    businessName: string | null;
+    joined: string;
+    status: string;
+    earnings: number;
+  }>;
+}
+
 export default function ReferralsPage() {
   const { data: session } = useSession();
+  const [data, setData] = useState<ReferralData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  // TODO: Replace with real data from API
-  const referralCode = session?.user?.id?.slice(0, 8).toUpperCase() || 'DEMO1234';
-  const referralLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/signup?ref=${referralCode}`;
+  useEffect(() => {
+    if (session?.user) {
+      fetchReferralData();
+    }
+  }, [session]);
 
-  // Mock data for now
-  const stats = {
-    totalReferred: 12,
-    activeSellers: 7,
-    totalEarned: 245000,
-    pendingEarnings: 87000,
+  const fetchReferralData = async () => {
+    try {
+      const res = await fetch('/api/referrals');
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+      } else {
+        toast.error('Error cargando datos de referidos');
+      }
+    } catch (err) {
+      toast.error('Error de conexión');
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const referredUsers = [
-    { id: 1, name: 'Carlos Mendoza', business: 'Diseño Gráfico Pro', joined: '2026-04-12', status: 'Active Seller', earnings: 125000 },
-    { id: 2, name: 'Laura Gómez', business: 'Fotografía Bogotá', joined: '2026-04-28', status: 'Active Seller', earnings: 89000 },
-    { id: 3, name: 'Andrés Ruiz', business: null, joined: '2026-05-10', status: 'Buyer', earnings: 0 },
-  ];
 
   const handleCopyLink = async () => {
     try {
@@ -52,7 +78,7 @@ export default function ReferralsPage() {
       <div>
         <h1 className="text-3xl font-bold">Programa de Referidos</h1>
         <p className="text-muted-foreground mt-2">
-          Invita a otros vendedores y gana { /* TODO: pull from PlatformConfig */ }5% de comisión sobre sus ventas.
+          Invita a otros vendedores y gana {(stats.referralRate * 100).toFixed(0)}% de comisión sobre sus ventas.
         </p>
       </div>
 

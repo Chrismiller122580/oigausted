@@ -30,7 +30,7 @@ function checkRateLimit(ip: string, email: string): { allowed: boolean; retryAft
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password, role = 'buyer' } = await request.json()
+    const { name, email, password, role = 'buyer', referralCode } = await request.json()
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: "Faltan campos requeridos (nombre, email, contraseña)" }, { status: 400 })
@@ -71,6 +71,19 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
       }
     })
+
+    // Link referral if referralCode was provided
+    if (referralCode) {
+      const referrer = await prisma.user.findUnique({
+        where: { referralCode: referralCode.toUpperCase() }
+      })
+      if (referrer && referrer.id !== newUser.id) {
+        await prisma.user.update({
+          where: { id: newUser.id },
+          data: { referredById: referrer.id }
+        })
+      }
+    }
 
     // Send welcome email
     await notifications.sendEmail(
