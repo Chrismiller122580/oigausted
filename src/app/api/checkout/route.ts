@@ -19,6 +19,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Gig not found" }, { status: 404 });
     }
 
+    // Prevent sellers from purchasing their own gigs (server-side enforcement)
+    if (gig.sellerId === session.user.id) {
+      return NextResponse.json({ error: "No puedes comprar tu propio servicio" }, { status: 403 });
+    }
+
     const order = await prisma.order.create({
       data: {
         buyerId: session.user.id,

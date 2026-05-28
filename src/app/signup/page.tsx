@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import Image from "next/image"
 import { toast } from 'react-hot-toast'
+import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl"
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -51,15 +52,15 @@ export default function SignUpPage() {
       })
 
       if (loginResult?.ok) {
-        // Route based on chosen role
+        // Route based on chosen role (use helper for dev resilience)
         if (formData.role === "seller") {
-          router.push("/seller")
+          router.push(getAuthCallbackUrl("/seller"))
         } else {
-          router.push("/")
+          router.push(getAuthCallbackUrl("/"))
         }
       } else {
         // Fallback: send them to login page
-        router.push("/login")
+        router.push(getAuthCallbackUrl("/login"))
       }
     } catch (err) {
       setError("Error de conexión. Inténtalo de nuevo.")

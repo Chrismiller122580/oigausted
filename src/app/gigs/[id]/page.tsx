@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock } from 'lucide-react';
 import { parseJsonArrayField } from "@/lib/utils";
+import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 
 export default function GigDetailPage() {
   const params = useParams();
@@ -48,7 +49,7 @@ export default function GigDetailPage() {
     if (!gig) return;
 
     if (!session?.user) {
-      router.push(`/login?callbackUrl=/gigs/${params.id}`);
+      router.push(`/login?callbackUrl=${encodeURIComponent(getAuthCallbackUrl(`/gigs/${params.id}`))}`);
       return;
     }
 

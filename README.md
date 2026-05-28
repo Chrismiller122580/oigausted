@@ -60,7 +60,15 @@ npm run db:reset
 npm run dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000) y usa las cuentas demo:
+**Si trabajas en GitHub Codespaces** (recomendado cuando pruebas contra la base de producción):
+
+```bash
+npm run dev:codespaces
+```
+
+Este comando detecta automáticamente tu URL de Codespaces y configura `NEXTAUTH_URL` correctamente (evita problemas de redirección después de login causados por valores antiguos de Vercel).
+
+Abre la URL que te da Codespaces (ej: `https://tu-codespace-3000.app.github.dev`) y usa las cuentas demo:
 
 ## Despliegue en Vercel (Producción)
 
@@ -104,12 +112,16 @@ O usa Prisma Studio conectado directamente a tu base de datos de producción.
 ### Comandos útiles
 
 ```bash
-npm run db:reset      # Fuerza reset + seed (solo desarrollo local)
-npm run seed          # Solo re-sembrar cuentas demo (solo desarrollo)
-npx prisma studio     # Explorar la base de datos
-npm run build         # Verificar que todo compila correctamente
-npm run create-admin  # Crear usuario admin (útil en producción)
+npm run dev:codespaces    # Recomendado en GitHub Codespaces (configura NEXTAUTH_URL automáticamente)
+npm run dev               # Desarrollo normal
+npm run db:reset          # Fuerza reset + seed (solo desarrollo local)
+npm run seed              # Solo re-sembrar cuentas demo
+npx prisma studio         # Explorar la base de datos
+npm run build             # Verificar que todo compila correctamente
+npm run create-admin      # Crear usuario admin (útil en producción)
 ```
+
+> **Nota sobre `NEXTAUTH_URL`**: Si usas `vercel env pull`, puedes heredar valores antiguos de Vercel. El script `dev:codespaces` y el helper `getAuthCallbackUrl` protegen contra esto en entornos remotos.
 
 ## Dark Mode
 

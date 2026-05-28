@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -59,30 +60,24 @@ export default function LoginPage() {
     setIsLoading(true);
     setError('');
 
-    const callbackUrl = new URLSearchParams(window.location.search).get('callbackUrl') || '/';
+    const fromQuery = new URLSearchParams(window.location.search).get('callbackUrl');
+    const callbackUrl = fromQuery || getAuthCallbackUrl('/');
 
-    // Use NextAuth's built-in redirect for credentials login.
-    // This is more reliable than redirect: false + manual handling,
-    // especially with custom navigation testing scripts or in remote dev environments.
     await signIn('credentials', {
       email,
       password,
       callbackUrl,
     });
-
-    // Note: signIn with redirect will handle the navigation.
-    // We don't need to manually setIsLoading(false) or redirect here.
   };
 
   const handleGoogleSignIn = async () => {
-    const callbackUrl = new URLSearchParams(window.location.search).get('callbackUrl') || '/';
-    
+    const fromQuery = new URLSearchParams(window.location.search).get('callbackUrl');
+    const callbackUrl = fromQuery || getAuthCallbackUrl('/');
+
     try {
-      // This will redirect on success. On failure it redirects to the error page we created.
       await signIn('google', { callbackUrl });
     } catch (err) {
       console.error('Google sign-in error:', err);
-      // The error page should catch most cases, but this helps in console during dev
     }
   };
 
@@ -208,7 +203,7 @@ export default function LoginPage() {
                   onClick={() => signIn('credentials', { 
                     email: 'buyer@demo.com', 
                     password: 'demo1234', 
-                    callbackUrl: '/buyer' 
+                    callbackUrl: getAuthCallbackUrl('/buyer') 
                   })}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
@@ -219,7 +214,7 @@ export default function LoginPage() {
                   onClick={() => signIn('credentials', { 
                     email: 'seller@demo.com', 
                     password: 'demo1234', 
-                    callbackUrl: '/seller' 
+                    callbackUrl: getAuthCallbackUrl('/seller') 
                   })}
                   className="bg-green-600 hover:bg-green-700"
                 >
@@ -230,14 +225,17 @@ export default function LoginPage() {
                   onClick={() => signIn('credentials', { 
                     email: 'admin@demo.com', 
                     password: 'demo1234', 
-                    callbackUrl: '/admin' 
+                    callbackUrl: getAuthCallbackUrl('/admin') 
                   })}
                   className="bg-purple-600 hover:bg-purple-700"
                 >
                   Login as Admin
                 </Button>
               </div>
-              <p className="text-[10px] text-yellow-700 mt-2">Bypasses the normal form. Uses direct callback to avoid redirect loops in this environment.</p>
+              <p className="text-[10px] text-yellow-700 mt-2">
+                Uses <code>getAuthCallbackUrl()</code> helper + <code>npm run dev:codespaces</code> (auto-detects URL).
+                Manual: <code>NEXTAUTH_URL=your-url npm run dev</code>
+              </p>
             </div>
           )}
         </CardContent>

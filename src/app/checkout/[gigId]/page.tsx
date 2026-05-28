@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
 import { parseJsonArrayField } from '@/lib/utils';
 import Script from 'next/script';
+import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
 
 declare global {
   interface Window {
@@ -93,7 +94,7 @@ export default function CheckoutPage() {
     if (sessionStatus === 'loading') return;
 
     if (!session?.user) {
-      const callbackUrl = encodeURIComponent(`/checkout/${gigId}`);
+      const callbackUrl = encodeURIComponent(getAuthCallbackUrl(`/checkout/${gigId}`));
       router.replace(`/login?callbackUrl=${callbackUrl}`);
       return;
     }
@@ -197,26 +198,7 @@ export default function CheckoutPage() {
       }
     } catch (err: any) {
       console.error('Wompi widget error:', err);
-
-      // Graceful dev fallback: if the real Wompi prep fails (e.g. 500),
-      // automatically simulate a successful payment so testing can continue.
-      if (order) {
-        toast.error("Wompi preparation failed. Falling back to simulation for testing...");
-        try {
-          await fetch(`/api/orders/${order.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'Paid' }),
-          });
-          toast.success('Payment simulated via dev fallback');
-          router.push(`/orders/${order.id}`);
-          return;
-        } catch (simErr) {
-          toast.error('Even the simulation failed. Check the server logs.');
-        }
-      } else {
-        toast.error(err.message || "Could not open Wompi");
-      }
+      toast.error(err.message || "No se pudo abrir Wompi. Por favor intenta de nuevo o contacta soporte.");
     } finally {
       setOpening(false);
     }
@@ -235,6 +217,11 @@ export default function CheckoutPage() {
         extra += value * (field.extraPrice || 0);
       } else if (field.type === 'checkbox' && value === true) {
         extra += field.extraPrice || 0;
+      } else if (field.type === 'select' && field.options) {
+        const chosen = field.options.find((o: any) => (typeof o === 'string' ? o === value : o.label === value));
+        if (chosen && typeof chosen === 'object' && chosen.extraPrice) {
+          extra += chosen.extraPrice;
+        }
       }
     });
     return extra;
@@ -333,6 +320,21 @@ export default function CheckoutPage() {
                     <span className="text-gray-700">Sí, incluir</span>
                   </label>
                 )}
+
+                {field.type === 'select' && field.options && (
+                  <select
+                    value={currentValue || ''}
+                    onChange={(e) => handleFieldChange(field.key, e.target.value)}
+                    className="w-full border rounded-xl px-4 py-3 text-lg bg-white"
+                  >
+                    <option value="">Seleccionar...</option>
+                    {field.options.map((opt: any, idx: number) => {
+                      const label = typeof opt === 'string' ? opt : opt.label;
+                      const price = typeof opt === 'object' && opt.extraPrice ? ` (+$${opt.extraPrice.toLocaleString('es-CO')})` : '';
+                      return <option key={idx} value={label}>{label}{price}</option>;
+                    })}
+                  </select>
+                )}
               </div>
             );
           })}
@@ -387,6 +389,11 @@ export default function CheckoutPage() {
                         extra = value * (fieldDef.extraPrice || 0);
                       } else if (fieldDef.type === 'checkbox' && value === true) {
                         extra = fieldDef.extraPrice || 0;
+                      } else if (fieldDef.type === 'select' && fieldDef.options) {
+                        const chosen = fieldDef.options.find((o: any) => (typeof o === 'string' ? o === value : o.label === value));
+                        if (chosen && typeof chosen === 'object' && chosen.extraPrice) {
+                          extra = chosen.extraPrice;
+                        }
                       }
                     }
 

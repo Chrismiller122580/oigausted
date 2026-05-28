@@ -37,10 +37,19 @@ export default function CreateGigPage() {
     let total = basePrice || 0;
     if (selectedCategory) {
       selectedCategory.fields.forEach((field: any) => {
-        if (field.type === 'number' && formData[field.key]) {
-          total += Number(formData[field.key]) * (field.extraPrice || 0);
-        } else if (field.type === 'checkbox' && formData[field.key]) {
+        const val = formData[field.key];
+        if (!val) return;
+
+        if (field.type === 'number' && val) {
+          total += Number(val) * (field.extraPrice || 0);
+        } else if (field.type === 'checkbox' && val) {
           total += field.extraPrice || 0;
+        } else if (field.type === 'select' && field.options) {
+          // Support both string options and {label, extraPrice} objects
+          const chosen = field.options.find((o: any) => (typeof o === 'string' ? o === val : o.label === val));
+          if (chosen && typeof chosen === 'object' && chosen.extraPrice) {
+            total += chosen.extraPrice;
+          }
         }
       });
     }
@@ -269,9 +278,11 @@ export default function CreateGigPage() {
                       className="mt-1 w-full border rounded-md p-2"
                     >
                       <option value="">Seleccionar...</option>
-                      {field.options.map((opt: string) => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
+                      {field.options.map((opt: any, idx: number) => {
+                        const label = typeof opt === 'string' ? opt : opt.label;
+                        const price = typeof opt === 'object' && opt.extraPrice ? ` (+$${opt.extraPrice})` : '';
+                        return <option key={idx} value={label}>{label}{price}</option>;
+                      })}
                     </select>
                   )}
                 </div>

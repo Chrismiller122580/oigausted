@@ -171,5 +171,6 @@ export const authOptions = {
 
   pages: {
     signIn: "/login",
+    error: "/login/error",   // Use our nice error page instead of the default /api/auth/error
   },
 }

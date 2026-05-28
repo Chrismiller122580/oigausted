@@ -37,11 +37,18 @@ export async function POST(request: NextRequest) {
     })
 
     // TODO: Send email with reset link using Resend / your email provider
-    // Example: https://yourdomain.com/reset-password?token=${token}
+    // For now this is beta: in development we return the token so you can test the reset flow manually.
 
-    console.log(`[DEV] Password reset token for ${email}: ${token}`)
+    const isDev = process.env.NODE_ENV === 'development';
+    console.log(`[DEV] Password reset token for ${email}: ${token}`);
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ 
+      success: true,
+      message: isDev 
+        ? "Dev mode: use the token below to test reset" 
+        : "If an account exists, reset instructions were sent.",
+      devToken: isDev ? token : undefined
+    })
   } catch (error) {
     console.error('Forgot password error:', error)
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })

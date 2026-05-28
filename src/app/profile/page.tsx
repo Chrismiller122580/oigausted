@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 
 export default function ProfilePage() {
   const { data: session, update } = useSession();
@@ -161,7 +162,7 @@ export default function ProfilePage() {
         
         if (res.status === 401) {
           toast.error("Tu sesión expiró. Por favor inicia sesión de nuevo.");
-          router.push(`/login?callbackUrl=${encodeURIComponent('/profile')}`);
+          router.push(`/login?callbackUrl=${encodeURIComponent(getAuthCallbackUrl('/profile'))}`);
         } else {
           toast.error(err.error || "Error al guardar el perfil");
         }

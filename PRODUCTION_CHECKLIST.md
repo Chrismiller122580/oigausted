@@ -72,6 +72,22 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
   - Using temporary `prisma db push --accept-data-loss` due to SQLite → Postgres migration history incompatibility.
   - Target domain: https://oigagig.co.com (and Vercel preview)
 
+### Developing locally against Production DB (Codespaces)
+
+When testing against the real production database from GitHub Codespaces:
+
+1. Pull production environment variables:
+   ```bash
+   vercel env pull .env.development.local
+   ```
+
+2. Start the dev server with the safe script:
+   ```bash
+   npm run dev:codespaces
+   ```
+
+This automatically sets the correct `NEXTAUTH_URL` for your current Codespace, avoiding redirect loops after login caused by stale values from Vercel.
+
 ### Switching from `db push` back to proper migrations (recommended after first deploy)
 
 After the first successful deploy:
@@ -91,7 +107,10 @@ After the first successful deploy:
 npm run build                 # Test production build locally
 npm run create-admin          # Create admin user (pass DATABASE_URL)
 npx prisma studio             # Inspect database
+npm run dev:codespaces        # Recommended when developing in GitHub Codespaces (auto-sets NEXTAUTH_URL)
 ```
+
+> **Tip for Codespaces + Production DB**: When you run `vercel env pull .env.development.local` to test against real production data, `NEXTAUTH_URL` may be stale. Use `npm run dev:codespaces` or manually set `NEXTAUTH_URL=https://your-codespace-url npm run dev`.
 
 ---
 

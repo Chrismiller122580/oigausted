@@ -20,14 +20,25 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    // For beta: We don't have a real password reset system yet.
-    // This is a placeholder that gives good UX.
     setSubmitted(true);
     
-    // In a real app, this would call an API to send a reset email
-    console.log('Password reset requested for:', email);
-    
-    toast.success('If an account exists with this email, you will receive reset instructions.');
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+
+      if (data.devToken) {
+        toast.success('Dev mode: Token generated. Check the response or console for the token to test reset.');
+        console.log('[DEV] Use this token to reset:', data.devToken);
+      } else {
+        toast.success('If an account exists, reset instructions were sent (or contact support).');
+      }
+    } catch (err) {
+      toast.success('Request received. For beta, contact support to reset your password.');
+    }
   };
 
   return (
@@ -89,7 +100,7 @@ export default function ForgotPasswordPage() {
           )}
 
           <div className="mt-8 pt-6 border-t text-xs text-center text-gray-500">
-            Password reset via email is coming soon.
+            Password reset by email is in beta. Contact support@oigagig.co.com for immediate help.
           </div>
         </CardContent>
       </Card>

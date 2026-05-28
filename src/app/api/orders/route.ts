@@ -32,6 +32,11 @@ export async function POST(request: Request) {
 
     if (!gig) return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
 
+    // Prevent sellers from purchasing their own gigs (server-side enforcement)
+    if (gig.sellerId === session.user.id) {
+      return NextResponse.json({ error: 'No puedes comprar tu propio servicio' }, { status: 403 });
+    }
+
     // Ensure seller exists
     await prisma.user.upsert({
       where: { id: gig.sellerId },
