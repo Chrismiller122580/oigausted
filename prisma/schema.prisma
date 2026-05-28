@@ -71,6 +71,12 @@ model User {
   auditLogs           AuditLog[]           @relation("AdminAuditLogs")
   notifications       Notification[]
   notificationPreferences NotificationPreference?
+
+  // Referral system
+  referralCode   String?  @unique
+  referredById   String?
+  referredBy     User?    @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals      User[]   @relation("UserReferrals")
 }
 
 model PasswordResetToken {
