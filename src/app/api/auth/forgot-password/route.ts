@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.co.com'}/reset-password?token=${token}`
+    const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/reset-password?token=${token}`
 
     // Send real password reset email
     await notifications.sendEmail(

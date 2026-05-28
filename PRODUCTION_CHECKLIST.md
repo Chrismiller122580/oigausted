@@ -11,7 +11,7 @@ This checklist ensures a safe and complete production deployment on Vercel.
 - [ ] Google OAuth configured in Google Cloud Console with production redirect URI
 - [ ] Wompi keys are **Live** (not Sandbox) — or you are aware you're deploying in test mode
 - [ ] `NEXTAUTH_SECRET` is strong and different from development
-- [ ] `NEXTAUTH_URL` points to production domain (https://oigagig.co.com)
+- [ ] `NEXTAUTH_URL` points to production domain (https://oigagig.com)
 
 ## Environment Variables in Vercel (Production)
 
@@ -20,7 +20,7 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
 | Variable | Example / Notes |
 |----------|-----------------|
 | `DATABASE_URL` | Your production Postgres connection string (with `?sslmode=require`) |
-| `NEXTAUTH_URL` | `https://oigagig.co.com` |
+| `NEXTAUTH_URL` | `https://oigagig.com` |
 | `NEXTAUTH_SECRET` | Strong random string (32+ chars) |
 | `GOOGLE_CLIENT_ID` | From Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | From Google Cloud Console |
@@ -28,12 +28,12 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
 | `WOMPI_INTEGRITY_KEY` | Live key |
 | `WOMPI_EVENTS_KEY` | Live key |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (for image uploads) |
-| `NEXT_PUBLIC_APP_URL` | `https://oigagig.co.com` |
+| `NEXT_PUBLIC_APP_URL` | `https://oigagig.com` |
 
 ## Google OAuth
 
 - [ ] Added production redirect URI in Google Cloud Console:
-  `https://oigagig.co.com/api/auth/callback/google`
+  `https://oigagig.com/api/auth/callback/google`
 - [ ] Added production domain under Authorized JavaScript origins
 
 ## Database
@@ -50,7 +50,7 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
   vercel env pull .env.development.local
 
   # 2. Create the admin (the script auto-loads .env.development.local)
-  npm run create-admin admin@oigagig.co.com TuPasswordSeguro123!
+  npm run create-admin admin@oigagig.com TuPasswordSeguro123!
   ```
 
   > **Important**: Use a strong password. Once created, you can log in normally at `/login` from any environment using this account. The demo accounts (`*@demo.com`) are only for quick local testing.
@@ -62,7 +62,7 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
   - Profile updates + image upload
   - Order management
 - [ ] Verify Google OAuth works with the production domain
-- [ ] Add custom domain `oigagig.co.com` in Vercel (if not done yet)
+- [ ] Add custom domain `oigagig.com` in Vercel (if not done yet)
 - [ ] Update Google Console with final custom domain if different from Vercel URL
 
 ## Post-Launch
@@ -76,7 +76,7 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
 
 - **2026-05-26**: First production deploy attempt on Vercel (branch: `fix/post-review-blockers`).
   - Using temporary `prisma db push --accept-data-loss` due to SQLite → Postgres migration history incompatibility.
-  - Target domain: https://oigagig.co.com (and Vercel preview)
+  - Target domain: https://oigagig.com (and Vercel preview)
 
 - **2026-05-28**: Switched to proper migrations.
   - Updated `vercel.json` to use `prisma migrate deploy` instead of `db push --accept-data-loss`.

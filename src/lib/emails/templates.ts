@@ -28,7 +28,7 @@ export function welcomeEmail({ userName = 'Usuario' }: BaseEmailProps) {
         </p>
 
         <div style="margin: 32px 0; text-align: center;">
-          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.co.com'}/gigs" 
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/gigs" 
              style="background: #f97316; color: white; padding: 14px 28px; border-radius: 9999px; text-decoration: none; font-weight: 600; display: inline-block;">
             Explorar servicios
           </a>
@@ -50,7 +50,7 @@ interface OrderEmailProps extends BaseEmailProps {
 }
 
 export function newOrderEmail({ userName, gigTitle, amount, otherPartyName, orderId }: OrderEmailProps) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.co.com';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
   return {
     subject: `Nuevo pedido: ${gigTitle}`,
     html: `
@@ -80,7 +80,7 @@ export function newOrderEmail({ userName, gigTitle, amount, otherPartyName, orde
 }
 
 export function orderStatusUpdatedEmail({ userName, gigTitle, newStatus, orderId }: OrderEmailProps & { newStatus: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.co.com';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
   return {
     subject: `Actualización de tu pedido: ${gigTitle}`,
     html: `
@@ -103,7 +103,7 @@ export function orderStatusUpdatedEmail({ userName, gigTitle, newStatus, orderId
 }
 
 export function reviewReceivedEmail({ userName, gigTitle, rating, reviewerName }: OrderEmailProps & { rating: number; reviewerName: string }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.co.com';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
   return {
     subject: `Nueva reseña en tu servicio`,
     html: `

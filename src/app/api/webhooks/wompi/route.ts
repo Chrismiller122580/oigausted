@@ -122,7 +122,7 @@ export async function POST(request: Request) {
           updatedOrder.buyer.id,
           '¡Pago confirmado!',
           `Tu pago por el servicio "${updatedOrder.gig.title}" ha sido confirmado. El vendedor ya puede comenzar.`,
-          `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.co.com'}/orders/${orderId}`
+          `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/orders/${orderId}`
         )
 
         await notifications.sendInApp(

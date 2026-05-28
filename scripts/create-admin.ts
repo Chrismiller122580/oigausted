@@ -67,7 +67,7 @@ async function main() {
   console.log('✅ This admin can now log in from ANY environment using the same production database:');
   console.log('   - Local development (npm run dev:codespaces)');
   console.log('   - Vercel Preview deployments');
-  console.log('   - Production (https://oigagig.co.com)');
+  console.log('   - Production (https://oigagig.com)');
   console.log('');
   console.log('Just go to /login and use the email + password above.');
 }

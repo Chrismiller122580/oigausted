@@ -79,8 +79,8 @@ For a complete step-by-step checklist, see [PRODUCTION_CHECKLIST.md](./PRODUCTIO
 1. Conecta el repositorio a Vercel.
 2. En Vercel Dashboard → Settings → Environment Variables, agrega todas las variables de `.env.example` (usa PostgreSQL para `DATABASE_URL`).
 3. **Importante para Auth**:
-   - `NEXTAUTH_URL` debe ser tu dominio de producción: `https://oigagig.co.com`
-   - Configura Google OAuth con el redirect URI de producción: `https://oigagig.co.com/api/auth/callback/google`
+   - `NEXTAUTH_URL` debe ser tu dominio de producción: `https://oigagig.com`
+   - Configura Google OAuth con el redirect URI de producción: `https://oigagig.com/api/auth/callback/google`
    - Asegúrate de tener HTTPS configurado en tu dominio personalizado (Vercel lo maneja automáticamente cuando agregas el dominio).
 4. **Primer despliegue**: El comando de build usa temporalmente `prisma db push --accept-data-loss` porque el historial de migraciones fue creado contra SQLite en desarrollo. Esto permite crear el schema en una base Postgres nueva sin errores.
 
@@ -104,7 +104,7 @@ Después del primer despliegue exitoso, ejecuta localmente con tu `DATABASE_URL`
 
 ```bash
 # Crear admin con email y contraseña personalizados
-DATABASE_URL="postgresql://..." npm run create-admin admin@oigagig.co.com TuPasswordSeguro123!
+DATABASE_URL="postgresql://..." npm run create-admin admin@oigagig.com TuPasswordSeguro123!
 ```
 
 O usa Prisma Studio conectado directamente a tu base de datos de producción.

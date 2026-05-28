@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       newUser.id,
       '¡Bienvenido a OigaUsted!',
       `Hola ${name}, gracias por registrarte. Ya puedes explorar servicios o publicar los tuyos.`,
-      `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.co.com'}/gigs`
+      `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/gigs`
     )
 
     return NextResponse.json({ 
