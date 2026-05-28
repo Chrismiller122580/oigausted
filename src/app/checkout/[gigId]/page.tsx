@@ -27,17 +27,22 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState(false);
   const [wompiReady, setWompiReady] = useState(false);
+  const [wompiLoadFailed, setWompiLoadFailed] = useState(false);
 
   // Dynamic fields selections
   const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
 
-  // Robust Wompi script loader
+  // Robust Wompi script loader (improved for production reliability)
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    let attempts = 0;
+    const maxAttempts = 60; // ~12 seconds of polling
 
     const trySetReady = () => {
       if (window.WompiCheckout) {
         setWompiReady(true);
+        setWompiLoadFailed(false);
         return true;
       }
       return false;
@@ -46,46 +51,77 @@ export default function CheckoutPage() {
     // Immediate check
     if (trySetReady()) return;
 
-    // Polling (more persistent)
+    // Aggressive polling
     const interval = setInterval(() => {
+      attempts++;
+
       if (trySetReady()) {
         clearInterval(interval);
+        return;
+      }
+
+      // After many attempts without success, mark as failed
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        console.error('[Wompi] Failed to load after multiple attempts');
+        setWompiLoadFailed(true);
       }
     }, 200);
 
-    // Dynamic injection fallback (in case the <Script> component has issues in this env)
+    // Dynamic injection fallback
     const loadScriptDynamically = () => {
       if (document.querySelector('script[src*="checkout.wompi.co"]')) return;
+
+      console.log('[Wompi] Attempting dynamic script load...');
 
       const script = document.createElement('script');
       script.src = 'https://checkout.wompi.co/widget.js';
       script.async = true;
+
       script.onload = () => {
-        if (trySetReady()) {
-          clearInterval(interval);
-        }
+        // Wompi script can take a moment to expose the global
+        setTimeout(() => {
+          if (!trySetReady()) {
+            // Keep polling a bit more after load
+            const extraCheck = setInterval(() => {
+              if (trySetReady()) {
+                clearInterval(extraCheck);
+              }
+            }, 150);
+            setTimeout(() => clearInterval(extraCheck), 3000);
+          }
+        }, 300);
       };
+
       script.onerror = () => {
         console.error('[Wompi] Failed to load widget script dynamically');
-        toast.error('No se pudo cargar el sistema de pagos de Wompi. Revisa tu conexión.');
+        setWompiLoadFailed(true);
       };
+
       document.head.appendChild(script);
     };
 
-    // Give the <Script> component a chance, then fallback
+    // Trigger dynamic fallback after 2.2 seconds if primary method failed
     const fallbackTimeout = setTimeout(() => {
-      if (!window.WompiCheckout) {
-        console.log('[Wompi] Falling back to dynamic script load...');
+      if (!window.WompiCheckout && !wompiReady) {
         loadScriptDynamically();
       }
-    }, 2500);
+    }, 2200);
 
-    // Cleanup
+    // Hard timeout: if still not ready after 13 seconds, show failure UI
+    const hardFailTimeout = setTimeout(() => {
+      if (!window.WompiCheckout && !wompiReady) {
+        setWompiLoadFailed(true);
+        clearInterval(interval);
+      }
+    }, 13000);
+
     return () => {
       clearInterval(interval);
       clearTimeout(fallbackTimeout);
+      clearTimeout(hardFailTimeout);
     };
-  }, []);
+  }, [wompiReady]);
 
   // Auth guard + load order when ready
   useEffect(() => {
@@ -423,15 +459,53 @@ export default function CheckoutPage() {
 
           <Button 
             onClick={openWompiWidget} 
-            disabled={opening || !order || !wompiReady}
+            disabled={opening || !order || (!wompiReady && !wompiLoadFailed)}
             className="w-full py-8 text-lg bg-green-600 hover:bg-green-700"
           >
             {opening 
               ? "Abriendo Wompi..." 
-              : !wompiReady 
-                ? "Cargando sistema de pagos de Wompi..." 
-                : `Pagar con Wompi — $${finalPrice.toLocaleString('es-CO')}`}
+              : wompiLoadFailed
+                ? "Error al cargar Wompi - Reintentar"
+                : !wompiReady 
+                  ? "Cargando sistema de pagos de Wompi..." 
+                  : `Pagar con Wompi — $${finalPrice.toLocaleString('es-CO')}`}
           </Button>
+
+          {/* Wompi loading failure state */}
+          {wompiLoadFailed && (
+            <div className="mt-3 text-center">
+              <p className="text-sm text-red-600 mb-2">
+                No pudimos cargar el sistema de pagos de Wompi.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setWompiLoadFailed(false);
+                  setWompiReady(false);
+                  // Force re-trigger dynamic load
+                  const script = document.createElement('script');
+                  script.src = 'https://checkout.wompi.co/widget.js';
+                  script.async = true;
+                  script.onload = () => {
+                    const check = setInterval(() => {
+                      if (window.WompiCheckout) {
+                        setWompiReady(true);
+                        setWompiLoadFailed(false);
+                        clearInterval(check);
+                      }
+                    }, 150);
+                  };
+                  document.head.appendChild(script);
+                }}
+              >
+                Reintentar cargar Wompi
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                Si el problema persiste, intenta recargar la página o usa otro navegador.
+              </p>
+            </div>
+          )}
 
           {/* Temporary debug info (dev only) */}
           {process.env.NODE_ENV === 'development' && (
@@ -441,7 +515,7 @@ export default function CheckoutPage() {
           )}
 
           {/* DEV BYPASS - Simulate successful Wompi payment */}
-          {process.env.NODE_ENV === 'development' && !wompiReady && order && (
+          {process.env.NODE_ENV === 'development' && (!wompiReady || wompiLoadFailed) && order && (
             <div className="mt-4 p-4 border border-dashed border-orange-500 rounded-xl bg-orange-50 dark:bg-orange-950/30">
               <p className="text-sm font-medium text-orange-700 dark:text-orange-400 mb-2">
                 DEV TESTING ONLY
