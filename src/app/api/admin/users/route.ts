@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
         businessName: true,
         phone: true,
         whatsapp: true,
-        city: true,
+
         bio: true,
         nit: true,
         isActive: true,
@@ -88,7 +88,7 @@ export async function PATCH(req: NextRequest) {
         ...(businessName !== undefined && { businessName }),
         ...(phone !== undefined && { phone }),
         ...(whatsapp !== undefined && { whatsapp }),
-        ...(city !== undefined && { city }),
+
         ...(bio !== undefined && { bio }),
         ...(nit !== undefined && { nit }),
         ...(isActive !== undefined && { isActive }),
@@ -101,7 +101,7 @@ export async function PATCH(req: NextRequest) {
         businessName: true,
         phone: true,
         whatsapp: true,
-        city: true,
+
         bio: true,
         nit: true
       }
@@ -121,7 +121,7 @@ export async function PATCH(req: NextRequest) {
           ...(businessName !== undefined && { businessName }),
           ...(phone !== undefined && { phone }),
           ...(whatsapp !== undefined && { whatsapp }),
-          ...(city !== undefined && { city }),
+  
           ...(bio !== undefined && { bio }),
           ...(nit !== undefined && { nit }),
           ...(isActive !== undefined && { isActive }),

@@ -95,6 +95,7 @@ export async function PATCH(
           recipientId,
           `Actualización de pedido: ${status}`,
           `El estado de tu pedido para "${updatedOrder.gig.title}" ahora es: ${status}.`,
+          `/orders/${orderId}`,
           { 
             gigTitle: updatedOrder.gig.title, 
             amount: updatedOrder.price, 
@@ -118,6 +119,7 @@ export async function PATCH(
           updatedOrder.buyerId,
           '¡Tu pedido está completo! Cuéntanos cómo te fue',
           `Gracias por confiar en OigaUsted. Tu servicio "${updatedOrder.gig.title}" ha sido marcado como completado. Nos encantaría saber tu opinión.`,
+          `/orders/${orderId}`,
           { gigTitle: updatedOrder.gig.title, orderId }
         );
       }

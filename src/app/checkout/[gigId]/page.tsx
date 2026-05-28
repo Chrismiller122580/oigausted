@@ -29,6 +29,8 @@ export default function CheckoutPage() {
   const [wompiReady, setWompiReady] = useState(false);
   const [wompiLoadFailed, setWompiLoadFailed] = useState(false);
 
+  const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '';
+
   // Dynamic fields selections
   const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
 
@@ -312,6 +314,8 @@ export default function CheckoutPage() {
     );
   }
 
+  const isWompiSandbox = WOMPI_PUBLIC_KEY?.includes('test') || false;
+
   // Render interactive dynamic fields
   const renderDynamicFields = () => {
     if (!fields || fields.length === 0) return null;
@@ -549,6 +553,13 @@ export default function CheckoutPage() {
             Serás redirigido a Wompi para completar el pago de forma segura. 
             Una vez pagado, volverás automáticamente a tus pedidos.
           </p>
+
+          {isWompiSandbox && (
+            <div className="mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-500 rounded-xl text-sm text-yellow-800 dark:text-yellow-200">
+              ⚠️ <strong>Modo Beta / Pruebas activado</strong><br />
+              Estás usando llaves de sandbox de Wompi. Los pagos no son reales.
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

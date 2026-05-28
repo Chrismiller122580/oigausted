@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'react-hot-toast';
 
 interface User {
@@ -89,7 +91,7 @@ export default function AdminUsersPage() {
 
       if (res.ok) {
         toast.success('Rol actualizado');
-        setEditingId(null);
+        setRoleEditingId(null);
         fetchUsers(); // refresh
       } else {
         toast.error('No se pudo actualizar el rol');
@@ -112,7 +114,7 @@ export default function AdminUsersPage() {
       businessName: user.businessName || '',
       phone: user.phone || '',
       whatsapp: (user as any).whatsapp || '',
-      city: (user as any).city || '',
+
       bio: (user as any).bio || '',
       nit: (user as any).nit || '',
     });
@@ -344,7 +346,7 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="p-4 text-zinc-300">{user.email}</td>
                     <td className="p-4">
-                      {editingId === user.id ? (
+                      {roleEditingId === user.id ? (
                         <select
                           value={newRole}
                           onChange={(e) => setNewRole(e.target.value)}
@@ -485,13 +487,7 @@ export default function AdminUsersPage() {
                     onChange={(e) => setEditForm({...editForm, whatsapp: e.target.value})}
                   />
                 </div>
-                <div>
-                  <Label>Ciudad</Label>
-                  <Input 
-                    value={editForm.city} 
-                    onChange={(e) => setEditForm({...editForm, city: e.target.value})}
-                  />
-                </div>
+
                 <div>
                   <Label>NIT</Label>
                   <Input 

@@ -24,13 +24,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
-    const result = await notifications.sendNotification({
-      userId,
-      category,
-      type: type as any,
-      title,
-      message,
-    });
+    let result;
+    if (type === 'in_app') {
+      result = await notifications.sendInApp(userId, category, title, message);
+    } else if (type === 'email') {
+      result = await notifications.sendEmail(userId, title, message);
+    } else {
+      result = await notifications.sendInApp(userId, category, title, message);
+    }
 
     return NextResponse.json({ 
       success: true, 

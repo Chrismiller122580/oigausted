@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch'; // Assuming shadcn switch exists, fallback to checkbox if not
+// Using simple checkbox toggles for now (no shadcn Switch component installed)
 import { toast } from 'react-hot-toast';
 
 interface Preferences {
@@ -113,7 +113,12 @@ export default function NotificationPreferences() {
               <div className="font-medium">Notificaciones en la app</div>
               <div className="text-sm text-muted-foreground">Campana en la barra superior</div>
             </div>
-            <Switch checked={prefs.inAppEnabled} onCheckedChange={() => handleToggle('inAppEnabled')} />
+            <input 
+              type="checkbox" 
+              checked={prefs.inAppEnabled} 
+              onChange={() => handleToggle('inAppEnabled')}
+              className="w-5 h-5 accent-orange-600"
+            />
           </div>
 
           <div className="flex items-center justify-between">
@@ -121,21 +126,38 @@ export default function NotificationPreferences() {
               <div className="font-medium">Email</div>
               <div className="text-sm text-muted-foreground">Recibe actualizaciones por correo</div>
             </div>
-            <Switch checked={prefs.emailEnabled} onCheckedChange={() => handleToggle('emailEnabled')} />
+            <input 
+              type="checkbox" 
+              checked={prefs.emailEnabled} 
+              onChange={() => handleToggle('emailEnabled')}
+              className="w-5 h-5 accent-orange-600"
+            />
           </div>
 
           <div className="flex items-center justify-between opacity-60">
             <div>
               <div className="font-medium">SMS (próximamente)</div>
             </div>
-            <Switch checked={prefs.smsEnabled} onCheckedChange={() => handleToggle('smsEnabled')} disabled />
+            <input 
+              type="checkbox" 
+              checked={prefs.smsEnabled} 
+              onChange={() => handleToggle('smsEnabled')}
+              disabled
+              className="w-5 h-5 accent-orange-600"
+            />
           </div>
 
           <div className="flex items-center justify-between opacity-60">
             <div>
               <div className="font-medium">Push (próximamente)</div>
             </div>
-            <Switch checked={prefs.pushEnabled} onCheckedChange={() => handleToggle('pushEnabled')} disabled />
+            <input 
+              type="checkbox" 
+              checked={prefs.pushEnabled} 
+              onChange={() => handleToggle('pushEnabled')}
+              disabled
+              className="w-5 h-5 accent-orange-600"
+            />
           </div>
         </CardContent>
       </Card>
@@ -147,19 +169,39 @@ export default function NotificationPreferences() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>Actualizaciones de pedidos</div>
-            <Switch checked={prefs.orderUpdates} onCheckedChange={() => handleToggle('orderUpdates')} />
+            <input 
+              type="checkbox" 
+              checked={prefs.orderUpdates} 
+              onChange={() => handleToggle('orderUpdates')}
+              className="w-5 h-5 accent-orange-600"
+            />
           </div>
           <div className="flex items-center justify-between">
             <div>Actualizaciones de gigs</div>
-            <Switch checked={prefs.gigUpdates} onCheckedChange={() => handleToggle('gigUpdates')} />
+            <input 
+              type="checkbox" 
+              checked={prefs.gigUpdates} 
+              onChange={() => handleToggle('gigUpdates')}
+              className="w-5 h-5 accent-orange-600"
+            />
           </div>
           <div className="flex items-center justify-between">
             <div>Alertas de reseñas</div>
-            <Switch checked={prefs.reviewAlerts} onCheckedChange={() => handleToggle('reviewAlerts')} />
+            <input 
+              type="checkbox" 
+              checked={prefs.reviewAlerts} 
+              onChange={() => handleToggle('reviewAlerts')}
+              className="w-5 h-5 accent-orange-600"
+            />
           </div>
           <div className="flex items-center justify-between">
             <div>Alertas de pagos</div>
-            <Switch checked={prefs.paymentAlerts} onCheckedChange={() => handleToggle('paymentAlerts')} />
+            <input 
+              type="checkbox" 
+              checked={prefs.paymentAlerts} 
+              onChange={() => handleToggle('paymentAlerts')}
+              className="w-5 h-5 accent-orange-600"
+            />
           </div>
         </CardContent>
       </Card>

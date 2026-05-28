@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
         userId,
         'Nuevo pedido recibido',
         'Un comprador ha solicitado uno de tus servicios.',
+        undefined,
         { gigTitle: 'Limpieza Profunda', amount: 185000, orderId: 'test-123', buyerName: 'Cliente de Prueba' }
       );
     } else if (emailType === 'review') {
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
         userId,
         'Nueva reseña recibida',
         'Has recibido una nueva reseña de 5 estrellas.',
+        undefined,
         { gigTitle: 'Diseño de Logos', rating: 5, reviewerName: 'Cliente Satisfecho' }
       );
     } else {

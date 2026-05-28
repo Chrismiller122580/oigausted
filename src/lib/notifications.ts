@@ -91,6 +91,9 @@ export async function sendNotification(payload: NotificationPayload) {
             gigTitle: data.gigTitle,
             rating: data.rating || 5,
             reviewerName: data.reviewerName || 'Un cliente',
+            orderId: data.orderId || '',
+            amount: 0,
+            otherPartyName: data.reviewerName || 'Un cliente',
           });
         } else {
           // Generic fallback
