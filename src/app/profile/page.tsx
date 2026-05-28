@@ -21,6 +21,15 @@ export default function ProfilePage() {
   const [realStats, setRealStats] = useState({ rating: 0, reviewCount: 0, gigCount: 0 });
   const [recentReviews, setRecentReviews] = useState<any[]>([]);
 
+  // Password change state
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+
   const [formData, setFormData] = useState({
     name: "",
     tagline: "",
@@ -228,6 +237,48 @@ export default function ProfilePage() {
       toast.error("Error al convertirte en vendedor");
     } finally {
       setBecomingSeller(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (passwordForm.newPassword.length < 8) {
+      toast.error('La nueva contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error('Las contraseñas nuevas no coinciden');
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      const res = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword || undefined,
+          newPassword: passwordForm.newPassword,
+          confirmPassword: passwordForm.confirmPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success('Contraseña actualizada exitosamente');
+        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setShowPasswordForm(false);
+      } else {
+        toast.error(data.error || 'No se pudo cambiar la contraseña');
+      }
+    } catch (err) {
+      toast.error('Error al cambiar la contraseña');
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -487,6 +538,67 @@ export default function ProfilePage() {
                   </div>
                 )}
               </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Password Change Section */}
+        <Card className="mt-8">
+          <CardContent className="p-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-semibold">Cambiar Contraseña</h3>
+                <p className="text-sm text-muted-foreground">Actualiza tu contraseña de acceso</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPasswordForm(!showPasswordForm)}
+              >
+                {showPasswordForm ? 'Cancelar' : 'Cambiar'}
+              </Button>
+            </div>
+
+            {showPasswordForm && (
+              <form onSubmit={handleChangePassword} className="space-y-4 mt-4 max-w-md">
+                <div>
+                  <label className="text-sm font-medium">Contraseña actual (si tienes una)</label>
+                  <Input
+                    type="password"
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                    placeholder="Deja en blanco si aún no tienes contraseña"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Nueva contraseña</label>
+                  <Input
+                    type="password"
+                    value={passwordForm.newPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                    required
+                    minLength={8}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Confirmar nueva contraseña</label>
+                  <Input
+                    type="password"
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                    required
+                    className="mt-1"
+                  />
+                </div>
+                <Button type="submit" disabled={passwordLoading} className="w-full">
+                  {passwordLoading ? 'Actualizando...' : 'Actualizar Contraseña'}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Si iniciaste sesión con Google y no tienes contraseña, puedes establecer una aquí.
+                </p>
+              </form>
             )}
           </CardContent>
         </Card>

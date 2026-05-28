@@ -35,17 +35,17 @@ async function main() {
 
   await prisma.user.upsert({
     where: { id: "33333333-3333-3333-3333-333333333333" },
-    update: { password: hashedPassword },
+    update: { password: hashedPassword, role: "buyer" },
     create: {
       id: "33333333-3333-3333-3333-333333333333",
-      name: "Admin Demo",
+      name: "Demo User",
       email: "admin@demo.com",
-      role: "admin",
+      role: "buyer",
       password: hashedPassword,
     },
   });
 
-  console.log("✅ Demo users seeded (password: demo1234)");
+  console.log("✅ Demo users seeded (password: demo1234) — Note: No demo admin is seeded to avoid confusion with real admins");
 
   // Sample gigs belonging to the demo seller
   await prisma.gig.createMany({

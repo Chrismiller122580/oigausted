@@ -44,10 +44,16 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
 
 ## After First Successful Deploy
 
-- [ ] Create first Admin user:
+- [ ] Create a real Admin user (works in local Codespaces + Vercel Preview + Production against the same DB):
   ```bash
-  DATABASE_URL="your-production-db-url" npm run create-admin admin@oigagig.co.com StrongPassword123!
+  # 1. Pull production variables
+  vercel env pull .env.development.local
+
+  # 2. Create the admin (the script auto-loads .env.development.local)
+  npm run create-admin admin@oigagig.co.com TuPasswordSeguro123!
   ```
+
+  > **Important**: Use a strong password. Once created, you can log in normally at `/login` from any environment using this account. The demo accounts (`*@demo.com`) are only for quick local testing.
 - [ ] Test critical flows:
   - Login (credentials + Google)
   - Signup
@@ -120,5 +126,5 @@ npm run dev:codespaces        # Recommended when developing in GitHub Codespaces
 
 **Current Known State (as of last update):**
 - Wompi is using **Sandbox** keys (payments are simulated).
-- Dev testing tools are available only in development.
-- First admin must be created manually after deployment.
+- Dev testing tools (quick demo logins) are available only in development.
+- Real admin accounts are created with `npm run create-admin` and work across all environments against the same production database.

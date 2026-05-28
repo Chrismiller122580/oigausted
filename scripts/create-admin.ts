@@ -1,7 +1,39 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+
+// Load environment variables reliably for Codespaces + Production DB workflow
+const cwd = process.cwd();
+
+// Try .env.development.local first (preferred when working against prod DB from Codespaces)
+const devEnvPath = path.resolve(cwd, '.env.development.local');
+if (fs.existsSync(devEnvPath)) {
+  dotenv.config({ path: devEnvPath, override: true });
+  console.log('📄 Loaded DATABASE_URL from .env.development.local');
+}
+
+// Also load regular .env as fallback (without overriding)
+const defaultEnvPath = path.resolve(cwd, '.env');
+if (fs.existsSync(defaultEnvPath)) {
+  dotenv.config({ path: defaultEnvPath });
+}
 
 const prisma = new PrismaClient();
+
+// Debug: Show which database we are connecting to (masked for safety)
+const rawUrl = process.env.DATABASE_URL || '';
+if (rawUrl) {
+  try {
+    const url = new URL(rawUrl);
+    console.log(`🔗 Using database at: ${url.hostname}${url.pathname}`);
+  } catch {
+    console.log('🔗 DATABASE_URL is set but could not be parsed');
+  }
+} else {
+  console.warn('⚠️  No DATABASE_URL found in environment!');
+}
 
 async function main() {
   const email = process.argv[2] || 'admin@oigagig.co.com';
@@ -31,6 +63,13 @@ async function main() {
   console.log(`   Email:    ${admin.email}`);
   console.log(`   Role:     ${admin.role}`);
   console.log(`   Password: ${password}   ← Change this immediately!`);
+  console.log('');
+  console.log('✅ This admin can now log in from ANY environment using the same production database:');
+  console.log('   - Local development (npm run dev:codespaces)');
+  console.log('   - Vercel Preview deployments');
+  console.log('   - Production (https://oigagig.co.com)');
+  console.log('');
+  console.log('Just go to /login and use the email + password above.');
 }
 
 main()
