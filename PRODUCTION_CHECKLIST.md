@@ -72,6 +72,10 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
   - Using temporary `prisma db push --accept-data-loss` due to SQLite → Postgres migration history incompatibility.
   - Target domain: https://oigagig.co.com (and Vercel preview)
 
+- **2026-05-28**: Switched to proper migrations.
+  - Updated `vercel.json` to use `prisma migrate deploy` instead of `db push --accept-data-loss`.
+  - All future deploys will now run real migrations safely.
+
 ### Developing locally against Production DB (Codespaces)
 
 When testing against the real production database from GitHub Codespaces:
