@@ -103,6 +103,24 @@ export async function PATCH(
           }
         )
       }
+
+      // Special nice notification when order is completed → prompt for review
+      if (status === 'Completed') {
+        await notifications.sendInApp(
+          updatedOrder.buyerId,
+          'review',
+          '¡Pedido completado! Déjanos tu reseña',
+          `Tu pedido "${updatedOrder.gig.title}" ha sido completado. ¿Nos dejas una reseña?`,
+          `/orders/${orderId}`
+        );
+
+        await notifications.sendEmail(
+          updatedOrder.buyerId,
+          '¡Tu pedido está completo! Cuéntanos cómo te fue',
+          `Gracias por confiar en OigaUsted. Tu servicio "${updatedOrder.gig.title}" ha sido marcado como completado. Nos encantaría saber tu opinión.`,
+          { gigTitle: updatedOrder.gig.title, orderId }
+        );
+      }
     }
 
     return NextResponse.json({ order: updatedOrder })
