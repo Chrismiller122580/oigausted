@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink } from "lucide-react";
+import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink, Eye, EyeOff } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 
@@ -29,6 +29,9 @@ export default function ProfilePage() {
     newPassword: '',
     confirmPassword: '',
   });
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -563,35 +566,65 @@ export default function ProfilePage() {
               <form onSubmit={handleChangePassword} className="space-y-4 mt-4 max-w-md">
                 <div>
                   <label className="text-sm font-medium">Contraseña actual (si tienes una)</label>
-                  <Input
-                    type="password"
-                    value={passwordForm.currentPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                    placeholder="Deja en blanco si aún no tienes contraseña"
-                    className="mt-1"
-                  />
+                  <div className="relative mt-1">
+                    <Input
+                      type={showCurrent ? "text" : "password"}
+                      value={passwordForm.currentPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                      placeholder="Deja en blanco si aún no tienes contraseña"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrent(!showCurrent)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
+
                 <div>
                   <label className="text-sm font-medium">Nueva contraseña</label>
-                  <Input
-                    type="password"
-                    value={passwordForm.newPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                    required
-                    minLength={8}
-                    className="mt-1"
-                  />
+                  <div className="relative mt-1">
+                    <Input
+                      type={showNew ? "text" : "password"}
+                      value={passwordForm.newPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                      required
+                      minLength={8}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNew(!showNew)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
+
                 <div>
                   <label className="text-sm font-medium">Confirmar nueva contraseña</label>
-                  <Input
-                    type="password"
-                    value={passwordForm.confirmPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                    required
-                    className="mt-1"
-                  />
+                  <div className="relative mt-1">
+                    <Input
+                      type={showConfirm ? "text" : "password"}
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                      required
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm(!showConfirm)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
+
                 <Button type="submit" disabled={passwordLoading} className="w-full">
                   {passwordLoading ? 'Actualizando...' : 'Actualizar Contraseña'}
                 </Button>
