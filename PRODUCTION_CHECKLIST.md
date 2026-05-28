@@ -31,11 +31,14 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (for image uploads) |
 | `NEXT_PUBLIC_APP_URL` | `https://oigagig.com` |
 
-## Google OAuth
+## Google OAuth (Recommended for Admin)
 
-- [ ] Added production redirect URI in Google Cloud Console:
-  `https://oigagig.com/api/auth/callback/google`
-- [ ] Added production domain under Authorized JavaScript origins
+- [ ] Create OAuth 2.0 Client ID in Google Cloud Console (Web application)
+- [ ] Add these in Google Console:
+  - Authorized JavaScript origins: `https://oigagig.com`
+  - Authorized redirect URIs: `https://oigagig.com/api/auth/callback/google`
+- [ ] Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in Vercel
+- [ ] Add `ADMIN_EMAILS=oigaustedcolombia@gmail.com` in Vercel (this Gmail will auto-become admin on Google login)
 
 ## Database
 
@@ -45,16 +48,16 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
 
 ## After First Successful Deploy
 
-- [ ] Create a real Admin user (works in local Codespaces + Vercel Preview + Production against the same DB):
+- [ ] Set up Admin via Google (recommended):
+  - Add `ADMIN_EMAILS=oigaustedcolombia@gmail.com` in Vercel
+  - After deploy, go to `/login` and click "Continue with Google" using `oigaustedcolombia@gmail.com`
+  - The user will automatically be created with admin role.
+
+  Alternative (manual):
   ```bash
-  # 1. Pull production variables
-  vercel env pull .env.development.local
-
-  # 2. Create the admin (the script auto-loads .env.development.local)
-  npm run create-admin admin@oigagig.com TuPasswordSeguro123!
+  # Promote any Gmail to admin
+  (set -a; source .env.development.local; npx tsx scripts/promote-to-admin.ts oigaustedcolombia@gmail.com)
   ```
-
-  > **Important**: Use a strong password. Once created, you can log in normally at `/login` from any environment using this account. The demo accounts (`*@demo.com`) are only for quick local testing.
 - [ ] Test critical flows:
   - Login (credentials + Google)
   - Signup
