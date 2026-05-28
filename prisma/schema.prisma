@@ -78,6 +78,12 @@ model User {
   referredBy     User?    @relation("UserReferrals", fields: [referredById], references: [id])
   referrals      User[]   @relation("UserReferrals")
   referralEarnings ReferralEarning[] @relation("ReferrerEarnings")
+
+  // Geolocation (Google Maps)
+  city          String?
+  latitude      Float?
+  longitude     Float?
+  serviceRadiusKm Int?     // How far the seller is willing to travel (for sellers)
 }
 
 model PasswordResetToken {
@@ -169,6 +175,12 @@ model Gig {
   sellerId        String
   seller          User     @relation(fields: [sellerId], references: [id])
   orders          Order[]
+
+  // Geolocation
+  city            String?
+  latitude        Float?
+  longitude       Float?
+  isRemote        Boolean? @default(false)  // Service can be done remotely/online
 }
 
 model Order {
@@ -190,6 +202,11 @@ model Order {
   files           OrderFile[]
   reviews         Review[]
   referralEarnings ReferralEarning[]
+
+  // Service / Delivery location
+  serviceLatitude  Float?
+  serviceLongitude Float?
+  serviceAddress   String?
 }
 
 model OrderMessage {
