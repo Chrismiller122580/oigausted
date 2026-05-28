@@ -28,11 +28,13 @@ interface Gig {
 export default function GigCard({ 
   gig, 
   sellerView = false,
-  compact = false 
+  compact = false,
+  distanceKm,
 }: { 
   gig: Gig; 
   sellerView?: boolean;
   compact?: boolean;
+  distanceKm?: number;
 }) {
   const router = useRouter()
   const { data: session } = useSession()
@@ -113,11 +115,18 @@ export default function GigCard({
           <span className="text-3xl font-bold text-orange-600">
             ${gig.price.toLocaleString("es-CO")}
           </span>
-          {gig.category && (
-            <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
-              {gig.category}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {distanceKm !== undefined && (
+              <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-medium">
+                {distanceKm.toFixed(1)} km
+              </span>
+            )}
+            {gig.category && (
+              <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
+                {gig.category}
+              </span>
+            )}
+          </div>
         </div>
       </CardContent>
       <CardFooter>

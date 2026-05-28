@@ -3,11 +3,15 @@ import { useState, useEffect } from "react"
 import GigCard from "@/components/common/GigCard"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { getCurrentLocation, calculateDistance } from "@/lib/distance"
 
 export default function GigsContent() {
   const [gigs, setGigs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [locationLoading, setLocationLoading] = useState(false)
+  const [showOnlyNearMe, setShowOnlyNearMe] = useState(false)
 
   useEffect(() => {
     fetchGigs()
@@ -25,11 +29,45 @@ export default function GigsContent() {
     }
   }
 
-  const filteredGigs = gigs.filter(gig =>
+  const handleUseMyLocation = async () => {
+    setLocationLoading(true)
+    try {
+      const location = await getCurrentLocation()
+      setUserLocation(location)
+      setShowOnlyNearMe(true)
+    } catch (error) {
+      alert("No pudimos acceder a tu ubicación. Por favor permite el acceso en el navegador.")
+    } finally {
+      setLocationLoading(false)
+    }
+  }
+
+  // Calculate distance for each gig that has coordinates
+  const gigsWithDistance = gigs.map(gig => {
+    if (userLocation && gig.latitude && gig.longitude) {
+      const distance = calculateDistance(
+        userLocation.lat, 
+        userLocation.lng, 
+        gig.latitude, 
+        gig.longitude
+      )
+      return { ...gig, distanceKm: distance }
+    }
+    return gig
+  })
+
+  let filteredGigs = gigsWithDistance.filter(gig =>
     gig.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     gig.seller?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     gig.category?.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  // Apply "near me" filter
+  if (showOnlyNearMe && userLocation) {
+    filteredGigs = filteredGigs.filter(gig => gig.distanceKm !== undefined)
+    // Sort by distance
+    filteredGigs.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity))
+  }
 
   if (loading) {
     return (
@@ -41,20 +79,42 @@ export default function GigsContent() {
 
   return (
     <div className="container py-12">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-4xl font-bold">Explorar Gigs en Colombia</h1>
           <p className="text-gray-500 mt-2">{filteredGigs.length} servicios disponibles</p>
         </div>
 
-        <div className="w-full md:w-96">
-          <Input
-            type="text"
-            placeholder="Buscar gigs, categorías o vendedores..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="py-6 text-base"
-          />
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <Button 
+            onClick={handleUseMyLocation} 
+            disabled={locationLoading}
+            variant={showOnlyNearMe ? "default" : "outline"}
+            className="whitespace-nowrap"
+          >
+            {locationLoading ? "Obteniendo ubicación..." : "📍 Gigs cerca de mí"}
+          </Button>
+
+          {userLocation && (
+            <Button 
+              onClick={() => {
+                setShowOnlyNearMe(!showOnlyNearMe)
+              }}
+              variant={showOnlyNearMe ? "default" : "outline"}
+            >
+              {showOnlyNearMe ? "Mostrar todos" : "Solo cerca de mí"}
+            </Button>
+          )}
+
+          <div className="w-full md:w-80">
+            <Input
+              type="text"
+              placeholder="Buscar gigs, categorías o vendedores..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="py-6 text-base"
+            />
+          </div>
         </div>
       </div>
 
@@ -66,7 +126,11 @@ export default function GigsContent() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredGigs.map((gig) => (
-            <GigCard key={gig.id} gig={gig} />
+            <GigCard 
+              key={gig.id} 
+              gig={gig} 
+              distanceKm={gig.distanceKm} 
+            />
           ))}
         </div>
       )}
