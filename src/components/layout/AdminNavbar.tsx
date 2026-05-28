@@ -56,6 +56,9 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
             <Link href="/admin/settings" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
               <Settings size={18} /> Ajustes
             </Link>
+            <Link href="/admin/audit" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
+              <BarChart3 size={18} /> Auditoría
+            </Link>
 
             <div className="flex items-center gap-4 pl-8 border-l border-border">
               <div className="text-right text-sm">

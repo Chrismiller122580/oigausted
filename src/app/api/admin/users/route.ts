@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logAuditEvent } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
   try {
@@ -103,6 +104,28 @@ export async function PATCH(req: NextRequest) {
         bio: true,
         nit: true
       }
+    });
+
+    // Log the action
+    const adminId = (session.user as any).id;
+    await logAuditEvent({
+      adminId,
+      action: 'USER_UPDATED',
+      targetType: 'User',
+      targetId: userId,
+      details: {
+        changedFields: Object.keys({
+          ...(role && { role }),
+          ...(name !== undefined && { name }),
+          ...(businessName !== undefined && { businessName }),
+          ...(phone !== undefined && { phone }),
+          ...(whatsapp !== undefined && { whatsapp }),
+          ...(city !== undefined && { city }),
+          ...(bio !== undefined && { bio }),
+          ...(nit !== undefined && { nit }),
+          ...(isActive !== undefined && { isActive }),
+        }),
+      },
     });
 
     return NextResponse.json({ success: true, user: updated });

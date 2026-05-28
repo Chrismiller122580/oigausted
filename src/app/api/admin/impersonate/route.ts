@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logAuditEvent } from '@/lib/audit';
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,6 +29,19 @@ export async function POST(req: NextRequest) {
 
     // In a more advanced setup we would issue a special JWT here.
     // For now we return the user data so the frontend can open their view.
+    // Log the impersonation
+    const adminId = (session.user as any).id;
+    await logAuditEvent({
+      adminId,
+      action: 'USER_IMPERSONATED',
+      targetType: 'User',
+      targetId: userId,
+      details: {
+        impersonatedEmail: targetUser.email,
+        impersonatedRole: targetUser.role,
+      },
+    });
+
     return NextResponse.json({ 
       success: true, 
       user: targetUser,

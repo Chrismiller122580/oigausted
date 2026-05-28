@@ -68,6 +68,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   passwordResetTokens PasswordResetToken[]
+  auditLogs           AuditLog[]           @relation("AdminAuditLogs")
 }
 
 model PasswordResetToken {
@@ -77,6 +78,28 @@ model PasswordResetToken {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  adminId       String
+  admin         User     @relation("AdminAuditLogs", fields: [adminId], references: [id])
+
+  action        String   // e.g. "USER_ROLE_CHANGED", "USER_EDITED", "USER_DEACTIVATED", "USER_PASSWORD_RESET", "USER_IMPERSONATED"
+  targetType    String   // "User", "Gig", "Order", etc.
+  targetId      String?  // ID of the affected resource
+
+  details       Json?    // Flexible JSON for extra context (old values, new values, etc.)
+
+  ipAddress     String?
+  userAgent     String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([adminId])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
 }
 
 model Gig {
