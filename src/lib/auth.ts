@@ -87,25 +87,42 @@ export const authOptions = {
     async signIn({ user, account, profile }: any) {
       // Handle Google users: ensure they exist in our Prisma DB with a real UUID + role
       if (account?.provider === "google" && user?.email) {
+        const email = user.email.toLowerCase()
         const existing = await prisma.user.findUnique({
-          where: { email: user.email.toLowerCase() },
+          where: { email },
         })
 
+        // Support promoting specific real Gmail accounts to admin automatically
+        const adminEmails = (process.env.ADMIN_EMAILS || '')
+          .split(',')
+          .map((e) => e.trim().toLowerCase())
+          .filter(Boolean)
+
+        const shouldBeAdmin = adminEmails.includes(email)
+
         if (!existing) {
-          // New Google user → create with buyer role by default
           const newUser = await prisma.user.create({
             data: {
               name: user.name || profile?.name || "Google User",
-              email: user.email.toLowerCase(),
-              role: "buyer",
-              // No password for OAuth users
+              email,
+              role: shouldBeAdmin ? 'admin' : 'buyer',
             },
           })
           user.id = newUser.id
           user.role = newUser.role
         } else {
+          // If this Gmail is listed as admin, upgrade the role on login
+          const finalRole = shouldBeAdmin ? 'admin' : existing.role
+          if (finalRole !== existing.role) {
+            const updated = await prisma.user.update({
+              where: { email },
+              data: { role: finalRole },
+            })
+            user.role = updated.role
+          } else {
+            user.role = existing.role
+          }
           user.id = existing.id
-          user.role = existing.role
         }
       }
       return true

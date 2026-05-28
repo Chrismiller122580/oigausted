@@ -24,6 +24,7 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
 | `NEXTAUTH_SECRET` | Strong random string (32+ chars) |
 | `GOOGLE_CLIENT_ID` | From Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | From Google Cloud Console |
+| `ADMIN_EMAILS` | Optional: real Gmail(s) that should become admin automatically (comma separated) |
 | `NEXT_PUBLIC_WOMPI_PUBLIC_KEY` | Live key (or sandbox if still testing) |
 | `WOMPI_INTEGRITY_KEY` | Live key |
 | `WOMPI_EVENTS_KEY` | Live key |
