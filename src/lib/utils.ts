@@ -29,14 +29,22 @@ export function parseJsonArrayField(value: any): any[] {
  */
 export function parseCustomFields(value: any): Record<string, any> {
   if (!value) return {}
-  if (typeof value === 'object' && !Array.isArray(value)) return value
-  if (typeof value === 'string') {
+  let obj: any = {}
+  if (typeof value === 'object' && !Array.isArray(value)) obj = value
+  else if (typeof value === 'string') {
     try {
       const parsed = JSON.parse(value)
-      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+      obj = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
     } catch {
       return {}
     }
+  } else {
+    return {}
   }
-  return {}
+  // Strip internal bypass/debug keys (prefixed with __) from buyer/seller UI
+  const clean: Record<string, any> = {}
+  for (const [k, v] of Object.entries(obj)) {
+    if (!k.startsWith('__')) clean[k] = v
+  }
+  return clean
 }
