@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'react-hot-toast';
-import { Save, RefreshCw, AlertTriangle, DollarSign, MessageCircle } from 'lucide-react';
+import { Save, RefreshCw, AlertTriangle, DollarSign, MessageCircle, Eye, EyeOff, Lock } from 'lucide-react';
 
 // Simple Switch component
 function Switch({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (v: boolean) => void }) {
@@ -36,6 +36,17 @@ export default function AdminSettings() {
   const [config, setConfig] = useState<PlatformConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Admin password change state
+  const [adminPasswordForm, setAdminPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [adminPasswordLoading, setAdminPasswordLoading] = useState(false);
+  const [showAdminCurrent, setShowAdminCurrent] = useState(false);
+  const [showAdminNew, setShowAdminNew] = useState(false);
+  const [showAdminConfirm, setShowAdminConfirm] = useState(false);
 
   const fetchConfig = async () => {
     try {
@@ -86,6 +97,48 @@ export default function AdminSettings() {
     setConfig({ ...config, [field]: value });
   };
 
+  // Admin password change handler
+  const handleAdminChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (adminPasswordForm.newPassword.length < 8) {
+      toast.error('La nueva contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+
+    if (adminPasswordForm.newPassword !== adminPasswordForm.confirmPassword) {
+      toast.error('Las contraseñas nuevas no coinciden');
+      return;
+    }
+
+    setAdminPasswordLoading(true);
+
+    try {
+      const res = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: adminPasswordForm.currentPassword || undefined,
+          newPassword: adminPasswordForm.newPassword,
+          confirmPassword: adminPasswordForm.confirmPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success('Contraseña del administrador actualizada correctamente');
+        setAdminPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        toast.error(data.error || 'No se pudo cambiar la contraseña');
+      }
+    } catch (err) {
+      toast.error('Error al cambiar la contraseña');
+    } finally {
+      setAdminPasswordLoading(false);
+    }
+  };
+
   if (loading || !config) {
     return (
       <div className="min-h-screen bg-zinc-950 text-white p-8 flex items-center justify-center">
@@ -122,6 +175,96 @@ export default function AdminSettings() {
             <Save className="mr-2 h-4 w-4" />
             {saving ? 'Guardando...' : 'Guardar Cambios'}
           </Button>
+        </div>
+
+        {/* Admin Password Update Box */}
+        <div className="mb-8 bg-zinc-900 border border-zinc-800 rounded-3xl p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-11 h-11 rounded-xl bg-orange-600/20 flex items-center justify-center">
+              <Lock className="w-6 h-6 text-orange-500" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-semibold">Contraseña del Administrador</h2>
+              <p className="text-sm text-zinc-400">Cambia la contraseña de <span className="font-mono text-orange-400">admin@oigagig.co.com</span></p>
+            </div>
+          </div>
+
+          <form onSubmit={handleAdminChangePassword} className="max-w-md space-y-5">
+            <div>
+              <Label className="text-sm text-zinc-400">Contraseña actual</Label>
+              <div className="relative mt-2">
+                <Input
+                  type={showAdminCurrent ? 'text' : 'password'}
+                  value={adminPasswordForm.currentPassword}
+                  onChange={(e) => setAdminPasswordForm({ ...adminPasswordForm, currentPassword: e.target.value })}
+                  placeholder="Ingresa tu contraseña actual"
+                  className="bg-zinc-950 border-zinc-700 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminCurrent(!showAdminCurrent)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                >
+                  {showAdminCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-sm text-zinc-400">Nueva contraseña</Label>
+              <div className="relative mt-2">
+                <Input
+                  type={showAdminNew ? 'text' : 'password'}
+                  value={adminPasswordForm.newPassword}
+                  onChange={(e) => setAdminPasswordForm({ ...adminPasswordForm, newPassword: e.target.value })}
+                  placeholder="Mínimo 8 caracteres"
+                  required
+                  minLength={8}
+                  className="bg-zinc-950 border-zinc-700 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminNew(!showAdminNew)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                >
+                  {showAdminNew ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-sm text-zinc-400">Confirmar nueva contraseña</Label>
+              <div className="relative mt-2">
+                <Input
+                  type={showAdminConfirm ? 'text' : 'password'}
+                  value={adminPasswordForm.confirmPassword}
+                  onChange={(e) => setAdminPasswordForm({ ...adminPasswordForm, confirmPassword: e.target.value })}
+                  placeholder="Repite la nueva contraseña"
+                  required
+                  className="bg-zinc-950 border-zinc-700 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminConfirm(!showAdminConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                >
+                  {showAdminConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <Button 
+              type="submit" 
+              disabled={adminPasswordLoading} 
+              className="w-full bg-orange-600 hover:bg-orange-700 mt-2"
+            >
+              {adminPasswordLoading ? 'Actualizando...' : 'Actualizar Contraseña del Administrador'}
+            </Button>
+
+            <p className="text-xs text-zinc-500">
+              Este cambio se aplicará inmediatamente en todos los entornos (Producción, Preview y desarrollo local).
+            </p>
+          </form>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
