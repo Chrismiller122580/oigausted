@@ -14,6 +14,10 @@ interface User {
   businessName?: string | null;
   city?: string | null;
   phone?: string | null;
+  whatsapp?: string | null;
+  bio?: string | null;
+  nit?: string | null;
+  isActive?: boolean;
   createdAt: string;
   _count?: {
     gigs: number;
@@ -26,6 +30,8 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [activeFilter, setActiveFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
 
   // Editing modal
@@ -39,7 +45,11 @@ export default function AdminUsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/admin/users');
+      const params = new URLSearchParams();
+      if (roleFilter !== 'all') params.append('role', roleFilter);
+      if (activeFilter !== 'all') params.append('active', activeFilter === 'active' ? 'true' : 'false');
+
+      const res = await fetch(`/api/admin/users?${params.toString()}`);
       const data = await res.json();
       const list = data.users || [];
       setUsers(list);
@@ -53,7 +63,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [roleFilter, activeFilter]);
 
   useEffect(() => {
     const filtered = users.filter(u =>
@@ -169,6 +179,85 @@ export default function AdminUsersPage() {
     }
   };
 
+  const toggleUserActive = async (user: User) => {
+    const action = user.isActive ? 'desactivar' : 'activar';
+    if (!confirm(`¿${action.charAt(0).toUpperCase() + action.slice(1)} a ${user.email}?`)) return;
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, isActive: !user.isActive })
+      });
+
+      if (res.ok) {
+        toast.success(`Usuario ${action}do correctamente`);
+        fetchUsers();
+      } else {
+        toast.error(`No se pudo ${action} el usuario`);
+      }
+    } catch (e) {
+      toast.error('Error al cambiar estado');
+    }
+  };
+
+  const impersonateUser = async (user: User) => {
+    if (!confirm(`¿Impersonar a ${user.email}? Esta acción registrará la actividad.`)) return;
+
+    try {
+      const res = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      });
+
+      if (res.ok) {
+        toast.success(`Abriendo sesión como ${user.email}...`);
+        // Open their profile in a new tab with impersonation flag
+        window.open(`/profile?impersonate=${user.id}`, '_blank');
+      } else {
+        toast.error('No se pudo iniciar impersonación');
+      }
+    } catch (e) {
+      toast.error('Error al impersonar usuario');
+    }
+  };
+
+  const exportToCSV = () => {
+    if (filteredUsers.length === 0) {
+      toast.error('No hay usuarios para exportar');
+      return;
+    }
+
+    const headers = ['ID', 'Nombre', 'Email', 'Rol', 'Activo', 'Negocio', 'Teléfono', 'WhatsApp', 'Ciudad', 'Fecha Registro'];
+    
+    const rows = filteredUsers.map(u => [
+      u.id,
+      u.name || '',
+      u.email,
+      u.role,
+      u.isActive ? 'Sí' : 'No',
+      u.businessName || '',
+      u.phone || '',
+      (u as any).whatsapp || '',
+      (u as any).city || '',
+      new Date(u.createdAt).toLocaleDateString('es-CO')
+    ]);
+
+    let csvContent = headers.join(',') + '\n';
+    rows.forEach(row => {
+      csvContent += row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',') + '\n';
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = `usuarios_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+    toast.success('Exportando usuarios a CSV...');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-white">
@@ -183,17 +272,45 @@ export default function AdminUsersPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
             <h1 className="text-5xl font-bold">Usuarios</h1>
-            <p className="text-zinc-400 mt-1">Gestión de roles y cuentas • {users.length} registrados</p>
+            <p className="text-zinc-400 mt-1">Gestión completa de cuentas • {users.length} registrados</p>
           </div>
-          <Input
-            placeholder="Buscar por nombre, email o negocio..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm bg-zinc-900 border-zinc-700"
-          />
+
+          <div className="flex flex-wrap gap-3 items-center">
+            <Input
+              placeholder="Buscar por nombre, email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-64 bg-zinc-900 border-zinc-700"
+            />
+
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm"
+            >
+              <option value="all">Todos los roles</option>
+              <option value="buyer">Compradores</option>
+              <option value="seller">Vendedores</option>
+              <option value="admin">Admins</option>
+            </select>
+
+            <select
+              value={activeFilter}
+              onChange={(e) => setActiveFilter(e.target.value)}
+              className="bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Desactivados</option>
+            </select>
+
+            <Button onClick={exportToCSV} variant="outline" className="border-zinc-700">
+              Exportar CSV
+            </Button>
+          </div>
         </div>
 
         <Card className="bg-zinc-900 border-zinc-800">
@@ -204,9 +321,9 @@ export default function AdminUsersPage() {
                   <th className="text-left p-4 font-medium text-zinc-400">Usuario</th>
                   <th className="text-left p-4 font-medium text-zinc-400">Email</th>
                   <th className="text-left p-4 font-medium text-zinc-400">Rol</th>
+                  <th className="text-left p-4 font-medium text-zinc-400">Estado</th>
                   <th className="text-left p-4 font-medium text-zinc-400">Negocio</th>
                   <th className="text-center p-4 font-medium text-zinc-400">Gigs</th>
-                  <th className="text-center p-4 font-medium text-zinc-400">Pedidos</th>
                   <th className="text-right p-4 font-medium text-zinc-400">Acciones</th>
                 </tr>
               </thead>
@@ -247,10 +364,14 @@ export default function AdminUsersPage() {
                       )}
                     </td>
                     <td className="p-4 text-zinc-300">{user.businessName || '—'}</td>
-                    <td className="p-4 text-center font-mono">{user._count?.gigs || 0}</td>
-                    <td className="p-4 text-center font-mono text-xs">
-                      {user._count?.ordersAsSeller || 0} vendidos
+                    <td className="p-4">
+                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        user.isActive !== false ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
+                      }`}>
+                        {user.isActive !== false ? 'Activo' : 'Desactivado'}
+                      </span>
                     </td>
+                    <td className="p-4 text-center font-mono">{user._count?.gigs || 0}</td>
                     <td className="p-4 text-right space-x-1">
                       <Button 
                         size="sm" 

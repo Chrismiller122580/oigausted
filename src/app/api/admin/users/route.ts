@@ -3,14 +3,22 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if ((session?.user as any)?.role !== 'admin') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const roleFilter = searchParams.get('role');
+    const activeFilter = searchParams.get('active'); // 'true' | 'false'
+
     const users = await prisma.user.findMany({
+      where: {
+        ...(roleFilter && { role: roleFilter }),
+        ...(activeFilter && { isActive: activeFilter === 'true' }),
+      },
       select: {
         id: true,
         name: true,
@@ -22,6 +30,7 @@ export async function GET() {
         city: true,
         bio: true,
         nit: true,
+        isActive: true,
         createdAt: true,
         rating: true,
         reviewCount: true,
@@ -34,7 +43,7 @@ export async function GET() {
         }
       },
       orderBy: { createdAt: 'desc' },
-      take: 100
+      take: 200
     });
 
     return NextResponse.json({ users });
@@ -61,7 +70,8 @@ export async function PATCH(req: NextRequest) {
       whatsapp, 
       city, 
       bio,
-      nit 
+      nit,
+      isActive 
     } = await req.json();
 
     if (!userId) {
@@ -79,6 +89,7 @@ export async function PATCH(req: NextRequest) {
         ...(city !== undefined && { city }),
         ...(bio !== undefined && { bio }),
         ...(nit !== undefined && { nit }),
+        ...(isActive !== undefined && { isActive }),
       },
       select: { 
         id: true, 
