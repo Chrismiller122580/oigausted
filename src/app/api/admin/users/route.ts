@@ -18,6 +18,10 @@ export async function GET() {
         role: true,
         businessName: true,
         phone: true,
+        whatsapp: true,
+        city: true,
+        bio: true,
+        nit: true,
         createdAt: true,
         rating: true,
         reviewCount: true,
@@ -48,7 +52,17 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
-    const { userId, role, name, businessName } = await req.json();
+    const { 
+      userId, 
+      role, 
+      name, 
+      businessName, 
+      phone, 
+      whatsapp, 
+      city, 
+      bio,
+      nit 
+    } = await req.json();
 
     if (!userId) {
       return NextResponse.json({ error: 'userId requerido' }, { status: 400 });
@@ -58,10 +72,26 @@ export async function PATCH(req: NextRequest) {
       where: { id: userId },
       data: {
         ...(role && { role }),
-        ...(name && { name }),
+        ...(name !== undefined && { name }),
         ...(businessName !== undefined && { businessName }),
+        ...(phone !== undefined && { phone }),
+        ...(whatsapp !== undefined && { whatsapp }),
+        ...(city !== undefined && { city }),
+        ...(bio !== undefined && { bio }),
+        ...(nit !== undefined && { nit }),
       },
-      select: { id: true, name: true, email: true, role: true, businessName: true }
+      select: { 
+        id: true, 
+        name: true, 
+        email: true, 
+        role: true, 
+        businessName: true,
+        phone: true,
+        whatsapp: true,
+        city: true,
+        bio: true,
+        nit: true
+      }
     });
 
     return NextResponse.json({ success: true, user: updated });

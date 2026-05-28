@@ -7,12 +7,14 @@ import bcrypt from 'bcryptjs';
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+    const isAdmin = (session?.user as any)?.role === 'admin';
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { currentPassword, newPassword, confirmPassword } = await req.json();
+    const body = await req.json();
+    const { currentPassword, newPassword, confirmPassword, userId, isAdminReset } = body;
 
     if (!newPassword || newPassword.length < 8) {
       return NextResponse.json({ error: 'New password must be at least 8 characters' }, { status: 400 });
@@ -22,17 +24,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'New passwords do not match' }, { status: 400 });
     }
 
+    // Admin can reset any user's password
+    const targetUserId = isAdmin && (userId || isAdminReset) ? userId : session.user.id;
+
+    if (!targetUserId) {
+      return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+    }
+
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { id: true, password: true },
+      where: { id: targetUserId },
+      select: { id: true, password: true, email: true },
     });
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // If user already has a password, require currentPassword and verify it
-    if (user.password) {
+    // Non-admin users must provide current password (unless they have none)
+    if (!isAdmin && user.password) {
       if (!currentPassword) {
         return NextResponse.json({ error: 'Current password is required' }, { status: 400 });
       }
@@ -51,7 +60,10 @@ export async function POST(req: NextRequest) {
       data: { password: hashedPassword },
     });
 
-    return NextResponse.json({ success: true, message: 'Password updated successfully' });
+    return NextResponse.json({ 
+      success: true, 
+      message: isAdmin ? `Password updated for ${user.email}` : 'Password updated successfully' 
+    });
   } catch (error) {
     console.error('Change password error:', error);
     return NextResponse.json({ error: 'Failed to change password' }, { status: 500 });

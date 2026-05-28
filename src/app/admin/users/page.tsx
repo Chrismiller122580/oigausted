@@ -27,7 +27,14 @@ export default function AdminUsersPage() {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Editing modal
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [saving, setSaving] = useState(false);
+
+  // Role quick change (kept for speed)
+  const [roleEditingId, setRoleEditingId] = useState<string | null>(null);
   const [newRole, setNewRole] = useState<string>('');
 
   const fetchUsers = async () => {
@@ -58,7 +65,7 @@ export default function AdminUsersPage() {
   }, [searchTerm, users]);
 
   const startRoleEdit = (user: User) => {
-    setEditingId(user.id);
+    setRoleEditingId(user.id);
     setNewRole(user.role);
   };
 
@@ -83,8 +90,83 @@ export default function AdminUsersPage() {
   };
 
   const cancelEdit = () => {
-    setEditingId(null);
+    setRoleEditingId(null);
     setNewRole('');
+  };
+
+  // Full user editing
+  const openEditModal = (user: User) => {
+    setEditingUser(user);
+    setEditForm({
+      name: user.name || '',
+      businessName: user.businessName || '',
+      phone: user.phone || '',
+      whatsapp: (user as any).whatsapp || '',
+      city: (user as any).city || '',
+      bio: (user as any).bio || '',
+      nit: (user as any).nit || '',
+    });
+  };
+
+  const closeEditModal = () => {
+    setEditingUser(null);
+    setEditForm({});
+  };
+
+  const saveUserEdit = async () => {
+    if (!editingUser) return;
+
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: editingUser.id,
+          ...editForm
+        })
+      });
+
+      if (res.ok) {
+        toast.success('Usuario actualizado correctamente');
+        closeEditModal();
+        fetchUsers();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'No se pudo actualizar el usuario');
+      }
+    } catch (e) {
+      toast.error('Error al guardar cambios');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetUserPassword = async (user: User) => {
+    if (!confirm(`¿Resetear contraseña de ${user.email}? Se generará una temporal.`)) return;
+
+    try {
+      const tempPassword = 'Temp' + Math.random().toString(36).slice(2, 10) + '!';
+
+      const res = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,           // We'll need to support this in the API for admin
+          newPassword: tempPassword,
+          isAdminReset: true
+        })
+      });
+
+      if (res.ok) {
+        toast.success(`Contraseña temporal: ${tempPassword}`, { duration: 15000 });
+        // In real scenario we should send it by email instead of showing it
+      } else {
+        toast.error('No se pudo resetear la contraseña');
+      }
+    } catch (e) {
+      toast.error('Error al resetear contraseña');
+    }
   };
 
   if (loading) {
@@ -169,20 +251,62 @@ export default function AdminUsersPage() {
                     <td className="p-4 text-center font-mono text-xs">
                       {user._count?.ordersAsSeller || 0} vendidos
                     </td>
-                    <td className="p-4 text-right space-x-2">
-                      {editingId === user.id ? (
-                        <>
-                          <Button size="sm" onClick={() => saveRole(user.id)} className="bg-emerald-600">Guardar</Button>
-                          <Button size="sm" variant="outline" onClick={cancelEdit}>Cancelar</Button>
-                        </>
+                    <td className="p-4 text-right space-x-1">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => openEditModal(user)}
+                        className="border-zinc-700 hover:bg-zinc-800"
+                      >
+                        Editar
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => resetUserPassword(user)}
+                        className="border-amber-700 text-amber-400 hover:bg-amber-950"
+                      >
+                        Reset Pass
+                      </Button>
+
+                      <a 
+                        href={`/seller/gigs?userId=${user.id}`} 
+                        target="_blank"
+                        className="text-xs px-2 py-1 border border-zinc-700 rounded hover:bg-zinc-800 inline-block"
+                      >
+                        Gigs
+                      </a>
+                      <a 
+                        href={`/orders?userId=${user.id}`} 
+                        target="_blank"
+                        className="text-xs px-2 py-1 border border-zinc-700 rounded hover:bg-zinc-800 inline-block"
+                      >
+                        Pedidos
+                      </a>
+
+                      {roleEditingId === user.id ? (
+                        <div className="inline-flex gap-1">
+                          <select
+                            value={newRole}
+                            onChange={(e) => setNewRole(e.target.value)}
+                            className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs"
+                          >
+                            <option value="buyer">Comprador</option>
+                            <option value="seller">Vendedor</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                          <Button size="sm" onClick={() => saveRole(user.id)} className="bg-emerald-600 text-xs px-2">✓</Button>
+                          <Button size="sm" variant="outline" onClick={cancelEdit} className="text-xs px-2">✕</Button>
+                        </div>
                       ) : (
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => startRoleEdit(user)}
-                          className="border-zinc-700 hover:bg-zinc-800"
+                          className="border-zinc-700 hover:bg-zinc-800 text-xs"
                         >
-                          Cambiar Rol
+                          Rol
                         </Button>
                       )}
                     </td>
@@ -197,6 +321,84 @@ export default function AdminUsersPage() {
           Cambiar roles es inmediato. Los usuarios verán las nuevas opciones en su siguiente sesión.
         </p>
       </div>
+
+      {/* Edit User Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-semibold">Editar Usuario</h3>
+                <p className="text-sm text-zinc-400">{editingUser.email}</p>
+              </div>
+              <Button variant="ghost" onClick={closeEditModal}>✕</Button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Nombre completo</Label>
+                  <Input 
+                    value={editForm.name} 
+                    onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Nombre del Negocio</Label>
+                  <Input 
+                    value={editForm.businessName} 
+                    onChange={(e) => setEditForm({...editForm, businessName: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Teléfono</Label>
+                  <Input 
+                    value={editForm.phone} 
+                    onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>WhatsApp</Label>
+                  <Input 
+                    value={editForm.whatsapp} 
+                    onChange={(e) => setEditForm({...editForm, whatsapp: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Ciudad</Label>
+                  <Input 
+                    value={editForm.city} 
+                    onChange={(e) => setEditForm({...editForm, city: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>NIT</Label>
+                  <Input 
+                    value={editForm.nit} 
+                    onChange={(e) => setEditForm({...editForm, nit: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Biografía / Descripción</Label>
+                <Textarea 
+                  value={editForm.bio} 
+                  onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">
+              <Button variant="outline" onClick={closeEditModal}>Cancelar</Button>
+              <Button onClick={saveUserEdit} disabled={saving} className="bg-emerald-600">
+                {saving ? 'Guardando...' : 'Guardar Cambios'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
