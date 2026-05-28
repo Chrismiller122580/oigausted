@@ -1,0 +1,18 @@
+-- This is a baseline / sync migration.
+-- 
+-- It was created after running `prisma db push` to bring the production
+-- database schema in sync with the current Prisma schema.
+--
+-- At the time this migration was created, the production database already
+-- exactly matched the schema (verified via prisma migrate diff).
+--
+-- No SQL statements are required. This migration exists purely to record
+-- the current state in the _prisma_migrations table so that future
+-- `prisma migrate deploy` runs succeed cleanly on Vercel.
+--
+-- Tables/columns added by this sync include:
+--   - User.isActive (Boolean, default true)
+--   - AuditLog table
+--   - Notification table
+--   - NotificationPreference table
+--   (OrderFile already existed via previous @@map)
