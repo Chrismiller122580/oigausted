@@ -82,7 +82,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 dark:from-zinc-950 dark:to-zinc-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center pb-4">
           <div className="flex justify-center mb-3">
@@ -90,15 +90,15 @@ export default function LoginPage() {
               O
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-gray-900">
+          <CardTitle className="text-2xl font-bold text-foreground">
             Welcome back
           </CardTitle>
-          <p className="text-sm text-gray-500 mt-1">Sign in to OigaUsted</p>
+          <p className="text-sm text-muted-foreground mt-1">Sign in to OigaUsted</p>
         </CardHeader>
 
         <CardContent>
           <div className="mb-4">
-            <p className="text-sm font-medium text-gray-700 mb-3">Sign in with your account</p>
+            <p className="text-sm font-medium text-foreground mb-3">Sign in with your account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -129,7 +129,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -186,7 +186,7 @@ export default function LoginPage() {
             </>
           )}
 
-          <p className="text-center text-sm text-gray-600 mt-8">
+          <p className="text-center text-sm text-muted-foreground mt-8">
             New here?{' '}
             <Link href="/signup" className="font-medium text-orange-600 hover:underline">
               Create an account

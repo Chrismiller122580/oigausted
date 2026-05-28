@@ -2,7 +2,7 @@
 
 export default function AdminReports() {
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-8">
+    <div className="min-h-screen bg-background text-foreground p-8">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-5xl font-bold">Reportes</h1>
         <div className="mt-8 bg-zinc-900 border border-zinc-800 p-12 rounded-3xl text-center">

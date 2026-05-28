@@ -16,5 +16,9 @@ export default async function AdminLayout({
 
   // Note: The actual navbar is rendered by NavbarWrapper in the root layout
   // based on user role. We only keep this layout for auth protection.
-  return <>{children}</>;
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      {children}
+    </div>
+  );
 }

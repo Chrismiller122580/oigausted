@@ -27,7 +27,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground p-8 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4"></div>
           <p>Cargando panel de administración...</p>
@@ -37,7 +37,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-8">
+    <div className="min-h-screen bg-background text-foreground p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-10">
           <h1 className="text-5xl font-bold tracking-tight">Panel de Administración</h1>
@@ -46,7 +46,7 @@ export default function AdminDashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-12">
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <Users className="h-8 w-8 text-blue-400 mb-3" />
               <p className="text-sm text-zinc-400">Usuarios Totales</p>
@@ -55,7 +55,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <Package className="h-8 w-8 text-orange-400 mb-3" />
               <p className="text-sm text-zinc-400">Gigs Publicados</p>
@@ -64,7 +64,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <TrendingUp className="h-8 w-8 text-purple-400 mb-3" />
               <p className="text-sm text-zinc-400">Pedidos Totales</p>
@@ -73,7 +73,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <DollarSign className="h-8 w-8 text-green-400 mb-3" />
               <p className="text-sm text-zinc-400">Ingresos Brutos</p>
@@ -85,7 +85,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <AlertCircle className="h-8 w-8 text-amber-400 mb-3" />
               <p className="text-sm text-zinc-400">Pagos Pendientes</p>
@@ -98,7 +98,7 @@ export default function AdminDashboard() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Link href="/admin/users">
-            <Card className="bg-zinc-900 border-zinc-800 hover:border-zinc-600 transition cursor-pointer h-full">
+            <Card className="bg-card border-border hover:border-zinc-600 transition cursor-pointer h-full">
               <CardContent className="p-8">
                 <Users className="h-10 w-10 text-blue-400 mb-4" />
                 <h3 className="text-2xl font-semibold mb-2">Gestionar Usuarios</h3>
@@ -108,7 +108,7 @@ export default function AdminDashboard() {
           </Link>
 
           <Link href="/admin/gigs">
-            <Card className="bg-zinc-900 border-zinc-800 hover:border-zinc-600 transition cursor-pointer h-full">
+            <Card className="bg-card border-border hover:border-zinc-600 transition cursor-pointer h-full">
               <CardContent className="p-8">
                 <Package className="h-10 w-10 text-orange-400 mb-4" />
                 <h3 className="text-2xl font-semibold mb-2">Moderar Gigs</h3>
@@ -118,7 +118,7 @@ export default function AdminDashboard() {
           </Link>
 
           <Link href="/admin/payouts">
-            <Card className="bg-zinc-900 border-zinc-800 hover:border-zinc-600 transition cursor-pointer h-full">
+            <Card className="bg-card border-border hover:border-zinc-600 transition cursor-pointer h-full">
               <CardContent className="p-8">
                 <DollarSign className="h-10 w-10 text-green-400 mb-4" />
                 <h3 className="text-2xl font-semibold mb-2">Gestionar Pagos</h3>

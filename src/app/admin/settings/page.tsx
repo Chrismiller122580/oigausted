@@ -141,14 +141,14 @@ export default function AdminSettings() {
 
   if (loading || !config) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground p-8 flex items-center justify-center">
         <RefreshCw className="animate-spin mr-3" /> Cargando configuración...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-8">
+    <div className="min-h-screen bg-background text-foreground p-8">
       <div className="max-w-5xl mx-auto">
 
         {/* Production Warning - Wompi Sandbox */}
@@ -169,7 +169,7 @@ export default function AdminSettings() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold">Configuración del Sistema</h1>
-            <p className="text-zinc-400 mt-1">Ajustes globales de la plataforma OigaUsted</p>
+            <p className="text-muted-foreground mt-1">Ajustes globales de la plataforma OigaUsted</p>
           </div>
           <Button onClick={handleSave} disabled={saving} className="bg-orange-600 hover:bg-orange-700">
             <Save className="mr-2 h-4 w-4" />
@@ -178,32 +178,32 @@ export default function AdminSettings() {
         </div>
 
         {/* Admin Password Update Box */}
-        <div className="mb-8 bg-zinc-900 border border-zinc-800 rounded-3xl p-8">
+        <div className="mb-8 bg-card border border-border rounded-3xl p-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-11 h-11 rounded-xl bg-orange-600/20 flex items-center justify-center">
               <Lock className="w-6 h-6 text-orange-500" />
             </div>
             <div>
               <h2 className="text-2xl font-semibold">Contraseña del Administrador</h2>
-              <p className="text-sm text-zinc-400">Cambia la contraseña de <span className="font-mono text-orange-400">admin@oigagig.co.com</span></p>
+              <p className="text-sm text-muted-foreground">Cambia la contraseña de <span className="font-mono text-orange-500">admin@oigagig.co.com</span></p>
             </div>
           </div>
 
           <form onSubmit={handleAdminChangePassword} className="max-w-md space-y-5">
             <div>
-              <Label className="text-sm text-zinc-400">Contraseña actual</Label>
+              <Label className="text-sm text-muted-foreground">Contraseña actual</Label>
               <div className="relative mt-2">
                 <Input
                   type={showAdminCurrent ? 'text' : 'password'}
                   value={adminPasswordForm.currentPassword}
                   onChange={(e) => setAdminPasswordForm({ ...adminPasswordForm, currentPassword: e.target.value })}
                   placeholder="Ingresa tu contraseña actual"
-                  className="bg-zinc-950 border-zinc-700 pr-10"
+                  className="bg-background border-border pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowAdminCurrent(!showAdminCurrent)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showAdminCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -211,7 +211,7 @@ export default function AdminSettings() {
             </div>
 
             <div>
-              <Label className="text-sm text-zinc-400">Nueva contraseña</Label>
+              <Label className="text-sm text-muted-foreground">Nueva contraseña</Label>
               <div className="relative mt-2">
                 <Input
                   type={showAdminNew ? 'text' : 'password'}
@@ -220,12 +220,12 @@ export default function AdminSettings() {
                   placeholder="Mínimo 8 caracteres"
                   required
                   minLength={8}
-                  className="bg-zinc-950 border-zinc-700 pr-10"
+                  className="bg-background border-border pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowAdminNew(!showAdminNew)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showAdminNew ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -233,7 +233,7 @@ export default function AdminSettings() {
             </div>
 
             <div>
-              <Label className="text-sm text-zinc-400">Confirmar nueva contraseña</Label>
+              <Label className="text-sm text-muted-foreground">Confirmar nueva contraseña</Label>
               <div className="relative mt-2">
                 <Input
                   type={showAdminConfirm ? 'text' : 'password'}
@@ -241,12 +241,12 @@ export default function AdminSettings() {
                   onChange={(e) => setAdminPasswordForm({ ...adminPasswordForm, confirmPassword: e.target.value })}
                   placeholder="Repite la nueva contraseña"
                   required
-                  className="bg-zinc-950 border-zinc-700 pr-10"
+                  className="bg-background border-border pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowAdminConfirm(!showAdminConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showAdminConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -261,7 +261,7 @@ export default function AdminSettings() {
               {adminPasswordLoading ? 'Actualizando...' : 'Actualizar Contraseña del Administrador'}
             </Button>
 
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               Este cambio se aplicará inmediatamente en todos los entornos (Producción, Preview y desarrollo local).
             </p>
           </form>
@@ -269,7 +269,7 @@ export default function AdminSettings() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Platform Fees */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8">
+          <div className="bg-card border border-border rounded-3xl p-8">
             <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
               <DollarSign className="text-emerald-400" /> Comisiones y Pagos
             </h2>
@@ -277,7 +277,7 @@ export default function AdminSettings() {
             <div className="space-y-6">
               {/* Platform Commission */}
               <div>
-                <Label className="text-sm text-zinc-400">Comisión de Plataforma</Label>
+                <Label className="text-sm text-muted-foreground">Comisión de Plataforma</Label>
                 <div className="flex items-center gap-3 mt-2">
                   <Input
                     type="number"
@@ -286,11 +286,11 @@ export default function AdminSettings() {
                     max="0.5"
                     value={config.commissionRate}
                     onChange={(e) => updateField('commissionRate', parseFloat(e.target.value))}
-                    className="w-28 bg-zinc-950 border-zinc-700 text-2xl font-bold"
+                    className="w-28 bg-background border-border text-2xl font-bold"
                   />
-                  <span className="text-2xl text-zinc-400">%</span>
+                  <span className="text-2xl text-muted-foreground">%</span>
                 </div>
-                <p className="text-xs text-zinc-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Comisión que cobra OigaUsted sobre cada orden completada.
                 </p>
                 <div className="mt-2 text-[11px] bg-zinc-950 p-2 rounded-lg text-emerald-400">
@@ -300,7 +300,7 @@ export default function AdminSettings() {
 
               {/* Referral Commission */}
               <div>
-                <Label className="text-sm text-zinc-400">Comisión por Referidos</Label>
+                <Label className="text-sm text-muted-foreground">Comisión por Referidos</Label>
                 <div className="flex items-center gap-3 mt-2">
                   <Input
                     type="number"
@@ -309,11 +309,11 @@ export default function AdminSettings() {
                     max="0.3"
                     value={config.referralCommissionRate ?? 0.05}
                     onChange={(e) => updateField('referralCommissionRate', parseFloat(e.target.value))}
-                    className="w-28 bg-zinc-950 border-zinc-700 text-2xl font-bold"
+                    className="w-28 bg-background border-border text-2xl font-bold"
                   />
-                  <span className="text-2xl text-zinc-400">%</span>
+                  <span className="text-2xl text-muted-foreground">%</span>
                 </div>
-                <p className="text-xs text-zinc-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Porcentaje que se paga al usuario que refirió al vendedor/comprador.
                 </p>
                 <div className="mt-2 text-[11px] bg-zinc-950 p-2 rounded-lg text-amber-400">
@@ -322,48 +322,48 @@ export default function AdminSettings() {
               </div>
 
               <div>
-                <Label className="text-sm text-zinc-400">Monto mínimo para retiro de vendedores</Label>
+                <Label className="text-sm text-muted-foreground">Monto mínimo para retiro de vendedores</Label>
                 <div className="flex items-center gap-3 mt-2">
                   <span className="text-xl">$</span>
                   <Input
                     type="number"
                     value={config.minPayoutAmount}
                     onChange={(e) => updateField('minPayoutAmount', parseInt(e.target.value))}
-                    className="bg-zinc-950 border-zinc-700 text-xl"
+                    className="bg-background border-border text-xl"
                   />
-                  <span className="text-zinc-400">COP</span>
+                  <span className="text-muted-foreground">COP</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Support & Contact */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8">
+          <div className="bg-card border border-border rounded-3xl p-8">
             <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
               <MessageCircle className="text-blue-400" /> Soporte y Contacto
             </h2>
 
             <div>
-              <Label className="text-sm text-zinc-400">Email de soporte</Label>
+              <Label className="text-sm text-muted-foreground">Email de soporte</Label>
               <Input
                 type="email"
                 value={config.supportEmail}
                 onChange={(e) => updateField('supportEmail', e.target.value)}
-                className="mt-2 bg-zinc-950 border-zinc-700"
+                className="mt-2 bg-background border-border"
               />
-              <p className="text-xs text-zinc-500 mt-1">Se muestra en la página de soporte y correos automáticos.</p>
+              <p className="text-xs text-muted-foreground mt-1">Se muestra en la página de soporte y correos automáticos.</p>
             </div>
           </div>
 
           {/* Feature Toggles */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8">
+          <div className="bg-card border border-border rounded-3xl p-8">
             <h2 className="text-xl font-semibold mb-6">Funcionalidades</h2>
 
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-medium">Reseñas y Calificaciones</div>
-                  <div className="text-sm text-zinc-400">Permitir que compradores dejen reseñas a vendedores</div>
+                  <div className="text-sm text-muted-foreground">Permitir que compradores dejen reseñas a vendedores</div>
                 </div>
                 <Switch
                   checked={config.enableReviews}
@@ -374,7 +374,7 @@ export default function AdminSettings() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-medium">Chat en Órdenes</div>
-                  <div className="text-sm text-zinc-400">Permitir mensajería entre comprador y vendedor dentro de una orden</div>
+                  <div className="text-sm text-muted-foreground">Permitir mensajería entre comprador y vendedor dentro de una orden</div>
                 </div>
                 <Switch
                   checked={config.enableChat}
@@ -394,7 +394,7 @@ export default function AdminSettings() {
               <div className="flex items-center justify-between flex-1">
                 <div>
                   <div className="font-medium">Activar Modo Mantenimiento</div>
-                  <div className="text-sm text-zinc-400">
+                  <div className="text-sm text-muted-foreground">
                     Muestra un banner en toda la plataforma y bloquea el acceso a usuarios normales.
                   </div>
                 </div>
@@ -405,11 +405,11 @@ export default function AdminSettings() {
               </div>
 
               <div className="flex-1">
-                <Label className="text-sm text-zinc-400">Mensaje que verán los usuarios</Label>
+                <Label className="text-sm text-muted-foreground">Mensaje que verán los usuarios</Label>
                 <Textarea
                   value={config.maintenanceMessage || ''}
                   onChange={(e) => updateField('maintenanceMessage', e.target.value)}
-                  className="mt-2 bg-zinc-950 border-zinc-700"
+                  className="mt-2 bg-background border-border"
                   rows={2}
                 />
               </div>
@@ -423,18 +423,18 @@ export default function AdminSettings() {
 
             {/* Live Preview */}
             <div className="mt-6">
-              <Label className="text-sm text-zinc-400 mb-2 block">Vista previa del banner</Label>
+              <Label className="text-sm text-muted-foreground mb-2 block">Vista previa del banner</Label>
               <div className="bg-red-600 text-white px-4 py-3 text-center font-semibold flex items-center justify-center gap-3 text-sm rounded-xl">
                 <AlertTriangle className="h-5 w-5" />
                 <span>{config.maintenanceMessage || "Estamos realizando mejoras. Volveremos pronto."}</span>
                 <AlertTriangle className="h-5 w-5" />
               </div>
-              <p className="text-[10px] text-zinc-500 mt-1">Así se verá el banner para todos los usuarios cuando esté activado.</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Así se verá el banner para todos los usuarios cuando esté activado.</p>
             </div>
           </div>
         </div>
 
-        <div className="mt-8 text-xs text-zinc-500">
+        <div className="mt-8 text-xs text-muted-foreground">
           Los cambios se aplican inmediatamente después de guardar. La tasa de comisión actual se usa en los reportes de ganancias de la plataforma.
         </div>
       </div>
