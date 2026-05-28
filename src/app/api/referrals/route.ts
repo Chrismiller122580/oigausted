@@ -59,9 +59,18 @@ export async function GET() {
     const activeSellers = referredUsers.filter(u => u.role === 'seller').length
     const totalReferred = referredUsers.length
 
-    // TODO: Proper earnings calculation from orders would go here
-    const estimatedTotalEarned = 0 // Will calculate properly in future
-    const pendingEarnings = 0
+    // Real earnings from ReferralEarning records
+    const earnings = await prisma.referralEarning.findMany({
+      where: { referrerId: userId }
+    })
+
+    const totalEarned = earnings
+      .filter(e => e.status === 'Paid' || e.status === 'Pending')
+      .reduce((sum, e) => sum + e.amount, 0)
+
+    const pendingEarnings = earnings
+      .filter(e => e.status === 'Pending')
+      .reduce((sum, e) => sum + e.amount, 0)
 
     const referralLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/signup?ref=${referralCode}`
 
@@ -71,7 +80,7 @@ export async function GET() {
       stats: {
         totalReferred,
         activeSellers,
-        totalEarned: estimatedTotalEarned,
+        totalEarned,
         pendingEarnings,
         referralRate,
       },
@@ -81,7 +90,7 @@ export async function GET() {
         businessName: u.businessName,
         joined: u.createdAt,
         status: u.role === 'seller' ? 'Active Seller' : 'Buyer',
-        earnings: 0, // TODO: calculate real earnings from referred user's orders
+        earnings: 0, // Per-user breakdown can be added later
       }))
     })
   } catch (error) {

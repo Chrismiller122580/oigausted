@@ -44,10 +44,15 @@ export async function GET() {
     // Read live platform + referral commissions from settings
     const config = await prisma.platformConfig.findFirst();
     const platformRate = config?.commissionRate ?? 0.12;
-    const referralRate = config?.referralCommissionRate ?? 0.05;
 
     const platformRevenue = Math.round(totalRevenue * platformRate);
-    const estimatedReferralRevenue = Math.round(totalRevenue * referralRate);
+
+    // Use real referral earnings if available, otherwise fall back to estimate
+    const realReferralEarnings = await prisma.referralEarning.aggregate({
+      where: { status: { in: ['Pending', 'Paid'] } },
+      _sum: { amount: true }
+    });
+    const estimatedReferralRevenue = realReferralEarnings._sum.amount || Math.round(totalRevenue * (config?.referralCommissionRate ?? 0.05));
 
     return NextResponse.json({
       users: totalUsers,

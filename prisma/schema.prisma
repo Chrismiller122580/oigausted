@@ -77,6 +77,7 @@ model User {
   referredById   String?
   referredBy     User?    @relation("UserReferrals", fields: [referredById], references: [id])
   referrals      User[]   @relation("UserReferrals")
+  referralEarnings ReferralEarning[] @relation("ReferrerEarnings")
 }
 
 model PasswordResetToken {
@@ -188,6 +189,7 @@ model Order {
   messages        OrderMessage[]
   files           OrderFile[]
   reviews         Review[]
+  referralEarnings ReferralEarning[]
 }
 
 model OrderMessage {
@@ -238,4 +240,21 @@ model PlatformConfig {
   maintenanceMode         Boolean  @default(false)
   maintenanceMessage      String   @default("Estamos realizando mejoras. Volveremos pronto.")
   updatedAt               DateTime @updatedAt
+}
+
+model ReferralEarning {
+  id            String   @id @default(cuid())
+  amount        Float    // The referral commission amount earned
+  rateUsed      Float    // The referralCommissionRate at the time (for audit)
+  status        String   @default("Pending") // Pending, Paid, Cancelled
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  referrerId    String
+  referrer      User     @relation("ReferrerEarnings", fields: [referrerId], references: [id])
+
+  orderId       String
+  order         Order    @relation(fields: [orderId], references: [id])
+
+  @@unique([referrerId, orderId]) // Prevent duplicate earnings per order
 }
