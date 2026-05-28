@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
+import { notifications } from '@/lib/notifications';
 
 export async function GET(req: NextRequest) {
   try {
@@ -127,6 +128,17 @@ export async function PATCH(req: NextRequest) {
         }),
       },
     });
+
+    // Notify the affected user if their role changed
+    if (role) {
+      await notifications.sendInApp(
+        userId,
+        'system',
+        'Tu rol ha sido actualizado',
+        `Tu cuenta ahora tiene el rol de ${role}.`,
+        `/profile`
+      );
+    }
 
     return NextResponse.json({ success: true, user: updated });
   } catch (error) {

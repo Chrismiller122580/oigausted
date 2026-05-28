@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
+import { notifications } from '@/lib/notifications';
 
 export async function GET(req: NextRequest) {
   try {
@@ -84,6 +85,24 @@ export async function PATCH(req: NextRequest) {
       details: { isActive: Boolean(isActive) },
     });
 
+    // Notify seller about gig moderation
+    await logAuditEvent({
+      adminId,
+      action: isActive ? 'GIG_ACTIVATED' : 'GIG_DEACTIVATED',
+      targetType: 'Gig',
+      targetId: gigId,
+      details: { isActive: Boolean(isActive) },
+    });
+
+    // Send in-app notification to seller
+    await notifications.sendInApp(
+      updated.sellerId,
+      'gig',
+      isActive ? 'Tu gig ha sido activado' : 'Tu gig ha sido pausado',
+      `El servicio "${updated.title}" ha cambiado de estado.`,
+      `/seller/gigs`
+    );
+
     return NextResponse.json({ success: true, gig: updated });
   } catch (error) {
     console.error('Admin gig update error:', error);
@@ -105,9 +124,14 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'gigId requerido' }, { status: 400 });
     }
 
+    // Fetch gig before deleting for notification
+    const gigToDelete = await prisma.gig.findUnique({
+      where: { id: gigId },
+      select: { sellerId: true, title: true }
+    });
+
     await prisma.gig.delete({ where: { id: gigId } });
 
-    // Log deletion
     const adminId = (session.user as any).id;
     await logAuditEvent({
       adminId,
@@ -115,6 +139,16 @@ export async function DELETE(req: NextRequest) {
       targetType: 'Gig',
       targetId: gigId,
     });
+
+    if (gigToDelete?.sellerId) {
+      await notifications.sendInApp(
+        gigToDelete.sellerId,
+        'gig',
+        'Tu gig ha sido eliminado',
+        `El servicio "${gigToDelete.title}" ha sido eliminado por un administrador.`,
+        `/seller/gigs`
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

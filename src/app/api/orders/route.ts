@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { notifications } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -63,6 +64,15 @@ export async function POST(request: Request) {
         seller: true
       }
     });
+
+    // Notify seller about new order
+    await notifications.sendInApp(
+      gig.sellerId,
+      'order',
+      'Nuevo pedido recibido',
+      `Tienes un nuevo pedido por "${gig.title}" de ${order.buyer?.name || 'un comprador'}.`,
+      `/orders/${order.id}`
+    );
 
     return NextResponse.json({ success: true, orderId: order.id, order });
   } catch (error: any) {

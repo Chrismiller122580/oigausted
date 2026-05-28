@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { notifications } from '@/lib/notifications';
 
 export async function GET(
   req: NextRequest,
@@ -104,6 +105,15 @@ export async function POST(
         reviewCount: allReviews.length
       }
     });
+
+    // Notify the seller about the new review
+    await notifications.sendInApp(
+      order.sellerId,
+      'review',
+      'Nueva reseña recibida',
+      `Has recibido una nueva reseña de ${rating} estrellas.`,
+      `/sellers/${order.sellerId}`
+    );
 
     return NextResponse.json({ success: true, review });
   } catch (error: any) {
