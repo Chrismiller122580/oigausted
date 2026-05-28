@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { notifications } from '@/lib/notifications';
 
 export async function GET(
   request: Request,
@@ -73,7 +74,30 @@ export async function POST(
       }
     });
 
-    return NextResponse.json({ message }); // frontend does data.message in some paths
+    // Notify the other party
+    try {
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: { buyerId: true, sellerId: true, gig: { select: { title: true } } }
+      });
+
+      if (order) {
+        const recipientId = isFromBuyer ? order.sellerId : order.buyerId;
+        const senderRole = isFromBuyer ? 'comprador' : 'vendedor';
+
+        await notifications.sendInApp(
+          recipientId,
+          'message',
+          `Nuevo mensaje en el pedido`,
+          `${senderRole} te ha enviado un mensaje sobre "${order.gig.title}".`,
+          `/orders/${orderId}`
+        );
+      }
+    } catch (notifErr) {
+      console.error('Failed to send message notification', notifErr);
+    }
+
+    return NextResponse.json({ message });
   } catch (error) {
     console.error('Messages POST error:', error);
     return NextResponse.json({ error: 'Error enviando mensaje' }, { status: 500 });
