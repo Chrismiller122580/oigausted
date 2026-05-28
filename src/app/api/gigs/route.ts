@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions, resolveDemoUserId } from '@/lib/auth';
+import { notifications } from '@/lib/notifications';
 
 export async function GET() {
   try {
@@ -80,6 +81,15 @@ export async function POST(req: NextRequest) {
     });
 
     console.log("✅ Gig created successfully:", gig.id);
+
+    // Send confirmation to seller
+    await notifications.sendInApp(
+      sellerId,
+      'gig',
+      '¡Gig publicado exitosamente!',
+      `Tu servicio "${title}" ya está visible para los compradores.`,
+      `/seller/gigs`
+    );
 
     return NextResponse.json({ 
       success: true, 
