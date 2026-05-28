@@ -70,6 +70,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   auditLogs           AuditLog[]           @relation("AdminAuditLogs")
   notifications       Notification[]
+  notificationPreferences NotificationPreference?
 }
 
 model PasswordResetToken {
@@ -108,16 +109,42 @@ model Notification {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  type      String   // email, sms, push, in_app
+  category  String   // e.g. "order", "gig", "payment", "review", "system"
+  type      String   // "in_app", "email", "sms", "push"
   title     String
   message   String
-  data      Json?
+  link      String?  // URL to navigate to when clicked
+  data      Json?    // Extra metadata
+
   read      Boolean  @default(false)
+  readAt    DateTime?
 
   createdAt DateTime @default(now())
 
   @@index([userId, read])
   @@index([createdAt])
+  @@index([userId, category])
+}
+
+model NotificationPreference {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Global toggles
+  inAppEnabled Boolean @default(true)
+  emailEnabled Boolean @default(true)
+  smsEnabled   Boolean @default(false)
+  pushEnabled  Boolean @default(true)
+
+  // Granular preferences (can expand later)
+  orderUpdates Boolean @default(true)
+  gigUpdates   Boolean @default(true)
+  reviewAlerts Boolean @default(true)
+  paymentAlerts Boolean @default(true)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Gig {

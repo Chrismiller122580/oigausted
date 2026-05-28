@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { Home, Package, LogOut, User } from 'lucide-react';
+import { Home, Package, LogOut, User, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/ui/mode-toggle';
+import { NotificationsBell } from './NotificationsBell';
 
 export default function BuyerNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
@@ -45,6 +46,7 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
                 </Link>
               )}
 
+              <NotificationsBell />
               <ModeToggle />
               <Button 
                 onClick={() => signOut({ callbackUrl: '/' })} 

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { ModeToggle } from '@/components/ui/mode-toggle';
+import { NotificationsBell } from './NotificationsBell';
 
 // Same-folder imports (all files are in layout/)
 import AdminNavbar from './AdminNavbar';
@@ -41,6 +42,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
             <Link href="/gigs" className="text-foreground hover:text-orange-600 transition-colors">Explorar Gigs</Link>
             <Link href="/login"><Button variant="outline">Iniciar Sesión</Button></Link>
             <Link href="/signup"><Button className="bg-orange-600">Registrarse</Button></Link>
+            <NotificationsBell />
             <ModeToggle />
           </div>
 

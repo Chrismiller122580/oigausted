@@ -4,6 +4,7 @@ import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Menu, X, LogOut, Users, Package, TrendingUp, Home, Settings, BarChart3, DollarSign, MessageCircle } from 'lucide-react';
+import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { useState } from 'react';
 
@@ -65,6 +66,7 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
                 <p className="font-semibold text-white">{session?.user?.name || 'Admin'}</p>
                 <p className="text-xs text-zinc-500">Administrador</p>
               </div>
+              <NotificationsBell />
               <ModeToggle />
               <Button
                 variant="ghost"

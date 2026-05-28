@@ -4,6 +4,7 @@ import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Menu, X, LogOut, Plus, Bell, DollarSign } from 'lucide-react';
+import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -68,6 +69,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
               </div>
             </Link>
 
+            <NotificationsBell />
             <ModeToggle />
             <Button
               variant="ghost"
