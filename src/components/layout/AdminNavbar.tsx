@@ -20,8 +20,8 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
     <>
       <nav className="bg-background border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/admin" className="flex items-center gap-3">
+          {/* Logo - links to public homepage */}
+          <Link href="/" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition">
             <div className="w-10 h-10 bg-red-600 rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg">
               ⚡
             </div>
@@ -89,60 +89,60 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
 
         {/* Mobile Menu - Full screen overlay */}
         {isMobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 bg-zinc-900 z-[60] pt-20 px-6 overflow-y-auto">
+          <div className="md:hidden fixed inset-0 bg-background z-[60] pt-20 px-6 overflow-y-auto">
             <div className="flex flex-col gap-6 text-lg">
               <Link 
                 href="/admin" 
-                className="flex items-center gap-3 py-4 border-b border-border text-white hover:text-red-500"
+                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <Home size={22} /> Overview
               </Link>
               <Link 
                 href="/admin/users" 
-                className="flex items-center gap-3 py-4 border-b border-border text-white hover:text-red-500"
+                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <Users size={22} /> Usuarios
               </Link>
               <Link 
                 href="/admin/gigs" 
-                className="flex items-center gap-3 py-4 border-b border-border text-white hover:text-red-500"
+                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <Package size={22} /> Gigs
               </Link>
               <Link 
                 href="/admin/earnings" 
-                className="flex items-center gap-3 py-4 border-b border-border text-white hover:text-red-500"
+                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <TrendingUp size={22} /> Ganancias
               </Link>
               <Link 
                 href="/admin/payouts" 
-                className="flex items-center gap-3 py-4 border-b border-border text-white hover:text-red-500"
+                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <DollarSign size={22} /> Pagos
               </Link>
               <Link 
                 href="/admin/reports" 
-                className="flex items-center gap-3 py-4 border-b border-border text-white hover:text-red-500"
+                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <BarChart3 size={22} /> Reportes
               </Link>
               <Link 
                 href="/admin/support" 
-                className="flex items-center gap-3 py-4 border-b border-border text-white hover:text-red-500"
+                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <MessageCircle size={22} /> Soporte
               </Link>
               <Link 
                 href="/admin/settings" 
-                className="flex items-center gap-3 py-4 border-b border-border text-white hover:text-red-500"
+                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <Settings size={22} /> Ajustes
@@ -151,7 +151,7 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
               <Button 
                 variant="ghost" 
                 onClick={handleSignOut}
-                className="mt-8 py-6 text-lg flex items-center gap-3 justify-center border border-zinc-700 hover:bg-zinc-800"
+                className="mt-8 py-6 text-lg flex items-center gap-3 justify-center border border-border hover:bg-muted"
               >
                 <LogOut size={22} />
                 Cerrar Sesión
