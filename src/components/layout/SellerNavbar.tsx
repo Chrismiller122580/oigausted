@@ -22,8 +22,8 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
       <nav className="bg-background border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           
-          {/* Logo */}
-          <Link href="/seller" className="flex items-center gap-3">
+          {/* Logo - links to homepage */}
+          <Link href="/" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition">
             <Image 
               src="/logo.png" 
               alt="Oiga Usted" 
@@ -32,7 +32,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
               className="w-10 h-10 sm:w-12 sm:h-12"
               priority
             />
-            <span className="text-2xl font-bold text-orange-600">OigaUsted</span>
+            <span className="text-2xl font-bold text-foreground">OigaUsted</span>
           </Link>
 
           {/* Desktop Navigation */}
