@@ -23,8 +23,29 @@ export interface NotificationPayload {
 export async function sendNotification(payload: NotificationPayload) {
   const { userId, category, type, title, message, link, data } = payload;
 
-  // 1. Always store in-app notification
-  if (type === 'in_app' || type === 'email' || type === 'sms' || type === 'push') {
+  // 1. Respect user preferences
+  const prefs = await prisma.notificationPreference.findUnique({
+    where: { userId }
+  });
+
+  const shouldSendInApp = prefs?.inAppEnabled !== false;
+  const shouldSendEmail = prefs?.emailEnabled !== false;
+  const shouldSendSMS   = prefs?.smsEnabled !== false;
+  const shouldSendPush  = prefs?.pushEnabled !== false;
+
+  // Granular checks per category
+  const categoryEnabled = 
+    category === 'order'   ? (prefs?.orderUpdates  !== false) :
+    category === 'gig'     ? (prefs?.gigUpdates    !== false) :
+    category === 'review'  ? (prefs?.reviewAlerts  !== false) :
+    category === 'payment' ? (prefs?.paymentAlerts !== false) : true;
+
+  if (!categoryEnabled) {
+    return { success: true, skipped: 'disabled by user preference' };
+  }
+
+  // 2. Store in-app notification (if enabled)
+  if ((type === 'in_app' || ['email','sms','push'].includes(type)) && shouldSendInApp) {
     try {
       await prisma.notification.create({
         data: {
@@ -42,8 +63,8 @@ export async function sendNotification(payload: NotificationPayload) {
     }
   }
 
-  // 2. Handle Email via Resend (using templates when possible)
-  if (type === 'email' && resend) {
+  // 2. Handle Email via Resend (respecting preference + using templates)
+  if (type === 'email' && resend && shouldSendEmail) {
     try {
       const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -99,13 +120,13 @@ export async function sendNotification(payload: NotificationPayload) {
     }
   }
 
-  // 3. SMS and Push placeholders (to be implemented later)
-  if (type === 'sms') {
-    console.log(`[NOTIF] SMS would be sent to user ${userId}: ${message}`);
+  // 3. SMS and Push (respecting preferences)
+  if (type === 'sms' && shouldSendSMS) {
+    console.log(`[NOTIF] SMS would be sent to user ${userId}`);
   }
 
-  if (type === 'push') {
-    console.log(`[NOTIF] Push would be sent to user ${userId}: ${title}`);
+  if (type === 'push' && shouldSendPush) {
+    console.log(`[NOTIF] Push would be sent to user ${userId}`);
   }
 
   return { success: true };

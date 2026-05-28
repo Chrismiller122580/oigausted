@@ -1,0 +1,44 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { notifications } from '@/lib/notifications';
+import { prisma } from '@/lib/prisma';
+
+// Admin-only endpoint to send manual notifications to any user
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if ((session?.user as any)?.role !== 'admin') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    }
+
+    const { userId, title, message, category = 'system', type = 'in_app' } = await req.json();
+
+    if (!userId || !title || !message) {
+      return NextResponse.json({ error: 'userId, title and message are required' }, { status: 400 });
+    }
+
+    // Verify user exists
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+    }
+
+    const result = await notifications.sendNotification({
+      userId,
+      category,
+      type: type as any,
+      title,
+      message,
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `Notificación enviada a ${user.email}`,
+      result 
+    });
+  } catch (error) {
+    console.error('Admin send notification error:', error);
+    return NextResponse.json({ error: 'Error enviando notificación' }, { status: 500 });
+  }
+}

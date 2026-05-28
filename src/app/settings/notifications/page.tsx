@@ -37,9 +37,35 @@ export default function NotificationPreferences() {
   // This is a UI scaffold. Real persistence will come with the preference model.
 
   useEffect(() => {
-    // TODO: Fetch real preferences from /api/user/notification-preferences
-    setLoading(false);
-  }, []);
+    const fetchPreferences = async () => {
+      try {
+        const res = await fetch('/api/user/notification-preferences');
+        if (res.ok) {
+          const data = await res.json();
+          setPrefs({
+            inAppEnabled: data.inAppEnabled ?? true,
+            emailEnabled: data.emailEnabled ?? true,
+            smsEnabled: data.smsEnabled ?? false,
+            pushEnabled: data.pushEnabled ?? true,
+            orderUpdates: data.orderUpdates ?? true,
+            gigUpdates: data.gigUpdates ?? true,
+            reviewAlerts: data.reviewAlerts ?? true,
+            paymentAlerts: data.paymentAlerts ?? true,
+          });
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (session?.user) {
+      fetchPreferences();
+    } else {
+      setLoading(false);
+    }
+  }, [session]);
 
   const handleToggle = (key: keyof Preferences) => {
     setPrefs(prev => ({ ...prev, [key]: !prev[key] }));
@@ -48,11 +74,19 @@ export default function NotificationPreferences() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // TODO: POST to /api/user/notification-preferences
-      await new Promise(r => setTimeout(r, 400)); // simulate
-      toast.success('Preferencias guardadas');
+      const res = await fetch('/api/user/notification-preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(prefs),
+      });
+
+      if (res.ok) {
+        toast.success('Preferencias guardadas correctamente');
+      } else {
+        toast.error('Error al guardar preferencias');
+      }
     } catch (e) {
-      toast.error('Error al guardar');
+      toast.error('Error de conexión');
     } finally {
       setSaving(false);
     }
