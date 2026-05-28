@@ -472,22 +472,24 @@ export default function CheckoutPage() {
           {/* Dynamic fields configuration */}
           {renderDynamicFields()}
 
-          {/* Service Location (for non-remote gigs) */}
-          <div className="bg-muted p-6 rounded-2xl">
-            <p className="font-semibold text-gray-800 mb-4">¿Dónde se realizará el servicio?</p>
-            <AddressAutocomplete
-              value={serviceAddress}
-              onChange={(address, lat, lng) => {
-                setServiceAddress(address);
-                setServiceLatitude(lat ?? null);
-                setServiceLongitude(lng ?? null);
-              }}
-              placeholder="Dirección donde se hará el trabajo (ej: Calle 45, Bucaramanga)"
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              Deja en blanco si el servicio es remoto o prefieres coordinarlo por chat.
-            </p>
-          </div>
+          {/* Service Location (only for non-remote gigs) */}
+          {!gig?.isRemote && (
+            <div className="bg-muted p-6 rounded-2xl">
+              <p className="font-semibold text-gray-800 mb-4">¿Dónde se realizará el servicio?</p>
+              <AddressAutocomplete
+                value={serviceAddress}
+                onChange={(address, lat, lng) => {
+                  setServiceAddress(address);
+                  setServiceLatitude(lat ?? null);
+                  setServiceLongitude(lng ?? null);
+                }}
+                placeholder="Dirección donde se hará el trabajo (ej: Calle 45, Bucaramanga)"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Deja en blanco si prefieres coordinarlo por chat.
+              </p>
+            </div>
+          )}
 
           {/* Payment Breakdown */}
           <div className="bg-white border rounded-2xl p-5 text-sm">
