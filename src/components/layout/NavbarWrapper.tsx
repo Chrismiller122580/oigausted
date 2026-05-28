@@ -18,7 +18,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (status === "loading") {
-    return <div className="min-h-[80px] bg-white border-b flex items-center justify-center">Cargando...</div>;
+    return <div className="min-h-[80px] bg-background border-b border-border flex items-center justify-center">Cargando...</div>;
   }
 
   const role = String((session?.user as any)?.role || '').toLowerCase().trim();
@@ -30,7 +30,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   // Public navbar
   return (
     <>
-      <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
+      <nav className="bg-background border-b border-border shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <Image src="/logo.png" alt="Oiga Usted" width={48} height={48} className="w-10 h-10" priority />
@@ -38,7 +38,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
           </Link>
 
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/gigs" className="hover:text-orange-600">Explorar Gigs</Link>
+            <Link href="/gigs" className="text-foreground hover:text-orange-600 transition-colors">Explorar Gigs</Link>
             <Link href="/login"><Button variant="outline">Iniciar Sesión</Button></Link>
             <Link href="/signup"><Button className="bg-orange-600">Registrarse</Button></Link>
             <ModeToggle />
