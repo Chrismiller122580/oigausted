@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink, Eye, EyeOff } from "lucide-react";
+import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink, Eye, EyeOff, Lock } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 
@@ -546,12 +546,17 @@ export default function ProfilePage() {
         </Card>
 
         {/* Password Change Section */}
-        <Card className="mt-8">
+        <Card className="mt-8 border border-border/60">
           <CardContent className="p-8">
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-xl font-semibold">Cambiar Contraseña</h3>
-                <p className="text-sm text-muted-foreground">Actualiza tu contraseña de acceso</p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-950 flex items-center justify-center">
+                  <Lock className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold">Seguridad de la cuenta</h3>
+                  <p className="text-sm text-muted-foreground">Actualiza tu contraseña de acceso</p>
+                </div>
               </div>
               <Button
                 variant="outline"
