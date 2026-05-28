@@ -42,31 +42,57 @@ export async function sendNotification(payload: NotificationPayload) {
     }
   }
 
-  // 2. Handle Email via Resend
+  // 2. Handle Email via Resend (using templates when possible)
   if (type === 'email' && resend) {
     try {
-      // Try to get user's email
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { email: true, name: true },
       });
 
       if (user?.email) {
+        let emailContent;
+
+        // Use templates when we have enough context
+        if (category === 'order' && data?.gigTitle) {
+          const { newOrderEmail } = await import('./emails/templates');
+          emailContent = newOrderEmail({
+            userName: user.name,
+            gigTitle: data.gigTitle,
+            amount: data.amount || 0,
+            otherPartyName: data.buyerName || 'Un comprador',
+            orderId: data.orderId || '',
+          });
+        } else if (category === 'review' && data?.gigTitle) {
+          const { reviewReceivedEmail } = await import('./emails/templates');
+          emailContent = reviewReceivedEmail({
+            userName: user.name,
+            gigTitle: data.gigTitle,
+            rating: data.rating || 5,
+            reviewerName: data.reviewerName || 'Un cliente',
+          });
+        } else {
+          // Generic fallback
+          emailContent = {
+            subject: title,
+            html: `
+              <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+                <h2 style="color: #f97316;">${title}</h2>
+                <p style="font-size: 16px; line-height: 1.6; color: #333;">${message}</p>
+                ${link ? `<p style="margin-top: 24px;"><a href="${link}" style="color: #f97316;">Ver detalles →</a></p>` : ''}
+              </div>
+            `
+          };
+        }
+
         await resend.emails.send({
           from: FROM_EMAIL,
           to: user.email,
-          subject: title,
-          html: `
-            <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2 style="color: #f97316;">${title}</h2>
-              <p style="font-size: 16px; line-height: 1.5; color: #333;">${message}</p>
-              ${link ? `<p><a href="${link}" style="color: #f97316; text-decoration: underline;">Ver detalles →</a></p>` : ''}
-              <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
-              <p style="font-size: 12px; color: #888;">OigaUsted • La plataforma de gigs en Colombia</p>
-            </div>
-          `,
+          subject: emailContent.subject,
+          html: emailContent.html,
         });
-        console.log(`[Resend] Email sent to ${user.email}`);
+
+        console.log(`[Resend] Email sent to ${user.email} (${category})`);
       }
     } catch (emailError) {
       console.error('Resend email error:', emailError);

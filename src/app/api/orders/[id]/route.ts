@@ -81,8 +81,6 @@ export async function PATCH(
         ? updatedOrder.buyerId 
         : updatedOrder.sellerId
 
-      const recipientRole = status === 'In Progress' || status === 'Completed' ? 'comprador' : 'vendedor'
-
       await notifications.sendInApp(
         recipientId,
         'order',
@@ -90,6 +88,21 @@ export async function PATCH(
         `Tu pedido para "${updatedOrder.gig.title}" ha cambiado a estado: ${status}.`,
         `/orders/${orderId}`
       )
+
+      // Send real email for key status changes
+      if (['In Progress', 'Completed', 'Cancelled'].includes(status)) {
+        await notifications.sendEmail(
+          recipientId,
+          `Actualización de pedido: ${status}`,
+          `El estado de tu pedido para "${updatedOrder.gig.title}" ahora es: ${status}.`,
+          { 
+            gigTitle: updatedOrder.gig.title, 
+            amount: updatedOrder.price, 
+            orderId,
+            newStatus: status 
+          }
+        )
+      }
     }
 
     return NextResponse.json({ order: updatedOrder })
