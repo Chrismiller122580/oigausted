@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
 import { parseJsonArrayField } from '@/lib/utils';
-import Script from 'next/script';
 import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
 import AddressAutocomplete from '@/components/maps/AddressAutocomplete';
 
@@ -450,13 +449,6 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-8">
-      {/* Load Wompi widget reliably for this page only */}
-      <Script
-        src="https://checkout.wompi.co/widget.js"
-        strategy="lazyOnload"
-        onLoad={() => setWompiReady(true)}
-      />
-
       <h1 className="text-3xl font-bold mb-8">Confirmar Compra</h1>
 
       <Card>
