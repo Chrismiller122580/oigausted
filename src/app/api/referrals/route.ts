@@ -50,6 +50,20 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     })
 
+    // Fetch earnings per referred seller
+    const earningsBySeller: Record<string, number> = {}
+    const referralEarnings = await prisma.referralEarning.findMany({
+      where: { referrerId: userId },
+      include: { order: { select: { sellerId: true } } }
+    })
+
+    referralEarnings.forEach(earning => {
+      const sellerId = earning.order?.sellerId
+      if (sellerId) {
+        earningsBySeller[sellerId] = (earningsBySeller[sellerId] || 0) + earning.amount
+      }
+    })
+
     // Get PlatformConfig for the current rate
     const config = await prisma.platformConfig.findFirst()
     const referralRate = config?.referralCommissionRate ?? 0.05
@@ -90,7 +104,7 @@ export async function GET() {
         businessName: u.businessName,
         joined: u.createdAt,
         status: u.role === 'seller' ? 'Active Seller' : 'Buyer',
-        earnings: 0, // Per-user breakdown can be added later
+        earnings: earningsBySeller[u.id] || 0,
       }))
     })
   } catch (error) {

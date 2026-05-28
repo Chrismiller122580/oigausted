@@ -113,7 +113,9 @@ export default function AdminReferralsPage() {
       </Card>
 
       <div className="mt-6 text-xs text-muted-foreground">
-        Nota: Los ingresos generados son estimados. Se calcularán con precisión cuando integremos el tracking de órdenes por referidos.
+        Los datos se actualizan en tiempo real. Usa la búsqueda del navegador (Ctrl+F) para filtrar.
+        <br />
+        Los ingresos se generan automáticamente cuando los referidos completan pedidos pagados.
       </div>
     </div>
   );

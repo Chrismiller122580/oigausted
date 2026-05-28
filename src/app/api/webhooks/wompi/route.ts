@@ -113,7 +113,8 @@ export async function POST(request: Request) {
         data: updateData,
         include: {
           buyer: { select: { id: true, name: true } },
-          gig: { select: { title: true } }
+          gig: { select: { title: true } },
+          seller: { select: { id: true, referredById: true } }
         }
       })
 
@@ -132,6 +133,29 @@ export async function POST(request: Request) {
           `Tu pago por "${updatedOrder.gig.title}" fue exitoso.`,
           `/orders/${orderId}`
         )
+
+        // Create referral earning if seller was referred (for Paid status)
+        if (updatedOrder.seller?.referredById) {
+          try {
+            const config = await prisma.platformConfig.findFirst()
+            const referralRate = config?.referralCommissionRate ?? 0.05
+            const referralAmount = Math.round(updatedOrder.price * referralRate)
+
+            if (referralAmount > 0) {
+              await prisma.referralEarning.create({
+                data: {
+                  amount: referralAmount,
+                  rateUsed: referralRate,
+                  referrerId: updatedOrder.seller.referredById,
+                  orderId: updatedOrder.id,
+                  status: 'Pending',
+                }
+              })
+            }
+          } catch (err) {
+            console.error('[Wompi] Failed to create referral earning:', err)
+          }
+        }
       }
     }
 
