@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'react-hot-toast';
 import { gigCategories } from '@/lib/gig-categories';
 import { parseCustomFields } from '@/lib/utils';
+import GoogleMap from '@/components/maps/GoogleMap';
 
 export default function OrderDetailPage() {
   const params = useParams();

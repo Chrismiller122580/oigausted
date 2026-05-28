@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save } from "lucide-react";
+import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save, Users } from "lucide-react";
+import AddressAutocomplete from "@/components/maps/AddressAutocomplete";
 import GrokAssistant from "@/components/common/GrokAssistant";
 import { toast } from 'react-hot-toast';
 
@@ -23,6 +24,9 @@ export default function MiNegocioPage() {
     location: "",
     instagram: "",
     profilePicture: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
+    serviceRadiusKm: 15,
   });
 
   const [reviews, setReviews] = useState<any[]>([]);
@@ -46,6 +50,9 @@ export default function MiNegocioPage() {
         location: user.city || "Bucaramanga, Santander",
         instagram: user.instagram || "",
         profilePicture: user.profilePicture || "",
+        latitude: user.latitude || null,
+        longitude: user.longitude || null,
+        serviceRadiusKm: user.serviceRadiusKm || 15,
       });
 
       // Load real rating/reviewCount
@@ -90,6 +97,9 @@ export default function MiNegocioPage() {
           city: formData.location,
           instagram: formData.instagram,
           imageUrl: formData.profilePicture,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          serviceRadiusKm: formData.serviceRadiusKm,
         }),
       });
 
@@ -216,9 +226,33 @@ export default function MiNegocioPage() {
                       className="w-full px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Ubicación</label>
-                    <input name="location" value={formData.location} onChange={handleChange} disabled={!isEditing}
-                      className="w-full px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" />
+                    <label className="block text-sm font-medium mb-2">Ubicación principal</label>
+                    <AddressAutocomplete
+                      value={formData.location}
+                      onChange={(address, lat, lng) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          location: address,
+                          latitude: lat ?? prev.latitude,
+                          longitude: lng ?? prev.longitude,
+                        }));
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Usaremos esto para mostrar "Gigs cerca de ti" a los compradores.</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Radio de servicio (km)</label>
+                    <input 
+                      type="number" 
+                      name="serviceRadiusKm" 
+                      value={formData.serviceRadiusKm} 
+                      onChange={handleChange} 
+                      disabled={!isEditing}
+                      className="w-full px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" 
+                      min="1"
+                      max="200"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">¿Hasta cuántos km estás dispuesto a desplazarte?</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Instagram</label>
