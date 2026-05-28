@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Package, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
+import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,9 +16,16 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('/api/admin/stats');
-      const data = await res.json();
-      setStats(data);
+      const [statsRes, activityRes] = await Promise.all([
+        fetch('/api/admin/stats'),
+        fetch('/api/admin/audit?limit=6')
+      ]);
+
+      const statsData = await statsRes.json();
+      setStats(statsData);
+
+      const activityData = await activityRes.json();
+      setRecentActivity(activityData.logs || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -126,6 +134,53 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </Link>
+        </div>
+
+        {/* Recent Activity Widget */}
+        <div className="mt-12">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Clock className="h-6 w-6 text-purple-400" />
+              <h2 className="text-2xl font-semibold">Actividad Reciente</h2>
+            </div>
+            <Link href="/admin/audit" className="text-sm text-orange-400 hover:underline">
+              Ver todo el historial →
+            </Link>
+          </div>
+
+          <Card className="bg-card border-border">
+            <CardContent className="p-0">
+              {recentActivity.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  No hay actividad reciente.
+                </div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {recentActivity.map((log: any, index: number) => (
+                    <div key={index} className="px-6 py-4 flex items-start justify-between hover:bg-muted/50 transition">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm">
+                          {log.admin?.name || log.admin?.email || 'Admin'} 
+                          <span className="text-muted-foreground font-normal"> • {log.action.replace(/_/g, ' ').toLowerCase()}</span>
+                        </div>
+                        {log.details && (
+                          <div className="text-xs text-muted-foreground mt-1 truncate">
+                            {log.targetType} {log.targetId ? `(${log.targetId.slice(0,8)}...)` : ''}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground whitespace-nowrap ml-4">
+                        {new Date(log.createdAt).toLocaleTimeString('es-CO', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

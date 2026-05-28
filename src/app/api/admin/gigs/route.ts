@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logAuditEvent } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
   try {
@@ -73,6 +74,16 @@ export async function PATCH(req: NextRequest) {
       }
     });
 
+    // Log moderation action
+    const adminId = (session.user as any).id;
+    await logAuditEvent({
+      adminId,
+      action: isActive ? 'GIG_ACTIVATED' : 'GIG_DEACTIVATED',
+      targetType: 'Gig',
+      targetId: gigId,
+      details: { isActive: Boolean(isActive) },
+    });
+
     return NextResponse.json({ success: true, gig: updated });
   } catch (error) {
     console.error('Admin gig update error:', error);
@@ -95,6 +106,15 @@ export async function DELETE(req: NextRequest) {
     }
 
     await prisma.gig.delete({ where: { id: gigId } });
+
+    // Log deletion
+    const adminId = (session.user as any).id;
+    await logAuditEvent({
+      adminId,
+      action: 'GIG_DELETED',
+      targetType: 'Gig',
+      targetId: gigId,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
