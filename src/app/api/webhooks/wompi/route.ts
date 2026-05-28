@@ -15,29 +15,55 @@ function verifyWompiSignature(body: any, receivedSignature: string): boolean {
     return false
   }
 
+  // Wompi recommends signing: timestamp + JSON.stringify(event)
+  // This prevents replay attacks when combined with timestamp validation.
+  const timestamp = (body?.timestamp || '').toString()
+  const signedPayload = `${timestamp}${JSON.stringify(body)}`
+
   const expectedSignature = crypto
     .createHmac('sha256', WOMPI_EVENTS_KEY)
-    .update(JSON.stringify(body))
+    .update(signedPayload)
     .digest('hex')
 
   const normalizedReceived = receivedSignature.replace('sha256=', '').trim()
 
-  // Use timing-safe comparison
-  return crypto.timingSafeEqual(
-    Buffer.from(normalizedReceived, 'hex'),
-    Buffer.from(expectedSignature, 'hex')
-  )
+  // Use timing-safe comparison to prevent timing attacks
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(normalizedReceived, 'hex'),
+      Buffer.from(expectedSignature, 'hex')
+    )
+  } catch (e) {
+    console.error('[Wompi] Signature comparison failed (likely invalid hex)', e)
+    return false
+  }
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
     const receivedSignature = request.headers.get('x-wompi-signature') || ''
+    const headerTimestamp = request.headers.get('x-wompi-timestamp')
+
+    // Prefer timestamp from header if present (more reliable), fallback to body
+    const receivedTimestamp = headerTimestamp 
+      ? parseInt(headerTimestamp) 
+      : (body?.timestamp ? parseInt(body.timestamp) : null)
 
     // 1. Verify signature first (critical security check)
     if (!verifyWompiSignature(body, receivedSignature)) {
       console.error('[Wompi] Invalid webhook signature received')
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+    }
+
+    // 2. Basic replay attack protection (accept events from the last 10 minutes)
+    if (receivedTimestamp) {
+      const now = Math.floor(Date.now() / 1000)
+      const tenMinutes = 10 * 60
+      if (Math.abs(now - receivedTimestamp) > tenMinutes) {
+        console.warn('[Wompi] Webhook timestamp too old or in the future — possible replay attack')
+        return NextResponse.json({ error: 'Timestamp too old' }, { status: 400 })
+      }
     }
 
     if (!body?.event || !body?.data?.transaction) {
