@@ -111,6 +111,21 @@ export async function PATCH(
               status: 'Pending',
             }
           });
+
+          // Notify referrer
+          try {
+            const { sendNotification } = await import('@/lib/notifications')
+            await sendNotification({
+              userId: updatedOrder.seller.referredById,
+              category: 'payment',
+              type: 'email',
+              title: '¡Ganaste comisión por referido!',
+              message: `Recibiste $${referralAmount.toLocaleString('es-CO')} de comisión por una venta completada.`,
+              link: '/referrals'
+            })
+          } catch (e) {
+            console.error('Failed to send referral earning email:', e)
+          }
         }
       } catch (err) {
         console.error('Failed to create referral earning:', err);

@@ -10,8 +10,8 @@ interface ReferralSummary {
     email: string;
   };
   referredCount: number;
-  activeSellers: number;
   totalGenerated: number;
+  earningsCount: number;
 }
 
 export default function AdminReferralsPage() {
@@ -24,43 +24,11 @@ export default function AdminReferralsPage() {
 
   const fetchReferrals = async () => {
     try {
-      // For MVP we fetch all users with referredBy and aggregate client-side
-      const res = await fetch('/api/admin/users?limit=1000'); // rough
-      const json = await res.json();
-      const users = json.users || [];
-
-      const summaryMap = new Map();
-
-      users.forEach((user: any) => {
-        if (user.referredById) {
-          const key = user.referredById;
-          if (!summaryMap.has(key)) {
-            summaryMap.set(key, {
-              referrer: { id: key, name: 'Cargando...', email: '' },
-              referredCount: 0,
-              activeSellers: 0,
-              totalGenerated: 0,
-            });
-          }
-          const entry = summaryMap.get(key);
-          entry.referredCount++;
-          if (user.role === 'seller') entry.activeSellers++;
-        }
-      });
-
-      // Fetch referrer names
-      const referrerIds = Array.from(summaryMap.keys());
-      if (referrerIds.length > 0) {
-        const referrersRes = await fetch('/api/admin/users?ids=' + referrerIds.join(','));
-        const referrersJson = await referrersRes.json();
-        (referrersJson.users || []).forEach((r: any) => {
-          if (summaryMap.has(r.id)) {
-            summaryMap.get(r.id).referrer = { id: r.id, name: r.name || r.email, email: r.email };
-          }
-        });
+      const res = await fetch('/api/admin/referrals');
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
       }
-
-      setData(Array.from(summaryMap.values()));
     } catch (e) {
       console.error(e);
     } finally {
@@ -89,8 +57,8 @@ export default function AdminReferralsPage() {
                     <th className="text-left py-3 px-4">Referidor</th>
                     <th className="text-left py-3 px-4">Email</th>
                     <th className="text-center py-3 px-4">Invitados</th>
-                    <th className="text-center py-3 px-4">Vendedores Activos</th>
-                    <th className="text-right py-3 px-4">Ingresos Generados (est.)</th>
+                    <th className="text-center py-3 px-4">Comisiones generadas</th>
+                    <th className="text-right py-3 px-4">Total ganado</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -99,7 +67,7 @@ export default function AdminReferralsPage() {
                       <td className="py-3 px-4 font-medium">{row.referrer.name}</td>
                       <td className="py-3 px-4 text-muted-foreground">{row.referrer.email}</td>
                       <td className="py-3 px-4 text-center">{row.referredCount}</td>
-                      <td className="py-3 px-4 text-center">{row.activeSellers}</td>
+                      <td className="py-3 px-4 text-center">{row.earningsCount}</td>
                       <td className="py-3 px-4 text-right font-medium">
                         ${(row.totalGenerated || 0).toLocaleString('es-CO')}
                       </td>

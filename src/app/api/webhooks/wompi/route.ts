@@ -151,6 +151,28 @@ export async function POST(request: Request) {
                   status: 'Pending',
                 }
               })
+
+              // Notify referrer by email
+              try {
+                const referrer = await prisma.user.findUnique({
+                  where: { id: updatedOrder.seller.referredById },
+                  select: { email: true, name: true }
+                })
+                if (referrer?.email) {
+                  const { sendNotification } = await import('@/lib/notifications')
+                  await sendNotification({
+                    userId: updatedOrder.seller.referredById,
+                    category: 'payment',
+                    type: 'email',
+                    title: '¡Ganaste comisión por referido!',
+                    message: `Recibiste $${referralAmount.toLocaleString('es-CO')} de comisión por la venta de "${updatedOrder.gig.title}".`,
+                    link: '/referrals',
+                    data: { amount: referralAmount }
+                  })
+                }
+              } catch (emailErr) {
+                console.error('[Wompi] Failed to send referral earning email:', emailErr)
+              }
             }
           } catch (err) {
             console.error('[Wompi] Failed to create referral earning:', err)

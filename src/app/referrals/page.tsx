@@ -73,6 +73,9 @@ export default function ReferralsPage() {
 
   const { referralCode, referralLink, stats, referredUsers } = data;
 
+  const [manualCode, setManualCode] = useState('');
+  const [linking, setLinking] = useState(false);
+
   const handleCopyLink = async () => {
     if (!referralLink) return;
     try {
@@ -92,12 +95,35 @@ export default function ReferralsPage() {
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
+  const handleManualLink = async () => {
+    if (!manualCode.trim()) return;
+    setLinking(true);
+    try {
+      const res = await fetch('/api/referrals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ referralCode: manualCode.trim() })
+      });
+      const json = await res.json();
+      if (res.ok) {
+        toast.success('¡Vinculado correctamente!');
+        window.location.reload();
+      } else {
+        toast.error(json.error || 'No se pudo vincular el código');
+      }
+    } catch (e) {
+      toast.error('Error de conexión');
+    } finally {
+      setLinking(false);
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Programa de Referidos</h1>
         <p className="text-muted-foreground mt-2">
-          Invita a otros vendedores y gana {(stats.referralRate * 100).toFixed(0)}% de comisión sobre sus ventas.
+          Invita a otros vendedores y gana <strong>{(stats.referralRate * 100).toFixed(0)}%</strong> de comisión sobre todas sus ventas de por vida.
         </p>
       </div>
 
@@ -133,7 +159,29 @@ export default function ReferralsPage() {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Cuando alguien se registre con tu enlace y se convierta en vendedor, ganarás comisión sobre sus ventas de por vida.
+            Cuando alguien se registre con tu enlace y publique servicios, ganarás <strong>{(stats.referralRate * 100).toFixed(0)}%</strong> de comisión sobre todas sus ventas de por vida.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Manual link for Google users or missed ref code */}
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-sm mb-2 font-medium">¿Tienes un código de referido?</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={manualCode}
+              onChange={(e) => setManualCode(e.target.value)}
+              placeholder="Ingresa el código (ej: ABC12345)"
+              className="flex-1 px-4 py-2 border rounded-xl text-sm"
+            />
+            <Button onClick={handleManualLink} disabled={linking || !manualCode.trim()}>
+              {linking ? 'Vinculando...' : 'Vincularme'}
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Útil si te registraste con Google o no usaste el enlace al principio.
           </p>
         </CardContent>
       </Card>
@@ -192,6 +240,40 @@ export default function ReferralsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Payout Request */}
+      {stats.pendingEarnings > 0 && (
+        <Card className="border-orange-300 bg-orange-50/50">
+          <CardContent className="pt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <p className="font-medium">¿Listo para cobrar tus comisiones por referidos?</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Puedes solicitar el pago de tus ${stats.pendingEarnings.toLocaleString('es-CO')} pendientes en cualquier momento.
+              </p>
+            </div>
+            <Button 
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/referrals/request-payout', { method: 'POST' })
+                  const json = await res.json()
+                  if (res.ok) {
+                    toast.success(json.message || 'Solicitud enviada')
+                    // Refresh data
+                    window.location.reload()
+                  } else {
+                    toast.error(json.error || 'Error al enviar solicitud')
+                  }
+                } catch (e) {
+                  toast.error('Error de conexión')
+                }
+              }}
+              className="whitespace-nowrap"
+            >
+              Solicitar pago de comisiones
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Referred Users */}
       <Card>
@@ -275,8 +357,8 @@ export default function ReferralsPage() {
           </div>
 
           <div className="pt-4 border-t text-xs text-muted-foreground">
-            Las comisiones se calculan automáticamente y se pagan junto con tus ganancias como vendedor. 
-            El porcentaje actual lo define el equipo de OigaUsted.
+            Las comisiones se calculan automáticamente cuando tus referidos reciben pagos. 
+            Puedes solicitar el pago de tus ganancias por referidos en cualquier momento desde esta página (se revisa y paga manualmente).
           </div>
         </CardContent>
       </Card>

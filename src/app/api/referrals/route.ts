@@ -112,3 +112,45 @@ export async function GET() {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }
+
+// Allow users (especially Google signups) to manually claim a referral code
+export async function POST(req: Request) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    const { referralCode } = await req.json()
+    if (!referralCode) {
+      return NextResponse.json({ error: 'Código de referido requerido' }, { status: 400 })
+    }
+
+    const userId = session.user.id
+
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+
+    if (user.referredById) {
+      return NextResponse.json({ error: 'Ya estás vinculado a un referidor' }, { status: 400 })
+    }
+
+    const referrer = await prisma.user.findUnique({
+      where: { referralCode: referralCode.toUpperCase() }
+    })
+
+    if (!referrer || referrer.id === userId) {
+      return NextResponse.json({ error: 'Código de referido inválido' }, { status: 400 })
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { referredById: referrer.id }
+    })
+
+    return NextResponse.json({ success: true, message: '¡Vinculado correctamente al referidor!' })
+  } catch (error) {
+    console.error('Error linking referral:', error)
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  }
+}
