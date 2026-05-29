@@ -3,7 +3,8 @@
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogOut, Users, Package, TrendingUp, Home, Settings, BarChart3, DollarSign, MessageCircle } from 'lucide-react';
+import { LogOut, Users, Package, TrendingUp, Home, Settings, BarChart3, DollarSign, MessageCircle, Menu, X } from 'lucide-react';
+import MobileMenu from './MobileMenu';
 import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { useState } from 'react';
@@ -91,80 +92,14 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
             </button>
           </div>
         </div>
-
-        {/* Mobile Menu - Full screen overlay */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 bg-background z-[60] pt-20 px-6 overflow-y-auto">
-            <div className="flex flex-col gap-6 text-lg">
-              <Link 
-                href="/admin" 
-                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <Home size={22} /> Overview
-              </Link>
-              <Link 
-                href="/admin/users" 
-                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <Users size={22} /> Usuarios
-              </Link>
-              <Link 
-                href="/admin/gigs" 
-                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <Package size={22} /> Gigs
-              </Link>
-              <Link 
-                href="/admin/earnings" 
-                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <TrendingUp size={22} /> Ganancias
-              </Link>
-              <Link 
-                href="/admin/payouts" 
-                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <DollarSign size={22} /> Pagos
-              </Link>
-              <Link 
-                href="/admin/reports" 
-                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <BarChart3 size={22} /> Reportes
-              </Link>
-              <Link 
-                href="/admin/support" 
-                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <MessageCircle size={22} /> Soporte
-              </Link>
-              <Link 
-                href="/admin/settings" 
-                className="flex items-center gap-3 py-4 border-b border-border text-foreground hover:text-red-500"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <Settings size={22} /> Ajustes
-              </Link>
-
-              <Button 
-                variant="ghost" 
-                onClick={handleSignOut}
-                className="mt-8 py-6 text-lg flex items-center gap-3 justify-center border border-border hover:bg-muted"
-              >
-                <LogOut size={22} />
-                Cerrar Sesión
-              </Button>
-            </div>
-          </div>
-        )}
       </nav>
+
+      {/* Shared Mobile Menu */}
+      <MobileMenu 
+        isOpen={isMobileMenuOpen} 
+        onClose={() => setIsMobileMenuOpen(false)} 
+        role="admin" 
+      />
 
       <main className="bg-background text-foreground">
         {children}
