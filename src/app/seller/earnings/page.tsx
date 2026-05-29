@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, TrendingUp, Calendar, Download, Package } from 'lucide-react';
+import { DollarSign, TrendingUp, Calendar, Download, Package, Users } from 'lucide-react';
 
 export default function SellerEarningsPage() {
   const { data: session } = useSession();
