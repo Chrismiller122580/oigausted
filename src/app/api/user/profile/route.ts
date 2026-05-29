@@ -22,6 +22,9 @@ export async function PATCH(request: Request) {
         whatsapp: data.whatsapp || null,
         instagram: data.instagram || null,
         facebook: data.facebook || null,
+        city: data.city || undefined,
+        latitude: data.latitude ?? undefined,
+        longitude: data.longitude ?? undefined,
       },
     });
 

@@ -44,6 +44,8 @@ export default function ProfilePage() {
     instagram: "",
     facebook: "",
     imageUrl: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
   });
 
   useEffect(() => {
@@ -59,6 +61,8 @@ export default function ProfilePage() {
         instagram: user.instagram || "",
         facebook: user.facebook || "",
         imageUrl: user.image || user.profilePicture || "",
+        latitude: user.latitude || null,
+        longitude: user.longitude || null,
       });
 
       // Load real reputation data for sellers
