@@ -186,8 +186,10 @@ export default function GigsContent() {
           <p className="text-2xl text-gray-400">No se encontraron gigs</p>
           <p className="text-gray-500 mt-2">
             {showOnlyNearMe 
-              ? "No hay servicios disponibles cerca de tu ubicación actual." 
-              : "Intenta con otra búsqueda o activa 'Gigs cerca de mí'"}
+              ? "No hay servicios disponibles cerca de tu ubicación actual. Prueba ampliar el radio o buscar en otra zona." 
+              : showOnlyRemote
+                ? "No hay gigs remotos que coincidan con tu búsqueda."
+                : "Intenta con otra búsqueda o activa 'Gigs cerca de mí'"}
           </p>
           {showOnlyNearMe && (
             <Button 
@@ -196,6 +198,15 @@ export default function GigsContent() {
               onClick={() => setShowOnlyNearMe(false)}
             >
               Ver todos los gigs
+            </Button>
+          )}
+          {!userLocation && !showOnlyNearMe && (
+            <Button 
+              variant="outline" 
+              className="mt-4"
+              onClick={handleUseMyLocation}
+            >
+              Activar ubicación para ver gigs cercanos
             </Button>
           )}
         </div>

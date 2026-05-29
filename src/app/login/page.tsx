@@ -222,7 +222,7 @@ export default function LoginPage() {
                 </Button>
               </div>
               <p className="text-[10px] text-yellow-700 mt-1.5">
-                Use the real admin account (<code>admin@oigagig.co.com</code>) for production/admin access.
+                Use the real admin account (<code>oigaustedcolombia@gmail.com</code>) for production/admin access.
               </p>
               <p className="text-[10px] text-yellow-700 mt-2">
                 Quick demo accounts for local development only.<br />

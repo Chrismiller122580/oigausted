@@ -30,8 +30,8 @@ export default function LocationPermissionPrompt({
             <div>
               <h3 className="font-semibold text-foreground">¿Quieres ver gigs cerca de ti?</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Te mostraremos servicios disponibles en tu zona actual. 
-                Solo usamos tu ubicación para mejorar tu experiencia.
+                Te mostraremos servicios disponibles cerca de ti. 
+                Solo usamos tu ubicación una vez y no la guardamos.
               </p>
             </div>
             <button 

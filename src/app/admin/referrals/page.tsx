@@ -38,9 +38,29 @@ export default function AdminReferralsPage() {
 
   if (loading) return <div className="p-8">Cargando datos de referidos...</div>;
 
+  const totalReferrers = data.length;
+  const totalReferred = data.reduce((sum, r) => sum + r.referredCount, 0);
+  const totalGenerated = data.reduce((sum, r) => sum + (r.totalGenerated || 0), 0);
+
   return (
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Gestión de Referidos</h1>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-card border rounded-2xl p-4">
+          <div className="text-sm text-muted-foreground">Referidores activos</div>
+          <div className="text-3xl font-bold mt-1">{totalReferrers}</div>
+        </div>
+        <div className="bg-card border rounded-2xl p-4">
+          <div className="text-sm text-muted-foreground">Personas referidas</div>
+          <div className="text-3xl font-bold mt-1">{totalReferred}</div>
+        </div>
+        <div className="bg-card border rounded-2xl p-4">
+          <div className="text-sm text-muted-foreground">Comisiones generadas (total)</div>
+          <div className="text-3xl font-bold mt-1 text-green-600">${totalGenerated.toLocaleString('es-CO')}</div>
+        </div>
+      </div>
 
       <Card>
         <CardHeader>

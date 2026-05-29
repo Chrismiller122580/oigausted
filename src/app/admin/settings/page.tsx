@@ -185,7 +185,7 @@ export default function AdminSettings() {
             </div>
             <div>
               <h2 className="text-2xl font-semibold">Contraseña del Administrador</h2>
-              <p className="text-sm text-muted-foreground">Cambia la contraseña de <span className="font-mono text-orange-500">admin@oigagig.co.com</span></p>
+              <p className="text-sm text-muted-foreground">Cambia la contraseña del administrador principal</p>
             </div>
           </div>
 

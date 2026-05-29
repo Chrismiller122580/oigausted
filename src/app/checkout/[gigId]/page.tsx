@@ -184,6 +184,13 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Soft validation for non-remote gigs
+    if (!gig.isRemote && !serviceAddress) {
+      toast("Recomendamos indicar la dirección del servicio para que el vendedor sepa dónde ir.", {
+        duration: 5000,
+      });
+    }
+
     setOpening(true);
 
     try {
