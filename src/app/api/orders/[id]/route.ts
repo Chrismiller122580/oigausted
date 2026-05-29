@@ -45,7 +45,7 @@ export async function PATCH(
     const resolvedParams = await params
     const orderId = resolvedParams.id
     const body = await request.json()
-    const { status, price, customFields } = body
+    const { status, price, customFields, serviceAddress, serviceLatitude, serviceLongitude } = body
 
     const updateData: any = {}
 
@@ -63,6 +63,16 @@ export async function PATCH(
 
     if (customFields !== undefined) {
       updateData.customFields = customFields ? JSON.stringify(customFields) : null
+    }
+
+    if (serviceAddress !== undefined) {
+      updateData.serviceAddress = serviceAddress || null
+    }
+    if (serviceLatitude !== undefined) {
+      updateData.serviceLatitude = serviceLatitude
+    }
+    if (serviceLongitude !== undefined) {
+      updateData.serviceLongitude = serviceLongitude
     }
 
     const updatedOrder = await prisma.order.update({
