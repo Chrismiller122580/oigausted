@@ -19,13 +19,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <head>
-        {/* Wompi Checkout Script - loads only when needed */}
-        <script
-          src="https://checkout.wompi.co/widget.js"
-          async
-        />
-      </head>
       <body className={inter.className}>
         <SessionProviderWrapper>
           <MaintenanceBanner />

@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink, Eye, EyeOff, Lock } from "lucide-react";
+import AddressAutocomplete from "@/components/maps/AddressAutocomplete";
 import { toast } from "react-hot-toast";
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 
@@ -464,7 +465,21 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Input name="phone" value={formData.phone} onChange={handleChange} placeholder="Teléfono" />
                   <Input name="whatsapp" value={formData.whatsapp} onChange={handleChange} placeholder="WhatsApp" />
-                  <Input name="city" value={formData.city} onChange={handleChange} placeholder="Ciudad" />
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Ciudad / Dirección</label>
+                    <AddressAutocomplete
+                      value={formData.city || ""}
+                      onChange={(address, lat, lng) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          city: address,
+                          latitude: lat ?? prev.latitude,
+                          longitude: lng ?? prev.longitude,
+                        }));
+                      }}
+                      placeholder="Ciudad o dirección"
+                    />
+                  </div>
                   <Input name="instagram" value={formData.instagram} onChange={handleChange} placeholder="Instagram" />
                   <Input name="facebook" value={formData.facebook} onChange={handleChange} placeholder="Facebook" />
                   <Input 

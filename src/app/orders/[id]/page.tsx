@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'react-hot-toast';
 import { gigCategories } from '@/lib/gig-categories';
 import { parseCustomFields } from '@/lib/utils';
+import GoogleMap from '@/components/maps/GoogleMap';
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -260,6 +261,24 @@ export default function OrderDetailPage() {
                 ))}
               </CardContent>
             </Card>
+
+            {/* Service Location Map */}
+            {(order.serviceLatitude && order.serviceLongitude) && (
+              <Card className="mt-8">
+                <CardHeader><CardTitle className="flex items-center gap-2"><MapPin className="w-5 h-5" /> Ubicación del Servicio</CardTitle></CardHeader>
+                <CardContent>
+                  {order.serviceAddress && (
+                    <p className="mb-3 text-sm text-muted-foreground">{order.serviceAddress}</p>
+                  )}
+                  <GoogleMap 
+                    center={{ lat: order.serviceLatitude, lng: order.serviceLongitude }} 
+                    zoom={15}
+                    markers={[{ lat: order.serviceLatitude, lng: order.serviceLongitude, title: "Lugar del servicio" }]}
+                    height="320px"
+                  />
+                </CardContent>
+              </Card>
+            )}
 
             {isCleaningGig && (
               <Card className="mt-8">

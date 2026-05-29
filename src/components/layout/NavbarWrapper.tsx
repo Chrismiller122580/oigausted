@@ -8,6 +8,7 @@ import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { NotificationsBell } from './NotificationsBell';
+import MobileMenu from './MobileMenu';
 
 // Same-folder imports (all files are in layout/)
 import AdminNavbar from './AdminNavbar';
@@ -48,12 +49,23 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
 
           <div className="md:hidden flex items-center gap-2">
             <ModeToggle />
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
               {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
             </button>
           </div>
         </div>
       </nav>
+
+      {/* Mobile Menu for public users */}
+      <MobileMenu 
+        isOpen={isMobileMenuOpen} 
+        onClose={() => setIsMobileMenuOpen(false)} 
+        role="public" 
+      />
+
       <main>{children}</main>
     </>
   );

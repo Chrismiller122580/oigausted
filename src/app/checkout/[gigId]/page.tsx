@@ -7,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
 import { parseJsonArrayField } from '@/lib/utils';
-import Script from 'next/script';
 import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
+import AddressAutocomplete from '@/components/maps/AddressAutocomplete';
 
 declare global {
   interface Window {
@@ -33,6 +33,11 @@ export default function CheckoutPage() {
 
   // Dynamic fields selections
   const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
+
+  // Service location for non-remote gigs
+  const [serviceAddress, setServiceAddress] = useState("");
+  const [serviceLatitude, setServiceLatitude] = useState<number | null>(null);
+  const [serviceLongitude, setServiceLongitude] = useState<number | null>(null);
 
   // Robust Wompi script loader (improved for production reliability)
   useEffect(() => {
@@ -189,6 +194,9 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           price: finalPrice,
           customFields: selectedOptions,
+          serviceAddress: serviceAddress || undefined,
+          serviceLatitude,
+          serviceLongitude,
         }),
       });
 
@@ -441,13 +449,6 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-8">
-      {/* Load Wompi widget reliably for this page only */}
-      <Script
-        src="https://checkout.wompi.co/widget.js"
-        strategy="lazyOnload"
-        onLoad={() => setWompiReady(true)}
-      />
-
       <h1 className="text-3xl font-bold mb-8">Confirmar Compra</h1>
 
       <Card>
@@ -462,6 +463,25 @@ export default function CheckoutPage() {
 
           {/* Dynamic fields configuration */}
           {renderDynamicFields()}
+
+          {/* Service Location (only for non-remote gigs) */}
+          {!gig?.isRemote && (
+            <div className="bg-muted p-6 rounded-2xl">
+              <p className="font-semibold text-gray-800 mb-4">¿Dónde se realizará el servicio?</p>
+              <AddressAutocomplete
+                value={serviceAddress}
+                onChange={(address, lat, lng) => {
+                  setServiceAddress(address);
+                  setServiceLatitude(lat ?? null);
+                  setServiceLongitude(lng ?? null);
+                }}
+                placeholder="Dirección donde se hará el trabajo (ej: Calle 45, Bucaramanga)"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Deja en blanco si prefieres coordinarlo por chat.
+              </p>
+            </div>
+          )}
 
           {/* Payment Breakdown */}
           <div className="bg-white border rounded-2xl p-5 text-sm">

@@ -15,7 +15,11 @@ export async function GET() {
     const sellerIds = [...new Set(gigs.map(g => g.sellerId))];
     const sellers = await prisma.user.findMany({
       where: { id: { in: sellerIds } },
-      select: { id: true, name: true, email: true, businessName: true, profilePicture: true, rating: true, reviewCount: true }
+      select: { 
+        id: true, name: true, email: true, businessName: true, 
+        profilePicture: true, rating: true, reviewCount: true,
+        latitude: true, longitude: true, serviceRadiusKm: true, city: true
+      }
     });
 
     const sellerMap = Object.fromEntries(sellers.map(s => [s.id, s]));

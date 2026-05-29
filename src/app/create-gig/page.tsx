@@ -11,6 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { gigCategories } from '@/lib/gig-categories';
 import { toast } from 'react-hot-toast';
+import { MapPin } from 'lucide-react';
+import AddressAutocomplete from '@/components/maps/AddressAutocomplete';
 
 export default function CreateGigPage() {
   const { data: session } = useSession();
@@ -28,6 +30,12 @@ export default function CreateGigPage() {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+
+  // Geolocation for the gig
+  const [gigLocation, setGigLocation] = useState("");
+  const [gigLatitude, setGigLatitude] = useState<number | null>(null);
+  const [gigLongitude, setGigLongitude] = useState<number | null>(null);
+  const [isRemote, setIsRemote] = useState(false);
   const [loadingGig, setLoadingGig] = useState(false);
 
   const searchParams = useSearchParams();
@@ -169,7 +177,12 @@ export default function CreateGigPage() {
       imageUrl: imageUrl || null,
       fields: selectedCategory?.fields || [],
       addons: customOptions.filter(o => o.name?.trim()),
-      completionTime: "2-5 días"
+      completionTime: "2-5 días",
+      // Geolocation
+      city: gigLocation || undefined,
+      latitude: gigLatitude,
+      longitude: gigLongitude,
+      isRemote,
     };
 
     const url = isEditing && editId ? `/api/gigs/${editId}` : '/api/gigs';
@@ -440,6 +453,46 @@ export default function CreateGigPage() {
               </span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">Este es el precio que verán los compradores (incluye addons seleccionados).</p>
+          </CardContent>
+        </Card>
+
+        {/* Geolocation Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="w-5 h-5" /> Ubicación del servicio
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3">
+              <input 
+                type="checkbox" 
+                checked={isRemote} 
+                onChange={(e) => setIsRemote(e.target.checked)} 
+                className="w-4 h-4" 
+              />
+              <label>Este servicio se puede realizar de forma remota / online</label>
+            </div>
+
+            {!isRemote && (
+              <>
+                <div>
+                  <Label>Dirección o ciudad donde ofreces el servicio</Label>
+                  <AddressAutocomplete
+                    value={gigLocation}
+                    onChange={(address, lat, lng) => {
+                      setGigLocation(address);
+                      setGigLatitude(lat ?? null);
+                      setGigLongitude(lng ?? null);
+                    }}
+                    placeholder="Ej: Calle 45 #23-12, Bucaramanga"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Los compradores verán la distancia aproximada. Puedes dejarlo en blanco si prefieres no mostrar ubicación exacta.
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
