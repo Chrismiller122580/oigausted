@@ -31,19 +31,8 @@ const categoryDescriptions: Record<string, string> = {
 };
 
 export default async function MarketingHomePage() {
-  // Compute average seller rating per category (for the top 12)
-  const categoryRatings = await prisma.gig.groupBy({
-    by: ['category'],
-    _avg: {
-      // We can't directly avg seller.rating here, so we'll do a two-step approach below
-    },
-    where: {
-      isActive: true,
-      category: { in: categories.slice(0, 12) as any }
-    }
-  });
+  // Fetch gigs for top categories and compute averages in JS (the groupBy above was removed because it was invalid)
 
-  // Better: fetch gigs + seller rating for top categories and compute averages in JS
   const topCategoryNames = categories.slice(0, 12);
   const gigsWithRatings = await prisma.gig.findMany({
     where: {
