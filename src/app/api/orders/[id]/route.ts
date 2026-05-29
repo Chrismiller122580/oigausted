@@ -71,9 +71,42 @@ export async function PATCH(
       include: {
         gig: true,
         buyer: { select: { id: true, name: true, email: true } },
-        seller: { select: { id: true, name: true, businessName: true, email: true } }
+        seller: { 
+          select: { 
+            id: true, 
+            name: true, 
+            businessName: true, 
+            email: true,
+            referredById: true 
+          } 
+        }
       }
     })
+
+    // Create referral earning if order is completed and seller was referred
+    if (status === 'Completed' && updatedOrder.seller?.referredById) {
+      try {
+        const config = await prisma.platformConfig.findFirst();
+        const referralRate = config?.referralCommissionRate ?? 0.05;
+
+        const referralAmount = Math.round(updatedOrder.price * referralRate);
+
+        if (referralAmount > 0) {
+          await prisma.referralEarning.create({
+            data: {
+              amount: referralAmount,
+              rateUsed: referralRate,
+              referrerId: updatedOrder.seller.referredById,
+              orderId: updatedOrder.id,
+              status: 'Pending',
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to create referral earning:', err);
+        // Don't fail the main request
+      }
+    }
 
     // Send notifications on important status changes
     if (status) {

@@ -14,6 +14,10 @@ export default function SellerEarningsPage() {
     pending: 0,
     completedGigs: 0,
   });
+  const [referralEarnings, setReferralEarnings] = useState({
+    total: 0,
+    pending: 0,
+  });
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -63,6 +67,16 @@ export default function SellerEarningsPage() {
         }));
 
       setTransactions(tx);
+
+      // Fetch referral earnings
+      const refRes = await fetch('/api/referrals');
+      if (refRes.ok) {
+        const refData = await refRes.json();
+        setReferralEarnings({
+          total: refData.stats?.totalEarned || 0,
+          pending: refData.stats?.pendingEarnings || 0,
+        });
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -95,7 +109,7 @@ export default function SellerEarningsPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-12">
           <Card>
             <CardContent className="p-8">
               <DollarSign className="w-12 h-12 text-green-600 mb-4" />
@@ -127,6 +141,18 @@ export default function SellerEarningsPage() {
               <Package className="w-12 h-12 text-blue-600 mb-4" />
               <p className="text-sm text-muted-foreground">Gigs Completados</p>
               <p className="text-4xl font-bold mt-2 text-foreground">{earnings.completedGigs}</p>
+            </CardContent>
+          </Card>
+
+          {/* Referral Earnings Card */}
+          <Card className="border-emerald-200">
+            <CardContent className="p-8">
+              <div className="flex items-center gap-2 mb-4">
+                <Users className="w-12 h-12 text-emerald-600" />
+              </div>
+              <p className="text-sm text-muted-foreground">Ganancias por Referidos</p>
+              <p className="text-4xl font-bold mt-2 text-emerald-600">${referralEarnings.total.toLocaleString('es-CO')}</p>
+              <p className="text-xs text-muted-foreground mt-1">Pendiente: ${referralEarnings.pending.toLocaleString('es-CO')}</p>
             </CardContent>
           </Card>
         </div>
