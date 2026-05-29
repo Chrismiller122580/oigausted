@@ -10,6 +10,7 @@ import { toast } from 'react-hot-toast';
 import { gigCategories } from '@/lib/gig-categories';
 import { parseCustomFields } from '@/lib/utils';
 import GoogleMap from '@/components/maps/GoogleMap';
+import { MapPin } from 'lucide-react';
 
 export default function OrderDetailPage() {
   const params = useParams();
