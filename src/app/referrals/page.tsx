@@ -55,7 +55,26 @@ export default function ReferralsPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="max-w-5xl mx-auto p-6 text-center pt-20">
+        <p>Cargando tus referidos...</p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="max-w-5xl mx-auto p-6 text-center pt-20">
+        <p>No se pudieron cargar los datos de referidos.</p>
+      </div>
+    );
+  }
+
+  const { referralCode, referralLink, stats, referredUsers } = data;
+
   const handleCopyLink = async () => {
+    if (!referralLink) return;
     try {
       await navigator.clipboard.writeText(referralLink);
       setCopied(true);
