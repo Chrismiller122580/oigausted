@@ -3,91 +3,233 @@ generator client {
 }
 
 datasource db {
+  // Use PostgreSQL for production (Vercel, Supabase, Neon, etc.)
+  // For local development you can temporarily switch to SQLite:
+  // provider = "sqlite"
+  // url      = "file:./dev.db"
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// Your models (clean version)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model User {
   id            String    @id @default(uuid())
   name          String?
   email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  profilePicture String?
   role          String    @default("buyer")
+  phone         String?
+  idNumber      String?
+  address       String?
+  instagram     String?
+  facebook      String?
+  whatsapp      String?
   businessName  String?
   nit           String?
   bio           String?
-  tagline       String?
-  phone         String?
-  whatsapp      String?
-  city          String?
-  instagram     String?
-  facebook      String?
+  profilePicture String?
+  rating        Float?    @default(0)
+  reviewCount   Int       @default(0)
+  isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  gigs          Gig[]
+  ordersAsBuyer Order[]   @relation("BuyerOrders")
+  ordersAsSeller Order[]  @relation("SellerOrders")
+  password      String?
+  reviewsReceived Review[] @relation("ReviewToSeller")
+  reviewsGiven  Review[]  @relation("ReviewToBuyer")
+  accounts      Account[]
+  sessions      Session[]
+  passwordResetTokens PasswordResetToken[]
+  auditLogs           AuditLog[]           @relation("AdminAuditLogs")
+  notifications       Notification[]
+  notificationPreferences NotificationPreference?
+}
 
-  gigs           Gig[]
-  ordersAsBuyer  Order[] @relation("BuyerOrders")
-  ordersAsSeller Order[] @relation("SellerOrders")
-  messages       Message[]
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
 
-  @@map("users")
+model AuditLog {
+  id            String   @id @default(cuid())
+  adminId       String
+  admin         User     @relation("AdminAuditLogs", fields: [adminId], references: [id])
+
+  action        String   // e.g. "USER_ROLE_CHANGED", "USER_EDITED", "USER_DEACTIVATED", "USER_PASSWORD_RESET", "USER_IMPERSONATED"
+  targetType    String   // "User", "Gig", "Order", etc.
+  targetId      String?  // ID of the affected resource
+
+  details       Json?    // Flexible JSON for extra context (old values, new values, etc.)
+
+  ipAddress     String?
+  userAgent     String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([adminId])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  category  String   // e.g. "order", "gig", "payment", "review", "system"
+  type      String   // "in_app", "email", "sms", "push"
+  title     String
+  message   String
+  link      String?  // URL to navigate to when clicked
+  data      Json?    // Extra metadata
+
+  read      Boolean  @default(false)
+  readAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([createdAt])
+  @@index([userId, category])
+}
+
+model NotificationPreference {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Global toggles
+  inAppEnabled Boolean @default(true)
+  emailEnabled Boolean @default(true)
+  smsEnabled   Boolean @default(false)
+  pushEnabled  Boolean @default(true)
+
+  // Granular preferences (can expand later)
+  orderUpdates Boolean @default(true)
+  gigUpdates   Boolean @default(true)
+  reviewAlerts Boolean @default(true)
+  paymentAlerts Boolean @default(true)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Gig {
-  id            String   @id @default(uuid())
-  title         String
-  description   String?
-  price         Float
-  category      String?
-  completionTime String?
-  imageUrl      String?
-  fields        Json?
-  addons        Json?
-  createdAt     DateTime @default(now())
-
-  sellerId String
-  seller   User   @relation(fields: [sellerId], references: [id])
-
-  orders Order[]
-
-  @@map("gigs")
+  id              String   @id @default(uuid())
+  title           String
+  description     String?
+  price           Float
+  category        String?
+  completionTime  String?
+  imageUrl        String?
+  fields          String?
+  addons          String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime @default(now())
+  sellerId        String
+  seller          User     @relation(fields: [sellerId], references: [id])
+  orders          Order[]
 }
 
 model Order {
-  id           String   @id @default(uuid())
-  buyerId      String
-  sellerId     String
-  gigId        String
-  price        Float
-  status       String   @default("Pending")
-  progress     Int      @default(0)
-  customFields Json?    // ← Added
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  buyer  User @relation("BuyerOrders", fields: [buyerId], references: [id])
-  seller User @relation("SellerOrders", fields: [sellerId], references: [id])
-  gig    Gig  @relation(fields: [gigId], references: [id])
-
-  messages Message[]
-
-  @@map("orders")
+  id              String   @id @default(uuid())
+  price           Float
+  status          String   @default("Pending")
+  progress        Int      @default(0)
+  trackingNumber  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  buyerId         String
+  sellerId        String
+  gigId           String
+  buyer           User     @relation("BuyerOrders", fields: [buyerId], references: [id])
+  seller          User     @relation("SellerOrders", fields: [sellerId], references: [id])
+  gig             Gig      @relation(fields: [gigId], references: [id])
+  customFields    String?   // JSON string of selected dynamic fields at purchase time
+  messages        OrderMessage[]
+  files           OrderFile[]
+  reviews         Review[]
 }
 
-model Message {
-  id        String   @id @default(uuid())
-  orderId   String
-  senderId  String
-  text      String?
-  fileUrl   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model OrderMessage {
+  id          String   @id @default(uuid())
+  content     String
+  isFromBuyer Boolean
+  createdAt   DateTime @default(now())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+}
 
-  order  Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  sender User  @relation(fields: [senderId], references: [id])
+model OrderFile {
+  id          String   @id @default(cuid())
+  name        String
+  url         String
+  size        Int
+  type        String
+  uploadedBy  String
+  createdAt   DateTime @default(now())
 
-  @@index([orderId])
-  @@map("messages")
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_files")
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  rating      Int
+  comment     String?
+  createdAt   DateTime @default(now())
+  reviewerId  String
+  sellerId    String
+  orderId     String
+  reviewer    User     @relation("ReviewToBuyer", fields: [reviewerId], references: [id])
+  seller      User     @relation("ReviewToSeller", fields: [sellerId], references: [id])
+  order       Order    @relation(fields: [orderId], references: [id])
+}
+
+model PlatformConfig {
+  id                      String   @id @default(cuid())
+  commissionRate          Float    @default(0.12)   // Plataforma (sobre el pedido)
+  referralCommissionRate  Float    @default(0.05)   // Comisión por referidos (ej: 5%)
+  minPayoutAmount         Float    @default(50000)
+  supportEmail            String   @default("soporte@oigausted.com")
+  enableReviews           Boolean  @default(true)
+  enableChat              Boolean  @default(true)
+  maintenanceMode         Boolean  @default(false)
+  maintenanceMessage      String   @default("Estamos realizando mejoras. Volveremos pronto.")
+  updatedAt               DateTime @updatedAt
 }

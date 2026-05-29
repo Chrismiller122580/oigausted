@@ -2,11 +2,15 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import Image from "next/image"
+import { toast } from 'react-hot-toast'
+import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl"
+import { Eye, EyeOff } from "lucide-react"
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -18,6 +22,7 @@ export default function SignUpPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,12 +44,25 @@ export default function SignUpPage() {
         return
       }
 
-      alert(`¡Registro exitoso como ${formData.role === "buyer" ? "Comprador" : "Vendedor"}!`)
+      toast.success(`¡Registro exitoso como ${formData.role === "buyer" ? "Comprador" : "Vendedor"}!`)
 
-      if (formData.role === "seller") {
-        router.push("/seller")
+      // Auto sign-in so the user lands inside the app immediately
+      const loginResult = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      })
+
+      if (loginResult?.ok) {
+        // Route based on chosen role (use helper for dev resilience)
+        if (formData.role === "seller") {
+          router.push(getAuthCallbackUrl("/seller"))
+        } else {
+          router.push(getAuthCallbackUrl("/"))
+        }
       } else {
-        router.push("/")
+        // Fallback: send them to login page
+        router.push(getAuthCallbackUrl("/login"))
       }
     } catch (err) {
       setError("Error de conexión. Inténtalo de nuevo.")
@@ -109,15 +127,24 @@ export default function SignUpPage() {
 
             <div>
               <Label htmlFor="password" className="text-sm font-medium">Contraseña</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="••••••••"
-                required
-                className="mt-1.5 h-12 text-base"
-              />
+              <div className="relative mt-1.5">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="••••••••"
+                  required
+                  className="h-12 text-base pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             <div>

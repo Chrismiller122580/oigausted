@@ -1,45 +1,91 @@
 import { prisma } from '../src/lib/prisma';
+import bcrypt from 'bcryptjs';
+
+const DEMO_PASSWORD = 'demo1234';
 
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log("🌱 Seeding demo users + sample gigs...");
 
-  // Create Demo Seller with exact UUID used in auth.ts
-  const demoSeller = await prisma.user.upsert({
-    where: { email: 'seller@demo.com' },
-    update: {},
-    create: {
-      id: '22222222-2222-2222-2222-222222222222',
-      email: 'seller@demo.com',
-      name: 'Seller Demo',
-      role: 'seller',
-      businessName: 'Mi Negocio Local',
-      city: 'Bucaramanga',
-    },
-  });
+  const hashedPassword = await bcrypt.hash(DEMO_PASSWORD, 10);
 
-  console.log('✅ Demo Seller created/updated with ID:', demoSeller.id);
-
-  // Optional: Create demo buyer too
+  // Demo users with stable UUIDs (so FKs and sessions are consistent)
   await prisma.user.upsert({
-    where: { email: 'buyer@demo.com' },
-    update: {},
+    where: { id: "11111111-1111-1111-1111-111111111111" },
+    update: { password: hashedPassword },
     create: {
-      id: '11111111-1111-1111-1111-111111111111',
-      email: 'buyer@demo.com',
-      name: 'Buyer Demo',
-      role: 'buyer',
+      id: "11111111-1111-1111-1111-111111111111",
+      name: "Buyer Demo",
+      email: "buyer@demo.com",
+      role: "buyer",
+      password: hashedPassword,
     },
   });
 
-  console.log('✅ Demo Buyer created/updated');
+  await prisma.user.upsert({
+    where: { id: "22222222-2222-2222-2222-222222222222" },
+    update: { password: hashedPassword },
+    create: {
+      id: "22222222-2222-2222-2222-222222222222",
+      name: "Seller Demo",
+      email: "seller@demo.com",
+      role: "seller",
+      password: hashedPassword,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { id: "33333333-3333-3333-3333-333333333333" },
+    update: { password: hashedPassword, role: "buyer" },
+    create: {
+      id: "33333333-3333-3333-3333-333333333333",
+      name: "Demo User",
+      email: "admin@demo.com",
+      role: "buyer",
+      password: hashedPassword,
+    },
+  });
+
+  console.log("✅ Demo users seeded (password: demo1234) — Note: No demo admin is seeded to avoid confusion with real admins");
+
+  // Sample gigs belonging to the demo seller
+  await prisma.gig.createMany({
+    data: [
+      {
+        title: "Limpieza Profunda de Apartamento en Bogotá",
+        description: "Limpieza completa con productos ecológicos. Incluye cocina, baños y salas.",
+        price: 185000,
+        category: "Limpieza de Hogar y Oficinas",
+        imageUrl: "https://picsum.photos/id/1015/600/400",
+        sellerId: "22222222-2222-2222-2222-222222222222",
+        completionTime: "1-2 días"
+      },
+      {
+        title: "Clases de Inglés Conversacional Personalizadas",
+        description: "Mejora tu inglés con clases enfocadas en conversación y negocios.",
+        price: 65000,
+        category: "Clases de Idiomas y Tutorías Online",
+        imageUrl: "https://picsum.photos/id/201/600/400",
+        sellerId: "22222222-2222-2222-2222-222222222222",
+        completionTime: "Por sesión"
+      },
+      {
+        title: "Diseño de Logos y Branding Profesional",
+        description: "Diseño moderno y memorable para tu marca. Incluye 3 revisiones.",
+        price: 450000,
+        category: "Diseño Gráfico y Logos",
+        imageUrl: "https://picsum.photos/id/180/600/400",
+        sellerId: "22222222-2222-2222-2222-222222222222",
+        completionTime: "3-5 días"
+      }
+    ],
+  });
+
+  console.log("✅ 3 sample gigs created successfully!");
 }
 
 main()
-  .then(() => console.log('🎉 Seeding completed successfully!'))
+  .then(() => process.exit(0))
   .catch((e) => {
-    console.error('❌ Seeding failed:', e);
+    console.error(e);
     process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
   });

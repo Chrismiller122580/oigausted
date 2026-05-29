@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { notifications } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -32,6 +33,11 @@ export async function POST(request: Request) {
 
     if (!gig) return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
 
+    // Prevent sellers from purchasing their own gigs (server-side enforcement)
+    if (gig.sellerId === session.user.id) {
+      return NextResponse.json({ error: 'No puedes comprar tu propio servicio' }, { status: 403 });
+    }
+
     // Ensure seller exists
     await prisma.user.upsert({
       where: { id: gig.sellerId },
@@ -49,7 +55,7 @@ export async function POST(request: Request) {
         sellerId: gig.sellerId,
         gigId: gig.id,
         price: Number(price),
-        customFields,
+        customFields: customFields ? JSON.stringify(customFields) : null,
         status: 'Pending',
       },
       include: {
@@ -58,6 +64,15 @@ export async function POST(request: Request) {
         seller: true
       }
     });
+
+    // Notify seller about new order
+    await notifications.sendInApp(
+      gig.sellerId,
+      'order',
+      'Nuevo pedido recibido',
+      `Tienes un nuevo pedido por "${gig.title}" de ${order.buyer?.name || 'un comprador'}.`,
+      `/orders/${order.id}`
+    );
 
     return NextResponse.json({ success: true, orderId: order.id, order });
   } catch (error: any) {

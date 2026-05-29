@@ -22,7 +22,11 @@ export const gigCategories = [
     name: "Asesoría Legal y Tributaria",
     icon: "⚖️",
     fields: [
-      { key: "serviceType", label: "Tipo de asesoría", type: "select", options: ["Revisión de contratos", "Declaración de impuestos", "Asesoría general"] },
+      { key: "serviceType", label: "Tipo de asesoría", type: "select", options: [
+        { label: "Revisión de contratos", extraPrice: 50000 },
+        { label: "Declaración de impuestos", extraPrice: 80000 },
+        { label: "Asesoría general", extraPrice: 30000 }
+      ] },
       { key: "urgency", label: "Urgencia", type: "checkbox", extraPrice: 120000 }
     ]
   },

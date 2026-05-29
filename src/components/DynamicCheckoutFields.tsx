@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { parseJsonArrayField } from '@/lib/utils';
 
 interface Props {
   gig: any;
@@ -12,9 +13,10 @@ interface Props {
 
 export default function DynamicCheckoutFields({ gig, formData, onChange }: Props) {
   const categoryTemplate = gigCategories.find((c: any) => c.name === gig.category) || { fields: [] };
+  const gigFields = parseJsonArrayField(gig?.fields);
   const allFields = [
     ...(categoryTemplate.fields || []),
-    ...(gig.fields || [])
+    ...gigFields
   ].filter((f: any, i: number, arr: any[]) => i === arr.findIndex(x => x.key === f.key));
 
   return (

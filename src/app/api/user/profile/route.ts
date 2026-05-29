@@ -17,12 +17,9 @@ export async function PATCH(request: Request) {
       data: {
         name: data.name || undefined,
         profilePicture: data.imageUrl || undefined,
-
-        tagline: data.tagline || null,
         bio: data.bio || null,
         phone: data.phone || null,
         whatsapp: data.whatsapp || null,
-        city: data.city || null,
         instagram: data.instagram || null,
         facebook: data.facebook || null,
       },

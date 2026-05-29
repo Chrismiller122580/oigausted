@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { notifications } from '@/lib/notifications'
 
 export async function GET(
   request: Request,
@@ -43,22 +44,86 @@ export async function PATCH(
 
     const resolvedParams = await params
     const orderId = resolvedParams.id
-    const { status } = await request.json()
+    const body = await request.json()
+    const { status, price, customFields } = body
 
-    const validStatuses = ["Pending", "Paid", "In Progress", "Completed"]
-    if (!validStatuses.includes(status)) {
-      return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
+    const updateData: any = {}
+
+    if (status) {
+      const validStatuses = ["Pending", "Paid", "In Progress", "Completed", "Cancelled"]
+      if (!validStatuses.includes(status)) {
+        return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
+      }
+      updateData.status = status
+    }
+
+    if (price !== undefined) {
+      updateData.price = Number(price)
+    }
+
+    if (customFields !== undefined) {
+      updateData.customFields = customFields ? JSON.stringify(customFields) : null
     }
 
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
-      data: { status },
+      data: updateData,
       include: {
         gig: true,
         buyer: { select: { id: true, name: true, email: true } },
         seller: { select: { id: true, name: true, businessName: true, email: true } }
       }
     })
+
+    // Send notifications on important status changes
+    if (status) {
+      const recipientId = status === 'In Progress' || status === 'Completed' 
+        ? updatedOrder.buyerId 
+        : updatedOrder.sellerId
+
+      await notifications.sendInApp(
+        recipientId,
+        'order',
+        `Pedido actualizado a "${status}"`,
+        `Tu pedido para "${updatedOrder.gig.title}" ha cambiado a estado: ${status}.`,
+        `/orders/${orderId}`
+      )
+
+      // Send real email for key status changes
+      if (['In Progress', 'Completed', 'Cancelled'].includes(status)) {
+        await notifications.sendEmail(
+          recipientId,
+          `Actualización de pedido: ${status}`,
+          `El estado de tu pedido para "${updatedOrder.gig.title}" ahora es: ${status}.`,
+          `/orders/${orderId}`,
+          { 
+            gigTitle: updatedOrder.gig.title, 
+            amount: updatedOrder.price, 
+            orderId,
+            newStatus: status 
+          }
+        )
+      }
+
+      // Special nice notification when order is completed → prompt for review
+      if (status === 'Completed') {
+        await notifications.sendInApp(
+          updatedOrder.buyerId,
+          'review',
+          '¡Pedido completado! Déjanos tu reseña',
+          `Tu pedido "${updatedOrder.gig.title}" ha sido completado. ¿Nos dejas una reseña?`,
+          `/orders/${orderId}`
+        );
+
+        await notifications.sendEmail(
+          updatedOrder.buyerId,
+          '¡Tu pedido está completo! Cuéntanos cómo te fue',
+          `Gracias por confiar en OigaUsted. Tu servicio "${updatedOrder.gig.title}" ha sido marcado como completado. Nos encantaría saber tu opinión.`,
+          `/orders/${orderId}`,
+          { gigTitle: updatedOrder.gig.title, orderId }
+        );
+      }
+    }
 
     return NextResponse.json({ order: updatedOrder })
   } catch (error) {

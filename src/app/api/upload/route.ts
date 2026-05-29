@@ -24,9 +24,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
     }
 
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+
+    // In development without Vercel Blob configured, we allow direct URL input instead
+    if (!token) {
+      console.warn('Vercel Blob not configured — upload disabled in this environment');
+      return NextResponse.json({ 
+        error: 'Direct file upload not available in this dev environment. Please paste an image URL instead (e.g. from picsum.photos or imgur).',
+        uploadDisabled: true
+      }, { status: 400 });
+    }
+
     const blob = await put(file.name, file, {
       access: 'public',
       addRandomSuffix: true,
+      token,
     });
 
     console.log('✅ Image uploaded to Public Vercel Blob:', blob.url);
