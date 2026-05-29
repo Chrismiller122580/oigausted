@@ -126,8 +126,11 @@ export default function GigCard({
                   {distanceKm.toFixed(1)} km
                 </span>
                 {gig.seller?.serviceRadiusKm && distanceKm > gig.seller.serviceRadiusKm && (
-                  <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium" title={`El vendedor suele atender hasta ${gig.seller.serviceRadiusKm} km`}>
-                    Lejos
+                  <span 
+                    className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium" 
+                    title={`Este vendedor suele atender hasta ${gig.seller.serviceRadiusKm} km`}
+                  >
+                    +{Math.round(distanceKm - gig.seller.serviceRadiusKm)}km
                   </span>
                 )}
               </div>

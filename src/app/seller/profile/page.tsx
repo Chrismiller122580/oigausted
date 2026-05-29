@@ -252,7 +252,9 @@ export default function MiNegocioPage() {
                       min="1"
                       max="200"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">¿Hasta cuántos km estás dispuesto a desplazarte?</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ¿Hasta cuántos km viajas para atender gigs? (Ej: 15 km). Esto ayuda a mostrar tus servicios solo a clientes cercanos.
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Instagram</label>

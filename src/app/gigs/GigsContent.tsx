@@ -13,11 +13,23 @@ export default function GigsContent() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locationLoading, setLocationLoading] = useState(false)
   const [showOnlyNearMe, setShowOnlyNearMe] = useState(false)
+  const [showOnlyRemote, setShowOnlyRemote] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false)
 
   useEffect(() => {
     fetchGigs()
+
+    // Restore previous location from localStorage for better UX
+    const savedLocation = localStorage.getItem('userLocation')
+    if (savedLocation) {
+      try {
+        const parsed = JSON.parse(savedLocation)
+        if (parsed.lat && parsed.lng) {
+          setUserLocation(parsed)
+        }
+      } catch {}
+    }
   }, [])
 
   const fetchGigs = async () => {
@@ -41,11 +53,14 @@ export default function GigsContent() {
       const location = await getCurrentLocation()
       setUserLocation(location)
       setShowOnlyNearMe(true)
+
+      // Persist location for better UX across sessions
+      localStorage.setItem('userLocation', JSON.stringify(location))
     } catch (error: any) {
       let message = "No pudimos acceder a tu ubicación."
 
       if (error.code === 1) {
-        message = "Permiso de ubicación denegado. Puedes activarlo en los ajustes de tu navegador."
+        message = "Permiso de ubicación denegado. Actívalo en los ajustes del navegador o del teléfono."
       } else if (error.code === 2) {
         message = "No fue posible determinar tu ubicación. Intenta de nuevo."
       } else if (error.code === 3) {
@@ -87,8 +102,13 @@ export default function GigsContent() {
   // Apply "near me" filter
   if (showOnlyNearMe && userLocation) {
     filteredGigs = filteredGigs.filter(gig => gig.distanceKm !== undefined)
-    // Sort by distance
+    // Sort by distance (closest first)
     filteredGigs.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity))
+  }
+
+  // Apply remote-only filter
+  if (showOnlyRemote) {
+    filteredGigs = filteredGigs.filter(gig => gig.isRemote === true)
   }
 
   if (loading) {
@@ -128,6 +148,14 @@ export default function GigsContent() {
               {showOnlyNearMe ? "Mostrar todos" : "Solo cerca de mí"}
             </Button>
           )}
+
+          <Button 
+            onClick={() => setShowOnlyRemote(!showOnlyRemote)}
+            variant={showOnlyRemote ? "default" : "outline"}
+            className="flex-1 sm:flex-none whitespace-nowrap"
+          >
+            {showOnlyRemote ? "Todos los gigs" : "Solo remotos"}
+          </Button>
 
           <div className="w-full md:w-80">
             <Input

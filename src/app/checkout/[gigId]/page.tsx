@@ -480,6 +480,11 @@ export default function CheckoutPage() {
               <p className="text-xs text-muted-foreground mt-2">
                 Deja en blanco si prefieres coordinarlo por chat.
               </p>
+              {gig?.seller?.serviceRadiusKm && (
+                <p className="text-[11px] text-orange-600 mt-1 font-medium">
+                  Este vendedor suele atender hasta {gig.seller.serviceRadiusKm} km desde su ubicación.
+                </p>
+              )}
             </div>
           )}
 

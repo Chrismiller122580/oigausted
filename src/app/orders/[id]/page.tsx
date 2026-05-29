@@ -266,10 +266,24 @@ export default function OrderDetailPage() {
             {/* Service Location Map */}
             {(order.serviceLatitude && order.serviceLongitude) && (
               <Card className="mt-8">
-                <CardHeader><CardTitle className="flex items-center gap-2"><MapPin className="w-5 h-5" /> Ubicación del Servicio</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5" /> Ubicación del Servicio
+                  </CardTitle>
+                </CardHeader>
                 <CardContent>
                   {order.serviceAddress && (
-                    <p className="mb-3 text-sm text-muted-foreground">{order.serviceAddress}</p>
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">{order.serviceAddress}</p>
+                      <a 
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${order.serviceLatitude},${order.serviceLongitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-orange-600 hover:underline font-medium"
+                      >
+                        Cómo llegar →
+                      </a>
+                    </div>
                   )}
                   <GoogleMap 
                     center={{ lat: order.serviceLatitude, lng: order.serviceLongitude }} 
@@ -277,6 +291,7 @@ export default function OrderDetailPage() {
                     markers={[{ lat: order.serviceLatitude, lng: order.serviceLongitude, title: "Lugar del servicio" }]}
                     height="320px"
                   />
+                  <p className="text-[10px] text-muted-foreground mt-2">Esta es la dirección donde se realizará el servicio.</p>
                 </CardContent>
               </Card>
             )}

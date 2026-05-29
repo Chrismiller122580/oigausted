@@ -12,6 +12,10 @@ declare global {
 
 const GOOGLE_MAPS_URL = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
 
+export function isGoogleMapsLoaded(): boolean {
+  return !!(window.google && window.google.maps);
+}
+
 export function loadGoogleMaps(): Promise<void> {
   // If already loaded
   if (window.google && window.google.maps) {
@@ -58,7 +62,7 @@ export function loadGoogleMaps(): Promise<void> {
     };
 
     script.onerror = () => {
-      reject(new Error('Failed to load Google Maps script. Check your API key and enabled APIs.'));
+      reject(new Error('Failed to load Google Maps. Verifica que la API key sea válida y que tengas habilitadas Maps JavaScript API + Places API.'));
     };
 
     document.head.appendChild(script);
