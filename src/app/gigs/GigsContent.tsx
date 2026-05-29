@@ -4,6 +4,7 @@ import GigCard from "@/components/common/GigCard"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { getCurrentLocation, calculateDistance } from "@/lib/distance"
+import LocationPermissionPrompt from "@/components/maps/LocationPermissionPrompt"
 
 export default function GigsContent() {
   const [gigs, setGigs] = useState<any[]>([])
@@ -12,6 +13,8 @@ export default function GigsContent() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locationLoading, setLocationLoading] = useState(false)
   const [showOnlyNearMe, setShowOnlyNearMe] = useState(false)
+  const [locationError, setLocationError] = useState<string | null>(null)
+  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false)
 
   useEffect(() => {
     fetchGigs()
@@ -31,15 +34,34 @@ export default function GigsContent() {
 
   const handleUseMyLocation = async () => {
     setLocationLoading(true)
+    setLocationError(null)
+    setShowPermissionPrompt(false)
+
     try {
       const location = await getCurrentLocation()
       setUserLocation(location)
       setShowOnlyNearMe(true)
-    } catch (error) {
-      alert("No pudimos acceder a tu ubicación. Por favor permite el acceso en el navegador.")
+    } catch (error: any) {
+      let message = "No pudimos acceder a tu ubicación."
+
+      if (error.code === 1) {
+        message = "Permiso de ubicación denegado. Puedes activarlo en los ajustes de tu navegador."
+      } else if (error.code === 2) {
+        message = "No fue posible determinar tu ubicación. Intenta de nuevo."
+      } else if (error.code === 3) {
+        message = "La solicitud de ubicación tardó demasiado."
+      }
+
+      setLocationError(message)
+      setShowPermissionPrompt(true)
     } finally {
       setLocationLoading(false)
     }
+  }
+
+  const dismissPermissionPrompt = () => {
+    setShowPermissionPrompt(false)
+    setLocationError(null)
   }
 
   // Calculate distance for each gig that has coordinates
@@ -90,7 +112,7 @@ export default function GigsContent() {
             onClick={handleUseMyLocation} 
             disabled={locationLoading}
             variant={showOnlyNearMe ? "default" : "outline"}
-            className="whitespace-nowrap"
+            className="whitespace-nowrap flex-1 sm:flex-none"
           >
             {locationLoading ? "Obteniendo ubicación..." : "📍 Gigs cerca de mí"}
           </Button>
@@ -101,6 +123,7 @@ export default function GigsContent() {
                 setShowOnlyNearMe(!showOnlyNearMe)
               }}
               variant={showOnlyNearMe ? "default" : "outline"}
+              className="flex-1 sm:flex-none"
             >
               {showOnlyNearMe ? "Mostrar todos" : "Solo cerca de mí"}
             </Button>
@@ -116,12 +139,37 @@ export default function GigsContent() {
             />
           </div>
         </div>
+
+        {/* Mobile-friendly location permission prompt */}
+        {showPermissionPrompt && (
+          <div className="mt-4">
+            <LocationPermissionPrompt
+              onAllow={handleUseMyLocation}
+              onDismiss={dismissPermissionPrompt}
+              isLoading={locationLoading}
+              error={locationError || undefined}
+            />
+          </div>
+        )}
       </div>
 
       {filteredGigs.length === 0 ? (
-        <div className="text-center py-20">
+        <div className="text-center py-16">
           <p className="text-2xl text-gray-400">No se encontraron gigs</p>
-          <p className="text-gray-500 mt-2">Intenta con otra búsqueda</p>
+          <p className="text-gray-500 mt-2">
+            {showOnlyNearMe 
+              ? "No hay servicios disponibles cerca de tu ubicación actual." 
+              : "Intenta con otra búsqueda o activa 'Gigs cerca de mí'"}
+          </p>
+          {showOnlyNearMe && (
+            <Button 
+              variant="outline" 
+              className="mt-4"
+              onClick={() => setShowOnlyNearMe(false)}
+            >
+              Ver todos los gigs
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

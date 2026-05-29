@@ -121,16 +121,16 @@ export default function GigCard({
           </span>
           <div className="flex items-center gap-2">
             {distanceKm !== undefined && (
-              <>
+              <div className="flex items-center gap-1.5">
                 <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-medium">
                   {distanceKm.toFixed(1)} km
                 </span>
                 {gig.seller?.serviceRadiusKm && distanceKm > gig.seller.serviceRadiusKm && (
-                  <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium" title={`El vendedor suele atender hasta ${gig.seller.serviceRadiusKm} km`}>
-                    ⚠️ Lejos
+                  <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium" title={`El vendedor suele atender hasta ${gig.seller.serviceRadiusKm} km`}>
+                    Lejos
                   </span>
                 )}
-              </>
+              </div>
             )}
             {gig.category && (
               <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
