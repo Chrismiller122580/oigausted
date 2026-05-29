@@ -215,7 +215,7 @@ export default function ReferralsPage() {
                   {referredUsers.map((user) => (
                     <tr key={user.id} className="border-b last:border-none hover:bg-muted/50">
                       <td className="py-3 px-4 font-medium">{user.name}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{user.business || '—'}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{user.businessName || '—'}</td>
                       <td className="py-3 px-4 text-muted-foreground">
                         {new Date(user.joined).toLocaleDateString('es-CO')}
                       </td>
