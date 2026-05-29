@@ -3,7 +3,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LogOut, Plus, DollarSign } from 'lucide-react';
+import { LogOut, Plus, DollarSign, Menu, X } from 'lucide-react';
 import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { useState } from 'react';
@@ -59,10 +59,6 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
 
           {/* Right Side */}
           <div className="flex items-center gap-6">
-            <button className="p-2 text-muted-foreground hover:text-foreground transition relative">
-              <Bell size={22} />
-            </button>
-
             <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition cursor-pointer">
               <div className="text-right hidden md:block">
                 <p className="font-semibold text-sm leading-none text-foreground">{session?.user?.name?.split(" ")[0] || 'Vendedor'}</p>
