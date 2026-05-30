@@ -20,17 +20,15 @@ export async function GET(
     const messages = await prisma.orderMessage.findMany({
       where: { orderId },
       orderBy: { createdAt: 'asc' },
-      // Explicit select to avoid errors if new file columns haven't been migrated yet
+      // Include file attachment fields (requires the migration to have been run)
       select: {
         id: true,
         content: true,
         isFromBuyer: true,
         createdAt: true,
         orderId: true,
-        // Note: fileUrl/fileName are not selected yet to support DBs without the migration.
-        // After running the migration below, add them:
-        // fileUrl: true,
-        // fileName: true,
+        fileUrl: true,
+        fileName: true,
       }
     });
 
@@ -94,18 +92,14 @@ export async function POST(
       }
     } catch {}
 
-    const messageData: any = {
-      orderId,
-      content: content || '(sin contenido)',
-      isFromBuyer,
-    };
-
-    // Only include file fields if they are set (prevents errors before DB migration)
-    if (fileUrl) messageData.fileUrl = fileUrl;
-    if (fileName) messageData.fileName = fileName;
-
     const message = await prisma.orderMessage.create({
-      data: messageData,
+      data: {
+        orderId,
+        content: content || '(sin contenido)',
+        isFromBuyer,
+        fileUrl: fileUrl || null,
+        fileName: fileName || null,
+      },
     });
 
     // Notify the other party
