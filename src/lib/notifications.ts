@@ -4,7 +4,7 @@ import { Resend } from 'resend';
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'OigaUsted <onboarding@resend.dev>';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'OigaUsted <support@support.oigagig.com>';
 
 export interface NotificationPayload {
   userId: string;
@@ -152,6 +152,9 @@ export const notifications = {
   async sendPush(userId: string, title: string, message: string, data?: any) {
     return sendNotification({ userId, category: 'system', type: 'push', title, message, data });
   },
+
+  // Direct access for custom category/type (e.g. message notifications)
+  sendNotification,
 };
 
 // Export Resend instance in case you want to send custom emails directly

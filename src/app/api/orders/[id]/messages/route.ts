@@ -21,8 +21,8 @@ export async function GET(
       orderBy: { createdAt: 'asc' }
     });
 
-    // Return in a shape the frontend can consume (array or {messages: [...]})
-    return NextResponse.json(messages);
+    // Consistent shape expected by frontend
+    return NextResponse.json({ messages });
   } catch (error) {
     console.error('Messages GET error:', error);
     return NextResponse.json({ error: 'Error cargando mensajes' }, { status: 500 });
@@ -85,21 +85,25 @@ export async function POST(
         const recipientId = isFromBuyer ? order.sellerId : order.buyerId;
         const senderRole = isFromBuyer ? 'comprador' : 'vendedor';
 
+        // In-app notification (category 'message' or 'order' — both work)
         await notifications.sendInApp(
           recipientId,
-          'message',
+          'order',  // so it respects orderUpdates preference
           `Nuevo mensaje en el pedido`,
           `${senderRole} te ha enviado un mensaje sobre "${order.gig.title}".`,
           `/orders/${orderId}`
         );
 
-        // Also send email for new messages
-        await notifications.sendEmail(
-          recipientId,
-          `Nuevo mensaje sobre "${order.gig.title}"`,
-          `${senderRole} te ha enviado un mensaje: "${content?.substring(0, 100) || 'Ver mensaje completo'}..."`,
-          `/orders/${orderId}`
-        );
+        // Email notification (using direct for proper 'order' category)
+        await notifications.sendNotification({
+          userId: recipientId,
+          category: 'order',
+          type: 'email',
+          title: `Nuevo mensaje sobre "${order.gig.title}"`,
+          message: `${senderRole} te ha enviado un mensaje: "${content?.substring(0, 100) || 'Ver mensaje completo'}..."`,
+          link: `/orders/${orderId}`,
+          data: { orderId, gigTitle: order.gig.title }
+        });
       }
     } catch (notifErr) {
       console.error('Failed to send message notification', notifErr);

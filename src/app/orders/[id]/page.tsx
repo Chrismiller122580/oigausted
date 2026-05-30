@@ -70,6 +70,27 @@ function OrderDetailClient() {
     }
   }, [messages, activeTab]);
 
+  // Poll for new messages when on chat tab (no websockets yet)
+  useEffect(() => {
+    if (!orderId || activeTab !== 'chat') return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/orders/${orderId}/messages`);
+        if (res.ok) {
+          const data = await res.json();
+          const newMsgs = data.messages || [];
+          // Only update if we have more messages (simple diff)
+          if (newMsgs.length > messages.length) {
+            setMessages(newMsgs);
+          }
+        }
+      } catch {}
+    }, 8000); // every 8s while on chat
+
+    return () => clearInterval(interval);
+  }, [orderId, activeTab, messages.length]);
+
   const sendMessage = useCallback(async () => {
     if (!newMessage.trim() || !orderId) return;
     try {
@@ -349,7 +370,8 @@ function OrderDetailClient() {
               </div>
             )}
             {messages.map((msg: any, idx: number) => {
-              const isMine = msg.senderId === session?.user?.id;
+              // Use isFromBuyer (from DB) + our local isBuyer flag to determine ownership
+              const isMine = !!msg.isFromBuyer === isBuyer;
               return (
                 <div key={msg.id || idx} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-[15px] ${
