@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,6 +37,20 @@ export default function ReferralsPage() {
   // These hooks MUST be called unconditionally at the top (before any early returns)
   const [manualCode, setManualCode] = useState('');
   const [linking, setLinking] = useState(false);
+
+  // Aggressive defense vs Maps pollution (prevents #310 on this page too)
+  useLayoutEffect(() => {
+    const nuke = () => {
+      try {
+        document.querySelectorAll('.pac-container').forEach(c => { try { c.parentNode?.removeChild(c); } catch {} });
+        const g = (window as any).google;
+        if (g?.maps?.places) g.maps.places = { Autocomplete: () => ({}) } as any;
+      } catch {}
+    };
+    nuke();
+    const t = setTimeout(nuke, 50);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (session?.user) {
