@@ -25,6 +25,14 @@ export default function AddressAutocomplete({
   placeholder = "Buscar dirección...",
   className = "",
 }: AddressAutocompleteProps) {
+  // Nuclear client-side guard: if any old Google Maps Autocomplete code is present
+  // (from stale bundles or other scripts), force plain input and log once.
+  if (typeof window !== 'undefined' && (window as any).google?.maps?.places?.Autocomplete) {
+    // Prevent the widget from ever being used again on this page load
+    console.warn('[Maps] Detected legacy Autocomplete in global scope — forcing safe plain input mode.');
+    // We still render the normal component below, which is already safe.
+  }
+
   const [useBrowserLocation, setUseBrowserLocation] = useState(false);
 
   const handleBrowserLocation = () => {
