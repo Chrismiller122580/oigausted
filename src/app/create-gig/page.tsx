@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -12,41 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { gigCategories } from '@/lib/gig-categories';
 import { toast } from 'react-hot-toast';
 import { MapPin } from 'lucide-react';
-import AddressAutocomplete from '@/components/maps/AddressAutocomplete';
-
-// Simple ErrorBoundary so Maps failures never crash the whole create-gig form
-class SafeLocationInput extends React.Component<
-  { value: string; onChange: (address: string, lat?: number, lng?: number) => void; placeholder?: string },
-  { hasError: boolean }
-> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: any) {
-    console.warn('Location input failed safely (non-critical):', error);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <input
-          type="text"
-          value={this.props.value}
-          onChange={(e) => this.props.onChange(e.target.value)}
-          placeholder={this.props.placeholder}
-          className="w-full border rounded-xl px-4 py-3"
-        />
-      );
-    }
-    return <AddressAutocomplete {...this.props} />;
-  }
-}
 
 function CreateGigClient() {
   const { data: session } = useSession();
@@ -529,18 +494,47 @@ function CreateGigClient() {
               <>
                 <div>
                   <Label>Dirección o ciudad donde ofreces el servicio</Label>
-                  <SafeLocationInput
-                    value={gigLocation}
-                    onChange={(address, lat, lng) => {
-                      setGigLocation(address);
-                      setGigLatitude(lat ?? null);
-                      setGigLongitude(lng ?? null);
-                    }}
-                    placeholder="Ej: Calle 45 #23-12, Bucaramanga"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={gigLocation}
+                      onChange={(e) => {
+                        setGigLocation(e.target.value);
+                        // Clear coords if user edits manually
+                        setGigLatitude(null);
+                        setGigLongitude(null);
+                      }}
+                      placeholder="Ej: Calle 45 #23-12, Bucaramanga"
+                      className="flex-1 border rounded-xl px-4 py-3"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!navigator.geolocation) {
+                          alert("Tu navegador no soporta geolocalización");
+                          return;
+                        }
+                        navigator.geolocation.getCurrentPosition(
+                          (pos) => {
+                            const lat = pos.coords.latitude;
+                            const lng = pos.coords.longitude;
+                            setGigLatitude(lat);
+                            setGigLongitude(lng);
+                            if (!gigLocation) {
+                              setGigLocation(`Mi ubicación actual (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+                            }
+                          },
+                          () => alert("No se pudo obtener la ubicación")
+                        );
+                      }}
+                      className="px-4 py-2 border rounded-xl text-sm hover:bg-muted"
+                    >
+                      📍 Mi ubicación
+                    </button>
+                  </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Los compradores verán la distancia aproximada. Puedes dejarlo en blanco si prefieres no mostrar ubicación exacta.
+                  Los compradores verán la distancia aproximada. Puedes dejarlo en blanco si prefieres no mostrar ubicación exacta. (Sin Google Maps)
                 </p>
               </>
             )}
