@@ -15,86 +15,38 @@ import { useLayoutEffect } from 'react';
  */
 export default function MapsPollutionNuke() {
   useLayoutEffect(() => {
-    let attempts = 0;
-    const maxAttempts = 25; // ~5 seconds of aggressive cleanup
-
+    // Gentle but effective cleanup on mount.
+    // Run a few times quickly to catch async injection from stale chunks.
     const nuke = () => {
-      attempts++;
       try {
-        // 1. Remove any pac-containers the widget injected
         const containers = document.querySelectorAll('.pac-container');
         containers.forEach((c) => {
-          try {
-            if (c.parentNode) c.parentNode.removeChild(c);
-          } catch {}
+          try { c.parentNode?.removeChild(c); } catch {}
         });
 
-        // 2. Completely replace the places namespace so any code from
-        //    stale chunks that does `new google.maps.places.Autocomplete(...)`
-        //    or similar will do nothing harmful.
         const g = (window as any).google;
         if (g?.maps?.places) {
-          try {
-            g.maps.places = {
-              Autocomplete: function () {
-                return {} as any;
-              },
-              AutocompleteService: function () {},
-              PlacesService: function () {},
-              PlacesServiceStatus: {},
-              RankBy: {},
-              PlaceAutocompleteElement: function () {},
-            } as any;
-
-            if (attempts < 5) {
-              console.warn('[MapsNuke] Nuked google.maps.places (attempt ' + attempts + ')');
-            }
-          } catch {}
-        }
-
-        // 3. Also try to neuter any Autocomplete constructor that might still exist
-        if (g?.maps?.places?.Autocomplete && typeof g.maps.places.Autocomplete === 'function') {
-          const fnStr = g.maps.places.Autocomplete.toString();
-          if (!fnStr.includes('Nuked') && !fnStr.includes('Blocked legacy')) {
-            try {
-              g.maps.places.Autocomplete = function () {
-                return {} as any;
-              };
-            } catch {}
-          }
+          g.maps.places = {
+            Autocomplete: function () { return {} as any; },
+            AutocompleteService: function () {},
+            PlacesService: function () {},
+            PlacesServiceStatus: {},
+            RankBy: {},
+            PlaceAutocompleteElement: function () {},
+          } as any;
         }
       } catch {}
     };
 
-    // Run immediately (before paint)
     nuke();
-
-    // Very aggressive early cleanup
-    const interval = setInterval(() => {
-      nuke();
-      if (attempts >= maxAttempts) {
-        clearInterval(interval);
-      }
-    }, 200);
-
-    // Also run on any DOM change for a while
-    const mo = new MutationObserver(() => {
-      nuke();
-    });
-    if (document.documentElement) {
-      mo.observe(document.documentElement, { childList: true, subtree: true });
-    }
-
-    // Cleanup after ~6 seconds
-    const timeout = setTimeout(() => {
-      clearInterval(interval);
-      try { mo.disconnect(); } catch {}
-    }, 6000);
+    const t1 = setTimeout(nuke, 0);
+    const t2 = setTimeout(nuke, 80);
+    const t3 = setTimeout(nuke, 300);
 
     return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-      try { mo.disconnect(); } catch {}
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
     };
   }, []);
 

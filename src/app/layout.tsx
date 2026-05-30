@@ -88,9 +88,8 @@ export default function RootLayout({
         });
         mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
         
-        // Extremely aggressive cleanup for the first 30 seconds.
-        // Many of the #310 errors happen from scheduled callbacks (postMessage)
-        // long after initial load because stale chunks still have effects running.
+        // Solid but not overly aggressive cleanup for the first 10 seconds.
+        // Catches late injection from stale chunks without interfering with initial hydration.
         var cleanupInterval = setInterval(function() {
           var g = window.google;
           if (g && g.maps && g.maps.places) {
@@ -111,12 +110,12 @@ export default function RootLayout({
               try { c.parentNode && c.parentNode.removeChild(c); } catch(e) {}
             });
           }
-        }, 150);  // faster
+        }, 300);
         
         setTimeout(function() {
           clearInterval(cleanupInterval);
           try { mo.disconnect(); } catch(e) {}
-        }, 30000);  // 30 seconds of protection
+        }, 10000);  // 10 seconds of protection
         
         console.log('[MapsGuard] Installed early + aggressive neutralization for legacy Google Places Autocomplete');
       } catch (e) {

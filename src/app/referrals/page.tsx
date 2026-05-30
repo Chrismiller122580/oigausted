@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useLayoutEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
@@ -37,20 +38,6 @@ export default function ReferralsPage() {
   // These hooks MUST be called unconditionally at the top (before any early returns)
   const [manualCode, setManualCode] = useState('');
   const [linking, setLinking] = useState(false);
-
-  // Aggressive defense vs Maps pollution (prevents #310 on this page too)
-  useLayoutEffect(() => {
-    const nuke = () => {
-      try {
-        document.querySelectorAll('.pac-container').forEach(c => { try { c.parentNode?.removeChild(c); } catch {} });
-        const g = (window as any).google;
-        if (g?.maps?.places) g.maps.places = { Autocomplete: () => ({}) } as any;
-      } catch {}
-    };
-    nuke();
-    const t = setTimeout(nuke, 50);
-    return () => clearTimeout(t);
-  }, []);
 
   useEffect(() => {
     if (session?.user) {
@@ -147,6 +134,7 @@ export default function ReferralsPage() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-8">
+      <MapsPollutionNuke />
       <div>
         <h1 className="text-3xl font-bold">Programa de Referidos</h1>
         <p className="text-muted-foreground mt-2">
