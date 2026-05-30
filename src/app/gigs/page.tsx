@@ -4,7 +4,10 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import GigCard from "@/components/common/GigCard";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { categories, categoryEmojis } from "@/lib/categories";
+import { getCurrentLocation, calculateDistance } from "@/lib/distance";
+import LocationPermissionPrompt from "@/components/maps/LocationPermissionPrompt";
 
 // Inner client component - this is where useSearchParams is safe
 function GigsClient() {
@@ -17,6 +20,14 @@ function GigsClient() {
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [sortBy, setSortBy] = useState("relevance");
   const [loading, setLoading] = useState(true);
+
+  // Geo features (ported + improved from previous GigsContent)
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [showOnlyNearMe, setShowOnlyNearMe] = useState(false);
+  const [showOnlyRemote, setShowOnlyRemote] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
 
   // Update URL when category changes (for shareability)
   useEffect(() => {
@@ -33,6 +44,17 @@ function GigsClient() {
 
   useEffect(() => {
     fetchGigs();
+
+    // Restore previous location from localStorage
+    const savedLocation = localStorage.getItem('userLocation');
+    if (savedLocation) {
+      try {
+        const parsed = JSON.parse(savedLocation);
+        if (parsed.lat && parsed.lng) {
+          setUserLocation(parsed);
+        }
+      } catch {}
+    }
   }, []);
 
   const fetchGigs = async () => {
@@ -49,8 +71,50 @@ function GigsClient() {
     }
   };
 
+  const handleUseMyLocation = async () => {
+    setLocationLoading(true);
+    setLocationError(null);
+    setShowPermissionPrompt(false);
+
+    try {
+      const location = await getCurrentLocation();
+      setUserLocation(location);
+      setShowOnlyNearMe(true);
+      localStorage.setItem('userLocation', JSON.stringify(location));
+    } catch (error: any) {
+      let message = "No pudimos acceder a tu ubicación.";
+      if (error.code === 1) message = "Permiso de ubicación denegado.";
+      else if (error.code === 2) message = "No fue posible determinar tu ubicación.";
+      else if (error.code === 3) message = "La solicitud tardó demasiado.";
+
+      setLocationError(message);
+      setShowPermissionPrompt(true);
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  const dismissPermissionPrompt = () => {
+    setShowPermissionPrompt(false);
+    setLocationError(null);
+  };
+
+  // Calculate distances when user location changes
+  const gigsWithDistance = gigs.map(gig => {
+    if (userLocation && gig.latitude && gig.longitude) {
+      const distance = calculateDistance(
+        userLocation.lat,
+        userLocation.lng,
+        gig.latitude,
+        gig.longitude
+      );
+      return { ...gig, distanceKm: distance };
+    }
+    return gig;
+  });
+
   useEffect(() => {
-    let result = [...gigs];
+    let result = [...gigsWithDistance];
 
     // Search filter
     if (searchTerm) {
@@ -67,20 +131,31 @@ function GigsClient() {
       result = result.filter(gig => gig.category === selectedCategory);
     }
 
-    // Sorting
-    if (sortBy === "rating") {
-      result.sort((a, b) => (b.seller?.rating || 0) - (a.seller?.rating || 0));
-    } else if (sortBy === "price-low") {
-      result.sort((a, b) => (a.price || 0) - (b.price || 0));
-    } else if (sortBy === "price-high") {
-      result.sort((a, b) => (b.price || 0) - (a.price || 0));
-    } else if (sortBy === "newest") {
-      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Geo filters
+    if (showOnlyNearMe && userLocation) {
+      result = result.filter(gig => gig.distanceKm !== undefined);
+      result.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
     }
-    // "relevance" = original order from API (newest first usually)
+
+    if (showOnlyRemote) {
+      result = result.filter(gig => gig.isRemote === true);
+    }
+
+    // Sorting (only apply if not using near-me sort)
+    if (!showOnlyNearMe) {
+      if (sortBy === "rating") {
+        result.sort((a, b) => (b.seller?.rating || 0) - (a.seller?.rating || 0));
+      } else if (sortBy === "price-low") {
+        result.sort((a, b) => (a.price || 0) - (b.price || 0));
+      } else if (sortBy === "price-high") {
+        result.sort((a, b) => (b.price || 0) - (a.price || 0));
+      } else if (sortBy === "newest") {
+        result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      }
+    }
 
     setFilteredGigs(result);
-  }, [gigs, searchTerm, selectedCategory, sortBy]);
+  }, [gigsWithDistance, searchTerm, selectedCategory, sortBy, showOnlyNearMe, showOnlyRemote, userLocation]);
 
   if (loading) {
     return (
@@ -102,12 +177,14 @@ function GigsClient() {
             {filteredGigs.length} gigs disponibles
             {selectedCategory !== "Todas" && ` en ${selectedCategory}`}
           </p>
-          {(searchTerm || selectedCategory !== "Todas" || sortBy !== "relevance") && (
+          {(searchTerm || selectedCategory !== "Todas" || sortBy !== "relevance" || showOnlyNearMe || showOnlyRemote) && (
             <button
               onClick={() => {
                 setSearchTerm("");
                 setSelectedCategory("Todas");
                 setSortBy("relevance");
+                setShowOnlyNearMe(false);
+                setShowOnlyRemote(false);
               }}
               className="text-sm text-orange-600 hover:underline"
             >
@@ -143,40 +220,86 @@ function GigsClient() {
           </select>
         </div>
 
-        {/* Category pills - high-impact discovery UX */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <button
-            onClick={() => setSelectedCategory("Todas")}
-            className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition ${
-              selectedCategory === "Todas"
-                ? "bg-orange-600 text-white border-orange-600"
-                : "bg-background hover:bg-muted border-border text-foreground"
-            }`}
+        {/* Geo filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            onClick={handleUseMyLocation}
+            disabled={locationLoading}
+            variant={showOnlyNearMe ? "default" : "outline"}
+            size="sm"
           >
-            Todas
-          </button>
-          {categories.map(cat => (
+            {locationLoading ? "Obteniendo..." : "📍 Cerca de mí"}
+          </Button>
+
+          {userLocation && (
+            <Button
+              onClick={() => setShowOnlyNearMe(!showOnlyNearMe)}
+              variant={showOnlyNearMe ? "default" : "outline"}
+              size="sm"
+            >
+              {showOnlyNearMe ? "Mostrar todos" : "Solo cerca"}
+            </Button>
+          )}
+
+          <Button
+            onClick={() => setShowOnlyRemote(!showOnlyRemote)}
+            variant={showOnlyRemote ? "default" : "outline"}
+            size="sm"
+          >
+            {showOnlyRemote ? "Todos" : "Solo remotos"}
+          </Button>
+
+          {/* Category pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 flex-1 min-w-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition flex items-center gap-1.5 ${
-                selectedCategory === cat
+              onClick={() => setSelectedCategory("Todas")}
+              className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition ${
+                selectedCategory === "Todas"
                   ? "bg-orange-600 text-white border-orange-600"
                   : "bg-background hover:bg-muted border-border text-foreground"
               }`}
             >
-              <span>{categoryEmojis[cat] || ''}</span>
-              <span>{cat}</span>
+              Todas
             </button>
-          ))}
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition flex items-center gap-1.5 ${
+                  selectedCategory === cat
+                    ? "bg-orange-600 text-white border-orange-600"
+                    : "bg-background hover:bg-muted border-border text-foreground"
+                }`}
+              >
+                <span>{categoryEmojis[cat] || ''}</span>
+                <span>{cat}</span>
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Location permission prompt */}
+        {showPermissionPrompt && (
+          <div className="mt-2">
+            <LocationPermissionPrompt
+              onAllow={handleUseMyLocation}
+              onDismiss={dismissPermissionPrompt}
+              isLoading={locationLoading}
+              error={locationError || undefined}
+            />
+          </div>
+        )}
       </div>
 
       {/* Gigs Grid */}
       {filteredGigs.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredGigs.map((gig) => (
-            <GigCard key={gig.id} gig={gig} />
+            <GigCard 
+              key={gig.id} 
+              gig={gig} 
+              distanceKm={gig.distanceKm} 
+            />
           ))}
         </div>
       ) : (
@@ -188,6 +311,8 @@ function GigsClient() {
               setSearchTerm("");
               setSelectedCategory("Todas");
               setSortBy("relevance");
+              setShowOnlyNearMe(false);
+              setShowOnlyRemote(false);
             }}
             className="text-orange-600 hover:underline font-medium"
           >
