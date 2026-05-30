@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
+import { put } from '@vercel/blob';
 
 export async function GET(
   request: Request,
@@ -46,12 +47,27 @@ export async function POST(
     let content = '';
     let isFromBuyer = true;
 
+    let fileUrl: string | null = null;
+    let fileName: string | null = null;
+
     if (contentType.includes('multipart/form-data')) {
-      // File upload path (basic support - files should ideally go to /api/upload + OrderFile)
-      // For now we store a placeholder message; real file handling can be improved later
       const formData = await request.formData();
       const file = formData.get('file') as File | null;
-      content = file ? `📎 Archivo: ${file.name}` : '📎 Archivo adjunto';
+
+      if (file) {
+        fileName = file.name;
+
+        // Upload to Vercel Blob (same as /api/upload)
+        const blob = await put(file.name, file, {
+          access: 'public',
+          addRandomSuffix: true,
+        });
+
+        fileUrl = blob.url;
+        content = `📎 ${file.name}`;
+      } else {
+        content = '📎 Archivo adjunto';
+      }
     } else {
       // JSON text message
       const body = await request.json().catch(() => ({}));
@@ -71,6 +87,8 @@ export async function POST(
         orderId,
         content: content || '(sin contenido)',
         isFromBuyer,
+        fileUrl: fileUrl || null,
+        fileName: fileName || null,
       }
     });
 
