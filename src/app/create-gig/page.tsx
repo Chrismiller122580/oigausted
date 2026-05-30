@@ -41,6 +41,13 @@ function CreateGigClient() {
   const searchParams = useSearchParams();
   const selectedCategory = gigCategories.find(c => c.name === category);
 
+  // Clear dynamic form values when category changes (prevents stale data from previous category polluting pricing)
+  useEffect(() => {
+    if (category) {
+      setFormData({});
+    }
+  }, [category]);
+
   const calculateTotal = () => {
     let total = basePrice || 0;
     if (selectedCategory) {
