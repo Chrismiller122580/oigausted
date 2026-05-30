@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
@@ -33,6 +34,10 @@ export default function ReferralsPage() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
+  // These hooks MUST be called unconditionally at the top (before any early returns)
+  const [manualCode, setManualCode] = useState('');
+  const [linking, setLinking] = useState(false);
+
   useEffect(() => {
     if (session?.user) {
       fetchReferralData();
@@ -55,6 +60,17 @@ export default function ReferralsPage() {
     }
   };
 
+  if (!session) {
+    return (
+      <div className="max-w-5xl mx-auto p-6 text-center pt-20">
+        <p className="mb-4">Debes iniciar sesión para ver tu programa de referidos.</p>
+        <Link href="/login" className="inline-block px-6 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700">
+          Iniciar sesión
+        </Link>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto p-6 text-center pt-20">
@@ -72,9 +88,6 @@ export default function ReferralsPage() {
   }
 
   const { referralCode, referralLink, stats, referredUsers } = data;
-
-  const [manualCode, setManualCode] = useState('');
-  const [linking, setLinking] = useState(false);
 
   const handleCopyLink = async () => {
     if (!referralLink) return;
