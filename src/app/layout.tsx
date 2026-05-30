@@ -44,6 +44,23 @@ export default function RootLayout({
             } catch(e) {}
           }
           
+          // Nuclear: completely nuke the places library if it exists from a previous page load.
+          // This is the main source of the removeChild + React #310 crashes.
+          if (g.maps.places) {
+            try {
+              // Replace the entire places namespace with a safe empty object
+              g.maps.places = {
+                Autocomplete: function() { return {}; },
+                AutocompleteService: function() {},
+                PlacesService: function() {},
+                PlacesServiceStatus: {},
+                RankBy: {},
+                PlaceAutocompleteElement: function() {}
+              };
+              console.warn('[MapsGuard] Nuked google.maps.places to prevent DOM conflicts');
+            } catch(e) {}
+          }
+          
           // Aggressively clean any pac-containers that the widget may have injected
           var containers = document.querySelectorAll('.pac-container');
           if (containers.length) {

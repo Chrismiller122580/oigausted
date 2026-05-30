@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useLayoutEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,55 @@ import { MapPin } from 'lucide-react';
 function CreateGigClient() {
   const { data: session } = useSession();
   const router = useRouter();
+
+  // Nuclear per-page defense against any lingering Google Places widget
+  // from a previous page load in the same tab (SPA navigation or cached script).
+  // This runs before paint and aggressively removes the DOM nodes + neuters the constructor
+  // that cause the removeChild + React #310 crashes.
+  useLayoutEffect(() => {
+    const cleanup = () => {
+      try {
+        // Repeatedly nuke any pac-containers the widget may have injected
+        const containers = document.querySelectorAll('.pac-container');
+        containers.forEach((c) => {
+          try { c.parentNode && c.parentNode.removeChild(c); } catch {}
+        });
+
+        // If the legacy Autocomplete constructor exists (from earlier script load), neuter it
+        const g = (window as any).google;
+        if (g?.maps?.places?.Autocomplete) {
+          try {
+            g.maps.places.Autocomplete = function () {
+              console.warn('[CreateGig] Blocked legacy Autocomplete constructor during render');
+              return {} as any;
+            };
+          } catch {}
+        }
+
+        // Extra: try to break the places library reference if it was loaded earlier
+        if (g?.maps?.places) {
+          try {
+            // @ts-ignore
+            g.maps.places = {};
+          } catch {}
+        }
+      } catch (e) {
+        // never break the page
+      }
+    };
+
+    cleanup();
+    // Run a few more times quickly in case the widget injects async
+    const t1 = setTimeout(cleanup, 0);
+    const t2 = setTimeout(cleanup, 50);
+    const t3 = setTimeout(cleanup, 200);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, []);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');

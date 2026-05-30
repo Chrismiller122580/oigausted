@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,39 @@ export default function MiNegocioPage() {
   const { data: session, update } = useSession();
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Nuclear per-page defense against lingering Google Places widget pollution
+  // (same pattern as create-gig). Runs very early to kill pac-containers and the places library.
+  useLayoutEffect(() => {
+    const cleanup = () => {
+      try {
+        const containers = document.querySelectorAll('.pac-container');
+        containers.forEach((c) => {
+          try { c.parentNode && c.parentNode.removeChild(c); } catch {}
+        });
+
+        const g = (window as any).google;
+        if (g?.maps?.places) {
+          try {
+            g.maps.places = {
+              Autocomplete: function() { return {}; },
+              AutocompleteService: function() {},
+              PlacesService: function() {},
+              PlacesServiceStatus: {},
+              RankBy: {},
+              PlaceAutocompleteElement: function() {}
+            };
+          } catch {}
+        }
+      } catch (e) {}
+    };
+
+    cleanup();
+    const t1 = setTimeout(cleanup, 0);
+    const t2 = setTimeout(cleanup, 80);
+    const t3 = setTimeout(cleanup, 300);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []);
 
   const [formData, setFormData] = useState({
     businessName: "",
