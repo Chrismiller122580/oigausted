@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { toast } from 'react-hot-toast';
 import { MapPin } from 'lucide-react';
 import AddressAutocomplete from '@/components/maps/AddressAutocomplete';
 
-export default function CreateGigPage() {
+function CreateGigClient() {
   const { data: session } = useSession();
   const router = useRouter();
 
@@ -517,5 +517,21 @@ export default function CreateGigPage() {
         </Button>
       </form>
     </div>
+  );
+}
+
+// Wrapper with Suspense for the ?edit= search param (prevents prod load errors)
+export default function CreateGigPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-4xl mx-auto p-8 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-lg text-muted-foreground">Cargando formulario...</p>
+        </div>
+      </div>
+    }>
+      <CreateGigClient />
+    </Suspense>
   );
 }

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import GigCard from "@/components/common/GigCard";
 import { Input } from "@/components/ui/input";
 import { categories, categoryEmojis } from "@/lib/categories";
 
-export default function GigsPage() {
+// Inner client component - this is where useSearchParams is safe
+function GigsClient() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("categoria") || "Todas";
 
@@ -195,5 +196,19 @@ export default function GigsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Public page export with proper Suspense boundary for useSearchParams
+// This prevents production page load / hydration errors on the category filters
+export default function GigsPage() {
+  return (
+    <Suspense fallback={
+      <div className="container py-20 text-center">
+        <p className="text-xl text-gray-500">Cargando servicios...</p>
+      </div>
+    }>
+      <GigsClient />
+    </Suspense>
   );
 }

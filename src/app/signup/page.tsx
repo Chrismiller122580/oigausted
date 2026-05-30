@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,7 @@ import { toast } from 'react-hot-toast'
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl"
 import { Eye, EyeOff } from "lucide-react"
 
-export default function SignUpPage() {
+function SignUpClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const refCode = searchParams.get('ref') || searchParams.get('referral') || ''
@@ -193,5 +193,21 @@ export default function SignUpPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Suspense wrapper for useSearchParams (ref code support) - fixes prod load errors
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando formulario...</p>
+        </div>
+      </div>
+    }>
+      <SignUpClient />
+    </Suspense>
   )
 }

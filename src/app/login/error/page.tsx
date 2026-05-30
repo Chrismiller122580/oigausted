@@ -1,6 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +20,7 @@ const errorMessages: Record<string, string> = {
   Default: 'An unexpected error occurred during sign-in.',
 };
 
-export default function AuthErrorPage() {
+function AuthErrorClient() {
   const searchParams = useSearchParams();
   const error = searchParams.get('error') || 'Default';
   
@@ -69,5 +70,21 @@ export default function AuthErrorPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Suspense wrapper for useSearchParams (error code from URL) - fixes prod load errors
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    }>
+      <AuthErrorClient />
+    </Suspense>
   );
 }
