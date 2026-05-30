@@ -60,17 +60,34 @@ export default function RootLayout({
         
         // Run again after DOM mutations (covers async script loads from stale bundles)
         var mo = new MutationObserver(function() {
-          if (neutralizeGoogleMaps()) {
-            // Once we saw google, we can stop watching
-            mo.disconnect();
-          }
+          neutralizeGoogleMaps();
         });
         mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
         
-        // Also nuke on any postMessage (some of the noise in the console)
-        // This is mostly from extensions, but we keep the guard light.
+        // Belt-and-suspenders: for the first 12 seconds, keep aggressively cleaning
+        // any pac-containers and re-patching the constructor. This catches cases
+        // where a stale chunk from an old dpl_ deployment loads the widget late.
+        var cleanupInterval = setInterval(function() {
+          var g = window.google;
+          if (g && g.maps && g.maps.places && g.maps.places.Autocomplete && typeof g.maps.places.Autocomplete === 'function' && !g.maps.places.Autocomplete.toString().includes('Blocked legacy')) {
+            try {
+              g.maps.places.Autocomplete = function() { return {}; };
+            } catch(e) {}
+          }
+          var containers = document.querySelectorAll('.pac-container');
+          if (containers.length) {
+            containers.forEach(function(c) {
+              try { c.parentNode && c.parentNode.removeChild(c); } catch(e) {}
+            });
+          }
+        }, 400);
         
-        console.log('[MapsGuard] Installed early neutralization for legacy Google Places Autocomplete');
+        setTimeout(function() {
+          clearInterval(cleanupInterval);
+          try { mo.disconnect(); } catch(e) {}
+        }, 12000);
+        
+        console.log('[MapsGuard] Installed early + aggressive neutralization for legacy Google Places Autocomplete');
       } catch (e) {
         // Never break the page
       }
