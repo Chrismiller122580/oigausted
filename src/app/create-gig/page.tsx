@@ -70,8 +70,12 @@ function CreateGigClient() {
   const totalPrice = calculateTotal();
 
   // Detect edit mode from ?edit=gigId and load existing gig
+  // Use a stable primitive for the dependency to avoid re-running on every
+  // internal state change (e.g. selecting a category) which was causing
+  // the loadingGig spinner to re-appear in production.
+  const editParam = searchParams.get('edit');
   useEffect(() => {
-    const id = searchParams.get('edit');
+    const id = editParam;
     if (id) {
       setIsEditing(true);
       setEditId(id);
@@ -80,7 +84,7 @@ function CreateGigClient() {
       setIsEditing(false);
       setEditId(null);
     }
-  }, [searchParams]);
+  }, [editParam]);
 
   const loadGigForEdit = async (id: string) => {
     setLoadingGig(true);
