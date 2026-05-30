@@ -10,10 +10,22 @@ declare global {
   }
 }
 
-const GOOGLE_MAPS_URL = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
+const GOOGLE_MAPS_URL = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`;
 
 export function isGoogleMapsLoaded(): boolean {
   return !!(window.google && window.google.maps);
+}
+
+/**
+ * Modern way to load the Places library using importLibrary (recommended).
+ * Must be called after loadGoogleMaps() resolves.
+ */
+export async function getPlacesLibrary(): Promise<any> {
+  if (!window.google?.maps) {
+    throw new Error('Google Maps not loaded yet. Call loadGoogleMaps() first.');
+  }
+  const { PlaceAutocomplete } = await window.google.maps.importLibrary("places");
+  return { PlaceAutocomplete };
 }
 
 export function loadGoogleMaps(): Promise<void> {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { loadGoogleMaps } from '@/lib/googleMapsLoader';
+import { loadGoogleMaps, getPlacesLibrary } from '@/lib/googleMapsLoader';
 
 interface AddressAutocompleteProps {
   value: string;
@@ -10,6 +10,11 @@ interface AddressAutocompleteProps {
   className?: string;
 }
 
+/**
+ * Modern AddressAutocomplete using the recommended PlaceAutocomplete API.
+ * Falls back gracefully to plain text input if the Places library is unavailable
+ * (e.g. deprecated Autocomplete on new keys, or loading failure).
+ */
 export default function AddressAutocomplete({
   value,
   onChange,
@@ -19,12 +24,58 @@ export default function AddressAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
   const [loadError, setLoadError] = useState(false);
+  const [usingLegacy, setUsingLegacy] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
-    const initAutocomplete = () => {
-      if (!inputRef.current || !window.google || !isMounted) return;
+    const initModernAutocomplete = async () => {
+      if (!inputRef.current || !isMounted) return;
+
+      try {
+        // Try the modern recommended API first (PlaceAutocomplete)
+        const places = await getPlacesLibrary();
+        const { PlaceAutocomplete } = places;
+
+        if (PlaceAutocomplete) {
+          autocompleteRef.current = new PlaceAutocomplete({
+            inputElement: inputRef.current,
+            componentRestrictions: { country: 'co' },
+            types: ['address'],
+          });
+
+          // Modern event
+          autocompleteRef.current.addEventListener('gmp-select', async (event: any) => {
+            const placePrediction = event.placePrediction;
+            if (!placePrediction) return;
+
+            const place = await placePrediction.toPlace();
+            await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
+
+            const address = place.formattedAddress || place.displayName || '';
+            const lat = place.location?.lat?.();
+            const lng = place.location?.lng?.();
+
+            if (lat != null && lng != null) {
+              onChange(address, lat, lng);
+            } else {
+              onChange(address);
+            }
+          });
+
+          return; // Success with modern API
+        }
+      } catch (modernError) {
+        // Modern API not available (common on keys created after the deprecation)
+        console.warn('Modern PlaceAutocomplete not available, falling back to legacy Autocomplete:', modernError);
+      }
+
+      // Fallback to legacy Autocomplete (still works for existing keys, just deprecated)
+      if (!window.google?.maps?.places?.Autocomplete) {
+        throw new Error('Neither modern nor legacy Places Autocomplete available');
+      }
+
+      setUsingLegacy(true);
 
       autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
         types: ['address'],
@@ -45,7 +96,12 @@ export default function AddressAutocomplete({
 
     loadGoogleMaps()
       .then(() => {
-        if (isMounted) initAutocomplete();
+        if (isMounted) {
+          initModernAutocomplete().catch((err) => {
+            console.error('Failed to initialize any Maps Autocomplete:', err);
+            if (isMounted) setLoadError(true);
+          });
+        }
       })
       .catch((error) => {
         console.error('Failed to load Google Maps for autocomplete:', error);
@@ -54,6 +110,21 @@ export default function AddressAutocomplete({
 
     return () => {
       isMounted = false;
+
+      // Thorough cleanup to prevent React <-> Google Maps DOM conflicts (removeChild errors)
+      if (autocompleteRef.current) {
+        try {
+          if (typeof autocompleteRef.current.remove === 'function') {
+            autocompleteRef.current.remove();
+          }
+          if (window.google?.maps?.event?.clearInstanceListeners) {
+            window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+          }
+          autocompleteRef.current = null;
+        } catch (e) {
+          // Swallow cleanup errors
+        }
+      }
     };
   }, []);
 
@@ -67,9 +138,16 @@ export default function AddressAutocomplete({
         placeholder={placeholder}
         className={`w-full border rounded-xl px-4 py-3 ${className}`}
       />
+
       {loadError && (
         <p className="text-xs text-muted-foreground mt-1">
           Autocompletado no disponible. Escribe la ciudad o dirección manualmente (la ubicación exacta no se detectará automáticamente).
+        </p>
+      )}
+
+      {usingLegacy && !loadError && (
+        <p className="text-[10px] text-amber-600 dark:text-amber-500 mt-1">
+          Usando versión legacy de autocompletado (Google la está reemplazando).
         </p>
       )}
     </div>
