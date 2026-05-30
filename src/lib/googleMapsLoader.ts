@@ -10,7 +10,14 @@ declare global {
   }
 }
 
-const GOOGLE_MAPS_URL = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`;
+// Note: We intentionally do NOT load "places" by default anymore.
+// The legacy Autocomplete widget + pac-container DOM injection was causing
+// React removeChild explosions and hook-count errors (#310) on seller/buyer pages.
+// Only load places if you explicitly pass ["places"] (we no longer do this anywhere).
+const GOOGLE_MAPS_URL = (libraries: string[] = []) => {
+  const libs = libraries.length > 0 ? `&libraries=${libraries.join(',')}` : '';
+  return `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}${libs}&loading=async`;
+};
 
 export function isGoogleMapsLoaded(): boolean {
   return !!(window.google && window.google.maps);
@@ -38,18 +45,13 @@ export async function getPlacesLibrary(): Promise<any> {
   return placesLib;  // contains PlaceAutocomplete, etc.
 }
 
-export function loadGoogleMaps(): Promise<void> {
-  // If already loaded with importLibrary available (modern async)
-  if (window.google?.maps?.importLibrary) {
-    return Promise.resolve();
-  }
-
-  // Legacy check (for non-async loads)
+export function loadGoogleMaps(libraries: string[] = []): Promise<void> {
+  // If already loaded, we're good (even if it was loaded with fewer libs)
   if (window.google && window.google.maps) {
     return Promise.resolve();
   }
 
-  // If already loading
+  // If already loading (we keep the first promise; later calls with different libs are ignored for simplicity)
   if (window.__googleMapsLoadingPromise) {
     return window.__googleMapsLoadingPromise;
   }
@@ -58,18 +60,17 @@ export function loadGoogleMaps(): Promise<void> {
   window.__googleMapsLoadingPromise = new Promise((resolve, reject) => {
     // Check if script already exists in DOM (extra safety)
     if (document.querySelector(`script[src*="maps.googleapis.com"]`)) {
-      // Wait for it to load, specifically for importLibrary with async loading
+      // Wait for it to load
       const checkInterval = setInterval(() => {
-        if (window.google?.maps?.importLibrary || (window.google && window.google.maps)) {
+        if (window.google && window.google.maps) {
           clearInterval(checkInterval);
           resolve();
         }
       }, 50);
 
-      // Timeout after 15 seconds (longer for async)
       setTimeout(() => {
         clearInterval(checkInterval);
-        if (window.google?.maps?.importLibrary || (window.google && window.google.maps)) {
+        if (window.google && window.google.maps) {
           resolve();
         } else {
           reject(new Error('Google Maps failed to load (timeout)'));
@@ -80,7 +81,7 @@ export function loadGoogleMaps(): Promise<void> {
     }
 
     const script = document.createElement('script');
-    script.src = GOOGLE_MAPS_URL;
+    script.src = GOOGLE_MAPS_URL(libraries);
     script.async = true;
     script.defer = true;
 

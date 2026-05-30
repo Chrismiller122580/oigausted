@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
 import { parseJsonArrayField } from '@/lib/utils';
 import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
-import AddressAutocomplete from '@/components/maps/AddressAutocomplete';
 
 declare global {
   interface Window {
@@ -475,15 +474,40 @@ export default function CheckoutPage() {
           {!gig?.isRemote && (
             <div className="bg-muted p-6 rounded-2xl">
               <p className="font-semibold text-gray-800 mb-4">¿Dónde se realizará el servicio?</p>
-              <AddressAutocomplete
-                value={serviceAddress}
-                onChange={(address, lat, lng) => {
-                  setServiceAddress(address);
-                  setServiceLatitude(lat ?? null);
-                  setServiceLongitude(lng ?? null);
-                }}
-                placeholder="Dirección donde se hará el trabajo (ej: Calle 45, Bucaramanga)"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={serviceAddress}
+                  onChange={(e) => setServiceAddress(e.target.value)}
+                  placeholder="Dirección donde se hará el trabajo (ej: Calle 45, Bucaramanga)"
+                  className="flex-1 border rounded-xl px-4 py-3"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!navigator.geolocation) {
+                      alert("Tu navegador no soporta geolocalización.");
+                      return;
+                    }
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => {
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+                        setServiceLatitude(lat);
+                        setServiceLongitude(lng);
+                        if (!serviceAddress) {
+                          setServiceAddress(`Ubicación actual (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+                        }
+                      },
+                      () => alert("No pudimos obtener tu ubicación.")
+                    );
+                  }}
+                  className="px-4 py-2 border rounded-xl text-sm hover:bg-muted"
+                  title="Usar mi ubicación actual"
+                >
+                  📍 Mi ubicación
+                </button>
+              </div>
               <p className="text-xs text-muted-foreground mt-2">
                 Deja en blanco si prefieres coordinarlo por chat.
               </p>

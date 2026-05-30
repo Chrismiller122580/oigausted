@@ -39,7 +39,7 @@ export default function GoogleMap({ center, zoom = 14, markers = [], height = '4
       });
     };
 
-    loadGoogleMaps()
+    loadGoogleMaps([])  // no 'places' library — prevents legacy Autocomplete + pac-container DOM fights
       .then(() => {
         if (isMounted) initMap();
       })

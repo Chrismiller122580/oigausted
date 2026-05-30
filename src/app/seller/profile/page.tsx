@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save, Users } from "lucide-react";
-import AddressAutocomplete from "@/components/maps/AddressAutocomplete";
 import GrokAssistant from "@/components/common/GrokAssistant";
 import { toast } from 'react-hot-toast';
 
@@ -227,18 +226,44 @@ export default function MiNegocioPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Ubicación principal</label>
-                    <AddressAutocomplete
-                      value={formData.location}
-                      onChange={(address, lat, lng) => {
-                        setFormData(prev => ({
-                          ...prev,
-                          location: address,
-                          latitude: lat ?? prev.latitude,
-                          longitude: lng ?? prev.longitude,
-                        }));
-                      }}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Usaremos esto para mostrar "Gigs cerca de ti" a los compradores.</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={formData.location}
+                        onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                        disabled={!isEditing}
+                        placeholder="Ciudad o dirección principal de tu negocio"
+                        className="flex-1 px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500 disabled:opacity-60"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!navigator.geolocation) {
+                            alert("Tu navegador no soporta geolocalización.");
+                            return;
+                          }
+                          navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                              const lat = position.coords.latitude;
+                              const lng = position.coords.longitude;
+                              setFormData(prev => ({
+                                ...prev,
+                                latitude: lat,
+                                longitude: lng,
+                                location: prev.location || `Ubicación actual (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+                              }));
+                            },
+                            () => alert("No pudimos obtener tu ubicación. Ingresa la dirección manualmente.")
+                          );
+                        }}
+                        disabled={!isEditing}
+                        className="px-4 py-2 border rounded-xl text-sm hover:bg-muted disabled:opacity-50"
+                        title="Usar mi ubicación actual"
+                      >
+                        📍 Mi ubicación
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Usaremos esto para mostrar "Gigs cerca de ti" a los compradores. (Sin Google Maps)</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Radio de servicio (km)</label>
