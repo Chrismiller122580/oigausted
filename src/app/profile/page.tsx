@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink, Eye, EyeOff, Lock } from "lucide-react";
 import { toast } from "react-hot-toast";
+import MapsPollutionNuke from "@/components/maps/MapsPollutionNuke";
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 
 export default function ProfilePage() {
@@ -291,6 +292,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background py-12">
+      <MapsPollutionNuke />
       <div className="max-w-4xl mx-auto px-6">
         <div className="flex justify-between items-center mb-10">
           <div>

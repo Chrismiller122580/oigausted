@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -195,6 +196,7 @@ function OrderDetailClient() {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
+      <MapsPollutionNuke />
       {/* HEADER */}
       <div className="mb-4">
         <a href="/orders" className="text-sm text-orange-600 hover:underline flex items-center gap-1">

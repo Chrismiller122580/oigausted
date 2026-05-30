@@ -31,6 +31,13 @@ export default function RootLayout({
         
         // Install a trap that neuters places.Autocomplete if google ever appears
         function neutralizeGoogleMaps() {
+          // Try to kill any maps scripts that old bundles may have injected
+          try {
+            document.querySelectorAll('script[src*="maps.googleapis.com"]').forEach(function(s) {
+              try { s.parentNode && s.parentNode.removeChild(s); } catch(e) {}
+            });
+          } catch(e) {}
+
           var g = window.google;
           if (!g || !g.maps) return false;
           
@@ -81,14 +88,21 @@ export default function RootLayout({
         });
         mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
         
-        // Belt-and-suspenders: for the first 12 seconds, keep aggressively cleaning
-        // any pac-containers and re-patching the constructor. This catches cases
-        // where a stale chunk from an old dpl_ deployment loads the widget late.
+        // Extremely aggressive cleanup for the first 30 seconds.
+        // Many of the #310 errors happen from scheduled callbacks (postMessage)
+        // long after initial load because stale chunks still have effects running.
         var cleanupInterval = setInterval(function() {
           var g = window.google;
-          if (g && g.maps && g.maps.places && g.maps.places.Autocomplete && typeof g.maps.places.Autocomplete === 'function' && !g.maps.places.Autocomplete.toString().includes('Blocked legacy')) {
+          if (g && g.maps && g.maps.places) {
             try {
-              g.maps.places.Autocomplete = function() { return {}; };
+              g.maps.places = {
+                Autocomplete: function() { return {}; },
+                AutocompleteService: function() {},
+                PlacesService: function() {},
+                PlacesServiceStatus: {},
+                RankBy: {},
+                PlaceAutocompleteElement: function() {}
+              };
             } catch(e) {}
           }
           var containers = document.querySelectorAll('.pac-container');
@@ -97,12 +111,12 @@ export default function RootLayout({
               try { c.parentNode && c.parentNode.removeChild(c); } catch(e) {}
             });
           }
-        }, 400);
+        }, 150);  // faster
         
         setTimeout(function() {
           clearInterval(cleanupInterval);
           try { mo.disconnect(); } catch(e) {}
-        }, 12000);
+        }, 30000);  // 30 seconds of protection
         
         console.log('[MapsGuard] Installed early + aggressive neutralization for legacy Google Places Autocomplete');
       } catch (e) {

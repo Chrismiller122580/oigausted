@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { MessageCircle, Package } from 'lucide-react';
@@ -91,6 +92,7 @@ export default function SellerOrdersPage() {
 
   return (
     <div className="min-h-screen bg-background py-12">
+      <MapsPollutionNuke />
       <div className="max-w-6xl mx-auto px-6">
       <div className="flex justify-between items-center mb-10">
         <div>

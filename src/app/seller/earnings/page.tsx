@@ -2,6 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DollarSign, TrendingUp, Calendar, Download, Package, Users } from 'lucide-react';
@@ -97,6 +98,7 @@ export default function SellerEarningsPage() {
 
   return (
     <div className="min-h-screen bg-background py-12">
+      <MapsPollutionNuke />
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex justify-between items-center mb-10">
           <div>

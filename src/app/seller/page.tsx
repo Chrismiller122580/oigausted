@@ -1,7 +1,8 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useEffect, useState, useLayoutEffect } from 'react';
+import { useEffect, useState } from 'react';
+import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,32 +13,6 @@ export default function SellerDashboard() {
   const [gigs, setGigs] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Aggressive defense against any lingering Google Maps Places pollution
-  // (from previous navigation or stale bundles). Prevents React #310 + removeChild.
-  useLayoutEffect(() => {
-    const nukeMaps = () => {
-      try {
-        const containers = document.querySelectorAll('.pac-container');
-        containers.forEach(c => { try { c.parentNode?.removeChild(c); } catch {} });
-
-        const g = (window as any).google;
-        if (g?.maps?.places) {
-          g.maps.places = {
-            Autocomplete: function() { return {}; },
-            AutocompleteService: function() {},
-            PlacesService: function() {},
-            PlacesServiceStatus: {},
-            RankBy: {},
-            PlaceAutocompleteElement: function() {}
-          };
-        }
-      } catch {}
-    };
-    nukeMaps();
-    const t = setTimeout(nukeMaps, 100);
-    return () => clearTimeout(t);
-  }, []);
 
   useEffect(() => {
     fetchData();
@@ -80,6 +55,7 @@ export default function SellerDashboard() {
 
   return (
     <div className="min-h-screen bg-background py-12">
+      <MapsPollutionNuke />
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex justify-between items-end mb-10">
           <div>
