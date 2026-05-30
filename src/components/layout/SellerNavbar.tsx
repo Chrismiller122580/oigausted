@@ -7,7 +7,6 @@ import { LogOut, Plus, DollarSign, Menu, X } from 'lucide-react';
 import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { useState } from 'react';
-import Image from 'next/image';
 import MobileMenu from './MobileMenu';
 
 export default function SellerNavbar({ children }: { children: React.ReactNode }) {
@@ -24,17 +23,10 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
       <nav className="bg-background border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           
-          {/* Logo - links to homepage */}
+          {/* Logo - matches BuyerNavbar style */}
           <Link href="/" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition">
-            <Image 
-              src="/logo.png" 
-              alt="Oiga Usted" 
-              width={48} 
-              height={48} 
-              className="w-10 h-10 sm:w-12 sm:h-12"
-              priority
-            />
-            <span className="text-2xl font-bold text-foreground">OigaUsted</span>
+            <div className="w-9 h-9 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold">OU</div>
+            <span className="font-bold text-2xl text-foreground">Oiga Usted</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -57,10 +49,10 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
             </Link>
           </div>
 
-          {/* Right Side */}
-          <div className="flex items-center gap-6">
+          {/* Desktop Right Side (hidden on mobile) */}
+          <div className="hidden md:flex items-center gap-5">
             <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition cursor-pointer">
-              <div className="text-right hidden md:block">
+              <div className="text-right">
                 <p className="font-semibold text-sm leading-none text-foreground">{session?.user?.name?.split(" ")[0] || 'Vendedor'}</p>
                 <p className="text-xs text-muted-foreground">Vendedor</p>
               </div>
@@ -81,15 +73,16 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
             </Button>
           </div>
 
-          {/* Mobile actions */}
+          {/* Mobile Right Side (compact hamburger area) */}
           <div className="md:hidden flex items-center gap-1">
+            <NotificationsBell />
             <ModeToggle />
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-2 text-muted-foreground hover:text-foreground transition"
               aria-label="Toggle menu"
             >
-              {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+              {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
             </button>
           </div>
         </div>

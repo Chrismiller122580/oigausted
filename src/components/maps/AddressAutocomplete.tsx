@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { loadGoogleMaps } from '@/lib/googleMapsLoader';
 
 interface AddressAutocompleteProps {
@@ -18,6 +18,7 @@ export default function AddressAutocomplete({
 }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -48,6 +49,7 @@ export default function AddressAutocomplete({
       })
       .catch((error) => {
         console.error('Failed to load Google Maps for autocomplete:', error);
+        if (isMounted) setLoadError(true);
       });
 
     return () => {
@@ -56,13 +58,20 @@ export default function AddressAutocomplete({
   }, []);
 
   return (
-    <input
-      ref={inputRef}
-      type="text"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className={`w-full border rounded-xl px-4 py-3 ${className}`}
-    />
+    <div>
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`w-full border rounded-xl px-4 py-3 ${className}`}
+      />
+      {loadError && (
+        <p className="text-xs text-muted-foreground mt-1">
+          Autocompletado no disponible. Escribe la ciudad o dirección manualmente (la ubicación exacta no se detectará automáticamente).
+        </p>
+      )}
+    </div>
   );
 }

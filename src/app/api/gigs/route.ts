@@ -64,7 +64,12 @@ export async function POST(req: NextRequest) {
       imageUrl, 
       fields = [], 
       addons = [], 
-      completionTime = "2-5 días" 
+      completionTime = "2-5 días",
+      // Geolocation fields
+      city,
+      latitude,
+      longitude,
+      isRemote
     } = body;
 
     if (!title || !category || !price) {
@@ -82,6 +87,11 @@ export async function POST(req: NextRequest) {
         addons: addons ? JSON.stringify(addons) : null,
         completionTime,
         sellerId,
+        // Geolocation
+        city: city || null,
+        latitude: latitude != null ? Number(latitude) : null,
+        longitude: longitude != null ? Number(longitude) : null,
+        isRemote: Boolean(isRemote),
       },
     });
 

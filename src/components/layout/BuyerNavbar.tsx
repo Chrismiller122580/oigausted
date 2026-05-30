@@ -2,13 +2,21 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { Home, Package, LogOut, User, Bell } from 'lucide-react';
+import { Home, Package, LogOut, User, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { NotificationsBell } from './NotificationsBell';
+import { useState } from 'react';
+import MobileMenu from './MobileMenu';
 
 export default function BuyerNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    setIsMobileMenuOpen(false);
+    await signOut({ callbackUrl: '/' });
+  };
 
   return (
     <>
@@ -21,7 +29,7 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
               <span className="font-bold text-2xl text-foreground">Oiga Usted</span>
             </Link>
 
-            {/* Navigation */}
+            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8 font-medium">
               <Link href="/gigs" className="text-muted-foreground hover:text-foreground transition">Explorar Gigs</Link>
               <Link href="/buyer" className="flex items-center gap-2 text-orange-600 font-semibold border-b-2 border-orange-600 pb-1">
@@ -32,10 +40,10 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
               </Link>
             </div>
 
-            {/* User Area with Profile Link */}
-            <div className="flex items-center gap-4">
+            {/* Desktop User Area */}
+            <div className="hidden md:flex items-center gap-4">
               {session?.user && (
-                <Link href="/profile" className="hidden md:flex items-center gap-3 hover:opacity-80 transition">
+                <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition">
                   <div className="text-right">
                     <p className="font-medium text-sm text-foreground">Hola, {session.user.name?.split(" ")[0]}</p>
                     <p className="text-xs text-muted-foreground">Comprador</p>
@@ -49,16 +57,37 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
               <NotificationsBell />
               <ModeToggle />
               <Button 
-                onClick={() => signOut({ callbackUrl: '/' })} 
+                onClick={handleSignOut} 
                 variant="ghost" 
                 className="flex items-center gap-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
               >
                 <LogOut size={18} /> Salir
               </Button>
             </div>
+
+            {/* Mobile compact controls */}
+            <div className="md:hidden flex items-center gap-1">
+              <NotificationsBell />
+              <ModeToggle />
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2 text-muted-foreground hover:text-foreground transition"
+                aria-label="Toggle menu"
+              >
+                {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
+              </button>
+            </div>
           </div>
         </div>
       </nav>
+
+      {/* Mobile Menu (shared component) */}
+      <MobileMenu 
+        isOpen={isMobileMenuOpen} 
+        onClose={() => setIsMobileMenuOpen(false)} 
+        role="buyer" 
+      />
+
       <main>{children}</main>
     </>
   );

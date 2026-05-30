@@ -30,6 +30,13 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
 | `WOMPI_EVENTS_KEY` | Live key |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (for image uploads) |
 | `NEXT_PUBLIC_APP_URL` | `https://oigagig.com` |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps JS API key (enable Maps + Places API; restrict to your domain) |
+
+## Google Maps (for gig location autocomplete in Create Gig + near-me filters)
+- [ ] Create a Google Cloud project and enable **Maps JavaScript API** + **Places API**
+- [ ] Create an API key and restrict it (HTTP referrers) to your production domain(s) e.g. `https://oigagig.com/*` and `https://*.vercel.app/*` for previews
+- [ ] Add `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` to Vercel Production env vars
+- [ ] (Optional but recommended) Also add it to your local `.env` / `.env.development.local` for dev
 
 ## Google OAuth (Recommended for Admin)
 

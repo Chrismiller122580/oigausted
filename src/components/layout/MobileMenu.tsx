@@ -29,7 +29,7 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
       <div className="flex items-center justify-between px-6 h-20 border-b border-border">
         <Link href="/" onClick={onClose} className="flex items-center gap-3">
           <div className="w-8 h-8 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">OU</div>
-          <span className="font-bold text-xl">OigaUsted</span>
+          <span className="font-bold text-xl">Oiga Usted</span>
         </Link>
         <button onClick={onClose} className="p-2">
           <X size={28} />

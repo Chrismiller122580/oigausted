@@ -74,7 +74,12 @@ export async function PUT(
       fields, 
       addons, 
       completionTime,
-      isActive
+      isActive,
+      // Geolocation fields
+      city,
+      latitude,
+      longitude,
+      isRemote
     } = body;
 
     const updated = await prisma.gig.update({
@@ -89,6 +94,11 @@ export async function PUT(
         ...(addons !== undefined && { addons: addons ? JSON.stringify(addons) : null }),
         ...(completionTime !== undefined && { completionTime }),
         ...(isActive !== undefined && { isActive: Boolean(isActive) }),
+        // Geolocation (only set if provided)
+        ...(city !== undefined && { city: city || null }),
+        ...(latitude !== undefined && { latitude: latitude != null ? Number(latitude) : null }),
+        ...(longitude !== undefined && { longitude: longitude != null ? Number(longitude) : null }),
+        ...(isRemote !== undefined && { isRemote: Boolean(isRemote) }),
       },
     });
 

@@ -96,6 +96,12 @@ export default function CreateGigPage() {
       setImageUrl(gig.imageUrl || '');
       setCustomOptions(gig.addons || []);
 
+      // Restore geolocation if present on the gig
+      setGigLocation(gig.city || '');
+      setGigLatitude(gig.latitude ?? null);
+      setGigLongitude(gig.longitude ?? null);
+      setIsRemote(gig.isRemote ?? false);
+
       // Note: dynamic formData values are not persisted per-gig,
       // so we leave them empty. Seller can reconfigure if needed.
       setFormData({});
