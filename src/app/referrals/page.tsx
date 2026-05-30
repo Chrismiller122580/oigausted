@@ -33,6 +33,7 @@ export default function ReferralsPage() {
   const { data: session } = useSession();
   const [data, setData] = useState<ReferralData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   // These hooks MUST be called unconditionally at the top (before any early returns)
@@ -46,16 +47,21 @@ export default function ReferralsPage() {
   }, [session]);
 
   const fetchReferralData = async () => {
+    setError(null);
     try {
       const res = await fetch('/api/referrals');
       if (res.ok) {
         const json = await res.json();
         setData(json);
       } else {
-        toast.error('Error cargando datos de referidos');
+        const msg = 'Error cargando datos de referidos';
+        setError(msg);
+        toast.error(msg);
       }
     } catch (err) {
-      toast.error('Error de conexión');
+      const msg = 'Error de conexión';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -83,7 +89,10 @@ export default function ReferralsPage() {
   if (!data) {
     return (
       <div className="max-w-5xl mx-auto p-6 text-center pt-20">
-        <p>No se pudieron cargar los datos de referidos.</p>
+        <p className="mb-4">{error || 'No se pudieron cargar los datos de referidos.'}</p>
+        <Button onClick={() => window.location.reload()}>
+          Reintentar
+        </Button>
       </div>
     );
   }
@@ -138,7 +147,7 @@ export default function ReferralsPage() {
       <div>
         <h1 className="text-3xl font-bold">Programa de Referidos</h1>
         <p className="text-muted-foreground mt-2">
-          Invita a otros vendedores y gana <strong>{(stats.referralRate * 100).toFixed(0)}%</strong> de comisión sobre todas sus ventas de por vida.
+          Invita a otros vendedores y gana <strong>{((stats.referralRate ?? 0.05) * 100).toFixed(0)}%</strong> de comisión sobre todas sus ventas de por vida.
         </p>
       </div>
 
@@ -174,7 +183,7 @@ export default function ReferralsPage() {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Cuando alguien se registre con tu enlace y publique servicios, ganarás <strong>{(stats.referralRate * 100).toFixed(0)}%</strong> de comisión sobre todas sus ventas de por vida.
+            Cuando alguien se registre con tu enlace y publique servicios, ganarás <strong>{((stats.referralRate ?? 0.05) * 100).toFixed(0)}%</strong> de comisión sobre todas sus ventas de por vida.
           </p>
         </CardContent>
       </Card>
@@ -233,7 +242,7 @@ export default function ReferralsPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Ganado hasta ahora</p>
                 <p className="text-3xl font-bold mt-1 text-green-600">
-                  ${stats.totalEarned.toLocaleString('es-CO')}
+                  ${(stats.totalEarned ?? 0).toLocaleString('es-CO')}
                 </p>
               </div>
               <DollarSign className="w-8 h-8 text-green-500" />
@@ -247,7 +256,7 @@ export default function ReferralsPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Pendiente de pago</p>
                 <p className="text-3xl font-bold mt-1 text-orange-600">
-                  ${stats.pendingEarnings.toLocaleString('es-CO')}
+                  ${(stats.pendingEarnings ?? 0).toLocaleString('es-CO')}
                 </p>
               </div>
               <DollarSign className="w-8 h-8 text-orange-500" />
@@ -263,7 +272,7 @@ export default function ReferralsPage() {
             <div>
               <p className="font-medium">¿Listo para cobrar tus comisiones por referidos?</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Puedes solicitar el pago de tus ${stats.pendingEarnings.toLocaleString('es-CO')} pendientes en cualquier momento.
+                Puedes solicitar el pago de tus ${(stats.pendingEarnings ?? 0).toLocaleString('es-CO')} pendientes en cualquier momento.
               </p>
             </div>
             <Button 
@@ -326,7 +335,7 @@ export default function ReferralsPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right font-medium">
-                        ${user.earnings.toLocaleString('es-CO')}
+                        ${(user.earnings ?? 0).toLocaleString('es-CO')}
                       </td>
                     </tr>
                   ))}
@@ -366,7 +375,7 @@ export default function ReferralsPage() {
               <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold flex-shrink-0">3</div>
               <div>
                 <p className="font-medium">Ganas comisión de por vida</p>
-                <p className="text-muted-foreground mt-1">Cada vez que realicen una venta, recibes una comisión (actualmente configurada en 5%).</p>
+                <p className="text-muted-foreground mt-1">Cada vez que realicen una venta, recibes una comisión (actualmente configurada en {((stats.referralRate ?? 0.05) * 100).toFixed(0)}%).</p>
               </div>
             </div>
           </div>
