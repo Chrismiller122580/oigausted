@@ -24,7 +24,6 @@ export default function AddressAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
   const [loadError, setLoadError] = useState(false);
-  const [usingLegacy, setUsingLegacy] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -72,77 +71,40 @@ export default function AddressAutocomplete({
         }
       }
 
-      // Bootstrap legacy globals by importing places if not present
-      if (placesLib && !window.google?.maps?.places?.Autocomplete) {
-        // The import above should have populated the legacy namespace in most cases
-      }
-
-      // Fallback to legacy (with small retry)
-      let legacyAttempts = 0;
-      const tryLegacy = () => {
-        if (window.google?.maps?.places?.Autocomplete) {
-          setUsingLegacy(true);
-
-          autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
-            types: ['address'],
-            componentRestrictions: { country: 'co' },
-          });
-
-          autocompleteRef.current.addListener('place_changed', () => {
-            const place = autocompleteRef.current.getPlace();
-            if (place.geometry && place.geometry.location) {
-              const lat = place.geometry.location.lat();
-              const lng = place.geometry.location.lng();
-              onChange(place.formatted_address || '', lat, lng);
-            } else {
-              onChange(place.formatted_address || value);
-            }
-          });
-          return true;
-        }
-        return false;
-      };
-
-      if (!tryLegacy()) {
-        const legacyInterval = setInterval(() => {
-          legacyAttempts++;
-          if (tryLegacy() || legacyAttempts > 15) {
-            clearInterval(legacyInterval);
-            if (!autocompleteRef.current) {
-              throw new Error('Could not initialize any Places Autocomplete (modern or legacy)');
-            }
-          }
-        }, 80);
-      }
+      // Do NOT fall back to the deprecated legacy google.maps.places.Autocomplete.
+      // It is not available for new API keys (as of 2025) and causes severe
+      // removeChild DOM errors when React unmounts the input.
+      // We simply show the manual text input fallback (the user can still type the address).
+      console.warn('Legacy Places Autocomplete is deprecated/unavailable for this key. Using plain text fallback.');
+      setLoadError(true);
     };
 
     loadGoogleMaps()
       .then(() => {
         if (isMounted) {
           initModernAutocomplete().catch((err) => {
-            console.error('Failed to initialize any Maps Autocomplete:', err);
+            console.warn('Maps Autocomplete initialization failed (graceful fallback):', err);
             if (isMounted) setLoadError(true);
           });
         }
       })
       .catch((error) => {
-        console.error('Failed to load Google Maps for autocomplete:', error);
+        console.warn('Failed to load Google Maps (graceful fallback to manual address):', error);
         if (isMounted) setLoadError(true);
       });
 
     return () => {
       isMounted = false;
 
-      const cleanup = () => {
+      // Run cleanup in a microtask to avoid race conditions with React unmount
+      queueMicrotask(() => {
         const ac = autocompleteRef.current;
         if (ac) {
           try {
-            // Modern web component
             if (typeof ac.remove === 'function') {
               ac.remove();
             }
-            // Legacy Autocomplete
-            if (window.google?.maps?.event) {
+            if (window.google?.maps?.event?.clearInstanceListeners) {
               window.google.maps.event.clearInstanceListeners(ac);
             }
           } catch (e) {
@@ -151,9 +113,10 @@ export default function AddressAutocomplete({
           autocompleteRef.current = null;
         }
 
-        // Remove any orphaned Google Autocomplete dropdowns (main cause of removeChild errors)
+        // Aggressively remove any Google Autocomplete UI that might be left behind
+        // (this is the #1 cause of the removeChild errors the user is seeing)
         try {
-          document.querySelectorAll('.pac-container').forEach((el) => {
+          document.querySelectorAll('.pac-container, .pac-logo, .pac-item').forEach((el) => {
             if (el && el.parentNode) {
               el.parentNode.removeChild(el);
             }
@@ -161,9 +124,7 @@ export default function AddressAutocomplete({
         } catch (e) {
           // ignore
         }
-      };
-
-      cleanup();
+      });
     };
   }, []);
 
@@ -181,12 +142,6 @@ export default function AddressAutocomplete({
       {loadError && (
         <p className="text-xs text-muted-foreground mt-1">
           Autocompletado no disponible. Escribe la ciudad o dirección manualmente (la ubicación exacta no se detectará automáticamente).
-        </p>
-      )}
-
-      {usingLegacy && !loadError && (
-        <p className="text-[10px] text-amber-600 dark:text-amber-500 mt-1">
-          Usando versión legacy de autocompletado (Google la está reemplazando).
         </p>
       )}
     </div>
