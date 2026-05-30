@@ -8,6 +8,7 @@ import { ModeToggle } from '@/components/ui/mode-toggle';
 import { NotificationsBell } from './NotificationsBell';
 import { useState } from 'react';
 import MobileMenu from './MobileMenu';
+import MobileBottomNav from './MobileBottomNav';
 
 export default function BuyerNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
@@ -88,7 +89,9 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
         role="buyer" 
       />
 
-      <main>{children}</main>
+      <MobileBottomNav role="buyer" />
+
+      <main className="pb-16 md:pb-0">{children}</main>
     </>
   );
 }

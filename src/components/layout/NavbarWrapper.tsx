@@ -47,12 +47,14 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
           </div>
 
           <div className="md:hidden flex items-center gap-2">
+            <NotificationsBell />
             <ModeToggle />
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Toggle menu"
+              className="p-2"
             >
-              {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+              {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
             </button>
           </div>
         </div>

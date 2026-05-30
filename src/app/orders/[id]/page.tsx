@@ -355,9 +355,9 @@ function OrderDetailClient() {
         </div>
       )}
 
-      {/* CHAT - Improved */}
+      {/* CHAT - Mobile friendly */}
       {activeTab === 'chat' && (
-        <Card className="h-[620px] flex flex-col shadow-lg overflow-hidden">
+        <Card className="flex flex-col shadow-lg overflow-hidden min-h-[420px] max-h-[calc(100dvh-180px)] md:max-h-[620px]">
           <CardHeader className="border-b">
             <CardTitle className="flex items-center gap-2">💬 Chat en Vivo</CardTitle>
             <p className="text-sm text-muted-foreground">Comunicación directa con {isBuyer ? 'el vendedor' : 'el comprador'}</p>
@@ -405,8 +405,8 @@ function OrderDetailClient() {
             })}
           </div>
 
-          <div className="p-4 border-t bg-white flex gap-2 items-end">
-            <label className="cursor-pointer flex items-center justify-center w-11 h-11 border rounded-2xl hover:bg-gray-100 text-xl flex-shrink-0" title="Adjuntar archivo">
+          <div className="p-3 border-t bg-white flex gap-2 items-end safe-area-inset-bottom">
+            <label className="cursor-pointer flex items-center justify-center w-11 h-11 border rounded-2xl hover:bg-gray-100 text-xl flex-shrink-0 active:scale-95 transition" title="Adjuntar archivo">
               📎
               <input type="file" onChange={uploadFile} className="hidden" />
             </label>
@@ -417,7 +417,7 @@ function OrderDetailClient() {
               className="flex-1 resize-y min-h-[44px] max-h-[120px] text-base"
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendMessage())}
             />
-            <Button onClick={sendMessage} disabled={!newMessage.trim()} className="px-7 h-[44px]">
+            <Button onClick={sendMessage} disabled={!newMessage.trim()} className="px-6 h-[44px] active:scale-95">
               Enviar
             </Button>
           </div>

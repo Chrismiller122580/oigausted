@@ -129,7 +129,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: mapsGuardScript }} />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} pb-safe-area-inset-bottom`}>
         <SessionProviderWrapper>
           <MaintenanceBanner />
           <NavbarWrapper>
