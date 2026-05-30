@@ -71,27 +71,43 @@ export default function AddressAutocomplete({
       }
 
       // Fallback to legacy Autocomplete (still works for existing keys, just deprecated)
-      if (!window.google?.maps?.places?.Autocomplete) {
-        throw new Error('Neither modern nor legacy Places Autocomplete available');
-      }
+      // Give it a little more time in case the library is still bootstrapping
+      let legacyAttempts = 0;
+      const tryLegacy = () => {
+        if (window.google?.maps?.places?.Autocomplete) {
+          setUsingLegacy(true);
 
-      setUsingLegacy(true);
+          autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
+            types: ['address'],
+            componentRestrictions: { country: 'co' },
+          });
 
-      autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
-        types: ['address'],
-        componentRestrictions: { country: 'co' },
-      });
-
-      autocompleteRef.current.addListener('place_changed', () => {
-        const place = autocompleteRef.current.getPlace();
-        if (place.geometry && place.geometry.location) {
-          const lat = place.geometry.location.lat();
-          const lng = place.geometry.location.lng();
-          onChange(place.formatted_address || '', lat, lng);
-        } else {
-          onChange(place.formatted_address || value);
+          autocompleteRef.current.addListener('place_changed', () => {
+            const place = autocompleteRef.current.getPlace();
+            if (place.geometry && place.geometry.location) {
+              const lat = place.geometry.location.lat();
+              const lng = place.geometry.location.lng();
+              onChange(place.formatted_address || '', lat, lng);
+            } else {
+              onChange(place.formatted_address || value);
+            }
+          });
+          return true;
         }
-      });
+        return false;
+      };
+
+      if (!tryLegacy()) {
+        const legacyInterval = setInterval(() => {
+          legacyAttempts++;
+          if (tryLegacy() || legacyAttempts > 10) {
+            clearInterval(legacyInterval);
+            if (!autocompleteRef.current) {
+              throw new Error('Neither modern nor legacy Places Autocomplete available');
+            }
+          }
+        }, 100);
+      }
     };
 
     loadGoogleMaps()
@@ -112,19 +128,38 @@ export default function AddressAutocomplete({
       isMounted = false;
 
       // Thorough cleanup to prevent React <-> Google Maps DOM conflicts (removeChild errors)
-      if (autocompleteRef.current) {
-        try {
-          if (typeof autocompleteRef.current.remove === 'function') {
-            autocompleteRef.current.remove();
+      const cleanup = () => {
+        if (autocompleteRef.current) {
+          try {
+            // Modern element
+            if (typeof autocompleteRef.current.remove === 'function') {
+              autocompleteRef.current.remove();
+            }
+            // Legacy
+            if (window.google?.maps?.event?.clearInstanceListeners) {
+              window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+            }
+            autocompleteRef.current = null;
+          } catch (e) {
+            // Swallow
           }
-          if (window.google?.maps?.event?.clearInstanceListeners) {
-            window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
-          }
-          autocompleteRef.current = null;
-        } catch (e) {
-          // Swallow cleanup errors
         }
-      }
+
+        // Aggressive cleanup of any leftover pac-containers (common source of removeChild errors)
+        try {
+          const containers = document.querySelectorAll('.pac-container');
+          containers.forEach((container) => {
+            if (container && container.parentNode) {
+              // Only remove if it looks like it belongs to this input (heuristic)
+              container.parentNode.removeChild(container);
+            }
+          });
+        } catch (e) {
+          // Ignore
+        }
+      };
+
+      cleanup();
     };
   }, []);
 

@@ -24,12 +24,20 @@ export async function getPlacesLibrary(): Promise<any> {
   if (!window.google?.maps) {
     throw new Error('Google Maps not loaded yet. Call loadGoogleMaps() first.');
   }
+  if (typeof window.google.maps.importLibrary !== 'function') {
+    throw new Error('importLibrary not available (async loading may still be bootstrapping)');
+  }
   const { PlaceAutocomplete } = await window.google.maps.importLibrary("places");
   return { PlaceAutocomplete };
 }
 
 export function loadGoogleMaps(): Promise<void> {
-  // If already loaded
+  // If already loaded with importLibrary available (modern async)
+  if (window.google?.maps?.importLibrary) {
+    return Promise.resolve();
+  }
+
+  // Legacy check (for non-async loads)
   if (window.google && window.google.maps) {
     return Promise.resolve();
   }
@@ -43,19 +51,23 @@ export function loadGoogleMaps(): Promise<void> {
   window.__googleMapsLoadingPromise = new Promise((resolve, reject) => {
     // Check if script already exists in DOM (extra safety)
     if (document.querySelector(`script[src*="maps.googleapis.com"]`)) {
-      // Wait for it to load
+      // Wait for it to load, specifically for importLibrary with async loading
       const checkInterval = setInterval(() => {
-        if (window.google && window.google.maps) {
+        if (window.google?.maps?.importLibrary || (window.google && window.google.maps)) {
           clearInterval(checkInterval);
           resolve();
         }
-      }, 100);
+      }, 50);
 
-      // Timeout after 10 seconds
+      // Timeout after 15 seconds (longer for async)
       setTimeout(() => {
         clearInterval(checkInterval);
-        reject(new Error('Google Maps failed to load (timeout)'));
-      }, 10000);
+        if (window.google?.maps?.importLibrary || (window.google && window.google.maps)) {
+          resolve();
+        } else {
+          reject(new Error('Google Maps failed to load (timeout)'));
+        }
+      }, 15000);
 
       return;
     }
@@ -66,11 +78,22 @@ export function loadGoogleMaps(): Promise<void> {
     script.defer = true;
 
     script.onload = () => {
-      if (window.google && window.google.maps) {
-        resolve();
-      } else {
-        reject(new Error('Google Maps script loaded but google object not available'));
-      }
+      // Give the async loader a moment to attach importLibrary
+      const waitForBootstrap = setInterval(() => {
+        if (window.google?.maps?.importLibrary || (window.google && window.google.maps)) {
+          clearInterval(waitForBootstrap);
+          resolve();
+        }
+      }, 30);
+
+      setTimeout(() => {
+        clearInterval(waitForBootstrap);
+        if (window.google?.maps?.importLibrary || (window.google && window.google.maps)) {
+          resolve();
+        } else {
+          reject(new Error('Google Maps script loaded but bootstrap incomplete'));
+        }
+      }, 5000);
     };
 
     script.onerror = () => {
