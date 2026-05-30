@@ -24,11 +24,18 @@ export async function getPlacesLibrary(): Promise<any> {
   if (!window.google?.maps) {
     throw new Error('Google Maps not loaded yet. Call loadGoogleMaps() first.');
   }
+
+  // Ensure importLibrary is available (for loading=async)
   if (typeof window.google.maps.importLibrary !== 'function') {
-    throw new Error('importLibrary not available (async loading may still be bootstrapping)');
+    // Small wait in case of race
+    await new Promise(r => setTimeout(r, 100));
+    if (typeof window.google.maps.importLibrary !== 'function') {
+      throw new Error('importLibrary not available after waiting');
+    }
   }
-  const { PlaceAutocomplete } = await window.google.maps.importLibrary("places");
-  return { PlaceAutocomplete };
+
+  const placesLib = await window.google.maps.importLibrary("places");
+  return placesLib;  // contains PlaceAutocomplete, etc.
 }
 
 export function loadGoogleMaps(): Promise<void> {

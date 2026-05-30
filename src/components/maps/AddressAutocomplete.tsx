@@ -32,19 +32,22 @@ export default function AddressAutocomplete({
     const initModernAutocomplete = async () => {
       if (!inputRef.current || !isMounted) return;
 
+      let placesLib;
       try {
-        // Try the modern recommended API first (PlaceAutocomplete)
-        const places = await getPlacesLibrary();
-        const { PlaceAutocomplete } = places;
+        placesLib = await getPlacesLibrary();
+      } catch (err) {
+        console.warn('Could not load places library via importLibrary:', err);
+      }
 
-        if (PlaceAutocomplete) {
-          autocompleteRef.current = new PlaceAutocomplete({
+      // Try modern PlaceAutocomplete from the imported lib
+      if (placesLib && placesLib.PlaceAutocomplete) {
+        try {
+          autocompleteRef.current = new placesLib.PlaceAutocomplete({
             inputElement: inputRef.current,
             componentRestrictions: { country: 'co' },
             types: ['address'],
           });
 
-          // Modern event
           autocompleteRef.current.addEventListener('gmp-select', async (event: any) => {
             const placePrediction = event.placePrediction;
             if (!placePrediction) return;
@@ -63,15 +66,18 @@ export default function AddressAutocomplete({
             }
           });
 
-          return; // Success with modern API
+          return; // Success
+        } catch (modernErr) {
+          console.warn('Modern PlaceAutocomplete instantiation failed, trying legacy:', modernErr);
         }
-      } catch (modernError) {
-        // Modern API not available (common on keys created after the deprecation)
-        console.warn('Modern PlaceAutocomplete not available, falling back to legacy Autocomplete:', modernError);
       }
 
-      // Fallback to legacy Autocomplete (still works for existing keys, just deprecated)
-      // Give it a little more time in case the library is still bootstrapping
+      // Bootstrap legacy globals by importing places if not present
+      if (placesLib && !window.google?.maps?.places?.Autocomplete) {
+        // The import above should have populated the legacy namespace in most cases
+      }
+
+      // Fallback to legacy (with small retry)
       let legacyAttempts = 0;
       const tryLegacy = () => {
         if (window.google?.maps?.places?.Autocomplete) {
@@ -100,13 +106,13 @@ export default function AddressAutocomplete({
       if (!tryLegacy()) {
         const legacyInterval = setInterval(() => {
           legacyAttempts++;
-          if (tryLegacy() || legacyAttempts > 10) {
+          if (tryLegacy() || legacyAttempts > 15) {
             clearInterval(legacyInterval);
             if (!autocompleteRef.current) {
-              throw new Error('Neither modern nor legacy Places Autocomplete available');
+              throw new Error('Could not initialize any Places Autocomplete (modern or legacy)');
             }
           }
-        }, 100);
+        }, 80);
       }
     };
 
@@ -127,35 +133,33 @@ export default function AddressAutocomplete({
     return () => {
       isMounted = false;
 
-      // Thorough cleanup to prevent React <-> Google Maps DOM conflicts (removeChild errors)
       const cleanup = () => {
-        if (autocompleteRef.current) {
+        const ac = autocompleteRef.current;
+        if (ac) {
           try {
-            // Modern element
-            if (typeof autocompleteRef.current.remove === 'function') {
-              autocompleteRef.current.remove();
+            // Modern web component
+            if (typeof ac.remove === 'function') {
+              ac.remove();
             }
-            // Legacy
-            if (window.google?.maps?.event?.clearInstanceListeners) {
-              window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+            // Legacy Autocomplete
+            if (window.google?.maps?.event) {
+              window.google.maps.event.clearInstanceListeners(ac);
             }
-            autocompleteRef.current = null;
           } catch (e) {
-            // Swallow
+            // ignore
           }
+          autocompleteRef.current = null;
         }
 
-        // Aggressive cleanup of any leftover pac-containers (common source of removeChild errors)
+        // Remove any orphaned Google Autocomplete dropdowns (main cause of removeChild errors)
         try {
-          const containers = document.querySelectorAll('.pac-container');
-          containers.forEach((container) => {
-            if (container && container.parentNode) {
-              // Only remove if it looks like it belongs to this input (heuristic)
-              container.parentNode.removeChild(container);
+          document.querySelectorAll('.pac-container').forEach((el) => {
+            if (el && el.parentNode) {
+              el.parentNode.removeChild(el);
             }
           });
         } catch (e) {
-          // Ignore
+          // ignore
         }
       };
 
