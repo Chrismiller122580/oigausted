@@ -54,7 +54,11 @@ export default function ReferralsPage() {
         const json = await res.json();
         setData(json);
       } else {
-        const msg = 'Error cargando datos de referidos';
+        let msg = 'Error cargando datos de referidos';
+        try {
+          const errJson = await res.json();
+          if (errJson?.error) msg = errJson.error;
+        } catch {}
         setError(msg);
         toast.error(msg);
       }
