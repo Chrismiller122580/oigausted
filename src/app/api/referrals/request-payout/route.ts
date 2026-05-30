@@ -89,7 +89,6 @@ export async function POST() {
     })
   } catch (error) {
     console.error('Payout request error:', error)
-    const message = error instanceof Error ? error.message : 'Error interno'
-    return NextResponse.json({ error: 'Error al solicitar pago: ' + message }, { status: 500 })
+    return NextResponse.json({ error: 'Error al solicitar el pago de comisiones' }, { status: 500 })
   }
 }

@@ -109,8 +109,7 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Error fetching referrals:', error)
-    const message = error instanceof Error ? error.message : 'Error interno del servidor'
-    return NextResponse.json({ error: 'Error cargando datos de referidos: ' + message }, { status: 500 })
+    return NextResponse.json({ error: 'Error cargando datos de referidos' }, { status: 500 })
   }
 }
 
@@ -152,7 +151,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, message: '¡Vinculado correctamente al referidor!' })
   } catch (error) {
     console.error('Error linking referral:', error)
-    const message = error instanceof Error ? error.message : 'Error interno del servidor'
-    return NextResponse.json({ error: 'Error al vincular código: ' + message }, { status: 500 })
+    return NextResponse.json({ error: 'Error al vincular código de referido' }, { status: 500 })
   }
 }

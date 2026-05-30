@@ -54,7 +54,7 @@ export default function ReferralsPage() {
         const json = await res.json();
         setData(json);
       } else {
-        let msg = 'Error cargando datos de referidos';
+        let msg = 'No se pudieron cargar los datos de referidos. Por favor intenta de nuevo.';
         try {
           const errJson = await res.json();
           if (errJson?.error) msg = errJson.error;
@@ -63,7 +63,7 @@ export default function ReferralsPage() {
         toast.error(msg);
       }
     } catch (err) {
-      const msg = 'Error de conexión';
+      const msg = 'Error de conexión. Verifica tu internet e intenta de nuevo.';
       setError(msg);
       toast.error(msg);
     } finally {
