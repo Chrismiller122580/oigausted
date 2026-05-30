@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { loadGoogleMaps, getPlacesLibrary } from '@/lib/googleMapsLoader';
+import { useState } from 'react';
 
 interface AddressAutocompleteProps {
   value: string;
@@ -11,9 +10,14 @@ interface AddressAutocompleteProps {
 }
 
 /**
- * Modern AddressAutocomplete using the recommended PlaceAutocomplete API.
- * Falls back gracefully to plain text input if the Places library is unavailable
- * (e.g. deprecated Autocomplete on new keys, or loading failure).
+ * Safe plain-text location input for create-gig.
+ * We no longer attach any Google Maps Autocomplete widget (modern or legacy).
+ * This completely eliminates the deprecation warnings, removeChild DOM errors,
+ * and React hook count violations caused by the widget fighting React's DOM.
+ *
+ * Users can still enter the address manually. Lat/lng can be added later
+ * via a simple "Use my current location" button using the browser Geolocation API
+ * (no Maps JS API required for basic lat/lng).
  */
 export default function AddressAutocomplete({
   value,
@@ -21,129 +25,58 @@ export default function AddressAutocomplete({
   placeholder = "Buscar dirección...",
   className = "",
 }: AddressAutocompleteProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<any>(null);
-  const [loadError, setLoadError] = useState(false);
+  const [useBrowserLocation, setUseBrowserLocation] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
+  const handleBrowserLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Tu navegador no soporta geolocalización.");
+      return;
+    }
 
-    const initModernAutocomplete = async () => {
-      if (!inputRef.current || !isMounted) return;
+    setUseBrowserLocation(true);
 
-      let placesLib;
-      try {
-        placesLib = await getPlacesLibrary();
-      } catch (err) {
-        console.warn('Could not load places library via importLibrary:', err);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        // We don't have reverse geocoding without Maps, so we just store the coords
+        // and let the user type a human-readable address, or we can improve later.
+        onChange(value || `Ubicación actual (${lat.toFixed(4)}, ${lng.toFixed(4)})`, lat, lng);
+        setUseBrowserLocation(false);
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        alert("No pudimos obtener tu ubicación. Por favor ingresa la dirección manualmente.");
+        setUseBrowserLocation(false);
       }
-
-      // Try modern PlaceAutocomplete from the imported lib
-      if (placesLib && placesLib.PlaceAutocomplete) {
-        try {
-          autocompleteRef.current = new placesLib.PlaceAutocomplete({
-            inputElement: inputRef.current,
-            componentRestrictions: { country: 'co' },
-            types: ['address'],
-          });
-
-          autocompleteRef.current.addEventListener('gmp-select', async (event: any) => {
-            const placePrediction = event.placePrediction;
-            if (!placePrediction) return;
-
-            const place = await placePrediction.toPlace();
-            await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
-
-            const address = place.formattedAddress || place.displayName || '';
-            const lat = place.location?.lat?.();
-            const lng = place.location?.lng?.();
-
-            if (lat != null && lng != null) {
-              onChange(address, lat, lng);
-            } else {
-              onChange(address);
-            }
-          });
-
-          return; // Success
-        } catch (modernErr) {
-          console.warn('Modern PlaceAutocomplete instantiation failed, trying legacy:', modernErr);
-        }
-      }
-
-      // Do NOT fall back to the deprecated legacy google.maps.places.Autocomplete.
-      // It is not available for new API keys (as of 2025) and causes severe
-      // removeChild DOM errors when React unmounts the input.
-      // We simply show the manual text input fallback (the user can still type the address).
-      console.warn('Legacy Places Autocomplete is deprecated/unavailable for this key. Using plain text fallback.');
-      setLoadError(true);
-    };
-
-    loadGoogleMaps()
-      .then(() => {
-        if (isMounted) {
-          initModernAutocomplete().catch((err) => {
-            console.warn('Maps Autocomplete initialization failed (graceful fallback):', err);
-            if (isMounted) setLoadError(true);
-          });
-        }
-      })
-      .catch((error) => {
-        console.warn('Failed to load Google Maps (graceful fallback to manual address):', error);
-        if (isMounted) setLoadError(true);
-      });
-
-    return () => {
-      isMounted = false;
-
-      // Run cleanup in a microtask to avoid race conditions with React unmount
-      queueMicrotask(() => {
-        const ac = autocompleteRef.current;
-        if (ac) {
-          try {
-            if (typeof ac.remove === 'function') {
-              ac.remove();
-            }
-            if (window.google?.maps?.event?.clearInstanceListeners) {
-              window.google.maps.event.clearInstanceListeners(ac);
-            }
-          } catch (e) {
-            // ignore
-          }
-          autocompleteRef.current = null;
-        }
-
-        // Aggressively remove any Google Autocomplete UI that might be left behind
-        // (this is the #1 cause of the removeChild errors the user is seeing)
-        try {
-          document.querySelectorAll('.pac-container, .pac-logo, .pac-item').forEach((el) => {
-            if (el && el.parentNode) {
-              el.parentNode.removeChild(el);
-            }
-          });
-        } catch (e) {
-          // ignore
-        }
-      });
-    };
-  }, []);
+    );
+  };
 
   return (
-    <div>
-      <input
-        ref={inputRef}
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={`w-full border rounded-xl px-4 py-3 ${className}`}
-      />
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={`flex-1 border rounded-xl px-4 py-3 ${className}`}
+        />
+        <button
+          type="button"
+          onClick={handleBrowserLocation}
+          disabled={useBrowserLocation}
+          className="px-4 py-2 border rounded-xl text-sm hover:bg-muted disabled:opacity-50"
+          title="Usar mi ubicación actual (solo coordenadas)"
+        >
+          {useBrowserLocation ? "..." : "📍 Mi ubicación"}
+        </button>
+      </div>
 
-      {loadError && (
-        <p className="text-xs text-muted-foreground mt-1">
-          Autocompletado no disponible. Escribe la ciudad o dirección manualmente (la ubicación exacta no se detectará automáticamente).
-        </p>
-      )}
+      <p className="text-xs text-muted-foreground">
+        Ingresa la dirección manualmente. El botón usa la geolocalización de tu navegador (sin Google Maps).
+      </p>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,40 @@ import { gigCategories } from '@/lib/gig-categories';
 import { toast } from 'react-hot-toast';
 import { MapPin } from 'lucide-react';
 import AddressAutocomplete from '@/components/maps/AddressAutocomplete';
+
+// Simple ErrorBoundary so Maps failures never crash the whole create-gig form
+class SafeLocationInput extends React.Component<
+  { value: string; onChange: (address: string, lat?: number, lng?: number) => void; placeholder?: string },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any) {
+    console.warn('Location input failed safely (non-critical):', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <input
+          type="text"
+          value={this.props.value}
+          onChange={(e) => this.props.onChange(e.target.value)}
+          placeholder={this.props.placeholder}
+          className="w-full border rounded-xl px-4 py-3"
+        />
+      );
+    }
+    return <AddressAutocomplete {...this.props} />;
+  }
+}
 
 function CreateGigClient() {
   const { data: session } = useSession();
@@ -495,7 +529,7 @@ function CreateGigClient() {
               <>
                 <div>
                   <Label>Dirección o ciudad donde ofreces el servicio</Label>
-                  <AddressAutocomplete
+                  <SafeLocationInput
                     value={gigLocation}
                     onChange={(address, lat, lng) => {
                       setGigLocation(address);
