@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import FloatingGrokChat from '@/components/admin/FloatingGrokChat';
 
 export default async function AdminLayout({
   children,
@@ -19,6 +20,8 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen bg-background text-foreground">
       {children}
+      {/* Floating Grok chat available on all admin pages */}
+      <FloatingGrokChat />
     </div>
   );
 }
