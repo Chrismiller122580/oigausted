@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Sparkles, Bot, User, Zap } from 'lucide-react';
+import { Send, Sparkles, Bot, User, Zap, Mic, MicOff } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant' | 'tool';
@@ -67,6 +67,7 @@ export default function GrokBuildPage() {
   const [activeMode, setActiveMode] = useState<'chat' | 'analyze' | 'generate' | 'improve'>('chat');
   const [customContext, setCustomContext] = useState(''); // Live context sent to Grok on every message (B)
   const [pendingAction, setPendingAction] = useState<any>(null); // For approval flow
+  const [isListening, setIsListening] = useState(false);
 
   const sendMessage = async (customPrompt?: string) => {
     const messageText = customPrompt || input;
@@ -296,6 +297,54 @@ export default function GrokBuildPage() {
     }
   };
 
+  // Voice input using Web Speech API
+  const toggleVoiceInput = () => {
+    if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+      alert('Tu navegador no soporta reconocimiento de voz. Prueba con Chrome o Edge.');
+      return;
+    }
+
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognitionAPI();
+
+    recognition.lang = 'es-CO'; // Colombian Spanish
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    if (!isListening) {
+      setIsListening(true);
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript.trim()) {
+          setInput(transcript);
+          // Auto-send after voice input for smooth experience
+          setTimeout(() => {
+            sendMessage(transcript);
+          }, 300);
+        }
+        setIsListening(false);
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      try {
+        recognition.start();
+      } catch (err) {
+        setIsListening(false);
+      }
+    } else {
+      setIsListening(false);
+      // recognition will stop on its own when we set state
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-5xl mx-auto">
@@ -481,10 +530,23 @@ export default function GrokBuildPage() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                    placeholder={`Pregúntale a Grok en modo ${activeMode}...`}
+                    placeholder={`Pregúntale a Grok en modo ${activeMode}... (o usa el micrófono)`}
                     className="flex-1 text-base py-6"
                     disabled={isLoading}
                   />
+
+                  {/* Microphone Button */}
+                  <Button
+                    onClick={toggleVoiceInput}
+                    disabled={isLoading}
+                    size="lg"
+                    variant={isListening ? "destructive" : "outline"}
+                    className={`px-4 transition-all ${isListening ? 'animate-pulse' : ''}`}
+                    title={isListening ? "Detener escucha" : "Hablar con Grok"}
+                  >
+                    {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                  </Button>
+
                   <Button 
                     onClick={() => sendMessage()} 
                     disabled={isLoading || !input.trim()}
@@ -494,6 +556,11 @@ export default function GrokBuildPage() {
                     <Send size={18} />
                   </Button>
                 </div>
+                {isListening && (
+                  <p className="text-center text-sm text-red-500 mt-2 flex items-center justify-center gap-2">
+                    <span className="animate-pulse">🎤</span> Escuchando... habla ahora
+                  </p>
+                )}
                 <p className="text-[10px] text-muted-foreground mt-2 text-center">
                   Grok Build has full conversation memory + any context you attach above. The more specific you are, the smarter it gets.
                 </p>
