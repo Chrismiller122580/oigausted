@@ -2,14 +2,16 @@ import { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
+    const body = await request.json();
     const { 
       prompt, 
       mode = "general", 
       context = "", 
       pageContext = "", 
       selectedData = null,
-      history = [] 
-    } = await request.json();
+      history = [],
+      stream = false
+    } = body;
 
     if (!prompt) return Response.json({ error: "Prompt required" }, { status: 400 });
 
@@ -123,7 +125,7 @@ Contexto actual de la sesión:
       }
     ];
 
-    const shouldStream = body.stream === true;
+    const shouldStream = stream === true;
 
     const res = await fetch("https://api.x.ai/v1/chat/completions", {
       method: "POST",
