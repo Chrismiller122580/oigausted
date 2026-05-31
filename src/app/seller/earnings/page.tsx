@@ -6,7 +6,7 @@ import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DollarSign, TrendingUp, Calendar, Download, Package, Users } from 'lucide-react';
-import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG } from '@/lib/payout';
+import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG, aggregatePayouts } from '@/lib/payout';
 
 export default function SellerEarningsPage() {
   const { data: session } = useSession();
@@ -15,6 +15,9 @@ export default function SellerEarningsPage() {
     thisMonth: 0,
     pending: 0,
     completedGigs: 0,
+    grossTotal: 0,
+    platformFees: 0,
+    referralFees: 0,
   });
   const [referralEarnings, setReferralEarnings] = useState({
     total: 0,
