@@ -52,6 +52,12 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
             <Link href="/admin/reports" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
               <BarChart3 size={18} /> Reportes
             </Link>
+            <Link href="/admin/referrals" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
+              <Users size={18} /> Referidos
+            </Link>
+            <Link href="/admin/notifications" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
+              <MessageCircle size={18} /> Notificaciones
+            </Link>
             <Link href="/admin/support" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
               <MessageCircle size={18} /> Soporte
             </Link>

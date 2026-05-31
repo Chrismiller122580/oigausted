@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp } from 'lucide-react';
+import { X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp, MessageCircle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { NotificationsBell } from './NotificationsBell';
@@ -133,6 +133,21 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             </Link>
             <Link href="/admin/reports" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               Reportes
+            </Link>
+            <Link href="/admin/referrals" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Users size={22} /> Referidos
+            </Link>
+            <Link href="/admin/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <MessageCircle size={22} /> Notificaciones
+            </Link>
+            <Link href="/admin/support" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <MessageCircle size={22} /> Soporte
+            </Link>
+            <Link href="/admin/settings" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Settings size={22} /> Ajustes
+            </Link>
+            <Link href="/admin/audit" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <BarChart3 size={22} /> Auditoría
             </Link>
             <Link href="/admin/grok-build" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border font-medium">
               ✨ Grok Build
