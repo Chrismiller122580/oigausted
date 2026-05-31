@@ -169,6 +169,51 @@ Current session context:
             required: ["selector"]
           }
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "click_element",
+          description: "Click a button, link, or any interactive element on the current admin page. Use this to test UI flows or trigger actions.",
+          parameters: {
+            type: "object",
+            properties: {
+              selector: { type: "string", description: "CSS selector of the element to click (e.g. 'button[data-testid=\"submit\"]', '#payout-button')" }
+            },
+            required: ["selector"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "type_text",
+          description: "Type text into an input or textarea on the current page. Great for testing forms.",
+          parameters: {
+            type: "object",
+            properties: {
+              selector: { type: "string", description: "CSS selector of the input/textarea" },
+              text: { type: "string", description: "The text to type" }
+            },
+            required: ["selector", "text"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "propose_code_change",
+          description: "Propose a code change to fix a bug or improve something. The admin will see a diff preview and can apply it.",
+          parameters: {
+            type: "object",
+            properties: {
+              file: { type: "string", description: "Relative path to the file (e.g. 'src/components/Button.tsx')" },
+              description: { type: "string", description: "Clear explanation of what the change does" },
+              diff: { type: "string", description: "Unified diff format of the proposed change" }
+            },
+            required: ["file", "description", "diff"]
+          }
+        }
       }
     ];
 

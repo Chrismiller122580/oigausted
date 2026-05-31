@@ -271,8 +271,54 @@ export default function GrokBuildPage() {
       return { error: 'Element not found' };
     }
 
+    if (name === 'click_element') {
+      const el = document.querySelector(args.selector) as HTMLElement;
+      if (!el) return { error: 'Element not found' };
+      el.click();
+      return { success: true, clicked: args.selector };
+    }
+
+    if (name === 'type_text') {
+      const el = document.querySelector(args.selector) as HTMLInputElement | HTMLTextAreaElement;
+      if (!el) return { error: 'Input element not found' };
+      el.value = args.text || '';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      return { success: true, selector: args.selector, text: args.text };
+    }
+
+    if (name === 'get_visible_text') {
+      const elements = document.querySelectorAll(args.selector || 'body *');
+      const texts: string[] = [];
+      elements.forEach(el => {
+        const text = (el as HTMLElement).innerText?.trim();
+        if (text && text.length > 3 && text.length < 200) texts.push(text);
+      });
+      return { visibleText: texts.slice(0, 30) };
+    }
+
+    if (name === 'propose_code_change') {
+      // Show a nice code change proposal UI instead of normal tool result
+      setPendingCodeChange({
+        file: args.file,
+        description: args.description,
+        diff: args.diff,
+      });
+      return { 
+        success: true, 
+        message: "Code change proposal shown to admin for review." 
+      };
+    }
+
     return { error: 'Tool not implemented' };
   };
+
+  // State for code change proposals
+  const [pendingCodeChange, setPendingCodeChange] = useState<{
+    file: string;
+    description: string;
+    diff: string;
+  } | null>(null);
 
   const handleAction = async (action: SuggestedAction, messageIndex: number) => {
     if (action.action === 'update_referral_rate' && action.userId && typeof action.newRate === 'number') {
@@ -593,11 +639,47 @@ export default function GrokBuildPage() {
                       <Bot size={18} className="text-white" />
                     </div>
                     <div className="bg-muted border rounded-2xl px-5 py-3.5 text-sm">
-                      <span className="animate-pulse">Grok está pensando...</span>
+                      <span className="animate-pulse">Grok is thinking...</span>
                     </div>
                   </div>
                 )}
               </div>
+
+              {/* Code Change Proposal Panel - Powerful UI access for fixing bugs */}
+              {pendingCodeChange && (
+                <div className="mx-4 mb-4 p-4 border-2 border-orange-500 bg-orange-50 dark:bg-orange-950/30 rounded-2xl">
+                  <div className="font-semibold text-orange-700 dark:text-orange-400 mb-2 flex items-center gap-2">
+                    <Zap size={18} /> Grok proposes a code change
+                  </div>
+                  <div className="text-sm mb-2">
+                    <strong>File:</strong> <code className="bg-black/10 px-1 rounded">{pendingCodeChange.file}</code>
+                  </div>
+                  <div className="text-sm mb-3">{pendingCodeChange.description}</div>
+                  
+                  <pre className="text-xs bg-black text-green-400 p-3 rounded overflow-auto max-h-48 mb-3">
+                    {pendingCodeChange.diff}
+                  </pre>
+
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(pendingCodeChange.diff);
+                        alert(`Diff copied!\n\nFile: ${pendingCodeChange.file}\n\nApply this in your editor and push to production.`);
+                        setPendingCodeChange(null);
+                      }}
+                      className="bg-orange-600 hover:bg-orange-700"
+                    >
+                      Copy Diff
+                    </Button>
+                    <Button variant="outline" onClick={() => setPendingCodeChange(null)}>
+                      Dismiss
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-2">
+                    Grok can now propose real code fixes for bugs. Future versions can apply changes more directly.
+                  </p>
+                </div>
+              )}
 
               {/* Input */}
               <div className="p-4 border-t bg-background rounded-b-3xl">
