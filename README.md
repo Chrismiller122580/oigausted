@@ -76,6 +76,8 @@ For a complete step-by-step checklist, see [PRODUCTION_CHECKLIST.md](./PRODUCTIO
 
 ## Despliegue en Vercel (Producción)
 
+**Preferred workflow**: Push to `main` for production-like testing (especially auth/Google login). Use local dev or Codespaces for rapid iteration. Avoid relying on random preview deployments for stable testing.
+
 1. Conecta el repositorio a Vercel.
 2. En Vercel Dashboard → Settings → Environment Variables, agrega todas las variables de `.env.example` (usa PostgreSQL para `DATABASE_URL`).
 3. **Importante para Auth**:

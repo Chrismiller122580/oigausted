@@ -2,6 +2,15 @@
 
 This checklist ensures a safe and complete production deployment on Vercel.
 
+## Preferred Workflow: Production over Previews
+
+To avoid issues with dynamic preview deployments (especially with Google OAuth `redirect_uri_mismatch`):
+
+- **For testing production-like behavior** (auth, Google login, payments, etc.): Push to `main`. This updates the stable production deployment on `https://oigagig.com` (and the main `oigausted.vercel.app`).
+- Use local development (`npm run dev` or `npm run dev:codespaces`) for rapid iteration.
+- Only use Vercel preview deployments when necessary, and be aware that each new preview gets a unique URL that must be manually added to Google Console for OAuth testing.
+- Treat previews as temporary — do not rely on them for stable auth or integration testing.
+
 ## Pre-Deployment
 
 - [ ] All sensitive data removed from code (no hardcoded secrets, demo accounts only in dev)
@@ -34,16 +43,18 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
 
 ## Google Maps (for gig location autocomplete in Create Gig + near-me filters)
 - [ ] Create a Google Cloud project and enable **Maps JavaScript API** + **Places API**
-- [ ] Create an API key and restrict it (HTTP referrers) to your production domain(s) e.g. `https://oigagig.com/*` and `https://*.vercel.app/*` for previews
+- [ ] Create an API key and restrict it (HTTP referrers) to your production domain: `https://oigagig.com/*`
 - [ ] Add `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` to Vercel Production env vars
 - [ ] (Optional but recommended) Also add it to your local `.env` / `.env.development.local` for dev
 
 ## Google OAuth (Recommended for Admin)
 
 - [ ] Create OAuth 2.0 Client ID in Google Cloud Console (Web application)
-- [ ] Add these in Google Console:
+- [ ] Add these in Google Console (production only):
   - Authorized JavaScript origins: `https://oigagig.com`
   - Authorized redirect URIs: `https://oigagig.com/api/auth/callback/google`
+- [ ] (Optional) Also add the main stable Vercel deployment: `https://oigausted.vercel.app/api/auth/callback/google`
+- [ ] **Note on Previews**: Each new Vercel preview deployment gets a unique random URL. These must be manually added to Google Console if you need to test Google login on a preview. For stable auth testing, push to `main` and test on `https://oigagig.com`.
 - [ ] Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in Vercel
 - [ ] Add `ADMIN_EMAILS=oigaustedcolombia@gmail.com` in Vercel (this Gmail will auto-become admin on Google login)
 
