@@ -90,6 +90,7 @@ export const authOptions = {
         const email = user.email.toLowerCase()
         const existing = await prisma.user.findUnique({
           where: { email },
+          select: { id: true, role: true }
         })
 
         // Support promoting specific real Gmail accounts to admin automatically
@@ -135,8 +136,12 @@ export const authOptions = {
       }
 
       // On subsequent requests, make sure we have fresh role from DB (in case it changed)
+      // Use explicit select to avoid breaking auth if other columns are temporarily missing in DB
       if (token.id && !user) {
-        const dbUser = await prisma.user.findUnique({ where: { id: token.id as string } })
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true }
+        })
         if (dbUser) {
           token.role = dbUser.role
         }
