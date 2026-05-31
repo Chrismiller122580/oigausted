@@ -18,40 +18,43 @@ export async function POST(request: NextRequest) {
 
     const GROK_API_KEY = process.env.GROK_API_KEY;
     if (!GROK_API_KEY) {
-      return Response.json({ reply: "Grok no está configurado en este momento. Por favor configura GROK_API_KEY." });
+      return Response.json({ reply: "Grok is not configured right now. Please set up your GROK_API_KEY." });
     }
 
     // Ultra-powerful system prompt for the smartest admin experience
     let systemPrompt = "Eres Grok Build, el asistente de IA más inteligente integrado en OigaUsted.";
 
     if (mode === "admin_build") {
-      systemPrompt = `Eres Grok Build — el asistente de IA más avanzado y agente integrado en el panel de administración de OigaUsted.
+      systemPrompt = `You are Grok Build — the most advanced agentic AI integrated into the OigaUsted admin panel.
 
-Eres extremadamente inteligente, proactivo, estratégico y orientado a resultados. Tu misión es actuar como un verdadero co-piloto que puede analizar, planificar y ejecutar tareas complejas dentro de la plataforma.
+You are extremely intelligent, proactive, strategic, and results-oriented. Your mission is to act as a true co-pilot that can deeply analyze, plan, and execute complex tasks across the platform.
 
-### Estilo de trabajo (IMPORTANTE):
-- Piensa paso a paso.
-- Cuando sea apropiado, propone un **plan claro** antes de actuar.
-- Usa herramientas de forma inteligente.
-- Siempre pide confirmación explícita antes de ejecutar acciones que modifiquen datos.
-- Ofrece el siguiente paso lógico después de cada interacción.
+### Working Style (IMPORTANT):
+- Think step by step.
+- When appropriate, propose a **clear plan** before taking action.
+- Use tools intelligently.
+- Always ask for explicit confirmation before executing actions that modify data.
+- Offer the next logical step after every interaction.
 
-### Tus herramientas actuales:
+### Your Available Tools:
 - get_user_stats(userId)
 - update_referral_rate(userId, newRate)
 - search_users(query)
 - get_platform_overview()
+- highlight_element(selector, durationMs) → Visually highlights elements on the current page (great for debugging UI bugs)
+- describe_element(selector) → Returns details about a DOM element
+- scroll_to(selector) → Smoothly scrolls the page to an element
 
-### Comportamiento esperado:
-- Cuando el usuario proporcione contexto (página actual, usuario seleccionado, problema específico), úsalo activamente.
-- Sé capaz de mantener conversaciones multi-turno complejas.
-- Sé directo, accionable y profesional.
-- Usa español claro y natural.
+### Expected Behavior:
+- When the user provides context (current page, selected user, specific problem), use it actively.
+- Maintain complex multi-turn conversations.
+- Be direct, actionable, and professional.
+- Default to English unless the user clearly switches languages.
 
-Contexto actual de la sesión:
-- Página / contexto: ${pageContext || 'Panel de administración'}
-- Datos seleccionados: ${selectedData ? JSON.stringify(selectedData).slice(0, 1200) : 'Ninguno'}
-- Contexto adicional: ${context}`;
+Current session context:
+- Page / context: ${pageContext || 'Admin Panel'}
+- Selected data: ${selectedData ? JSON.stringify(selectedData).slice(0, 1200) : 'None'}
+- Additional context: ${context}`;
     }
 
     // Build proper message history if provided (for real conversation memory)
@@ -123,6 +126,49 @@ Contexto actual de la sesión:
           description: "Get high-level platform stats (total users, sellers, revenue, pending payouts).",
           parameters: { type: "object", properties: {} }
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "highlight_element",
+          description: "Visually highlight a DOM element on the current admin page to help debug UI issues. Use CSS selectors.",
+          parameters: {
+            type: "object",
+            properties: {
+              selector: { type: "string", description: "CSS selector, e.g. '.user-table-row' or '#payout-button'" },
+              durationMs: { type: "number", description: "How long to highlight in milliseconds (default 4000)" }
+            },
+            required: ["selector"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "describe_element",
+          description: "Get details about a specific DOM element (text, classes, visibility). Useful for understanding the current UI state.",
+          parameters: {
+            type: "object",
+            properties: {
+              selector: { type: "string", description: "CSS selector" }
+            },
+            required: ["selector"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "scroll_to",
+          description: "Smoothly scroll the page to a specific element.",
+          parameters: {
+            type: "object",
+            properties: {
+              selector: { type: "string", description: "CSS selector to scroll to" }
+            },
+            required: ["selector"]
+          }
+        }
       }
     ];
 
@@ -148,7 +194,7 @@ Contexto actual de la sesión:
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
       console.error("Grok API error:", errorData);
-      return Response.json({ reply: "Error al comunicarse con Grok. Revisa tu API key o intenta más tarde." });
+      return Response.json({ reply: "Error communicating with Grok. Check your API key or try again later." });
     }
 
     // Streaming support (for the snappiest experience)

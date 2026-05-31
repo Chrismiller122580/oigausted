@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Sparkles, Bot, User, Zap, Mic, MicOff } from 'lucide-react';
+import { Send, Sparkles, Bot, User, Zap, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant' | 'tool';
@@ -27,31 +27,31 @@ interface ToolCall {
 }
 
 const BUILD_MODES = [
-  { id: 'chat', label: 'Chat General' },
-  { id: 'analyze', label: 'Analizar Datos' },
-  { id: 'generate', label: 'Generar Contenido' },
-  { id: 'improve', label: 'Mejorar Producto' },
+  { id: 'chat', label: 'General Chat' },
+  { id: 'analyze', label: 'Analyze Data' },
+  { id: 'generate', label: 'Generate Content' },
+  { id: 'improve', label: 'Improve Product' },
 ];
 
 const SUGGESTED_PROMPTS: Record<string, string[]> = {
   chat: [
-    "¿Qué métricas clave deberíamos estar mirando esta semana?",
-    "Resume el estado actual de los usuarios y vendedores",
+    "What key metrics should we be watching this week?",
+    "Summarize the current state of users and sellers",
   ],
   analyze: [
-    "Analiza los patrones de usuarios que se registran pero no publican gigs",
-    "Identifica posibles riesgos de churn en vendedores",
-    "Sugiere segmentos de usuarios para una campaña de reactivación",
+    "Analyze patterns of users who register but never post gigs",
+    "Identify potential churn risks among sellers",
+    "Suggest user segments for a reactivation campaign",
   ],
   generate: [
-    "Escribe un email para anunciar el nuevo programa de referidos",
-    "Crea 5 ideas de títulos atractivos para gigs de 'Diseño gráfico'",
-    "Redacta una notificación para usuarios cuando su pedido es completado",
+    "Write an email announcing the new referral program",
+    "Create 5 attractive gig title ideas for 'Graphic Design'",
+    "Draft a notification for users when their order is completed",
   ],
   improve: [
-    "Propón 5 mejoras para la experiencia de pago de vendedores",
-    "¿Cómo podemos aumentar la tasa de conversión de compradores?",
-    "Ideas para reducir el tiempo entre que un usuario se registra y publica su primer gig",
+    "Propose 5 improvements for the seller payout experience",
+    "How can we increase buyer conversion rate?",
+    "Ideas to reduce the time between user registration and first gig posting",
   ],
 };
 
@@ -59,7 +59,7 @@ export default function GrokBuildPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Hola. Soy Grok Build — la IA más inteligente integrada en OigaUsted.\n\nEstoy diseñado específicamente para ayudarte a construir, analizar, optimizar y escalar la plataforma. Puedo razonar profundamente sobre datos, usuarios, producto y operaciones.\n\n¿Qué quieres crear, analizar o mejorar hoy?',
+      content: 'Hello. I\'m Grok Build — the most capable AI integrated into OigaUsted.\n\nI\'m specifically designed to help you build, analyze, optimize, and scale the platform. I can reason deeply about data, users, product, and operations.\n\nWhat would you like to create, analyze, or improve today?',
     },
   ]);
   const [input, setInput] = useState('');
@@ -68,6 +68,7 @@ export default function GrokBuildPage() {
   const [customContext, setCustomContext] = useState(''); // Live context sent to Grok on every message (B)
   const [pendingAction, setPendingAction] = useState<any>(null); // For approval flow
   const [isListening, setIsListening] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true); // TTS enabled by default
 
   const sendMessage = async (customPrompt?: string) => {
     const messageText = customPrompt || input;
@@ -153,14 +154,19 @@ export default function GrokBuildPage() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Speak the response if voice is enabled
+      speak(cleanContent || rawContent);
     } catch (error) {
+      const errorMessage = 'There was an error connecting to Grok. Would you like to try again?';
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: 'Hubo un error conectándome con Grok. ¿Quieres intentarlo de nuevo?',
+          content: errorMessage,
         },
       ]);
+      speak(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -223,6 +229,46 @@ export default function GrokBuildPage() {
 
     if (name === 'search_users') {
       return { results: `Found users matching "${args.query}" (demo data)` };
+    }
+
+    // =====================
+    // UI CONTROL TOOLS (for fixing bugs visually)
+    // =====================
+    if (name === 'highlight_element') {
+      const selector = args.selector;
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(el => {
+        (el as HTMLElement).style.outline = '3px solid #f97316';
+        (el as HTMLElement).style.outlineOffset = '2px';
+        setTimeout(() => {
+          (el as HTMLElement).style.outline = '';
+        }, args.durationMs || 4000);
+      });
+      return { 
+        success: true, 
+        highlighted: elements.length,
+        selector 
+      };
+    }
+
+    if (name === 'describe_element') {
+      const el = document.querySelector(args.selector) as HTMLElement;
+      if (!el) return { error: 'Element not found' };
+      return {
+        tag: el.tagName,
+        text: el.innerText?.slice(0, 200),
+        classes: el.className,
+        visible: el.offsetParent !== null,
+      };
+    }
+
+    if (name === 'scroll_to') {
+      const el = document.querySelector(args.selector);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return { success: true };
+      }
+      return { error: 'Element not found' };
     }
 
     return { error: 'Tool not implemented' };
@@ -297,6 +343,36 @@ export default function GrokBuildPage() {
     }
   };
 
+  // =====================
+  // TEXT-TO-SPEECH (Speaking)
+  // =====================
+  const speak = (text: string) => {
+    if (!voiceEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    // Try to use a good English voice
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(v => 
+      v.lang.includes('en') && (v.name.includes('Samantha') || v.name.includes('Karen') || v.name.includes('Daniel'))
+    );
+    if (preferredVoice) utterance.voice = preferredVoice;
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  };
+
   // Voice input using Web Speech API
   const toggleVoiceInput = () => {
     if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
@@ -307,7 +383,7 @@ export default function GrokBuildPage() {
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognitionAPI();
 
-    recognition.lang = 'es-CO'; // Colombian Spanish
+    recognition.lang = 'en-US'; // Default to English
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
@@ -530,7 +606,7 @@ export default function GrokBuildPage() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                    placeholder={`Pregúntale a Grok en modo ${activeMode}... (o usa el micrófono)`}
+                    placeholder={`Ask Grok in ${activeMode} mode... (or use the mic)`}
                     className="flex-1 text-base py-6"
                     disabled={isLoading}
                   />
@@ -542,9 +618,24 @@ export default function GrokBuildPage() {
                     size="lg"
                     variant={isListening ? "destructive" : "outline"}
                     className={`px-4 transition-all ${isListening ? 'animate-pulse' : ''}`}
-                    title={isListening ? "Detener escucha" : "Hablar con Grok"}
+                    title={isListening ? "Stop listening" : "Speak to Grok"}
                   >
                     {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                  </Button>
+
+                  {/* Text-to-Speech Toggle */}
+                  <Button
+                    onClick={() => {
+                      setVoiceEnabled(!voiceEnabled);
+                      if (voiceEnabled) stopSpeaking();
+                    }}
+                    disabled={isLoading}
+                    size="lg"
+                    variant={voiceEnabled ? "default" : "outline"}
+                    className="px-4"
+                    title={voiceEnabled ? "Disable voice responses" : "Enable voice responses"}
+                  >
+                    {voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
                   </Button>
 
                   <Button 
@@ -558,7 +649,7 @@ export default function GrokBuildPage() {
                 </div>
                 {isListening && (
                   <p className="text-center text-sm text-red-500 mt-2 flex items-center justify-center gap-2">
-                    <span className="animate-pulse">🎤</span> Escuchando... habla ahora
+                    <span className="animate-pulse">🎤</span> Listening... speak now
                   </p>
                 )}
                 <p className="text-[10px] text-muted-foreground mt-2 text-center">
