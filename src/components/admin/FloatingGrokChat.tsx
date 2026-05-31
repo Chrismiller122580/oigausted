@@ -205,8 +205,9 @@ export default function FloatingGrokChat() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-yellow-500 to-orange-600 text-white shadow-2xl hover:scale-105 transition-transform"
+          className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-yellow-500 to-orange-600 text-white shadow-2xl hover:scale-105 transition-transform"
           title="Chat with Grok"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           <div className="relative">
             <Bot className="h-7 w-7" />
@@ -219,7 +220,7 @@ export default function FloatingGrokChat() {
 
       {/* Floating Chat Panel */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-[9999] w-[380px] h-[520px] flex flex-col rounded-3xl border bg-card shadow-2xl overflow-hidden">
+        <div className="fixed bottom-0 right-0 left-0 sm:bottom-6 sm:right-6 sm:left-auto z-[9999] w-full sm:w-[380px] h-[85dvh] sm:h-[520px] flex flex-col rounded-t-3xl sm:rounded-3xl border bg-card shadow-2xl overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between bg-gradient-to-r from-yellow-500 to-orange-600 p-4 text-white">
             <div className="flex items-center gap-3">
@@ -267,7 +268,7 @@ export default function FloatingGrokChat() {
           </div>
 
           {/* Controls */}
-          <div className="p-3 border-t bg-background">
+          <div className="p-3 border-t bg-background pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
             <div className="flex items-center gap-2 mb-2">
               {/* Language */}
               <select
