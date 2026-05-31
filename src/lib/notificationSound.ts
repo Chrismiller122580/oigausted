@@ -17,6 +17,8 @@ export function playNotificationSound(volume = 0.12) {
       audioContext = new AudioContextCtor();
     }
 
+    if (!audioContext) return; // TS strict null check safety
+
     const audio = audioContext;
     const t = audio.currentTime;
 
