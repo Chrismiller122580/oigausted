@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Sparkles, Bot, User, Zap, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
@@ -69,6 +69,29 @@ export default function GrokBuildPage() {
   const [pendingAction, setPendingAction] = useState<any>(null); // For approval flow
   const [isListening, setIsListening] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true); // TTS enabled by default
+  const [language, setLanguage] = useState<'en' | 'es'>('en'); // Default to English
+  const [selectedVoice, setSelectedVoice] = useState<string>(''); // TTS voice name
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  // Load available voices for TTS
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis?.getVoices() || [];
+      setAvailableVoices(voices);
+      if (!selectedVoice && voices.length > 0) {
+        // Prefer a good English voice
+        const preferred = voices.find(v => 
+          v.lang.includes('en') && (v.name.includes('Samantha') || v.name.includes('Karen') || v.name.includes('Daniel') || v.name.includes('Google'))
+        ) || voices[0];
+        setSelectedVoice(preferred.name);
+      }
+    };
+
+    if ('speechSynthesis' in window) {
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }, []);
 
   const sendMessage = async (customPrompt?: string) => {
     const messageText = customPrompt || input;
@@ -93,9 +116,10 @@ export default function GrokBuildPage() {
         body: JSON.stringify({
           prompt: messageText,
           mode: 'admin_build',
-          pageContext: `Admin Panel - Modo: ${activeMode}`,
+          pageContext: `Admin Panel - Mode: ${activeMode}`,
           selectedData: customContext ? { description: customContext } : null,
           history: conversationHistory,
+          language: language, // Send current language preference
         }),
       });
 
@@ -127,7 +151,7 @@ export default function GrokBuildPage() {
         setMessages(prev => [...prev, toolMessage]);
 
         // Continue the conversation with tool result
-        await sendMessageWithHistory([...messages, toolMessage as any], messageText);
+        await sendMessageWithHistory([...messages, toolMessage as any], messageText, language);
         return;
       }
 
@@ -173,7 +197,7 @@ export default function GrokBuildPage() {
   };
 
   // Helper to continue after tool execution
-  const sendMessageWithHistory = async (historyMessages: Message[], originalPrompt: string) => {
+  const sendMessageWithHistory = async (historyMessages: Message[], originalPrompt: string, currentLang = language) => {
     try {
       const res = await fetch('/api/grok', {
         method: 'POST',
@@ -186,6 +210,8 @@ export default function GrokBuildPage() {
             content: m.content,
             tool_call_id: (m as any).tool_call_id
           })),
+          pageContext: `Admin Panel - Mode: ${activeMode}`,
+          language: currentLang,
         }),
       });
 
@@ -395,20 +421,26 @@ export default function GrokBuildPage() {
   const speak = (text: string) => {
     if (!voiceEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
-    // Cancel any ongoing speech
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
+    utterance.lang = language === 'es' ? 'es-ES' : 'en-US';
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
 
-    // Try to use a good English voice
+    // Use selected voice if available
     const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(v => 
-      v.lang.includes('en') && (v.name.includes('Samantha') || v.name.includes('Karen') || v.name.includes('Daniel'))
-    );
-    if (preferredVoice) utterance.voice = preferredVoice;
+    const voice = voices.find(v => v.name === selectedVoice);
+    if (voice) {
+      utterance.voice = voice;
+    } else {
+      // Fallback
+      const fallback = voices.find(v => 
+        (language === 'es' ? v.lang.includes('es') : v.lang.includes('en')) &&
+        (v.name.includes('Samantha') || v.name.includes('Karen') || v.name.includes('Daniel') || v.name.includes('Google'))
+      );
+      if (fallback) utterance.voice = fallback;
+    }
 
     window.speechSynthesis.speak(utterance);
   };
@@ -499,9 +531,42 @@ export default function GrokBuildPage() {
           </div>
 
           <div className="text-xs px-3 py-1 bg-muted rounded-full text-muted-foreground flex items-center gap-1">
-            Contexto: Panel de Administración • Modo {activeMode}
-            {customContext && <span className="text-orange-500">• Contexto personalizado adjunto</span>}
+            Context: Admin Panel • Mode {activeMode}
+            {customContext && <span className="text-orange-500">• Context attached</span>}
           </div>
+
+          {/* Language Selector */}
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-xs text-muted-foreground">Language:</span>
+            <select 
+              value={language} 
+              onChange={(e) => setLanguage(e.target.value as 'en' | 'es')}
+              className="text-xs border rounded px-2 py-1 bg-background"
+            >
+              <option value="en">English</option>
+              <option value="es">Español</option>
+            </select>
+          </div>
+
+          {/* Voice Selector for TTS */}
+          {voiceEnabled && availableVoices.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Voice:</span>
+              <select 
+                value={selectedVoice} 
+                onChange={(e) => setSelectedVoice(e.target.value)}
+                className="text-xs border rounded px-2 py-1 bg-background max-w-[160px]"
+              >
+                {availableVoices
+                  .filter(v => language === 'es' ? v.lang.includes('es') : v.lang.includes('en'))
+                  .map(voice => (
+                    <option key={voice.name} value={voice.name}>
+                      {voice.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
