@@ -134,6 +134,9 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             <Link href="/admin/reports" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               Reportes
             </Link>
+            <Link href="/admin/grok-build" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border font-medium">
+              ✨ Grok Build
+            </Link>
 
             <div className="pt-6">
               <Button 

@@ -35,7 +35,7 @@ export function welcomeEmail({ userName = 'Usuario' }: BaseEmailProps) {
         </div>
 
         <p style="color: #666; font-size: 14px; text-align: center;">
-          ¿Tienes preguntas? Escríbenos a <a href="mailto:soporte@oigagig.co.com" style="color: #f97316;">soporte@oigagig.co.com</a>
+          ¿Tienes preguntas? Escríbenos a <a href="mailto:support@support.oigagig.com" style="color: #f97316;">support@support.oigagig.com</a>
         </p>
       </div>
     `

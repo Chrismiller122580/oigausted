@@ -1,3 +1,13 @@
 {
-  "buildCommand": "prisma generate && prisma migrate deploy && next build"
+  "buildCommand": "prisma generate && prisma migrate deploy && next build",
+  "crons": [
+    {
+      "path": "/api/notifications/digest?frequency=daily",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/notifications/digest?frequency=weekly",
+      "schedule": "0 8 * * 1"
+    }
+  ]
 }

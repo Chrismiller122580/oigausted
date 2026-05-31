@@ -97,13 +97,14 @@ export async function POST(req: NextRequest) {
 
     console.log("✅ Gig created successfully:", gig.id);
 
-    // Send confirmation to seller
+    // Send confirmation to seller (now also sends templated email)
     await notifications.sendInApp(
       sellerId,
       'gig',
       '¡Gig publicado exitosamente!',
       `Tu servicio "${title}" ya está visible para los compradores.`,
-      `/seller/gigs`
+      `/seller/gigs`,
+      { gigTitle: title }
     );
 
     return NextResponse.json({ 

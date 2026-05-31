@@ -21,6 +21,7 @@ interface User {
   nit?: string | null;
   isActive?: boolean;
   createdAt: string;
+  customReferralRate?: number | null;
   _count?: {
     gigs: number;
     ordersAsBuyer: number;
@@ -117,6 +118,7 @@ export default function AdminUsersPage() {
 
       bio: (user as any).bio || '',
       nit: (user as any).nit || '',
+      customReferralRate: user.customReferralRate ?? '',
     });
   };
 
@@ -231,7 +233,7 @@ export default function AdminUsersPage() {
       return;
     }
 
-    const headers = ['ID', 'Nombre', 'Email', 'Rol', 'Activo', 'Negocio', 'Teléfono', 'WhatsApp', 'Ciudad', 'Fecha Registro'];
+    const headers = ['ID', 'Nombre', 'Email', 'Rol', 'Activo', 'Negocio', 'Custom Ref %', 'Teléfono', 'WhatsApp', 'Ciudad', 'Fecha Registro'];
     
     const rows = filteredUsers.map(u => [
       u.id,
@@ -240,6 +242,7 @@ export default function AdminUsersPage() {
       u.role,
       u.isActive ? 'Sí' : 'No',
       u.businessName || '',
+      u.customReferralRate != null ? (u.customReferralRate * 100).toFixed(1) + '%' : 'default (5%)',
       u.phone || '',
       (u as any).whatsapp || '',
       (u as any).city || '',
@@ -325,6 +328,7 @@ export default function AdminUsersPage() {
                   <th className="text-left p-4 font-medium text-zinc-400">Rol</th>
                   <th className="text-left p-4 font-medium text-zinc-400">Estado</th>
                   <th className="text-left p-4 font-medium text-zinc-400">Negocio</th>
+                  <th className="text-center p-4 font-medium text-zinc-400">Ref Rate</th>
                   <th className="text-center p-4 font-medium text-zinc-400">Gigs</th>
                   <th className="text-right p-4 font-medium text-zinc-400">Acciones</th>
                 </tr>
@@ -332,7 +336,7 @@ export default function AdminUsersPage() {
               <tbody>
                 {filteredUsers.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="p-12 text-center">
+                    <td colSpan={8} className="p-12 text-center">
                       <p className="text-lg text-zinc-400">No se encontraron usuarios.</p>
                       <p className="text-sm text-zinc-500 mt-1">Intenta con otro término de búsqueda.</p>
                     </td>
@@ -366,6 +370,15 @@ export default function AdminUsersPage() {
                       )}
                     </td>
                     <td className="p-4 text-zinc-300">{user.businessName || '—'}</td>
+                    <td className="p-4 text-center">
+                      {user.customReferralRate != null ? (
+                        <span className="inline-block px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-semibold">
+                          {(user.customReferralRate * 100).toFixed(1)}%
+                        </span>
+                      ) : (
+                        <span className="text-xs text-zinc-500">default 5%</span>
+                      )}
+                    </td>
                     <td className="p-4">
                       <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         user.isActive !== false ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
@@ -494,6 +507,27 @@ export default function AdminUsersPage() {
                     value={editForm.nit} 
                     onChange={(e) => setEditForm({...editForm, nit: e.target.value})}
                   />
+                </div>
+
+                {/* Special admin field for per-referrer custom commission */}
+                <div className="md:col-span-2">
+                  <Label>Custom Referral Commission Rate (overrides global 5%)</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input 
+                      type="number"
+                      step="0.001"
+                      min="0"
+                      max="0.3"
+                      placeholder="0.05 (default 5%)"
+                      value={editForm.customReferralRate}
+                      onChange={(e) => setEditForm({...editForm, customReferralRate: e.target.value})}
+                      className="w-32"
+                    />
+                    <span className="text-sm text-muted-foreground">% (leave blank for global default)</span>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 mt-1">
+                    This user will earn this % as referrer on their referred sellers' completed orders.
+                  </p>
                 </div>
               </div>
 

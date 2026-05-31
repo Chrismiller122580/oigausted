@@ -23,8 +23,11 @@ export async function GET() {
 
     const users = await prisma.user.findMany({
       where: { id: { in: referrerIds } },
-      select: { id: true, name: true, email: true }
+      select: { id: true, name: true, email: true, customReferralRate: true }
     })
+
+    const config = await prisma.platformConfig.findFirst()
+    const globalRate = config?.referralCommissionRate ?? 0.05
 
     // Count referred users per referrer
     const referredCounts = await prisma.user.groupBy({
@@ -37,6 +40,9 @@ export async function GET() {
 
     const result = earnings.map(e => {
       const user = users.find(u => u.id === e.referrerId)
+      const customRate = user?.customReferralRate
+      const effectiveRate = customRate != null ? customRate : globalRate
+
       return {
         referrer: {
           id: e.referrerId,
@@ -46,6 +52,8 @@ export async function GET() {
         referredCount: referredCountMap.get(e.referrerId) || 0,
         totalGenerated: e._sum.amount || 0,
         earningsCount: e._count.id,
+        effectiveReferralRate: effectiveRate,
+        customReferralRate: customRate,
       }
     })
 

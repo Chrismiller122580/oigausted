@@ -258,6 +258,21 @@ export default function ReferralsPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-sm text-muted-foreground">Tu tasa de comisión</p>
+                <p className="text-3xl font-bold mt-1 text-orange-600">
+                  {((stats.referralRate || 0.05) * 100).toFixed(1)}%
+                </p>
+                <p className="text-[10px] text-muted-foreground">por cada venta de tus referidos</p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm text-muted-foreground">Pendiente de pago</p>
                 <p className="text-3xl font-bold mt-1 text-orange-600">
                   ${(stats.pendingEarnings ?? 0).toLocaleString('es-CO')}

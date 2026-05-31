@@ -4,6 +4,7 @@ import "./globals.css";
 import NavbarWrapper from "@/components/layout/NavbarWrapper";
 import SessionProviderWrapper from "@/components/providers/SessionProviderWrapper";
 import MaintenanceBanner from "@/components/layout/MaintenanceBanner";
+import { Toaster } from "sonner"; // 2027-grade beautiful toasts
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -135,6 +136,7 @@ export default function RootLayout({
           <NavbarWrapper>
             {children}
           </NavbarWrapper>
+          <Toaster position="top-center" richColors closeButton />
         </SessionProviderWrapper>
       </body>
     </html>

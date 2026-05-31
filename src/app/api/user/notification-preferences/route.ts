@@ -28,6 +28,16 @@ export async function GET() {
           gigUpdates: true,
           reviewAlerts: true,
           paymentAlerts: true,
+          messageAlerts: true,
+          systemAlerts: true,
+          desktopNotifications: true,
+          soundEnabled: true,
+          quietHoursEnabled: false,
+          quietHoursStart: "22:00",
+          quietHoursEnd: "08:00",
+          digestEnabled: false,
+          digestFrequency: "daily",
+          maxNotificationsPerHour: 8,
         }
       });
     }
@@ -60,6 +70,16 @@ export async function PUT(req: NextRequest) {
         gigUpdates: body.gigUpdates ?? undefined,
         reviewAlerts: body.reviewAlerts ?? undefined,
         paymentAlerts: body.paymentAlerts ?? undefined,
+        messageAlerts: body.messageAlerts ?? undefined,
+        systemAlerts: body.systemAlerts ?? undefined,
+        desktopNotifications: body.desktopNotifications ?? undefined,
+        soundEnabled: body.soundEnabled ?? undefined,
+        quietHoursEnabled: body.quietHoursEnabled ?? undefined,
+        quietHoursStart: body.quietHoursStart ?? undefined,
+        quietHoursEnd: body.quietHoursEnd ?? undefined,
+        digestEnabled: body.digestEnabled ?? undefined,
+        digestFrequency: body.digestFrequency ?? undefined,
+        maxNotificationsPerHour: body.maxNotificationsPerHour ?? undefined,
       },
       create: {
         userId: session.user.id,
@@ -71,6 +91,16 @@ export async function PUT(req: NextRequest) {
         gigUpdates: body.gigUpdates ?? true,
         reviewAlerts: body.reviewAlerts ?? true,
         paymentAlerts: body.paymentAlerts ?? true,
+        messageAlerts: body.messageAlerts ?? true,
+        systemAlerts: body.systemAlerts ?? true,
+        desktopNotifications: body.desktopNotifications ?? true,
+        soundEnabled: body.soundEnabled ?? true,
+        quietHoursEnabled: body.quietHoursEnabled ?? false,
+        quietHoursStart: body.quietHoursStart ?? "22:00",
+        quietHoursEnd: body.quietHoursEnd ?? "08:00",
+        digestEnabled: body.digestEnabled ?? false,
+        digestFrequency: body.digestFrequency ?? "daily",
+        maxNotificationsPerHour: body.maxNotificationsPerHour ?? 8,
       }
     });
 

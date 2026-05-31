@@ -6,6 +6,7 @@ import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DollarSign, TrendingUp, Calendar, Download, Package, Users } from 'lucide-react';
+import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG } from '@/lib/payout';
 
 export default function SellerEarningsPage() {
   const { data: session } = useSession();
@@ -33,27 +34,41 @@ export default function SellerEarningsPage() {
       const sellerOrders = Array.isArray(data) ? data : [];
 
       const completedOrders = sellerOrders.filter(o => o.status === 'Completed');
-      const pendingOrders = sellerOrders.filter(o => o.status === 'Completed' && o.paymentStatus !== 'Paid'); // adjust if you have paymentStatus
 
-      const total = completedOrders.reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+      // Proper accounting using centralized payout logic
+      const completedWithBreakdown = completedOrders.map(o => {
+        const breakdown = calculateOrderPayout(
+          Number(o.price) || 0,
+          !!o.seller?.referredById, // seller was referred → referral fee applies
+          DEFAULT_PAYOUT_CONFIG
+        );
+        return { ...o, breakdown };
+      });
 
-      // This month calculation
+      const aggregated = aggregatePayouts(completedWithBreakdown.map(o => o.breakdown));
+
+      // This month net
       const now = new Date();
-      const thisMonth = completedOrders
-        .filter(o => new Date(o.createdAt).getMonth() === now.getMonth() && new Date(o.createdAt).getFullYear() === now.getFullYear())
-        .reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+      const thisMonthOrders = completedWithBreakdown.filter(o =>
+        new Date(o.createdAt).getMonth() === now.getMonth() &&
+        new Date(o.createdAt).getFullYear() === now.getFullYear()
+      );
+      const thisMonthNet = aggregatePayouts(thisMonthOrders.map(o => o.breakdown)).netToSeller;
 
-      // For "pending", we'll treat orders that are Completed but not yet paid (you may want to refine this)
+      // Pending gross (for display)
       const pendingAmount = sellerOrders
         .filter(o => o.status === 'Completed' && (o.paymentStatus !== 'Paid'))
         .reduce((sum, o) => sum + (Number(o.price) || 0), 0);
 
       setEarnings({
-        total,
-        thisMonth,
+        total: aggregated.netToSeller,
+        thisMonth: thisMonthNet,
         pending: pendingAmount,
         completedGigs: completedOrders.length,
-      });
+        grossTotal: aggregated.grossAmount,
+        platformFees: aggregated.platformFee,
+        referralFees: aggregated.referralFee,
+      } as any);
 
       // Build transaction list from completed orders
       const tx = completedOrders
@@ -116,7 +131,16 @@ export default function SellerEarningsPage() {
             <CardContent className="p-8">
               <DollarSign className="w-12 h-12 text-green-600 mb-4" />
               <p className="text-sm text-muted-foreground">Total Ganado</p>
-              <p className="text-4xl font-bold mt-2 text-foreground">${earnings.total.toLocaleString('es-CO')}</p>
+              <p className="text-4xl font-bold mt-2 text-foreground">${(earnings.total || 0).toLocaleString('es-CO')}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Bruto: ${(earnings.grossTotal || 0).toLocaleString('es-CO')}
+                {earnings.platformFees > 0 && (
+                  <> • Plataforma: -${(earnings.platformFees || 0).toLocaleString('es-CO')}</>
+                )}
+                {earnings.referralFees > 0 && (
+                  <> • Referidos: -${(earnings.referralFees || 0).toLocaleString('es-CO')}</>
+                )}
+              </p>
             </CardContent>
           </Card>
 
@@ -190,6 +214,11 @@ export default function SellerEarningsPage() {
 
         <div className="mt-12 text-center text-muted-foreground text-sm">
           Los retiros a cuenta bancaria y reportes avanzados estarán disponibles próximamente.
+
+          <div className="mt-6 text-xs text-muted-foreground border-t pt-4">
+            <strong>Nota sobre comisiones:</strong> Tus ganancias netas consideran la comisión de plataforma (12%) 
+            y, si aplica, la comisión por referido (5%). Los números arriba son estimaciones basadas en la configuración actual.
+          </div>
         </div>
       </div>
     </div>

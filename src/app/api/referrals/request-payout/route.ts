@@ -60,7 +60,13 @@ export async function POST() {
         title: 'Solicitud de pago por referidos',
         message,
         link: '/admin/referrals',
-        data: { referrerId: userId, amount: totalPending }
+        data: { 
+          referrerId: userId, 
+          amount: totalPending,
+          actions: [
+            { label: 'Ver solicitud', action: 'view' }
+          ]
+        }
       })
     }
 

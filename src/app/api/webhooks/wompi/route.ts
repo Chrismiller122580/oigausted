@@ -119,26 +119,23 @@ export async function POST(request: Request) {
       })
 
       if (transaction.status === 'APPROVED' && updatedOrder.buyer) {
-        await notifications.sendEmail(
-          updatedOrder.buyer.id,
-          '¡Pago confirmado!',
-          `Tu pago por el servicio "${updatedOrder.gig.title}" ha sido confirmado. El vendedor ya puede comenzar.`,
-          `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/orders/${orderId}`
-        )
-
+        // Payment confirmation now triggers both in-app + email automatically
         await notifications.sendInApp(
           updatedOrder.buyer.id,
           'payment',
           '¡Pago confirmado!',
           `Tu pago por "${updatedOrder.gig.title}" fue exitoso.`,
-          `/orders/${orderId}`
+          `/orders/${orderId}`,
+          { gigTitle: updatedOrder.gig.title, amount: updatedOrder.price, orderId }
         )
 
-        // Create referral earning if seller was referred (for Paid status)
+        // Create referral earning if seller was referred (for Paid status).
+        // Uses per-referrer custom rate (editable in admin users page) or global default.
+        // Accounting model lives in src/lib/payout.ts
         if (updatedOrder.seller?.referredById) {
           try {
-            const config = await prisma.platformConfig.findFirst()
-            const referralRate = config?.referralCommissionRate ?? 0.05
+            const { getEffectiveReferralRate } = await import('@/lib/payout')
+            const referralRate = await getEffectiveReferralRate(updatedOrder.seller.referredById)
             const referralAmount = Math.round(updatedOrder.price * referralRate)
 
             if (referralAmount > 0) {

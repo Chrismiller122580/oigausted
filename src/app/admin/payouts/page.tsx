@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'react-hot-toast';
+import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG, aggregatePayouts } from '@/lib/payout';
 
 export default function AdminPayoutsPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -11,12 +12,22 @@ export default function AdminPayoutsPage() {
 
   const fetchCompleted = async () => {
     try {
-      const res = await fetch('/api/orders?role=seller'); // reuse, gets all for admin view in practice
+      const res = await fetch('/api/orders?role=seller'); // admin view
       const data = await res.json();
       const list = Array.isArray(data) ? data : [];
-      // Filter to completed only for payouts view
       const completed = list.filter((o: any) => o.status === 'Completed');
-      setOrders(completed);
+
+      // Apply proper accounting
+      const withBreakdown = completed.map((o: any) => {
+        const breakdown = calculateOrderPayout(
+          Number(o.price) || 0,
+          !!o.seller?.referredById,
+          DEFAULT_PAYOUT_CONFIG
+        );
+        return { ...o, breakdown };
+      });
+
+      setOrders(withBreakdown);
     } catch (e) {
       toast.error('Error cargando pagos');
     } finally {
@@ -29,20 +40,32 @@ export default function AdminPayoutsPage() {
   }, []);
 
   const markAsPaid = (orderId: string) => {
-    // For beta: just remove from list + toast. In production we'd update a payout status.
-    setOrders(prev => prev.filter(o => o.id !== orderId));
-    toast.success('Pago marcado como realizado (simulado para beta)');
+    // TODO: In production this should:
+    // 1. Create a real Payout record
+    // 2. Update order with payout status
+    // 3. Mark related ReferralEarning as Paid if applicable
+    setOrders(prev => prev.filter((o: any) => o.id !== orderId));
+    toast.success('Pago marcado como realizado (beta - contabilidad corregida)');
   };
 
-  const totalPending = orders.reduce((sum, o) => sum + (o.price || 0), 0);
+  const aggregated = aggregatePayouts(orders.map((o: any) => o.breakdown || { grossAmount: o.price || 0, platformFee: 0, referralFee: 0, netToSeller: o.price || 0, referralApplies: false, totalPlatformCost: 0 }));
+  const totalNetToSellers = aggregated.netToSeller;
+  const totalPlatformRevenue = aggregated.platformFee;
+  const totalReferralLiability = aggregated.referralFee;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-8">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-5xl font-bold mb-2">Pagos a Vendedores</h1>
-        <p className="text-zinc-400 mb-8">
-          Total pendiente de pago: <span className="font-bold text-2xl text-emerald-400">${totalPending.toLocaleString('es-CO')}</span>
-        </p>
+        <div className="text-zinc-400 mb-8 space-y-1">
+          <div>
+            Neto a pagar a vendedores: <span className="font-bold text-2xl text-emerald-400">${totalNetToSellers.toLocaleString('es-CO')}</span>
+          </div>
+          <div className="text-sm">
+            Ingreso plataforma estimado: <span className="font-semibold text-amber-400">${totalPlatformRevenue.toLocaleString('es-CO')}</span> &nbsp;•&nbsp;
+            Pasivo referidos: <span className="font-semibold">${totalReferralLiability.toLocaleString('es-CO')}</span>
+          </div>
+        </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -68,8 +91,9 @@ export default function AdminPayoutsPage() {
                   </div>
                   <div className="flex items-center gap-6">
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-emerald-400">${(order.price || 0).toLocaleString('es-CO')}</p>
-                      <p className="text-xs text-zinc-500">Completado</p>
+                      <p className="text-2xl font-bold text-emerald-400">${(order.breakdown?.netToSeller || order.price || 0).toLocaleString('es-CO')}</p>
+                      <p className="text-xs text-zinc-400 line-through">${(order.price || 0).toLocaleString('es-CO')} bruto</p>
+                      <p className="text-[10px] text-zinc-500">Neto a vendedor</p>
                     </div>
                     <Button onClick={() => markAsPaid(order.id)} className="bg-emerald-600 hover:bg-emerald-700">
                       Marcar como Pagado

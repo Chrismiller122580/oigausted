@@ -93,11 +93,13 @@ export async function PATCH(
       }
     })
 
-    // Create referral earning if order is completed and seller was referred
+    // Create referral earning if order is completed and seller was referred.
+    // Uses per-user custom rate if set on the referrer, otherwise global default (5%).
+    // Note: The actual accounting (net to seller) lives in src/lib/payout.ts
     if (status === 'Completed' && updatedOrder.seller?.referredById) {
       try {
-        const config = await prisma.platformConfig.findFirst();
-        const referralRate = config?.referralCommissionRate ?? 0.05;
+        const { getEffectiveReferralRate } = await import('@/lib/payout');
+        const referralRate = await getEffectiveReferralRate(updatedOrder.seller.referredById);
 
         const referralAmount = Math.round(updatedOrder.price * referralRate);
 
@@ -139,44 +141,44 @@ export async function PATCH(
         ? updatedOrder.buyerId 
         : updatedOrder.sellerId
 
+      // Smart contextual actions based on new status
+      let actions: any[] = [{ label: 'Ver Pedido', action: 'view_order' }];
+
+      if (status === 'In Progress') {
+        actions = [
+          { label: 'Ver Pedido', action: 'view_order' },
+          { label: 'Marcar como Enviado', action: 'mark_as_shipped' },
+        ];
+      } else if (status === 'Completed') {
+        actions = [
+          { label: 'Ver Pedido', action: 'view_order' },
+          { label: 'Dejar Reseña', action: 'request_review' },
+        ];
+      }
+
       await notifications.sendInApp(
         recipientId,
         'order',
         `Pedido actualizado a "${status}"`,
         `Tu pedido para "${updatedOrder.gig.title}" ha cambiado a estado: ${status}.`,
-        `/orders/${orderId}`
+        `/orders/${orderId}`,
+        { 
+          gigTitle: updatedOrder.gig.title, 
+          amount: updatedOrder.price, 
+          orderId,
+          newStatus: status,
+          actions
+        }
       )
 
-      // Send real email for key status changes
-      if (['In Progress', 'Completed', 'Cancelled'].includes(status)) {
-        await notifications.sendEmail(
-          recipientId,
-          `Actualización de pedido: ${status}`,
-          `El estado de tu pedido para "${updatedOrder.gig.title}" ahora es: ${status}.`,
-          `/orders/${orderId}`,
-          { 
-            gigTitle: updatedOrder.gig.title, 
-            amount: updatedOrder.price, 
-            orderId,
-            newStatus: status 
-          }
-        )
-      }
-
       // Special nice notification when order is completed → prompt for review
+      // (email for both status update + review prompt now sent automatically via the notification system)
       if (status === 'Completed') {
         await notifications.sendInApp(
           updatedOrder.buyerId,
           'review',
           '¡Pedido completado! Déjanos tu reseña',
           `Tu pedido "${updatedOrder.gig.title}" ha sido completado. ¿Nos dejas una reseña?`,
-          `/orders/${orderId}`
-        );
-
-        await notifications.sendEmail(
-          updatedOrder.buyerId,
-          '¡Tu pedido está completo! Cuéntanos cómo te fue',
-          `Gracias por confiar en OigaUsted. Tu servicio "${updatedOrder.gig.title}" ha sido marcado como completado. Nos encantaría saber tu opinión.`,
           `/orders/${orderId}`,
           { gigTitle: updatedOrder.gig.title, orderId }
         );

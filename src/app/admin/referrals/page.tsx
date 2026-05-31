@@ -78,6 +78,7 @@ export default function AdminReferralsPage() {
                     <th className="text-left py-3 px-4">Email</th>
                     <th className="text-center py-3 px-4">Invitados</th>
                     <th className="text-center py-3 px-4">Comisiones generadas</th>
+                    <th className="text-center py-3 px-4">Effective Rate</th>
                     <th className="text-right py-3 px-4">Total ganado</th>
                   </tr>
                 </thead>
@@ -88,6 +89,14 @@ export default function AdminReferralsPage() {
                       <td className="py-3 px-4 text-muted-foreground">{row.referrer.email}</td>
                       <td className="py-3 px-4 text-center">{row.referredCount}</td>
                       <td className="py-3 px-4 text-center">{row.earningsCount}</td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="inline-block px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-medium">
+                          {((row.effectiveReferralRate || 0.05) * 100).toFixed(1)}%
+                          {row.customReferralRate != null && (
+                            <span className="ml-1 text-[9px]">(custom)</span>
+                          )}
+                        </span>
+                      </td>
                       <td className="py-3 px-4 text-right font-medium">
                         ${(row.totalGenerated || 0).toLocaleString('es-CO')}
                       </td>

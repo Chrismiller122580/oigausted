@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
         createdAt: true,
         rating: true,
         reviewCount: true,
+        customReferralRate: true,
         _count: {
           select: {
             gigs: true,
@@ -73,7 +74,8 @@ export async function PATCH(req: NextRequest) {
       city, 
       bio,
       nit,
-      isActive 
+      isActive,
+      customReferralRate 
     } = await req.json();
 
     if (!userId) {
@@ -92,6 +94,7 @@ export async function PATCH(req: NextRequest) {
         ...(bio !== undefined && { bio }),
         ...(nit !== undefined && { nit }),
         ...(isActive !== undefined && { isActive }),
+        ...(customReferralRate !== undefined && { customReferralRate: customReferralRate === '' || customReferralRate == null ? null : parseFloat(customReferralRate) }),
       },
       select: { 
         id: true, 
@@ -103,7 +106,8 @@ export async function PATCH(req: NextRequest) {
         whatsapp: true,
 
         bio: true,
-        nit: true
+        nit: true,
+        customReferralRate: true
       }
     });
 
@@ -125,6 +129,7 @@ export async function PATCH(req: NextRequest) {
           ...(bio !== undefined && { bio }),
           ...(nit !== undefined && { nit }),
           ...(isActive !== undefined && { isActive }),
+          ...(customReferralRate !== undefined && { customReferralRate }),
         }),
       },
     });

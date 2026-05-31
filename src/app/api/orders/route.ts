@@ -65,13 +65,38 @@ export async function POST(request: Request) {
       }
     });
 
-    // Notify seller about new order
+    // Notify seller about new order (email will be sent automatically by the notification system)
     await notifications.sendInApp(
       gig.sellerId,
       'order',
       'Nuevo pedido recibido',
       `Tienes un nuevo pedido por "${gig.title}" de ${order.buyer?.name || 'un comprador'}.`,
-      `/orders/${order.id}`
+      `/orders/${order.id}`,
+      {
+        gigTitle: gig.title,
+        amount: Number(price),
+        buyerName: order.buyer?.name || 'Un comprador',
+        orderId: order.id,
+        actions: [
+          { label: 'Ver Pedido', action: 'view_order' },
+          { label: 'Iniciar Pedido', action: 'start_order' },
+        ]
+      }
+    );
+
+    // Also notify the buyer (confirmation) - will trigger email too
+    await notifications.sendInApp(
+      session.user.id,
+      'order',
+      'Pedido creado',
+      `Tu pedido para "${gig.title}" fue registrado correctamente.`,
+      `/orders/${order.id}`,
+      {
+        gigTitle: gig.title,
+        amount: Number(price),
+        sellerName: gig.seller?.name || 'Vendedor',
+        orderId: order.id,
+      }
     );
 
     return NextResponse.json({ success: true, orderId: order.id, order });

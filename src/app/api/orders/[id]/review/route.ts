@@ -53,7 +53,12 @@ export async function POST(
     // Verify the order belongs to this buyer and is completed
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      select: { buyerId: true, sellerId: true, status: true }
+      select: { 
+        buyerId: true, 
+        sellerId: true, 
+        status: true,
+        gig: { select: { title: true } }
+      }
     });
 
     if (!order) {
@@ -106,13 +111,23 @@ export async function POST(
       }
     });
 
-    // Notify the seller about the new review
+    // Notify the seller about the new review (triggers rich email via templates too)
     await notifications.sendInApp(
       order.sellerId,
       'review',
       'Nueva reseña recibida',
-      `Has recibido una nueva reseña de ${rating} estrellas.`,
-      `/sellers/${order.sellerId}`
+      `Has recibido una nueva reseña de ${rating} estrellas de ${session.user.name || 'un cliente'}.`,
+      `/seller/earnings`,
+      {
+        gigTitle: order.gig?.title || 'tu servicio',
+        rating,
+        reviewerName: session.user.name || 'Un cliente',
+        orderId: order.id,
+        actions: [
+          { label: 'Responder a la reseña', action: 'respond_to_review' },
+          { label: 'Ver reseñas', action: 'view' }
+        ]
+      }
     );
 
     return NextResponse.json({ success: true, review });

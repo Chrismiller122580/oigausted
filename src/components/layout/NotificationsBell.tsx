@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Bell, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useRealtimeNotifications } from '@/lib/useRealtimeNotifications';
 
-interface Notification {
+interface AppNotification {
   id: string;
   title: string;
   message: string;
@@ -15,18 +16,43 @@ interface Notification {
 }
 
 export function NotificationsBell() {
+  const { 
+    notifications: realtimeNotifs, 
+    unreadCount: realtimeUnread, 
+    isConnected,
+    refresh 
+  } = useRealtimeNotifications({
+    enableToasts: true,
+    enableSound: true,
+    enableDesktop: true,
+  });
+
   const [unreadCount, setUnreadCount] = useState(0);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const fetchNotifications = async () => {
+  // Sync with realtime hook
+  useEffect(() => {
+    if (realtimeNotifs.length > 0) {
+      const mapped = realtimeNotifs.map(n => ({
+        ...n,
+        read: false,
+      })) as AppNotification[];
+      setNotifications(mapped);
+      setUnreadCount(realtimeUnread);
+      setLoading(false);
+    }
+  }, [realtimeNotifs, realtimeUnread]);
+
+  const fetchNotifications = async (isInitial = false) => {
     try {
       const res = await fetch('/api/notifications?limit=5');
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data.notifications || []);
+        const notifs: AppNotification[] = data.notifications || [];
+        setNotifications(notifs);
         setUnreadCount(data.unreadCount || 0);
       }
     } catch (e) {
@@ -37,9 +63,9 @@ export function NotificationsBell() {
   };
 
   useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 45000); // poll every 45s
-    return () => clearInterval(interval);
+    // Initial load + manual refresh support
+    fetchNotifications(true);
+    // The useRealtimeNotifications hook handles the real-time updates now
   }, []);
 
   // Close dropdown when clicking outside
@@ -52,6 +78,129 @@ export function NotificationsBell() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Load client notification presentation prefs (desktop + sound)
+  useEffect(() => {
+    const loadPrefs = async () => {
+      try {
+        const res = await fetch('/api/user/notification-preferences');
+        if (res.ok) {
+          const p = await res.json();
+          setClientPrefs({
+            desktop: p.desktopNotifications ?? true,
+            sound: p.soundEnabled ?? true,
+          });
+        }
+      } catch {
+        // fallback to localStorage or defaults
+        const d = localStorage.getItem('desktopNotifs');
+        const s = localStorage.getItem('soundNotifs');
+        setClientPrefs({
+          desktop: d === null ? true : d !== 'false',
+          sound: s === null ? true : s !== 'false',
+        });
+      }
+    };
+    loadPrefs();
+  }, []);
+
+  // Simple chime using Web Audio (no asset files required)
+  const playNotificationSound = () => {
+    if (!clientPrefs.sound) return;
+    try {
+      const AudioContextCtor = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextCtor) return;
+      const audio = new AudioContextCtor();
+      const t = audio.currentTime;
+
+      // Pleasant two-tone notification chime
+      const o1 = audio.createOscillator();
+      const g1 = audio.createGain();
+      o1.type = 'sine';
+      o1.frequency.value = 932; // A#5
+      g1.gain.value = 0.09;
+
+      const o2 = audio.createOscillator();
+      const g2 = audio.createGain();
+      o2.type = 'sine';
+      o2.frequency.value = 698; // F5
+      g2.gain.value = 0.07;
+
+      const filter = audio.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 1800;
+
+      o1.connect(g1); g1.connect(filter);
+      o2.connect(g2); g2.connect(filter);
+      filter.connect(audio.destination);
+
+      o1.start(t);
+      o1.stop(t + 0.18);
+      o2.start(t + 0.09);
+      o2.stop(t + 0.32);
+
+      // gentle release
+      g1.gain.linearRampToValueAtTime(0.001, t + 0.25);
+      g2.gain.linearRampToValueAtTime(0.001, t + 0.42);
+    } catch (e) {
+      // ignore audio errors (some browsers block autoplay until interaction)
+    }
+  };
+
+  const triggerDesktopNotification = (n: AppNotification) => {
+    if (!clientPrefs.desktop) return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    try {
+      const desktopNotif = new Notification(n.title, {
+        body: n.message?.slice(0, 120) || 'Tienes una nueva notificación',
+        icon: '/logo.png',
+        tag: `oiga-${n.id}`, // avoid duplicates
+        requireInteraction: false,
+      });
+
+      desktopNotif.onclick = () => {
+        window.focus();
+        if (n.link) window.location.href = n.link;
+        desktopNotif.close();
+      };
+    } catch (e) {
+      // permission or security error - ignore
+    }
+  };
+
+  // Detect new notifications from polling and trigger sound + desktop
+  useEffect(() => {
+    if (loading) return;
+
+    const currentIds = new Set(notifications.map(n => n.id));
+    let hasNew = false;
+
+    // Check for brand new notification ids
+    notifications.forEach(n => {
+      if (!seenIdsRef.current.has(n.id) && !n.read) {
+        seenIdsRef.current.add(n.id);
+        if (prevUnreadRef.current > 0 || notifications.length > 0) { // avoid initial burst
+          hasNew = true;
+          triggerDesktopNotification(n);
+        }
+      }
+    });
+
+    // Also detect unread count jump (covers some edge cases)
+    if (unreadCount > prevUnreadRef.current && prevUnreadRef.current > 0) {
+      hasNew = true;
+      // trigger for the first unread if possible
+      const firstNew = notifications.find(n => !n.read);
+      if (firstNew) triggerDesktopNotification(firstNew);
+    }
+
+    if (hasNew) {
+      playNotificationSound();
+    }
+
+    prevUnreadRef.current = unreadCount;
+  }, [notifications, unreadCount, loading, clientPrefs]);
 
   const markAsRead = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();

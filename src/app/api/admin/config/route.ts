@@ -16,7 +16,7 @@ export async function GET() {
           commissionRate: 0.12,
           referralCommissionRate: 0.05,
           minPayoutAmount: 50000,
-          supportEmail: 'soporte@oigausted.com',
+          supportEmail: 'support@support.oigagig.com',
           enableReviews: true,
           enableChat: true,
           maintenanceMode: false,

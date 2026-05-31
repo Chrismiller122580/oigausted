@@ -41,18 +41,35 @@ export async function GET() {
 
     const totalRevenue = totalRevenueResult._sum.price || 0;
 
-    // Read live platform + referral commissions from settings
     const config = await prisma.platformConfig.findFirst();
-    const platformRate = config?.commissionRate ?? 0.12;
 
-    const platformRevenue = Math.round(totalRevenue * platformRate);
+    // Use the canonical payout calculation for accuracy
+    const { aggregatePayouts, calculateOrderPayout, DEFAULT_PAYOUT_CONFIG } = await import('@/lib/payout');
 
-    // Use real referral earnings if available, otherwise fall back to estimate
-    const realReferralEarnings = await prisma.referralEarning.aggregate({
-      where: { status: { in: ['Pending', 'Paid'] } },
-      _sum: { amount: true }
+    // For stats we need to know which sellers were referred
+    const completedOrdersWithReferral = await prisma.order.findMany({
+      where: { status: 'Completed' },
+      select: {
+        price: true,
+        seller: { select: { referredById: true } }
+      }
     });
-    const estimatedReferralRevenue = realReferralEarnings._sum.amount || Math.round(totalRevenue * (config?.referralCommissionRate ?? 0.05));
+
+    const breakdowns = completedOrdersWithReferral.map(o =>
+      calculateOrderPayout(
+        Number(o.price) || 0,
+        !!o.seller?.referredById,
+        {
+          platformCommissionRate: config?.commissionRate ?? DEFAULT_PAYOUT_CONFIG.platformCommissionRate,
+          referralCommissionRate: config?.referralCommissionRate ?? DEFAULT_PAYOUT_CONFIG.referralCommissionRate,
+        }
+      )
+    );
+
+    const aggregated = aggregatePayouts(breakdowns);
+
+    const platformRevenue = aggregated.platformFee;
+    const estimatedReferralRevenue = aggregated.referralFee; // more accurate than old estimate
 
     return NextResponse.json({
       users: totalUsers,
@@ -61,10 +78,10 @@ export async function GET() {
       activeGigs,
       orders: totalOrders,
       completedOrders,
-      totalRevenue,
+      totalRevenue: aggregated.grossAmount,
       platformRevenue,
       estimatedReferralRevenue,
-      pendingPayouts: completedOrders, // simplified for beta
+      pendingPayouts: aggregated.netToSeller, // now the real net amount owed to sellers
       pendingReviews: 0 // can be improved later
     });
   } catch (error) {
