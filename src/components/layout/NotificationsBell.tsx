@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Bell, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRealtimeNotifications } from '@/lib/useRealtimeNotifications';
+import { playNotificationSound as playChime } from '@/lib/notificationSound';
 
 interface AppNotification {
   id: string;
@@ -32,6 +33,12 @@ export function NotificationsBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Client-side presentation preferences (sound + desktop notifications)
+  // These are distinct from the server-side channel preferences (email/inApp/etc)
+  const [clientPrefs, setClientPrefs] = useState({ desktop: true, sound: true });
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const prevUnreadRef = useRef(0);
 
   // Sync with realtime hook
   useEffect(() => {
@@ -104,49 +111,6 @@ export function NotificationsBell() {
     loadPrefs();
   }, []);
 
-  // Simple chime using Web Audio (no asset files required)
-  const playNotificationSound = () => {
-    if (!clientPrefs.sound) return;
-    try {
-      const AudioContextCtor = (window as any).AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContextCtor) return;
-      const audio = new AudioContextCtor();
-      const t = audio.currentTime;
-
-      // Pleasant two-tone notification chime
-      const o1 = audio.createOscillator();
-      const g1 = audio.createGain();
-      o1.type = 'sine';
-      o1.frequency.value = 932; // A#5
-      g1.gain.value = 0.09;
-
-      const o2 = audio.createOscillator();
-      const g2 = audio.createGain();
-      o2.type = 'sine';
-      o2.frequency.value = 698; // F5
-      g2.gain.value = 0.07;
-
-      const filter = audio.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 1800;
-
-      o1.connect(g1); g1.connect(filter);
-      o2.connect(g2); g2.connect(filter);
-      filter.connect(audio.destination);
-
-      o1.start(t);
-      o1.stop(t + 0.18);
-      o2.start(t + 0.09);
-      o2.stop(t + 0.32);
-
-      // gentle release
-      g1.gain.linearRampToValueAtTime(0.001, t + 0.25);
-      g2.gain.linearRampToValueAtTime(0.001, t + 0.42);
-    } catch (e) {
-      // ignore audio errors (some browsers block autoplay until interaction)
-    }
-  };
-
   const triggerDesktopNotification = (n: AppNotification) => {
     if (!clientPrefs.desktop) return;
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -195,8 +159,8 @@ export function NotificationsBell() {
       if (firstNew) triggerDesktopNotification(firstNew);
     }
 
-    if (hasNew) {
-      playNotificationSound();
+    if (hasNew && clientPrefs.sound) {
+      playChime(0.1);
     }
 
     prevUnreadRef.current = unreadCount;
