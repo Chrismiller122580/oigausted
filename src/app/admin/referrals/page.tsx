@@ -12,6 +12,8 @@ interface ReferralSummary {
   referredCount: number;
   totalGenerated: number;
   earningsCount: number;
+  effectiveReferralRate: number;
+  customReferralRate: number | null;
 }
 
 export default function AdminReferralsPage() {
