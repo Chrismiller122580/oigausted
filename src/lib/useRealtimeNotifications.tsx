@@ -53,48 +53,54 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
     const notifData = (notif as any).data || {};
     const customActions: Array<{ label: string; action: string; data?: any }> = notifData.actions || [];
 
-    // Build action buttons
-    const actionButtons = customActions.length > 0 ? (
-      <div className="flex gap-2 mt-2">
-        {customActions.map((act, index) => (
-          <button
-            key={index}
-            onClick={async () => {
-              toast.dismiss();
-              await handleNotificationAction(act.action, act.data, notif);
-            }}
-            className="text-xs px-3 py-1.5 rounded bg-orange-600 hover:bg-orange-700 text-white font-medium"
-          >
-            {act.label}
-          </button>
-        ))}
-        {notif.link && (
-          <button
-            onClick={() => {
-              toast.dismiss();
-              window.location.href = notif.link!;
-            }}
-            className="text-xs px-3 py-1.5 rounded border"
-          >
-            Ver
-          </button>
-        )}
-      </div>
-    ) : notif.link ? (
-      {
+    // Build action buttons for description (when we have rich custom actions)
+    // or a simple action object for Sonner's action prop (simple link case)
+    let descriptionExtra: React.ReactNode = null;
+    let toastAction: { label: string; onClick: () => void } | undefined = undefined;
+
+    if (customActions.length > 0) {
+      descriptionExtra = (
+        <div className="flex gap-2 mt-2">
+          {customActions.map((act, index) => (
+            <button
+              key={index}
+              onClick={async () => {
+                toast.dismiss();
+                await handleNotificationAction(act.action, act.data, notif);
+              }}
+              className="text-xs px-3 py-1.5 rounded bg-orange-600 hover:bg-orange-700 text-white font-medium"
+            >
+              {act.label}
+            </button>
+          ))}
+          {notif.link && (
+            <button
+              onClick={() => {
+                toast.dismiss();
+                window.location.href = notif.link!;
+              }}
+              className="text-xs px-3 py-1.5 rounded border"
+            >
+              Ver
+            </button>
+          )}
+        </div>
+      );
+    } else if (notif.link) {
+      toastAction = {
         label: 'Ver',
-        onClick: () => window.location.href = notif.link!,
-      }
-    ) : undefined;
+        onClick: () => { window.location.href = notif.link!; },
+      };
+    }
 
     const toastId = toast(notif.title, {
       description: (
         <div>
           <p>{notif.message}</p>
-          {actionButtons && typeof actionButtons !== 'object' ? null : actionButtons}
+          {descriptionExtra}
         </div>
       ),
-      action: typeof actionButtons === 'object' && !Array.isArray(actionButtons) ? actionButtons : undefined,
+      action: toastAction,
       cancel: {
         label: 'Cerrar',
         onClick: () => toast.dismiss(toastId),
