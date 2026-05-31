@@ -299,7 +299,7 @@ async function sendWebPushIfEnabled(
   link?: string,
   data?: any
 ) {
-  const webpush = (await import('web-push').catch(() => null)) as any;
+  const webpush = await import('web-push').catch(() => null);
   if (!webpush) {
     console.log('[WebPush] web-push not installed - skipping real push');
     return;
