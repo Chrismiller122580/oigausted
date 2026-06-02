@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import NavbarWrapper from "@/components/layout/NavbarWrapper";
@@ -33,12 +33,15 @@ export const metadata: Metadata = {
     title: "OigaUsted",
     statusBarStyle: "default",
   },
+  manifest: "/manifest.webmanifest",
+  metadataBase: new URL("https://oigagig.com"),
+};
+
+export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
   ],
-  manifest: "/manifest.webmanifest",
-  metadataBase: new URL("https://oigagig.com"),
 };
 
 export default function RootLayout({
