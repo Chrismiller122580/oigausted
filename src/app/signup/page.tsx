@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import Image from "next/image"
-import { toast } from 'react-hot-toast'
+import { toast } from 'sonner'
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl"
 import { Eye, EyeOff } from "lucide-react"
 

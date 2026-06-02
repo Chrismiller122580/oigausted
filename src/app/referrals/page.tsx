@@ -6,7 +6,7 @@ import Link from 'next/link';
 import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Copy, Users, DollarSign, TrendingUp, Share2 } from 'lucide-react';
 
 interface ReferralData {

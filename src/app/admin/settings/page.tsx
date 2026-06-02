@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Save, RefreshCw, AlertTriangle, DollarSign, MessageCircle, Eye, EyeOff, Lock } from 'lucide-react';
 
 // Simple Switch component
@@ -293,7 +293,7 @@ export default function AdminSettings() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Comisión que cobra OigaUsted sobre cada orden completada.
                 </p>
-                <div className="mt-2 text-[11px] bg-zinc-950 p-2 rounded-lg text-emerald-400">
+                <div className="mt-2 text-[11px] bg-muted p-2 rounded-lg text-emerald-400">
                   Ejemplo: En un pedido de $100.000 → Plataforma gana ${(config.commissionRate * 100000).toFixed(0)}
                 </div>
               </div>
@@ -316,7 +316,7 @@ export default function AdminSettings() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Porcentaje que se paga al usuario que refirió al vendedor/comprador.
                 </p>
-                <div className="mt-2 text-[11px] bg-zinc-950 p-2 rounded-lg text-amber-400">
+                <div className="mt-2 text-[11px] bg-muted p-2 rounded-lg text-amber-400">
                   Ejemplo: En un pedido de $100.000 → Referido gana ${(config.referralCommissionRate * 100000).toFixed(0)}
                 </div>
               </div>
@@ -385,7 +385,7 @@ export default function AdminSettings() {
           </div>
 
           {/* Maintenance Mode */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 lg:col-span-2">
+          <div className="bg-card border border-border rounded-3xl p-8 lg:col-span-2">
             <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 text-amber-400">
               <AlertTriangle /> Modo Mantenimiento
             </h2>

@@ -1,12 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '../../../../lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions)
+    const currentUserId = (session?.user as any)?.id
+    const isAdmin = (session?.user as any)?.role === 'admin'
+
     const { userId, businessName, nit, bio } = await request.json()
 
     if (!userId || !businessName) {
       return NextResponse.json({ error: "User ID and business name are required" }, { status: 400 })
+    }
+
+    // Only self or admin can promote
+    if (!isAdmin && currentUserId !== userId) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+    }
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 })
     }
 
     const updatedUser = await prisma.user.update({

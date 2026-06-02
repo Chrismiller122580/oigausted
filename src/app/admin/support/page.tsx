@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export default function AdminSupportPage() {
   const [tickets] = useState([
@@ -12,18 +12,18 @@ export default function AdminSupportPage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-8">
+    <div className="min-h-screen bg-background text-foreground p-8">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-5xl font-bold mb-8">Soporte</h1>
-        <p className="text-zinc-400 mb-6">Tickets de soporte (beta: lista estática)</p>
+        <p className="text-muted-foreground mb-6">Tickets de soporte (beta: lista estática)</p>
 
         <div className="space-y-4">
           {tickets.map(ticket => (
-            <Card key={ticket.id} className="bg-zinc-900 border-zinc-800">
+            <Card key={ticket.id} className="bg-card border-border">
               <CardContent className="p-6 flex justify-between items-center">
                 <div>
                   <p className="font-semibold">{ticket.subject}</p>
-                  <p className="text-sm text-zinc-400">{ticket.user} • {ticket.priority}</p>
+                  <p className="text-sm text-muted-foreground">{ticket.user} • {ticket.priority}</p>
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-sm px-3 py-1 bg-amber-600 rounded-full">{ticket.status}</span>

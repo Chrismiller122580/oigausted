@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { parseJsonArrayField } from '@/lib/utils';
 import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
 

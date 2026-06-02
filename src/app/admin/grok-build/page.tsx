@@ -691,7 +691,7 @@ export default function GrokBuildPage() {
                       )}
                     </div>
                     {message.role === 'user' && (
-                      <div className="w-8 h-8 rounded-xl bg-zinc-700 flex-shrink-0 flex items-center justify-center mt-1">
+                      <div className="w-8 h-8 rounded-xl bg-muted flex-shrink-0 flex items-center justify-center mt-1">
                         <User size={18} className="text-white" />
                       </div>
                     )}
@@ -717,11 +717,11 @@ export default function GrokBuildPage() {
                     <Zap size={18} /> Grok proposes a code change
                   </div>
                   <div className="text-sm mb-2">
-                    <strong>File:</strong> <code className="bg-black/10 px-1 rounded">{pendingCodeChange.file}</code>
+                    <strong>File:</strong> <code className="bg-muted/50 px-1 rounded">{pendingCodeChange.file}</code>
                   </div>
                   <div className="text-sm mb-3">{pendingCodeChange.description}</div>
                   
-                  <pre className="text-xs bg-black text-green-400 p-3 rounded overflow-auto max-h-48 mb-3">
+                  <pre className="text-xs bg-muted text-foreground p-3 rounded overflow-auto max-h-48 mb-3">
                     {pendingCodeChange.diff}
                   </pre>
 

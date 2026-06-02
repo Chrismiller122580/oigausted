@@ -53,6 +53,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Debes iniciar sesión" }, { status: 401 });
     }
 
+    const role = (session.user as any).role;
+    if (role !== 'seller' && role !== 'admin') {
+      return NextResponse.json({ error: "Solo vendedores pueden crear gigs" }, { status: 403 });
+    }
+
     const sellerId = resolveDemoUserId(session.user.id);
 
     const body = await req.json();

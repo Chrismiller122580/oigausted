@@ -5,9 +5,9 @@ export default function AdminReports() {
     <div className="min-h-screen bg-background text-foreground p-8">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-5xl font-bold">Reportes</h1>
-        <div className="mt-8 bg-zinc-900 border border-zinc-800 p-12 rounded-3xl text-center">
-          <p className="text-xl text-zinc-400">Reportes avanzados (ventas por categoría, retención, etc.)</p>
-          <p className="mt-4 text-sm text-zinc-500">Disponible en la siguiente iteración del panel admin.</p>
+        <div className="mt-8 bg-card border border-border p-12 rounded-3xl text-center">
+          <p className="text-xl text-muted-foreground">Reportes avanzados (ventas por categoría, retención, etc.)</p>
+          <p className="mt-4 text-sm text-muted-foreground">Disponible en la siguiente iteración del panel admin.</p>
         </div>
       </div>
     </div>

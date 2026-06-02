@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 interface User {
   id: string;
@@ -265,10 +265,10 @@ export default function AdminUsersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-white">
+      <div className="min-h-screen bg-background flex items-center justify-center text-foreground">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-lg text-zinc-400">Cargando usuarios...</p>
+          <p className="text-lg text-muted-foreground">Cargando usuarios...</p>
         </div>
       </div>
     );
@@ -280,7 +280,7 @@ export default function AdminUsersPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
             <h1 className="text-5xl font-bold">Usuarios</h1>
-            <p className="text-zinc-400 mt-1">Gestión completa de cuentas • {users.length} registrados</p>
+            <p className="text-muted-foreground mt-1">Gestión completa de cuentas • {users.length} registrados</p>
           </div>
 
           <div className="flex flex-wrap gap-3 items-center">
@@ -288,13 +288,13 @@ export default function AdminUsersPage() {
               placeholder="Buscar por nombre, email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-64 bg-zinc-900 border-zinc-700"
+              className="w-64 bg-card border-border"
             />
 
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm"
+              className="bg-card border border-border rounded px-3 py-2 text-sm"
             >
               <option value="all">Todos los roles</option>
               <option value="buyer">Compradores</option>
@@ -305,56 +305,56 @@ export default function AdminUsersPage() {
             <select
               value={activeFilter}
               onChange={(e) => setActiveFilter(e.target.value)}
-              className="bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm"
+              className="bg-card border border-border rounded px-3 py-2 text-sm"
             >
               <option value="all">Todos los estados</option>
               <option value="active">Activos</option>
               <option value="inactive">Desactivados</option>
             </select>
 
-            <Button onClick={exportToCSV} variant="outline" className="border-zinc-700">
+            <Button onClick={exportToCSV} variant="outline" className="border-border">
               Exportar CSV
             </Button>
           </div>
         </div>
 
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-card border-border">
           <CardContent className="p-0 overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="border-b border-zinc-800 bg-zinc-950">
+              <thead className="border-b border-border bg-background">
                 <tr>
-                  <th className="text-left p-4 font-medium text-zinc-400">Usuario</th>
-                  <th className="text-left p-4 font-medium text-zinc-400">Email</th>
-                  <th className="text-left p-4 font-medium text-zinc-400">Rol</th>
-                  <th className="text-left p-4 font-medium text-zinc-400">Estado</th>
-                  <th className="text-left p-4 font-medium text-zinc-400">Negocio</th>
-                  <th className="text-center p-4 font-medium text-zinc-400">Ref Rate</th>
-                  <th className="text-center p-4 font-medium text-zinc-400">Gigs</th>
-                  <th className="text-right p-4 font-medium text-zinc-400">Acciones</th>
+                  <th className="text-left p-4 font-medium text-muted-foreground">Usuario</th>
+                  <th className="text-left p-4 font-medium text-muted-foreground">Email</th>
+                  <th className="text-left p-4 font-medium text-muted-foreground">Rol</th>
+                  <th className="text-left p-4 font-medium text-muted-foreground">Estado</th>
+                  <th className="text-left p-4 font-medium text-muted-foreground">Negocio</th>
+                  <th className="text-center p-4 font-medium text-muted-foreground">Ref Rate</th>
+                  <th className="text-center p-4 font-medium text-muted-foreground">Gigs</th>
+                  <th className="text-right p-4 font-medium text-muted-foreground">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredUsers.length === 0 && (
                   <tr>
                     <td colSpan={8} className="p-12 text-center">
-                      <p className="text-lg text-zinc-400">No se encontraron usuarios.</p>
-                      <p className="text-sm text-zinc-500 mt-1">Intenta con otro término de búsqueda.</p>
+                      <p className="text-lg text-muted-foreground">No se encontraron usuarios.</p>
+                      <p className="text-sm text-muted-foreground mt-1">Intenta con otro término de búsqueda.</p>
                     </td>
                   </tr>
                 )}
                 {filteredUsers.map(user => (
-                  <tr key={user.id} className="border-b border-zinc-800 hover:bg-zinc-950">
+                  <tr key={user.id} className="border-b border-border hover:bg-background">
                     <td className="p-4">
                       <div className="font-medium">{user.name || 'Sin nombre'}</div>
-                      <div className="text-xs text-zinc-500">{new Date(user.createdAt).toLocaleDateString('es-CO')}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(user.createdAt).toLocaleDateString('es-CO')}</div>
                     </td>
-                    <td className="p-4 text-zinc-300">{user.email}</td>
+                    <td className="p-4 text-foreground">{user.email}</td>
                     <td className="p-4">
                       {roleEditingId === user.id ? (
                         <select
                           value={newRole}
                           onChange={(e) => setNewRole(e.target.value)}
-                          className="bg-zinc-800 border border-zinc-700 rounded px-3 py-1 text-white"
+                          className="bg-muted border border-border rounded px-3 py-1 text-foreground"
                         >
                           <option value="buyer">Comprador</option>
                           <option value="seller">Vendedor</option>
@@ -369,14 +369,14 @@ export default function AdminUsersPage() {
                         </span>
                       )}
                     </td>
-                    <td className="p-4 text-zinc-300">{user.businessName || '—'}</td>
+                    <td className="p-4 text-foreground">{user.businessName || '—'}</td>
                     <td className="p-4 text-center">
                       {user.customReferralRate != null ? (
                         <span className="inline-block px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-semibold">
                           {(user.customReferralRate * 100).toFixed(1)}%
                         </span>
                       ) : (
-                        <span className="text-xs text-zinc-500">default 5%</span>
+                        <span className="text-xs text-muted-foreground">default 5%</span>
                       )}
                     </td>
                     <td className="p-4">
@@ -392,7 +392,7 @@ export default function AdminUsersPage() {
                         size="sm" 
                         variant="outline" 
                         onClick={() => openEditModal(user)}
-                        className="border-zinc-700 hover:bg-zinc-800"
+                        className="border-border hover:bg-muted"
                       >
                         Editar
                       </Button>
@@ -409,14 +409,14 @@ export default function AdminUsersPage() {
                       <a 
                         href={`/seller/gigs?userId=${user.id}`} 
                         target="_blank"
-                        className="text-xs px-2 py-1 border border-zinc-700 rounded hover:bg-zinc-800 inline-block"
+                        className="text-xs px-2 py-1 border border-border rounded hover:bg-muted inline-block"
                       >
                         Gigs
                       </a>
                       <a 
                         href={`/orders?userId=${user.id}`} 
                         target="_blank"
-                        className="text-xs px-2 py-1 border border-zinc-700 rounded hover:bg-zinc-800 inline-block"
+                        className="text-xs px-2 py-1 border border-border rounded hover:bg-muted inline-block"
                       >
                         Pedidos
                       </a>
@@ -426,7 +426,7 @@ export default function AdminUsersPage() {
                           <select
                             value={newRole}
                             onChange={(e) => setNewRole(e.target.value)}
-                            className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs"
+                            className="bg-muted border border-border rounded px-2 py-1 text-xs"
                           >
                             <option value="buyer">Comprador</option>
                             <option value="seller">Vendedor</option>
@@ -440,7 +440,7 @@ export default function AdminUsersPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => startRoleEdit(user)}
-                          className="border-zinc-700 hover:bg-zinc-800 text-xs"
+                          className="border-border hover:bg-muted text-xs"
                         >
                           Rol
                         </Button>
@@ -453,19 +453,19 @@ export default function AdminUsersPage() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-zinc-500 mt-6">
+        <p className="text-center text-xs text-muted-foreground mt-6">
           Cambiar roles es inmediato. Los usuarios verán las nuevas opciones en su siguiente sesión.
         </p>
       </div>
 
       {/* Edit User Modal */}
       {editingUser && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-border flex justify-between items-center">
               <div>
                 <h3 className="text-xl font-semibold">Editar Usuario</h3>
-                <p className="text-sm text-zinc-400">{editingUser.email}</p>
+                <p className="text-sm text-muted-foreground">{editingUser.email}</p>
               </div>
               <Button variant="ghost" onClick={closeEditModal}>✕</Button>
             </div>
@@ -525,7 +525,7 @@ export default function AdminUsersPage() {
                     />
                     <span className="text-sm text-muted-foreground">% (leave blank for global default)</span>
                   </div>
-                  <p className="text-[10px] text-zinc-500 mt-1">
+                  <p className="text-[10px] text-muted-foreground mt-1">
                     This user will earn this % as referrer on their referred sellers' completed orders.
                   </p>
                 </div>
@@ -541,7 +541,7 @@ export default function AdminUsersPage() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">
+            <div className="p-6 border-t border-border flex justify-end gap-3">
               <Button variant="outline" onClick={closeEditModal}>Cancelar</Button>
               <Button onClick={saveUserEdit} disabled={saving} className="bg-emerald-600">
                 {saving ? 'Guardando...' : 'Guardar Cambios'}

@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { gigCategories } from '@/lib/gig-categories';
 import { parseCustomFields } from '@/lib/utils';
 import GoogleMap from '@/components/maps/GoogleMap';

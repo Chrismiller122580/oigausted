@@ -24,6 +24,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No puedes comprar tu propio servicio" }, { status: 403 });
     }
 
+    if (gig.isActive === false) {
+      return NextResponse.json({ error: "Este servicio está pausado y no se puede comprar" }, { status: 400 });
+    }
+
     const order = await prisma.order.create({
       data: {
         buyerId: session.user.id,

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { gigCategories } from '@/lib/gig-categories';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { MapPin } from 'lucide-react';
 
 function CreateGigClient() {

@@ -73,8 +73,8 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
 
             <div className="flex items-center gap-4 pl-8 border-l border-border">
               <div className="text-right text-sm">
-                <p className="font-semibold text-white">{session?.user?.name || 'Admin'}</p>
-                <p className="text-xs text-zinc-500">Administrador</p>
+                <p className="font-semibold text-foreground">{session?.user?.name || 'Admin'}</p>
+                <p className="text-xs text-muted-foreground">Administrador</p>
               </div>
               <NotificationsBell />
               <ModeToggle />
@@ -82,7 +82,7 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
                 variant="ghost"
                 size="icon"
                 onClick={handleSignOut}
-                className="text-zinc-400 hover:text-red-500 hover:bg-zinc-800"
+                className="text-muted-foreground hover:text-red-500 hover:bg-accent"
               >
                 <LogOut size={20} />
               </Button>

@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink, Eye, EyeOff, Lock } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { toast } from 'sonner';
 import MapsPollutionNuke from "@/components/maps/MapsPollutionNuke";
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 

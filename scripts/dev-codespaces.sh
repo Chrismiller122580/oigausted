@@ -3,6 +3,7 @@
 # dev-codespaces.sh
 # Helper script to run the Next.js dev server in GitHub Codespaces
 # with the correct NEXTAUTH_URL automatically detected.
+# Note: Unix/bash specific; on Windows use WSL or Git Bash. Mac supported natively.
 
 set -e
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { 
   subscribeToPushNotifications, 
   unsubscribeFromPushNotifications 

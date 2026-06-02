@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 import { MessageCircle, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { parseCustomFields } from '@/lib/utils';
 
 export default function SellerOrdersPage() {

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save, Users } from "lucide-react";
 import GrokAssistant from "@/components/common/GrokAssistant";
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export default function MiNegocioPage() {
   const { data: session, update } = useSession();

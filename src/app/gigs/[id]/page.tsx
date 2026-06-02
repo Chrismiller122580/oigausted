@@ -32,6 +32,10 @@ export default function GigDetailPage() {
       const loadedGig = data.gig || data;
       setGig(loadedGig);
 
+      if (loadedGig && loadedGig.isActive === false) {
+        setError('Este servicio está pausado temporalmente por el vendedor.');
+      }
+
       // Load reviews for this seller (or this specific gig)
       if (loadedGig?.seller?.id) {
         const reviewsRes = await fetch(`/api/reviews?sellerId=${loadedGig.seller.id}&limit=4`);
@@ -47,6 +51,11 @@ export default function GigDetailPage() {
 
   const handleBuyNow = () => {
     if (!gig) return;
+
+    if (gig.isActive === false) {
+      toast.error('Este servicio está pausado y no se puede comprar.');
+      return;
+    }
 
     if (!session?.user) {
       router.push(`/login?callbackUrl=${encodeURIComponent(getAuthCallbackUrl(`/gigs/${params.id}`))}`);
@@ -220,8 +229,9 @@ export default function GigDetailPage() {
                   onClick={handleBuyNow}
                   size="lg"
                   className="w-full py-8 text-xl bg-emerald-600 hover:bg-emerald-700 rounded-3xl font-semibold mb-8"
+                  disabled={gig.isActive === false}
                 >
-                  Comprar ahora
+                  {gig.isActive === false ? 'Servicio pausado' : 'Comprar ahora'}
                 </Button>
               ) : (
                 <div className="bg-amber-50 border border-amber-200 text-amber-700 p-6 rounded-3xl mb-8 text-center font-medium">

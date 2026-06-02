@@ -4,7 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { toast } from 'react-hot-toast'
+import { toast } from 'sonner'
 
 interface Gig {
   id: string

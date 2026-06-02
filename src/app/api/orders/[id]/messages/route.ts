@@ -17,6 +17,12 @@ export async function GET(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    // Verify caller is part of the order
+    const order = await prisma.order.findUnique({ where: { id: orderId }, select: { buyerId: true, sellerId: true } });
+    if (!order || (order.buyerId !== session.user.id && order.sellerId !== session.user.id)) {
+      return NextResponse.json({ error: 'No autorizado para este pedido' }, { status: 403 });
+    }
+
     const messages = await prisma.orderMessage.findMany({
       where: { orderId },
       orderBy: { createdAt: 'asc' },
@@ -50,6 +56,12 @@ export async function POST(
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    // Verify caller is part of the order
+    const order = await prisma.order.findUnique({ where: { id: orderId }, select: { buyerId: true, sellerId: true } });
+    if (!order || (order.buyerId !== session.user.id && order.sellerId !== session.user.id)) {
+      return NextResponse.json({ error: 'No autorizado para este pedido' }, { status: 403 });
     }
 
     const contentType = request.headers.get('content-type') || '';

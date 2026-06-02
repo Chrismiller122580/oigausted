@@ -9,6 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions)
     const resolvedParams = await params
     const orderId = resolvedParams.id
 
@@ -23,6 +24,12 @@ export async function GET(
 
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+    }
+
+    const userId = (session?.user as any)?.id
+    const isAdmin = (session?.user as any)?.role === 'admin'
+    if (!isAdmin && order.buyerId !== userId && order.sellerId !== userId) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
 
     return NextResponse.json({ order })
@@ -46,6 +53,17 @@ export async function PATCH(
     const orderId = resolvedParams.id
     const body = await request.json()
     const { status, price, customFields, serviceAddress, serviceLatitude, serviceLongitude } = body
+
+    // Fetch order to enforce ownership
+    const existingOrder = await prisma.order.findUnique({ where: { id: orderId } })
+    if (!existingOrder) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+    }
+    const userId = (session?.user as any)?.id
+    const isAdmin = (session?.user as any)?.role === 'admin'
+    if (!isAdmin && existingOrder.buyerId !== userId && existingOrder.sellerId !== userId) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+    }
 
     const updateData: any = {}
 
