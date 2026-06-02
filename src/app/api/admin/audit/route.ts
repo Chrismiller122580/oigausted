@@ -19,8 +19,8 @@ export async function GET(req: NextRequest) {
     const logs = await prisma.auditLog.findMany({
       where: {
         ...(adminId && { adminId }),
-        ...(action && { action }),
-        ...(targetType && { targetType }),
+        ...(action && { action: { contains: action, mode: 'insensitive' } }),
+        ...(targetType && { targetType: { contains: targetType, mode: 'insensitive' } }),
       },
       include: {
         admin: {

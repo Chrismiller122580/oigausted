@@ -75,23 +75,18 @@ export async function PATCH(req: NextRequest) {
       }
     });
 
-    // Log moderation action
+    // Log moderation action (capture request metadata for audit)
     const adminId = (session.user as any).id;
+    const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
+    const userAgent = req.headers.get('user-agent') || null;
     await logAuditEvent({
       adminId,
       action: isActive ? 'GIG_ACTIVATED' : 'GIG_DEACTIVATED',
       targetType: 'Gig',
       targetId: gigId,
       details: { isActive: Boolean(isActive) },
-    });
-
-    // Notify seller about gig moderation
-    await logAuditEvent({
-      adminId,
-      action: isActive ? 'GIG_ACTIVATED' : 'GIG_DEACTIVATED',
-      targetType: 'Gig',
-      targetId: gigId,
-      details: { isActive: Boolean(isActive) },
+      ipAddress,
+      userAgent,
     });
 
     // Send in-app notification to seller
@@ -133,11 +128,15 @@ export async function DELETE(req: NextRequest) {
     await prisma.gig.delete({ where: { id: gigId } });
 
     const adminId = (session.user as any).id;
+    const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
+    const userAgent = req.headers.get('user-agent') || null;
     await logAuditEvent({
       adminId,
       action: 'GIG_DELETED',
       targetType: 'Gig',
       targetId: gigId,
+      ipAddress,
+      userAgent,
     });
 
     if (gigToDelete?.sellerId) {

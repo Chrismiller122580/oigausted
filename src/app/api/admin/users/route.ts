@@ -111,11 +111,20 @@ export async function PATCH(req: NextRequest) {
       }
     });
 
-    // Log the action
+    // Log the action (with request metadata + smarter action type)
     const adminId = (session.user as any).id;
+    const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
+    const userAgent = req.headers.get('user-agent') || null;
+
+    // Choose more specific action when possible (matches schema examples + better filtering on audit page)
+    let action = 'USER_UPDATED';
+    if (role) action = 'USER_ROLE_CHANGED';
+    else if (isActive !== undefined) action = isActive ? 'USER_ACTIVATED' : 'USER_DEACTIVATED';
+    else if (customReferralRate !== undefined) action = 'USER_REFERRAL_RATE_UPDATED';
+
     await logAuditEvent({
       adminId,
-      action: 'USER_UPDATED',
+      action,
       targetType: 'User',
       targetId: userId,
       details: {
@@ -132,6 +141,8 @@ export async function PATCH(req: NextRequest) {
           ...(customReferralRate !== undefined && { customReferralRate }),
         }),
       },
+      ipAddress,
+      userAgent,
     });
 
     // Notify the affected user if their role changed

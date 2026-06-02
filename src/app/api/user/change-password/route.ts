@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { logAuditEvent } from '@/lib/audit';
 
 export async function POST(req: NextRequest) {
   try {
@@ -59,6 +60,24 @@ export async function POST(req: NextRequest) {
       where: { id: user.id },
       data: { password: hashedPassword },
     });
+
+    // Audit log for admin password resets (important security event)
+    if (isAdmin && targetUserId !== session.user.id) {
+      const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
+      const userAgent = req.headers.get('user-agent') || null;
+      await logAuditEvent({
+        adminId: session.user.id,
+        action: 'USER_PASSWORD_RESET',
+        targetType: 'User',
+        targetId: targetUserId,
+        details: {
+          targetEmail: user.email,
+          resetByAdmin: true,
+        },
+        ipAddress,
+        userAgent,
+      });
+    }
 
     return NextResponse.json({ 
       success: true, 

@@ -9,8 +9,36 @@ import { Toaster } from "sonner"; // 2027-grade beautiful toasts
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "OigaUsted - Gigs Colombia",
-  description: "Plataforma de gigs y servicios locales en Colombia",
+  title: {
+    default: "OigaUsted - Gigs y Servicios Locales en Colombia",
+    template: "%s | OigaUsted",
+  },
+  description: "Plataforma colombiana que conecta personas que necesitan servicios con freelancers y negocios locales confiables. Enfocado en Bucaramanga y Colombia.",
+  applicationName: "OigaUsted",
+  authors: [{ name: "OigaUsted" }],
+  keywords: ["gigs", "servicios", "freelance", "Colombia", "Bucaramanga", "trabajos locales", "plataforma de servicios"],
+  icons: {
+    icon: [
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+      { url: "/icon.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", sizes: "512x512", type: "image/png" },
+      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "OigaUsted",
+    statusBarStyle: "default",
+  },
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+  manifest: "/manifest.webmanifest",
+  metadataBase: new URL("https://oigagig.com"),
 };
 
 export default function RootLayout({

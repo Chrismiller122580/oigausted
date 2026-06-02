@@ -9,12 +9,20 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastActivityUpdate, setLastActivityUpdate] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchStats();
   }, []);
 
-  const fetchStats = async () => {
+  // Light auto-refresh for recent activity on dashboard (every 30s)
+  useEffect(() => {
+    const iv = setInterval(() => fetchStats(true), 30000);
+    return () => clearInterval(iv);
+  }, []);
+
+  const fetchStats = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const [statsRes, activityRes] = await Promise.all([
         fetch('/api/admin/stats'),
@@ -26,10 +34,11 @@ export default function AdminDashboard() {
 
       const activityData = await activityRes.json();
       setRecentActivity(activityData.logs || []);
+      setLastActivityUpdate(new Date());
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
@@ -143,9 +152,18 @@ export default function AdminDashboard() {
               <Clock className="h-6 w-6 text-purple-400" />
               <h2 className="text-2xl font-semibold">Actividad Reciente</h2>
             </div>
-            <Link href="/admin/audit" className="text-sm text-orange-400 hover:underline">
-              Ver todo el historial →
-            </Link>
+            <div className="flex items-center gap-3 text-sm">
+              <button 
+                onClick={() => fetchStats(true)} 
+                className="text-orange-400 hover:underline"
+                disabled={loading}
+              >
+                Refrescar
+              </button>
+              <Link href="/admin/audit" className="text-orange-400 hover:underline">
+                Ver todo el historial →
+              </Link>
+            </div>
           </div>
 
           <Card className="bg-card border-border">

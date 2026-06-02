@@ -11,8 +11,8 @@ self.addEventListener('push', function(event) {
 
   const options = {
     body: data.body || data.message || '',
-    icon: data.icon || '/logo.png',
-    badge: '/logo.png',
+    icon: data.icon || '/icon.png',
+    badge: '/icon.png',
     data: {
       url: data.url || data.link || '/',
       notificationId: data.notificationId,

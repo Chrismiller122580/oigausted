@@ -70,6 +70,48 @@ Este comando detecta automáticamente tu URL de Codespaces y configura `NEXTAUTH
 
 Abre la URL que te da Codespaces (ej: `https://tu-codespace-3000.app.github.dev`) y usa las cuentas demo:
 
+## Desarrollo en macOS y Apple Silicon
+
+La aplicación es totalmente compatible con **macOS** (incluyendo Macs con Apple Silicon M1/M2/M3/M4).
+
+```bash
+# 1. Instalar dependencias (usa binarios nativos arm64 automáticamente)
+npm install
+
+# 2. Copia las variables de entorno
+cp .env.example .env.local
+
+# 3. (Opcional) Reset + seed de datos demo
+npm run db:reset
+
+# 4. Iniciar
+npm run dev
+```
+
+**Notas para macOS:**
+- Usa Node.js 18.18+ o 20+ (recomendado vía Homebrew: `brew install node` o nvm/fnm).
+- No se requieren herramientas de compilación nativas (xcode-select) porque usamos `bcryptjs` (puro JS) en lugar de bcrypt nativo.
+- Prisma descarga automáticamente los binarios para `darwin-arm64`.
+- El script `dev:codespaces` es solo para GitHub Codespaces (Linux); en Mac usa `npm run dev` directamente.
+- SQLite (`file:./dev.db`) funciona sin problemas en macOS.
+- Para probar en **iPhone / iPad / Mac Safari**: usa `npm run dev`, abre `http://localhost:3000` (o la IP de tu Mac en la red local para probar en dispositivos reales). La app soporta "Agregar a pantalla de inicio" como PWA.
+
+## Soporte para Apple (iOS, iPadOS, macOS)
+
+Hemos actualizado la app para una experiencia óptima en productos Apple:
+
+- **Apple Web App** (PWA instalable): Los usuarios de iOS pueden "Agregar a pantalla de inicio" y la app se siente nativa (standalone, sin barra de Safari).
+- **Iconos optimizados**: Incluye `apple-icon.png` para touch icons y notificaciones.
+- **Manifest web**: Soporte completo para instalación en iOS/macOS.
+- **Tema y colores**: Soporte de dark/light mode con `theme-color` dinámico.
+- **Safe areas**: Manejo de notch/Dynamic Island en iPhone (ya presente en CSS + `pb-safe-area-inset-bottom`).
+- **Notificaciones push**: Iconos cuadrados correctos para badges en Apple devices.
+- **Safari**: Probado con las últimas optimizaciones (font stacks usan `-apple-system`).
+
+Para probar la instalación en iOS:
+1. Abre la app en Safari en tu iPhone.
+2. Toca el botón Compartir → "Agregar a pantalla de inicio".
+
 ## Despliegue en Vercel (Producción)
 
 For a complete step-by-step checklist, see [PRODUCTION_CHECKLIST.md](./PRODUCTION_CHECKLIST.md).

@@ -25,66 +25,72 @@ export function isAdmin(userOrSession: any): boolean {
   return role === 'admin'
 }
 
-export const authOptions = {
-  providers: [
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          console.warn('[auth] Missing email or password in credentials')
+const providers: any[] = [
+  CredentialsProvider({
+    name: "Credentials",
+    credentials: {
+      email: { label: "Email", type: "email" },
+      password: { label: "Password", type: "password" },
+    },
+    async authorize(credentials) {
+      if (!credentials?.email || !credentials?.password) {
+        console.warn('[auth] Missing email or password in credentials')
+        return null
+      }
+
+      try {
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email.toLowerCase() },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            password: true,
+          }
+        })
+
+        if (!user) {
+          console.warn('[auth] No user found for email:', credentials.email.toLowerCase())
+          return null
+        }
+        if (!user.password) {
+          console.warn('[auth] User has no password set (OAuth-only account?):', user.email)
           return null
         }
 
-        try {
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email.toLowerCase() },
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
-              password: true,
-            }
-          })
-
-          if (!user) {
-            console.warn('[auth] No user found for email:', credentials.email.toLowerCase())
-            return null
-          }
-          if (!user.password) {
-            console.warn('[auth] User has no password set (OAuth-only account?):', user.email)
-            return null
-          }
-
-          const isValid = await bcrypt.compare(credentials.password, user.password)
-          if (!isValid) {
-            console.warn('[auth] Password mismatch for:', user.email)
-            return null
-          }
-
-          // Return the shape NextAuth expects
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-          }
-        } catch (err) {
-          console.error('[auth] Unexpected error in Credentials authorize:', err)
+        const isValid = await bcrypt.compare(credentials.password, user.password)
+        if (!isValid) {
+          console.warn('[auth] Password mismatch for:', user.email)
           return null
         }
-      },
-    }),
 
+        // Return the shape NextAuth expects
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        }
+      } catch (err) {
+        console.error('[auth] Unexpected error in Credentials authorize:', err)
+        return null
+      }
+    },
+  }),
+]
+
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  providers.push(
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    })
+  )
+}
+
+export const authOptions = {
+  providers,
 
   session: {
     strategy: "jwt" as const,

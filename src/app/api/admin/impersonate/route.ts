@@ -31,6 +31,8 @@ export async function POST(req: NextRequest) {
     // For now we return the user data so the frontend can open their view.
     // Log the impersonation
     const adminId = (session.user as any).id;
+    const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
+    const userAgent = req.headers.get('user-agent') || null;
     await logAuditEvent({
       adminId,
       action: 'USER_IMPERSONATED',
@@ -40,6 +42,8 @@ export async function POST(req: NextRequest) {
         impersonatedEmail: targetUser.email,
         impersonatedRole: targetUser.role,
       },
+      ipAddress,
+      userAgent,
     });
 
     return NextResponse.json({ 

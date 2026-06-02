@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { notifications } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
+import { logAuditEvent } from '@/lib/audit';
 
 // Admin-only endpoint to send manual notifications to any user
 export async function POST(req: NextRequest) {
@@ -32,6 +33,26 @@ export async function POST(req: NextRequest) {
     } else {
       result = await notifications.sendInApp(userId, category, title, message);
     }
+
+    // Audit the manual notification send (important for abuse tracking)
+    const adminId = (session.user as any).id;
+    const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
+    const userAgent = req.headers.get('user-agent') || null;
+    await logAuditEvent({
+      adminId,
+      action: 'ADMIN_SENT_NOTIFICATION',
+      targetType: 'User',
+      targetId: userId,
+      details: {
+        title,
+        message: message.substring(0, 100),
+        category,
+        type,
+        recipientEmail: user.email,
+      },
+      ipAddress,
+      userAgent,
+    });
 
     return NextResponse.json({ 
       success: true, 

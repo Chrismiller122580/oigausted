@@ -26,27 +26,41 @@ export default function AdminAuditPage() {
   const [loading, setLoading] = useState(true);
   const [actionFilter, setActionFilter] = useState('');
   const [targetTypeFilter, setTargetTypeFilter] = useState('');
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
-  const fetchLogs = async () => {
-    setLoading(true);
+  const fetchLogs = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const params = new URLSearchParams();
       if (actionFilter) params.append('action', actionFilter);
       if (targetTypeFilter) params.append('targetType', targetTypeFilter);
+      // Always request a decent number so new logs show up
+      params.append('limit', '100');
 
       const res = await fetch(`/api/admin/audit?${params.toString()}`);
       const data = await res.json();
       setLogs(data.logs || []);
+      setLastUpdated(new Date());
     } catch (e) {
-      toast.error('Error cargando registros de auditoría');
+      if (!isBackground) toast.error('Error cargando registros de auditoría');
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchLogs();
   }, [actionFilter, targetTypeFilter]);
+
+  // Auto-refresh so logs "update" live without manual browser reload (every 15s when enabled)
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(() => {
+      fetchLogs(true); // background refresh, no loading spinner
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [autoRefresh, actionFilter, targetTypeFilter]);
 
   const formatAction = (action: string) => {
     return action.replace(/_/g, ' ').toLowerCase();
@@ -62,15 +76,15 @@ export default function AdminAuditPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-4 mb-6">
+        <div className="flex flex-wrap gap-4 mb-6 items-center">
           <Input
-            placeholder="Filtrar por acción (ej: USER_EDITED)"
+            placeholder="Filtrar por acción (ej: USER o ROLE)"
             value={actionFilter}
             onChange={(e) => setActionFilter(e.target.value)}
             className="max-w-xs"
           />
           <Input
-            placeholder="Filtrar por tipo (ej: User)"
+            placeholder="Filtrar por tipo (ej: User o Gig)"
             value={targetTypeFilter}
             onChange={(e) => setTargetTypeFilter(e.target.value)}
             className="max-w-xs"
@@ -78,6 +92,21 @@ export default function AdminAuditPage() {
           <Button variant="outline" onClick={() => { setActionFilter(''); setTargetTypeFilter(''); }}>
             Limpiar Filtros
           </Button>
+          <Button variant="outline" onClick={() => fetchLogs(false)} disabled={loading}>
+            Refrescar
+          </Button>
+          <Button 
+            variant={autoRefresh ? "default" : "outline"} 
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            size="sm"
+          >
+            {autoRefresh ? '⏸ Pausar auto' : '▶ Auto-actualizar (15s)'}
+          </Button>
+          {lastUpdated && (
+            <span className="text-xs text-muted-foreground ml-2">
+              Actualizado: {lastUpdated.toLocaleTimeString('es-CO')}
+            </span>
+          )}
         </div>
 
         <Card>
