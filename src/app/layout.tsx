@@ -128,7 +128,7 @@ export default function RootLayout({
           try { mo.disconnect(); } catch(e) {}
         }, 10000);
         
-        console.log('[MapsGuard] Installed early + aggressive neutralization for legacy Google Places Autocomplete');
+        console.debug('[MapsGuard] Installed early + aggressive neutralization for legacy Google Places Autocomplete');
       } catch (e) {
         // Never break the page
       }
