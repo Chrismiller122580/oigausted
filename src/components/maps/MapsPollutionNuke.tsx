@@ -16,14 +16,11 @@ import { useLayoutEffect } from 'react';
 export default function MapsPollutionNuke() {
   useLayoutEffect(() => {
     // Gentle but effective cleanup on mount.
+    // We NO LONGER remove DOM nodes (caused React removeChild errors + desync).
+    // Just nuke the JS objects. CSS in globals.css hides any .pac-container.
     // Run a few times quickly to catch async injection from stale chunks.
     const nuke = () => {
       try {
-        const containers = document.querySelectorAll('.pac-container');
-        containers.forEach((c) => {
-          try { c.parentNode?.removeChild(c); } catch {}
-        });
-
         const g = (window as any).google;
         if (g?.maps?.places) {
           g.maps.places = {

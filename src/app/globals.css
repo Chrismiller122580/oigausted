@@ -169,6 +169,22 @@
   }
 }
 
+/* Defense-in-depth: hide any legacy Google Places Autocomplete dropdowns
+   (.pac-container) that might still get injected by stale code/bundles.
+   This prevents them from participating in layout or being targeted by
+   React's DOM reconciliation (the source of removeChild + #310 errors).
+   We avoid DOM removal in guards to prevent desync with React.
+*/
+.pac-container {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+}
+
 /* Improve mobile tap targets */
 button, a, [role="button"] {
   min-height: 44px;

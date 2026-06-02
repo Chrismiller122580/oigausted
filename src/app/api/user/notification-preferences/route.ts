@@ -7,19 +7,20 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     let prefs = await prisma.notificationPreference.findUnique({
-      where: { userId: session.user.id }
+      where: { userId }
     });
 
     // Create default preferences if none exist
     if (!prefs) {
       prefs = await prisma.notificationPreference.create({
         data: {
-          userId: session.user.id,
+          userId,
           inAppEnabled: true,
           emailEnabled: true,
           smsEnabled: false,
@@ -53,14 +54,15 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
 
     const updated = await prisma.notificationPreference.upsert({
-      where: { userId: session.user.id },
+      where: { userId },
       update: {
         inAppEnabled: body.inAppEnabled ?? undefined,
         emailEnabled: body.emailEnabled ?? undefined,
@@ -82,7 +84,7 @@ export async function PUT(req: NextRequest) {
         maxNotificationsPerHour: body.maxNotificationsPerHour ?? undefined,
       },
       create: {
-        userId: session.user.id,
+        userId,
         inAppEnabled: body.inAppEnabled ?? true,
         emailEnabled: body.emailEnabled ?? true,
         smsEnabled: body.smsEnabled ?? false,

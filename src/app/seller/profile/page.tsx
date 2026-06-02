@@ -14,16 +14,12 @@ export default function MiNegocioPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Nuclear per-page defense against lingering Google Places widget pollution
-  // (same pattern as create-gig). Runs very early to kill pac-containers and the places library.
+  // Nuclear per-page defense against lingering Google Places widget pollution.
+  // We no longer remove DOM nodes (was causing uncaught removeChild errors + React desync).
+  // Just nuke the JS namespace. Global CSS + layout guard handle the rest.
   useLayoutEffect(() => {
     const cleanup = () => {
       try {
-        const containers = document.querySelectorAll('.pac-container');
-        containers.forEach((c) => {
-          try { c.parentNode && c.parentNode.removeChild(c); } catch {}
-        });
-
         const g = (window as any).google;
         if (g?.maps?.places) {
           try {

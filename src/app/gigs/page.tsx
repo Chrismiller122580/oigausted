@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import GigCard from "@/components/common/GigCard";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,6 @@ function GigsClient() {
   const initialCategory = searchParams.get("categoria") || "Todas";
 
   const [gigs, setGigs] = useState<any[]>([]);
-  const [filteredGigs, setFilteredGigs] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [sortBy, setSortBy] = useState("relevance");
@@ -63,7 +62,6 @@ function GigsClient() {
       const data = await res.json();
       const gigList = Array.isArray(data) ? data : data.gigs || [];
       setGigs(gigList);
-      setFilteredGigs(gigList);
     } catch (error) {
       console.error("Error fetching gigs:", error);
     } finally {
@@ -99,21 +97,23 @@ function GigsClient() {
     setLocationError(null);
   };
 
-  // Calculate distances when user location changes
-  const gigsWithDistance = gigs.map(gig => {
-    if (userLocation && gig.latitude && gig.longitude) {
-      const distance = calculateDistance(
-        userLocation.lat,
-        userLocation.lng,
-        gig.latitude,
-        gig.longitude
-      );
-      return { ...gig, distanceKm: distance };
-    }
-    return gig;
-  });
+  // Memoized derived data to avoid re-render loops from unstable deps (was causing category filters etc to not work stably)
+  const gigsWithDistance = useMemo(() => {
+    return gigs.map(gig => {
+      if (userLocation && gig.latitude && gig.longitude) {
+        const distance = calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          gig.latitude,
+          gig.longitude
+        );
+        return { ...gig, distanceKm: distance };
+      }
+      return gig;
+    });
+  }, [gigs, userLocation]);
 
-  useEffect(() => {
+  const filteredGigs = useMemo(() => {
     let result = [...gigsWithDistance];
 
     // Search filter
@@ -154,7 +154,7 @@ function GigsClient() {
       }
     }
 
-    setFilteredGigs(result);
+    return result;
   }, [gigsWithDistance, searchTerm, selectedCategory, sortBy, showOnlyNearMe, showOnlyRemote, userLocation]);
 
   if (loading) {

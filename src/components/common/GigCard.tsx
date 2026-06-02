@@ -14,6 +14,7 @@ interface Gig {
   category?: string
   completionTime?: string
   imageUrl?: string
+  isActive?: boolean
   seller: {
     id: string
     name?: string
@@ -57,6 +58,10 @@ export default function GigCard({
   const handleBuyNow = () => {
     if (isOwnGig) {
       toast.error("No puedes comprar tu propio gig")
+      return
+    }
+    if (gig.isActive === false) {
+      toast.error("Este servicio está pausado temporalmente")
       return
     }
     router.push(`/checkout/${gig.id}`)
@@ -155,9 +160,9 @@ export default function GigCard({
           <Button
             onClick={handleBuyNow}
             className="w-full bg-orange-600 hover:bg-orange-700"
-            disabled={isOwnGig}
+            disabled={isOwnGig || gig.isActive === false}
           >
-            {isOwnGig ? "Tu propio gig" : "Comprar Ahora"}
+            {isOwnGig ? "Tu propio gig" : (gig.isActive === false ? "Servicio pausado" : "Comprar Ahora")}
           </Button>
         )}
       </CardFooter>

@@ -8,11 +8,10 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const userId = (session?.user as any)?.id;
+  if (!userId) {
     return new Response('Unauthorized', { status: 401 });
   }
-
-  const userId = session.user.id;
   let lastChecked = new Date();
 
   const encoder = new TextEncoder();

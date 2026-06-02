@@ -18,6 +18,9 @@ function CreateGigClient() {
   const { data: session } = useSession();
   const router = useRouter();
 
+  const role = String((session?.user as any)?.role || '').toLowerCase().trim();
+  const canPublish = !session || ['seller', 'admin'].includes(role);
+
   // Global + per-page nuke component handles Maps pollution defense.
   // We keep this import to ensure the component is in the tree early.
 
@@ -183,6 +186,7 @@ function CreateGigClient() {
     e.preventDefault();
 
     if (!session) return toast.error("Debes iniciar sesión");
+    if (!canPublish) return toast.error("Solo vendedores pueden publicar servicios");
     if (!title.trim()) return toast.error("El título es obligatorio");
     if (!category) return toast.error("Selecciona una categoría");
     if (!basePrice || basePrice <= 0) return toast.error("Ingresa un precio base válido");
@@ -243,6 +247,15 @@ function CreateGigClient() {
   return (
     <div className="max-w-4xl mx-auto p-6 md:p-8">
       <MapsPollutionNuke />
+      {!canPublish && session && (
+        <div className="mb-8 p-6 bg-amber-50 border border-amber-200 rounded-3xl text-center">
+          <p className="text-amber-800 font-medium mb-2">Debes ser vendedor para publicar servicios.</p>
+          <p className="text-sm text-amber-700 mb-4">Actualiza tu perfil para convertirte en vendedor y comenzar a publicar gigs.</p>
+          <Button onClick={() => router.push('/profile')} className="bg-amber-600 hover:bg-amber-700">
+            Ir a mi perfil
+          </Button>
+        </div>
+      )}
       <div className="mb-8">
         <h1 className="text-4xl font-bold tracking-tight">
           {isEditing ? "Editar Servicio" : "Publica tu Servicio"}
@@ -552,7 +565,7 @@ function CreateGigClient() {
 
         <Button 
           type="submit" 
-          disabled={submitting}
+          disabled={submitting || !canPublish}
           className="w-full py-7 text-lg font-semibold bg-orange-600 hover:bg-orange-700 disabled:opacity-70"
         >
           {submitting 

@@ -46,31 +46,28 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Nuclear global guard against the Google Maps legacy Places Autocomplete widget.
-  // This widget (even when loaded from stale CDN bundles) injects .pac-container DOM
-  // that React does not own. When React later unmounts/reconciles, it throws
-  // "removeChild" + "Rendered more hooks than during the previous render" (#310).
-  // We neutralize it as early as possible, before any page component runs.
+  // Global guard against the Google Maps legacy Places Autocomplete widget.
+  // The legacy widget (from stale bundles or accidental 'places' lib load) injects
+  // .pac-container DOM nodes that React does not own. React unmount/reconcile then throws
+  // NotFoundError: removeChild + "more hooks than previous render" (#310).
+  //
+  // We ONLY nuke the JS constructor and places namespace (no DOM removal, which was
+  // causing its own removeChild errors and breaking legit map loads).
+  // We rely on:
+  // - Never loading 'places' library (see googleMapsLoader.ts + GoogleMap.tsx)
+  // - CSS to hide any stray .pac-container (see globals.css)
+  // - Constructor override as last defense
+  //
+  // This runs early in <head> before any page components.
   const mapsGuardScript = `
     (function() {
       if (typeof window === 'undefined') return;
       try {
-        // 1. Prevent the dangerous constructor from ever being called
-        var originalDefine = Object.getOwnPropertyDescriptor(window, 'google');
-        
-        // Install a trap that neuters places.Autocomplete if google ever appears
         function neutralizeGoogleMaps() {
-          // Try to kill any maps scripts that old bundles may have injected
-          try {
-            document.querySelectorAll('script[src*="maps.googleapis.com"]').forEach(function(s) {
-              try { s.parentNode && s.parentNode.removeChild(s); } catch(e) {}
-            });
-          } catch(e) {}
-
           var g = window.google;
           if (!g || !g.maps) return false;
           
-          // Block legacy Autocomplete constructor
+          // Block legacy Autocomplete constructor (prevents widget from ever attaching)
           if (g.maps.places && g.maps.places.Autocomplete) {
             try {
               g.maps.places.Autocomplete = function() {
@@ -80,11 +77,9 @@ export default function RootLayout({
             } catch(e) {}
           }
           
-          // Nuclear: completely nuke the places library if it exists from a previous page load.
-          // This is the main source of the removeChild + React #310 crashes.
+          // Nuclear: completely nuke the places library if present from stale code.
           if (g.maps.places) {
             try {
-              // Replace the entire places namespace with a safe empty object
               g.maps.places = {
                 Autocomplete: function() { return {}; },
                 AutocompleteService: function() {},
@@ -96,29 +91,19 @@ export default function RootLayout({
               console.warn('[MapsGuard] Nuked google.maps.places to prevent DOM conflicts');
             } catch(e) {}
           }
-          
-          // Aggressively clean any pac-containers that the widget may have injected
-          var containers = document.querySelectorAll('.pac-container');
-          if (containers.length) {
-            containers.forEach(function(c) {
-              try { c.parentNode && c.parentNode.removeChild(c); } catch(e) {}
-            });
-            console.warn('[MapsGuard] Removed ' + containers.length + ' orphaned .pac-container node(s)');
-          }
           return true;
         }
         
         // Run immediately
         neutralizeGoogleMaps();
         
-        // Run again after DOM mutations (covers async script loads from stale bundles)
+        // Run again after DOM mutations (covers async script loads / late bundles)
         var mo = new MutationObserver(function() {
           neutralizeGoogleMaps();
         });
         mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
         
-        // Solid but not overly aggressive cleanup for the first 10 seconds.
-        // Catches late injection from stale chunks without interfering with initial hydration.
+        // Periodic nuke for first 10s (catches late injection from code chunks)
         var cleanupInterval = setInterval(function() {
           var g = window.google;
           if (g && g.maps && g.maps.places) {
@@ -133,18 +118,12 @@ export default function RootLayout({
               };
             } catch(e) {}
           }
-          var containers = document.querySelectorAll('.pac-container');
-          if (containers.length) {
-            containers.forEach(function(c) {
-              try { c.parentNode && c.parentNode.removeChild(c); } catch(e) {}
-            });
-          }
         }, 300);
         
         setTimeout(function() {
           clearInterval(cleanupInterval);
           try { mo.disconnect(); } catch(e) {}
-        }, 10000);  // 10 seconds of protection
+        }, 10000);
         
         console.log('[MapsGuard] Installed early + aggressive neutralization for legacy Google Places Autocomplete');
       } catch (e) {
