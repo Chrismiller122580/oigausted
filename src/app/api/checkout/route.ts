@@ -6,7 +6,8 @@ import { authOptions } from '@/lib/auth';
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Prevent sellers from purchasing their own gigs (server-side enforcement)
-    if (gig.sellerId === session.user.id) {
+    if (gig.sellerId === userId) {
       return NextResponse.json({ error: "No puedes comprar tu propio servicio" }, { status: 403 });
     }
 
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     const order = await prisma.order.create({
       data: {
-        buyerId: session.user.id,
+        buyerId: userId,
         sellerId: gig.sellerId,
         gigId: gig.id,
         price: gig.price,

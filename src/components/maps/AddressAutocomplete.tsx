@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface AddressAutocompleteProps {
   value: string;
@@ -37,7 +38,7 @@ export default function AddressAutocomplete({
 
   const handleBrowserLocation = () => {
     if (!navigator.geolocation) {
-      alert("Tu navegador no soporta geolocalización.");
+      toast.error("Tu navegador no soporta geolocalización.");
       return;
     }
 
@@ -55,7 +56,7 @@ export default function AddressAutocomplete({
       },
       (error) => {
         console.error("Geolocation error:", error);
-        alert("No pudimos obtener tu ubicación. Por favor ingresa la dirección manualmente.");
+        toast.error("No pudimos obtener tu ubicación. Por favor ingresa la dirección manualmente.");
         setUseBrowserLocation(false);
       }
     );

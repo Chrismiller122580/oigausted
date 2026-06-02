@@ -24,7 +24,7 @@ export default function SellerOrdersPage() {
       return;
     }
 
-    const sellerId = session.user.id;
+    const sellerId = (session.user as any)?.id;
 
     Promise.all([
       fetch('/api/orders?role=seller').then(res => res.json()),

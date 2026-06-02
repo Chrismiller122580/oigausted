@@ -12,14 +12,14 @@ export async function GET(
   try {
     const { id: orderId } = await params;
     const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     // Verify caller is part of the order
     const order = await prisma.order.findUnique({ where: { id: orderId }, select: { buyerId: true, sellerId: true } });
-    if (!order || (order.buyerId !== session.user.id && order.sellerId !== session.user.id)) {
+    if (!order || (order.buyerId !== userId && order.sellerId !== userId)) {
       return NextResponse.json({ error: 'No autorizado para este pedido' }, { status: 403 });
     }
 
@@ -53,14 +53,14 @@ export async function POST(
   try {
     const { id: orderId } = await params;
     const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     // Verify caller is part of the order
     const order = await prisma.order.findUnique({ where: { id: orderId }, select: { buyerId: true, sellerId: true } });
-    if (!order || (order.buyerId !== session.user.id && order.sellerId !== session.user.id)) {
+    if (!order || (order.buyerId !== userId && order.sellerId !== userId)) {
       return NextResponse.json({ error: 'No autorizado para este pedido' }, { status: 403 });
     }
 
@@ -100,7 +100,7 @@ export async function POST(
     try {
       const order = await prisma.order.findUnique({ where: { id: orderId }, select: { buyerId: true } });
       if (order) {
-        isFromBuyer = session.user.id === order.buyerId;
+        isFromBuyer = userId === order.buyerId;
       }
     } catch {}
 

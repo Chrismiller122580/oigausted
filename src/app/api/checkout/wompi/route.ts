@@ -31,7 +31,8 @@ function generateIntegritySignature(
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    if (order.buyerId !== session.user.id) {
+    if (order.buyerId !== userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

@@ -29,8 +29,9 @@ function OrderDetailClient() {
   const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'progress' | 'review'>('overview');
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const isBuyer = order?.buyerId === session?.user?.id;
-  const isSeller = order?.sellerId === session?.user?.id;
+  const uid = (session?.user as any)?.id;
+  const isBuyer = order?.buyerId === uid;
+  const isSeller = order?.sellerId === uid;
   const isCompleted = order?.status === 'Completed';
 
   useEffect(() => {

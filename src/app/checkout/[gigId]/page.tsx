@@ -488,7 +488,7 @@ export default function CheckoutPage() {
                   type="button"
                   onClick={() => {
                     if (!navigator.geolocation) {
-                      alert("Tu navegador no soporta geolocalización.");
+                      toast.error("Tu navegador no soporta geolocalización.");
                       return;
                     }
                     navigator.geolocation.getCurrentPosition(
@@ -501,7 +501,7 @@ export default function CheckoutPage() {
                           setServiceAddress(`Ubicación actual (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
                         }
                       },
-                      () => alert("No pudimos obtener tu ubicación.")
+                      () => toast.error("No pudimos obtener tu ubicación.")
                     );
                   }}
                   className="px-4 py-2 border rounded-xl text-sm hover:bg-muted"

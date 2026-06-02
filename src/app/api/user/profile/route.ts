@@ -6,14 +6,15 @@ import { prisma } from '@/lib/prisma';
 export async function PATCH(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     const data = await request.json();
 
     const updatedUser = await prisma.user.update({
-      where: { id: session.user.id },
+      where: { id: userId },
       data: {
         name: data.name || undefined,
         profilePicture: data.imageUrl || undefined,

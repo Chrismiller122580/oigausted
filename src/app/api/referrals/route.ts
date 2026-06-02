@@ -6,11 +6,10 @@ import { prisma } from '@/lib/prisma'
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id
+    if (!userId) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
-
-    const userId = session.user.id
 
     // Get current user with referral info
     const user = await prisma.user.findUnique({
@@ -117,7 +116,8 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id
+    if (!userId) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
@@ -125,8 +125,6 @@ export async function POST(req: Request) {
     if (!referralCode) {
       return NextResponse.json({ error: 'Código de referido requerido' }, { status: 400 })
     }
-
-    const userId = session.user.id
 
     const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })

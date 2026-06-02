@@ -11,15 +11,15 @@ export async function GET(
   try {
     const { id: orderId } = await params;
     const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     const review = await prisma.review.findFirst({
       where: {
         orderId,
-        reviewerId: session.user.id
+        reviewerId: userId
       },
       include: {
         reviewer: { select: { name: true } }
@@ -39,8 +39,8 @@ export async function POST(
   try {
     const { id: orderId } = await params;
     const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
     }
 
@@ -66,7 +66,7 @@ export async function POST(
       return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
     }
 
-    if (order.buyerId !== session.user.id) {
+    if (order.buyerId !== userId) {
       return NextResponse.json({ error: 'Solo el comprador puede dejar reseña' }, { status: 403 });
     }
 
@@ -76,7 +76,7 @@ export async function POST(
 
     // Check if review already exists
     const existing = await prisma.review.findFirst({
-      where: { orderId, reviewerId: session.user.id }
+      where: { orderId, reviewerId: userId }
     });
 
     if (existing) {
@@ -88,7 +88,7 @@ export async function POST(
       data: {
         rating: Number(rating),
         comment: comment?.trim() || null,
-        reviewerId: session.user.id,
+        reviewerId: userId,
         sellerId: order.sellerId,
         orderId
       }

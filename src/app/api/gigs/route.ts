@@ -49,16 +49,17 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
       return NextResponse.json({ error: "Debes iniciar sesión" }, { status: 401 });
     }
 
-    const role = (session.user as any).role;
+    const role = (session?.user as any)?.role;
     if (role !== 'seller' && role !== 'admin') {
       return NextResponse.json({ error: "Solo vendedores pueden crear gigs" }, { status: 403 });
     }
 
-    const sellerId = resolveDemoUserId(session.user.id);
+    const sellerId = resolveDemoUserId(userId);
 
     const body = await req.json();
     const { 

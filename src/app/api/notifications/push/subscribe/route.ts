@@ -7,7 +7,8 @@ import { prisma } from '@/lib/prisma';
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -16,8 +17,6 @@ export async function POST(req: NextRequest) {
     if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
       return NextResponse.json({ error: 'Invalid subscription' }, { status: 400 });
     }
-
-    const userId = session.user.id;
 
     // Upsert subscription (one per device/endpoint)
     await prisma.pushSubscription.upsert({

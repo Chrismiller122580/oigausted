@@ -6,7 +6,8 @@ import { authOptions } from '@/lib/auth';
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized - Please log in first' }, { status: 401 });
     }
 

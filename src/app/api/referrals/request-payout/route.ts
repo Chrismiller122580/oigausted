@@ -6,11 +6,10 @@ import { sendNotification } from '@/lib/notifications'
 
 export async function POST() {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
+  const userId = (session?.user as any)?.id
+  if (!userId) {
     return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
   }
-
-  const userId = session.user.id
 
   try {
     // Get pending earnings

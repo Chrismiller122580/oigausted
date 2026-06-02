@@ -21,12 +21,13 @@ export default function BuyerDashboard() {
   const userName = session?.user?.name?.split(' ')[0] || 'Comprador'
 
   useEffect(() => {
-    if (!session?.user?.id) {
+    const uid = (session?.user as any)?.id
+    if (!uid) {
       setLoading(false)
       return
     }
 
-    const userId = session.user.id
+    const userId = uid
 
     Promise.all([
       fetch('/api/orders?role=buyer').then(res => res.json()),

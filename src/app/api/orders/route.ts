@@ -7,7 +7,8 @@ import { notifications } from '@/lib/notifications';
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
     }
 
@@ -16,12 +17,12 @@ export async function POST(request: Request) {
 
     // Ensure buyer exists
     await prisma.user.upsert({
-      where: { id: session.user.id },
+      where: { id: userId },
       update: {},
       create: {
-        id: session.user.id,
-        name: session.user.name || 'Comprador',
-        email: session.user.email || '',
+        id: userId,
+        name: (session?.user as any)?.name || 'Comprador',
+        email: session?.user?.email || '',
         role: 'buyer',
       }
     });
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
     if (!gig) return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
 
     // Prevent sellers from purchasing their own gigs (server-side enforcement)
-    if (gig.sellerId === session.user.id) {
+    if (gig.sellerId === userId) {
       return NextResponse.json({ error: 'No puedes comprar tu propio servicio' }, { status: 403 });
     }
 
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
 
     const order = await prisma.order.create({
       data: {
-        buyerId: session.user.id,
+        buyerId: userId,
         sellerId: gig.sellerId,
         gigId: gig.id,
         price: Number(price),
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
 
     // Also notify the buyer (confirmation) - will trigger email too
     await notifications.sendInApp(
-      session.user.id,
+      userId,
       'order',
       'Pedido creado',
       `Tu pedido para "${gig.title}" fue registrado correctamente.`,
@@ -109,7 +110,8 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -118,8 +120,8 @@ export async function GET(request: Request) {
 
     const orders = await prisma.order.findMany({
       where: role === 'seller' 
-        ? { sellerId: session.user.id } 
-        : { buyerId: session.user.id },
+        ? { sellerId: userId } 
+        : { buyerId: userId },
       include: {
         gig: { select: { title: true, imageUrl: true } },
         buyer: { select: { name: true } },

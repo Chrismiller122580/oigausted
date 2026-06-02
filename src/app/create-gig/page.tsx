@@ -529,7 +529,7 @@ function CreateGigClient() {
                       type="button"
                       onClick={() => {
                         if (!navigator.geolocation) {
-                          alert("Tu navegador no soporta geolocalización");
+                          toast.error("Tu navegador no soporta geolocalización");
                           return;
                         }
                         navigator.geolocation.getCurrentPosition(
@@ -542,7 +542,7 @@ function CreateGigClient() {
                               setGigLocation(`Mi ubicación actual (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
                             }
                           },
-                          () => alert("No se pudo obtener la ubicación")
+                          () => toast.error("No se pudo obtener la ubicación")
                         );
                       }}
                       className="px-4 py-2 border rounded-xl text-sm hover:bg-muted"

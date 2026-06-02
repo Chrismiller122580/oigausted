@@ -45,7 +45,8 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id
+    if (!userId) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
@@ -59,7 +60,6 @@ export async function PATCH(
     if (!existingOrder) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
-    const userId = (session?.user as any)?.id
     const isAdmin = (session?.user as any)?.role === 'admin'
     if (!isAdmin && existingOrder.buyerId !== userId && existingOrder.sellerId !== userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })

@@ -6,11 +6,12 @@ import { authOptions, resolveDemoUserId } from '@/lib/auth';
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const uid = (session?.user as any)?.id;
+    if (!uid) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
     }
 
-    const sellerId = resolveDemoUserId(session.user.id);
+    const sellerId = resolveDemoUserId(uid);
 
     const gigs = await prisma.gig.findMany({
       where: { sellerId },

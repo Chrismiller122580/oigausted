@@ -12,12 +12,12 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
 
     // Only allow admins or the logged in user to test their own email
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { emailType = 'welcome', to } = await req.json();
-    const userId = session.user.id;
 
     const isAdmin = (session.user as any)?.role === 'admin';
 

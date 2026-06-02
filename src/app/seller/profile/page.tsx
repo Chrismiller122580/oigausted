@@ -268,7 +268,7 @@ export default function MiNegocioPage() {
                         type="button"
                         onClick={() => {
                           if (!navigator.geolocation) {
-                            alert("Tu navegador no soporta geolocalización.");
+                            toast.error("Tu navegador no soporta geolocalización.");
                             return;
                           }
                           navigator.geolocation.getCurrentPosition(
@@ -282,7 +282,7 @@ export default function MiNegocioPage() {
                                 location: prev.location || `Ubicación actual (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
                               }));
                             },
-                            () => alert("No pudimos obtener tu ubicación. Ingresa la dirección manualmente.")
+                            () => toast.error("No pudimos obtener tu ubicación. Ingresa la dirección manualmente.")
                           );
                         }}
                         disabled={!isEditing}

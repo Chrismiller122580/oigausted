@@ -8,9 +8,10 @@ import { logAuditEvent } from '@/lib/audit';
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+    const currentUserId = (session?.user as any)?.id;
     const isAdmin = (session?.user as any)?.role === 'admin';
 
-    if (!session?.user?.id) {
+    if (!currentUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Admin can reset any user's password
-    const targetUserId = isAdmin && (userId || isAdminReset) ? userId : session.user.id;
+    const targetUserId = isAdmin && (userId || isAdminReset) ? userId : currentUserId;
 
     if (!targetUserId) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
@@ -62,11 +63,11 @@ export async function POST(req: NextRequest) {
     });
 
     // Audit log for admin password resets (important security event)
-    if (isAdmin && targetUserId !== session.user.id) {
+    if (isAdmin && targetUserId !== currentUserId) {
       const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
       const userAgent = req.headers.get('user-agent') || null;
       await logAuditEvent({
-        adminId: session.user.id,
+        adminId: currentUserId,
         action: 'USER_PASSWORD_RESET',
         targetType: 'User',
         targetId: targetUserId,

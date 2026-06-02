@@ -9,6 +9,10 @@ export async function POST(request: NextRequest) {
     const currentUserId = (session?.user as any)?.id
     const isAdmin = (session?.user as any)?.role === 'admin'
 
+    if (!currentUserId) {
+      return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 })
+    }
+
     const { userId, businessName, nit, bio } = await request.json()
 
     if (!userId || !businessName) {
@@ -18,10 +22,6 @@ export async function POST(request: NextRequest) {
     // Only self or admin can promote
     if (!isAdmin && currentUserId !== userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
-    }
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 })
     }
 
     const updatedUser = await prisma.user.update({
