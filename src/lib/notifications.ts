@@ -23,10 +23,15 @@ export interface NotificationPayload {
 export async function sendNotification(payload: NotificationPayload) {
   const { userId, category, type, title, message, link, data } = payload;
 
-  // 1. Respect user preferences
-  const prefs = await prisma.notificationPreference.findUnique({
-    where: { userId }
-  });
+  // 1. Respect user preferences (defensive: default to enabled if prefs table/query fails due to schema)
+  let prefs: any = null;
+  try {
+    prefs = await prisma.notificationPreference.findUnique({
+      where: { userId }
+    });
+  } catch (e) {
+    console.warn('[Notifications] Prefs lookup failed, defaulting to enabled:', e);
+  }
 
   const shouldSendInApp = prefs?.inAppEnabled !== false;
   const shouldSendEmail = prefs?.emailEnabled !== false;
