@@ -13,13 +13,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { gigCategories } from '@/lib/gig-categories';
 import { toast } from 'sonner';
 import { MapPin } from 'lucide-react';
+import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 
 function CreateGigClient() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
 
   const role = String((session?.user as any)?.role || '').toLowerCase().trim();
-  const canPublish = !session || ['seller', 'admin'].includes(role);
+  const canPublish = !!session && ['seller', 'admin'].includes(role);
 
   // Global + per-page nuke component handles Maps pollution defense.
   // We keep this import to ensure the component is in the tree early.
@@ -98,6 +99,15 @@ function CreateGigClient() {
       setEditId(null);
     }
   }, [editParam]);
+
+  // Redirect unauthenticated users to login (with return to create-gig)
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!session?.user) {
+      const callbackUrl = getAuthCallbackUrl("/create-gig");
+      router.replace(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+    }
+  }, [status, session?.user, router]);
 
   const loadGigForEdit = async (id: string) => {
     setLoadingGig(true);
@@ -196,7 +206,7 @@ function CreateGigClient() {
     const payload = {
       title: title.trim(),
       description: description.trim(),
-      price: totalPrice,
+      price: basePrice, // base price only; buyer-selected options/fields/addons add extras on top at checkout time
       category,
       imageUrl: imageUrl || null,
       fields: selectedCategory?.fields || [],
@@ -239,6 +249,17 @@ function CreateGigClient() {
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-lg text-muted-foreground">Cargando servicio para editar...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "loading") {
+    return (
+      <div className="max-w-4xl mx-auto p-8 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-lg text-muted-foreground">Verificando permisos de vendedor...</p>
         </div>
       </div>
     );
@@ -486,7 +507,7 @@ function CreateGigClient() {
                 ${totalPrice.toLocaleString('es-CO')}
               </span>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">Este es el precio que verán los compradores (incluye addons seleccionados).</p>
+            <p className="text-sm text-muted-foreground mt-1">Precio base del servicio. Las opciones y addons que configures aquí son para tu estimación; los compradores los eligen y pagan los extras adicionales en el checkout.</p>
           </CardContent>
         </Card>
 
