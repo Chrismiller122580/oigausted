@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { sendNotification } from '@/lib/notifications';
+import { notifications } from '@/lib/notifications';
 
 // POST: Submit a new support ticket (any logged-in user)
 export async function POST(request: NextRequest) {
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     // For simplicity, send in-app to a system or find admins. Since no easy "all admins", we'll log and perhaps email support.
     try {
       // Send to the ticket submitter confirmation
-      await sendNotification(
+      await notifications.sendInApp(
         userId,
         'system',
         'Ticket de soporte recibido',

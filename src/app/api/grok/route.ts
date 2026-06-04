@@ -417,8 +417,8 @@ Current session context:
         });
         // Notify the ticket owner
         try {
-          const { sendNotification } = await import('@/lib/notifications');
-          await sendNotification(
+          const { notifications } = await import('@/lib/notifications');
+          await notifications.sendInApp(
             updated.userId,
             'system',
             'Actualización en tu ticket de soporte',

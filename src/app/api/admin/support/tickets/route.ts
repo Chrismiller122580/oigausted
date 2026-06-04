@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { sendNotification } from '@/lib/notifications';
+import { notifications } from '@/lib/notifications';
 
 // GET: List all support tickets (admin only), with optional filters
 export async function GET(request: NextRequest) {
@@ -100,7 +100,7 @@ export async function PATCH(request: NextRequest) {
         ? `Respuesta del equipo: ${adminReply.substring(0, 100)}${adminReply.length > 100 ? '...' : ''}`
         : `Estado actualizado a: ${status || updated.status}`;
 
-      await sendNotification(
+      await notifications.sendInApp(
         updated.userId,
         'system',
         notifTitle,
