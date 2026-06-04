@@ -61,6 +61,9 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
                 👤
               </div>
             </Link>
+            <Link href="/support" className="text-sm text-muted-foreground hover:text-foreground transition hidden lg:inline">
+              Soporte
+            </Link>
 
             <NotificationsBell />
             <ModeToggle />

@@ -49,6 +49,8 @@ You are extremely intelligent, proactive, strategic, and results-oriented. Your 
 - update_referral_rate(userId, newRate)
 - search_users(query)
 - get_platform_overview()
+- list_support_tickets(status?) → List open or filtered support tickets
+- get_support_ticket(ticketId) → Get full details of a specific support ticket
 - highlight_element(selector, durationMs) → Visually highlights elements on the current page (great for debugging UI bugs)
 - describe_element(selector) → Returns details about a DOM element
 - scroll_to(selector) → Smoothly scrolls the page to an element
@@ -136,6 +138,49 @@ Current session context:
           name: "get_platform_overview",
           description: "Get high-level platform stats (total users, sellers, revenue, pending payouts).",
           parameters: { type: "object", properties: {} }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "list_support_tickets",
+          description: "List support tickets. Filter by status (open, in_progress, resolved, closed) or leave empty for all recent.",
+          parameters: {
+            type: "object",
+            properties: {
+              status: { type: "string", description: "Optional filter: open, in_progress, resolved, closed" }
+            }
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "get_support_ticket",
+          description: "Get full details including user info and admin reply for a specific support ticket.",
+          parameters: {
+            type: "object",
+            properties: {
+              ticketId: { type: "string", description: "The ID of the support ticket" }
+            },
+            required: ["ticketId"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "update_support_ticket",
+          description: "Update a support ticket status and/or add admin reply (use after getting details and confirming with admin).",
+          parameters: {
+            type: "object",
+            properties: {
+              ticketId: { type: "string" },
+              status: { type: "string", description: "open, in_progress, resolved, closed" },
+              adminReply: { type: "string", description: "The response or internal note to the user" }
+            },
+            required: ["ticketId"]
+          }
         }
       },
       {
@@ -318,6 +363,71 @@ Current session context:
           select: { id: true, name: true, email: true, role: true }
         });
         toolResult = { users };
+      }
+
+      if (functionName === "list_support_tickets") {
+        const where: any = {};
+        if (args.status) where.status = args.status;
+        const tickets = await prisma.supportTicket.findMany({
+          where,
+          include: { user: { select: { id: true, name: true, email: true, role: true } } },
+          orderBy: { createdAt: 'desc' },
+          take: 20
+        });
+        toolResult = { tickets: tickets.map(t => ({
+          id: t.id,
+          subject: t.subject,
+          user: t.user.email,
+          status: t.status,
+          priority: t.priority,
+          category: t.category,
+          createdAt: t.createdAt
+        })) };
+      }
+
+      if (functionName === "get_support_ticket" && args.ticketId) {
+        const ticket = await prisma.supportTicket.findUnique({
+          where: { id: args.ticketId },
+          include: { user: { select: { id: true, name: true, email: true, role: true } } }
+        });
+        toolResult = ticket ? {
+          id: ticket.id,
+          subject: ticket.subject,
+          message: ticket.message,
+          user: ticket.user,
+          category: ticket.category,
+          priority: ticket.priority,
+          status: ticket.status,
+          adminReply: ticket.adminReply,
+          createdAt: ticket.createdAt,
+          resolvedAt: ticket.resolvedAt
+        } : { error: 'Ticket not found' };
+      }
+
+      if (functionName === "update_support_ticket" && args.ticketId) {
+        const data: any = {};
+        if (args.status) data.status = args.status;
+        if (args.adminReply) data.adminReply = args.adminReply;
+        if (args.status === 'resolved' || args.status === 'closed') data.resolvedAt = new Date();
+
+        const updated = await prisma.supportTicket.update({
+          where: { id: args.ticketId },
+          data,
+          include: { user: { select: { id: true, email: true } } }
+        });
+        // Notify the ticket owner
+        try {
+          const { sendNotification } = await import('@/lib/notifications');
+          await sendNotification(
+            updated.userId,
+            'system',
+            'Actualización en tu ticket de soporte',
+            args.adminReply || `Tu ticket ahora está en estado: ${args.status}`,
+            '/support',
+            { ticketId: updated.id }
+          );
+        } catch {}
+        toolResult = { success: true, updated: { id: updated.id, status: updated.status, adminReply: updated.adminReply } };
       }
 
       if (functionName === "update_referral_rate") {

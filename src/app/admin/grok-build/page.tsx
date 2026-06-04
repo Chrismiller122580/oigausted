@@ -31,6 +31,7 @@ const BUILD_MODES = [
   { id: 'analyze', label: 'Analyze Data' },
   { id: 'generate', label: 'Generate Content' },
   { id: 'improve', label: 'Improve Product' },
+  { id: 'support', label: 'Support Tickets' },
 ];
 
 const SUGGESTED_PROMPTS: Record<string, string[]> = {
@@ -53,6 +54,12 @@ const SUGGESTED_PROMPTS: Record<string, string[]> = {
     "How can we increase buyer conversion rate?",
     "Ideas to reduce the time between user registration and first gig posting",
   ],
+  support: [
+    "List all open support tickets and summarize common issues",
+    "Draft a professional response to a payment dispute ticket",
+    "Analyze support volume and suggest process improvements",
+    "Help resolve a technical ticket by suggesting code fixes",
+  ],
 };
 
 export default function GrokBuildPage() {
@@ -64,7 +71,7 @@ export default function GrokBuildPage() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [activeMode, setActiveMode] = useState<'chat' | 'analyze' | 'generate' | 'improve'>('chat');
+  const [activeMode, setActiveMode] = useState<'chat' | 'analyze' | 'generate' | 'improve' | 'support'>('chat');
   const [customContext, setCustomContext] = useState(''); // Live context sent to Grok on every message (B)
   const [pendingAction, setPendingAction] = useState<any>(null); // For approval flow
   const [isListening, setIsListening] = useState(false);
@@ -72,6 +79,7 @@ export default function GrokBuildPage() {
   const [language, setLanguage] = useState<'en' | 'es'>('en'); // Default to English
   const [selectedVoice, setSelectedVoice] = useState<string>(''); // TTS voice name
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [supportContextLoaded, setSupportContextLoaded] = useState(false);
 
   // Load available voices for TTS
   useEffect(() => {
@@ -92,6 +100,24 @@ export default function GrokBuildPage() {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
   }, []);
+
+  // Load support ticket context from admin/support page if present (for "Ask Grok" flow)
+  useEffect(() => {
+    if (activeMode === 'support' && !supportContextLoaded) {
+      const ctx = sessionStorage.getItem('grokSupportContext');
+      if (ctx) {
+        setCustomContext(ctx);
+        // Optionally auto-send a prompt
+        setTimeout(() => {
+          if (!isLoading) {
+            sendMessage('Please analyze this support ticket and suggest the best resolution or a professional reply draft.');
+          }
+        }, 800);
+        sessionStorage.removeItem('grokSupportContext');
+        setSupportContextLoaded(true);
+      }
+    }
+  }, [activeMode, supportContextLoaded, isLoading]);
 
   const sendMessage = async (customPrompt?: string) => {
     const messageText = customPrompt || input;
@@ -255,6 +281,45 @@ export default function GrokBuildPage() {
 
     if (name === 'search_users') {
       return { results: `Found users matching "${args.query}" (demo data)` };
+    }
+
+    if (name === 'list_support_tickets') {
+      try {
+        const params = args.status ? `?status=${args.status}` : '';
+        const res = await fetch(`/api/admin/support/tickets${params}`);
+        const data = await res.json();
+        return { tickets: data.tickets || [], count: (data.tickets || []).length };
+      } catch (e) {
+        return { error: 'Failed to list tickets' };
+      }
+    }
+
+    if (name === 'get_support_ticket' && args.ticketId) {
+      try {
+        const res = await fetch(`/api/admin/support/tickets?id=${args.ticketId}`);
+        const data = await res.json();
+        return data.ticket || { error: 'Ticket not found' };
+      } catch (e) {
+        return { error: 'Failed to fetch ticket' };
+      }
+    }
+
+    if (name === 'update_support_ticket' && args.ticketId) {
+      try {
+        const res = await fetch('/api/admin/support/tickets', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ticketId: args.ticketId,
+            status: args.status,
+            adminReply: args.adminReply || args.reply,
+          })
+        });
+        const data = await res.json();
+        return { success: res.ok, ticket: data.ticket, message: res.ok ? 'Ticket updated' : 'Update failed' };
+      } catch (e) {
+        return { error: 'Failed to update ticket via tool' };
+      }
     }
 
     // =====================

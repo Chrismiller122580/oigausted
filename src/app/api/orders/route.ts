@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
+import { logAuditEvent } from '@/lib/audit';
 
 export async function POST(request: Request) {
   try {
@@ -64,6 +65,20 @@ export async function POST(request: Request) {
         buyer: true,
         seller: true
       }
+    });
+
+    // Audit log for system change (buyer action)
+    await logAuditEvent({
+      performedById: userId,
+      action: 'ORDER_CREATED',
+      targetType: 'Order',
+      targetId: order.id,
+      details: {
+        gigId: gig.id,
+        gigTitle: gig.title,
+        price: Number(price),
+        sellerId: gig.sellerId,
+      },
     });
 
     // Notify seller about new order (email will be sent automatically by the notification system)

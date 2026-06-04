@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { notifications } from '@/lib/notifications';
+import { logAuditEvent } from '@/lib/audit';
 
 export async function GET(
   req: NextRequest,
@@ -92,6 +93,15 @@ export async function POST(
         sellerId: order.sellerId,
         orderId
       }
+    });
+
+    // Audit log for system change (buyer left a review)
+    await logAuditEvent({
+      performedById: userId,
+      action: 'REVIEW_SUBMITTED',
+      targetType: 'Review',
+      targetId: review.id,
+      details: { orderId, sellerId: order.sellerId, rating: Number(rating), hasComment: !!comment },
     });
 
     // Recalculate seller rating

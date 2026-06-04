@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import bcrypt from 'bcryptjs'
 import { notifications } from '@/lib/notifications'
+import { logAuditEvent } from '@/lib/audit'
 
 // Simple in-memory rate limiter (replace with Upstash/Redis in production)
 const signupAttempts = new Map<string, { count: number; resetTime: number }>()
@@ -71,6 +72,15 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
       }
     })
+
+    // Audit log for system change (new user registration)
+    await logAuditEvent({
+      performedById: newUser.id,
+      action: 'USER_REGISTERED',
+      targetType: 'User',
+      targetId: newUser.id,
+      details: { email: newUser.email, role: safeRole, viaReferral: !!referralCode },
+    });
 
     // Link referral if referralCode was provided
     if (referralCode) {

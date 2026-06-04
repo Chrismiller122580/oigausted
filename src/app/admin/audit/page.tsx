@@ -14,11 +14,17 @@ interface AuditLog {
   details: any;
   ipAddress: string | null;
   createdAt: string;
-  admin: {
+  admin?: {
     id: string;
     name: string | null;
     email: string;
-  };
+  } | null;
+  performedBy?: {
+    id: string;
+    name: string | null;
+    email: string;
+    role: string;
+  } | null;
 }
 
 export default function AdminAuditPage() {
@@ -26,6 +32,7 @@ export default function AdminAuditPage() {
   const [loading, setLoading] = useState(true);
   const [actionFilter, setActionFilter] = useState('');
   const [targetTypeFilter, setTargetTypeFilter] = useState('');
+  const [actorFilter, setActorFilter] = useState(''); // search in email/name of performedBy or admin
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -35,6 +42,7 @@ export default function AdminAuditPage() {
       const params = new URLSearchParams();
       if (actionFilter) params.append('action', actionFilter);
       if (targetTypeFilter) params.append('targetType', targetTypeFilter);
+      if (actorFilter) params.append('actor', actorFilter); // supports email or id, resolved in API
       // Always request a decent number so new logs show up
       params.append('limit', '100');
 
@@ -51,7 +59,7 @@ export default function AdminAuditPage() {
 
   useEffect(() => {
     fetchLogs();
-  }, [actionFilter, targetTypeFilter]);
+  }, [actionFilter, targetTypeFilter, actorFilter]);
 
   // Auto-refresh so logs "update" live without manual browser reload (every 15s when enabled)
   useEffect(() => {
@@ -60,7 +68,7 @@ export default function AdminAuditPage() {
       fetchLogs(true); // background refresh, no loading spinner
     }, 15000);
     return () => clearInterval(interval);
-  }, [autoRefresh, actionFilter, targetTypeFilter]);
+  }, [autoRefresh, actionFilter, targetTypeFilter, actorFilter]);
 
   const formatAction = (action: string) => {
     return action.replace(/_/g, ' ').toLowerCase();
@@ -72,7 +80,7 @@ export default function AdminAuditPage() {
         <div className="mb-8">
           <h1 className="text-5xl font-bold">Registro de Auditoría</h1>
           <p className="text-muted-foreground mt-1">
-            Historial de acciones realizadas por administradores
+            Historial completo de cambios en el sistema (admins, usuarios, webhooks y eventos automáticos)
           </p>
         </div>
 
@@ -89,7 +97,13 @@ export default function AdminAuditPage() {
             onChange={(e) => setTargetTypeFilter(e.target.value)}
             className="max-w-xs"
           />
-          <Button variant="outline" onClick={() => { setActionFilter(''); setTargetTypeFilter(''); }}>
+          <Input
+            placeholder="Filtrar por actor (email o ID)"
+            value={actorFilter}
+            onChange={(e) => setActorFilter(e.target.value)}
+            className="max-w-xs"
+          />
+          <Button variant="outline" onClick={() => { setActionFilter(''); setTargetTypeFilter(''); setActorFilter(''); }}>
             Limpiar Filtros
           </Button>
           <Button variant="outline" onClick={() => fetchLogs(false)} disabled={loading}>
@@ -121,7 +135,7 @@ export default function AdminAuditPage() {
                   <thead className="bg-muted">
                     <tr>
                       <th className="text-left p-4">Fecha</th>
-                      <th className="text-left p-4">Admin</th>
+                      <th className="text-left p-4">Actor</th>
                       <th className="text-left p-4">Acción</th>
                       <th className="text-left p-4">Recurso</th>
                       <th className="text-left p-4">Detalles</th>
@@ -135,8 +149,19 @@ export default function AdminAuditPage() {
                           {new Date(log.createdAt).toLocaleString('es-CO')}
                         </td>
                         <td className="p-4">
-                          <div className="font-medium">{log.admin.name || log.admin.email}</div>
-                          <div className="text-xs text-muted-foreground">{log.admin.email}</div>
+                          {log.performedBy ? (
+                            <>
+                              <div className="font-medium">{log.performedBy.name || log.performedBy.email}</div>
+                              <div className="text-xs text-muted-foreground">{log.performedBy.email} <span className="font-mono">({log.performedBy.role})</span></div>
+                            </>
+                          ) : log.admin ? (
+                            <>
+                              <div className="font-medium">{log.admin.name || log.admin.email}</div>
+                              <div className="text-xs text-muted-foreground">{log.admin.email} <span className="font-mono">(admin)</span></div>
+                            </>
+                          ) : (
+                            <div className="text-muted-foreground italic">System / Webhook</div>
+                          )}
                         </td>
                         <td className="p-4">
                           <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">
@@ -153,8 +178,22 @@ export default function AdminAuditPage() {
                         </td>
                         <td className="p-4">
                           {log.details && (
-                            <pre className="text-xs bg-muted p-2 rounded max-w-xs overflow-auto">
-                              {typeof log.details === 'string' ? log.details : JSON.stringify(log.details, null, 2)}
+                            <pre 
+                              className="text-xs bg-muted p-2 rounded max-w-xs max-h-24 overflow-auto cursor-pointer hover:bg-muted/80"
+                              title="Click to copy full details"
+                              onClick={() => {
+                                const text = typeof log.details === 'string' ? log.details : JSON.stringify(log.details, null, 2);
+                                navigator.clipboard.writeText(text);
+                                // simple feedback
+                                const el = document.createElement('span');
+                                el.textContent = ' ✓ Copiado';
+                                el.style.fontSize = '10px';
+                                // could use toast but keep simple
+                              }}
+                            >
+                              {typeof log.details === 'string' 
+                                ? log.details.slice(0, 200) + (log.details.length > 200 ? '...' : '')
+                                : JSON.stringify(log.details, null, 2).slice(0, 200) + '...'}
                             </pre>
                           )}
                         </td>

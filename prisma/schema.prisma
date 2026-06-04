@@ -7,8 +7,8 @@ datasource db {
   // For local development you can temporarily switch to SQLite:
   // provider = "sqlite"
   // url      = "file:./dev.db"
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 // Your models (clean version)
@@ -69,6 +69,7 @@ model User {
   sessions      Session[]
   passwordResetTokens PasswordResetToken[]
   auditLogs           AuditLog[]           @relation("AdminAuditLogs")
+  performedAuditLogs  AuditLog[]           @relation("PerformedByAuditLogs")
   notifications       Notification[]
   notificationPreferences NotificationPreference?
   pushSubscriptions   PushSubscription[]
@@ -79,6 +80,7 @@ model User {
   referredBy     User?    @relation("UserReferrals", fields: [referredById], references: [id])
   referrals      User[]   @relation("UserReferrals")
   referralEarnings ReferralEarning[] @relation("ReferrerEarnings")
+  supportTickets SupportTicket[]
 
   // Per-user custom referral commission rate (overrides global if set)
   customReferralRate Float?  // e.g. 0.07 for 7%. Null = use PlatformConfig.referralCommissionRate (default 5%)
@@ -101,20 +103,27 @@ model PasswordResetToken {
 
 model AuditLog {
   id            String   @id @default(cuid())
-  adminId       String
-  admin         User     @relation("AdminAuditLogs", fields: [adminId], references: [id])
 
-  action        String   // e.g. "USER_ROLE_CHANGED", "USER_EDITED", "USER_DEACTIVATED", "USER_PASSWORD_RESET", "USER_IMPERSONATED"
-  targetType    String   // "User", "Gig", "Order", etc.
+  // Who performed the action (supports admins, regular users, and system/webhooks)
+  performedById String?
+  performedBy   User?    @relation("PerformedByAuditLogs", fields: [performedById], references: [id])
+
+  // Legacy: kept for backward compatibility with existing admin logs
+  adminId       String?
+  admin         User?    @relation("AdminAuditLogs", fields: [adminId], references: [id])
+
+  action        String   // e.g. "USER_ROLE_CHANGED", "ORDER_CREATED", "PAYMENT_CONFIRMED", "GIG_PUBLISHED", "REVIEW_SUBMITTED"
+  targetType    String   // "User", "Gig", "Order", "Review", "Payment", etc.
   targetId      String?  // ID of the affected resource
 
-  details       Json?    // Flexible JSON for extra context (old values, new values, etc.)
+  details       Json?    // Flexible JSON for extra context (old values, new values, actor role, etc.)
 
   ipAddress     String?
   userAgent     String?
 
   createdAt     DateTime @default(now())
 
+  @@index([performedById])
   @@index([adminId])
   @@index([action])
   @@index([targetType, targetId])
@@ -131,7 +140,7 @@ model Notification {
   title     String
   message   String
   link      String?  // URL to navigate to when clicked
-  data      Json?    // Extra metadata
+  data      String?  // JSON string (local sqlite)
 
   read      Boolean  @default(false)
   readAt    DateTime?
@@ -143,7 +152,7 @@ model Notification {
   pushStatus      String?   // sent, delivered, clicked, failed
   pushSentAt      DateTime?
   pushClickedAt   DateTime?
-  deliveryLog     Json?     // Detailed history of attempts
+  deliveryLog     String?   // JSON string (local sqlite)
 
   createdAt DateTime @default(now())
 
@@ -328,4 +337,24 @@ model ReferralEarning {
   order         Order    @relation(fields: [orderId], references: [id])
 
   @@unique([referrerId, orderId]) // Prevent duplicate earnings per order
+}
+
+model SupportTicket {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     String
+  message     String   @db.Text
+  category    String?  // e.g. "payment", "gig", "account", "technical", "other"
+  priority    String   @default("medium") // low, medium, high, urgent
+  status      String   @default("open")  // open, in_progress, resolved, closed
+  adminReply  String?  @db.Text
+  resolvedBy  String?  // admin id
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
 }

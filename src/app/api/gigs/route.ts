@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions, resolveDemoUserId } from '@/lib/auth';
 import { notifications } from '@/lib/notifications';
+import { logAuditEvent } from '@/lib/audit';
 
 export async function GET() {
   try {
@@ -102,6 +103,15 @@ export async function POST(req: NextRequest) {
     });
 
     console.log("✅ Gig created successfully:", gig.id);
+
+    // Audit log for system change (seller action)
+    await logAuditEvent({
+      performedById: sellerId,
+      action: 'GIG_CREATED',
+      targetType: 'Gig',
+      targetId: gig.id,
+      details: { title, category, price: Number(price), isActive: true },
+    });
 
     // Send confirmation to seller (non-fatal: do not fail the publish if notif/prefs fails due to transient DB issues)
     try {

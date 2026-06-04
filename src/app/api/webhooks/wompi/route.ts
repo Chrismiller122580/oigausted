@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { notifications } from '@/lib/notifications'
+import { logAuditEvent } from '@/lib/audit'
 
 const WOMPI_EVENTS_KEY = process.env.WOMPI_EVENTS_KEY
 
@@ -117,6 +118,20 @@ export async function POST(request: Request) {
           seller: { select: { id: true, referredById: true } }
         }
       })
+
+      // Audit log for critical payment system change (webhook driven)
+      await logAuditEvent({
+        performedById: null, // system / webhook
+        action: `PAYMENT_${transaction.status}`,
+        targetType: 'Order',
+        targetId: orderId,
+        details: {
+          wompiTransactionId: transaction.id,
+          status: transaction.status,
+          amount: transaction.amount_in_cents / 100,
+          reference: transaction.reference,
+        },
+      });
 
       if (transaction.status === 'APPROVED' && updatedOrder.buyer) {
         // Payment confirmation now triggers both in-app + email automatically

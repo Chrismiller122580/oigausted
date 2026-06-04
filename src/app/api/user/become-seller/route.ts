@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logAuditEvent } from '@/lib/audit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,6 +35,15 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date()
       }
     })
+
+    // Audit log (user self-service or admin action)
+    await logAuditEvent({
+      performedById: currentUserId,
+      action: 'USER_BECAME_SELLER',
+      targetType: 'User',
+      targetId: userId,
+      details: { previousRole: 'buyer', businessName, byAdmin: isAdmin },
+    });
 
     return NextResponse.json({ 
       success: true, 

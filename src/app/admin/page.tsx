@@ -150,7 +150,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <Clock className="h-6 w-6 text-purple-400" />
-              <h2 className="text-2xl font-semibold">Actividad Reciente</h2>
+              <h2 className="text-2xl font-semibold">Actividad Reciente del Sistema</h2>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <button 

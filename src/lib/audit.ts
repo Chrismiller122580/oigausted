@@ -1,7 +1,10 @@
 import { prisma } from './prisma';
 
 interface LogAuditParams {
-  adminId: string;
+  // Preferred: the user (admin, seller, buyer) or system that performed the action
+  performedById?: string | null;
+  // Legacy / fallback for admin-only calls (will be mapped to performedById)
+  adminId?: string;
   action: string;
   targetType: string;
   targetId?: string | null;
@@ -11,6 +14,7 @@ interface LogAuditParams {
 }
 
 export async function logAuditEvent({
+  performedById,
   adminId,
   action,
   targetType,
@@ -20,15 +24,21 @@ export async function logAuditEvent({
   userAgent,
 }: LogAuditParams) {
   try {
+    const actorId = performedById || adminId || null;
+
     await prisma.auditLog.create({
       data: {
-        adminId,
+        performedById: actorId ?? undefined,
+        // Keep legacy adminId populated when we have an admin actor (for backward compat)
+        adminId: adminId ?? (actorId && action.includes('ADMIN') ? actorId : undefined),
         action,
         targetType,
-        targetId: targetId || null,
-        details: details ? JSON.stringify(details) : undefined,
-        ipAddress: ipAddress || null,
-        userAgent: userAgent || null,
+        targetId: targetId ?? undefined,
+        // We stringify to be compatible with both SQLite (String columns in dev) and Postgres Json.
+        // The admin UI knows how to display string or object.
+        details: details ? (JSON.stringify(details) as any) : undefined,
+        ipAddress: ipAddress ?? undefined,
+        userAgent: userAgent ?? undefined,
       },
     });
   } catch (error) {

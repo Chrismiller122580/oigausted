@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { notifications } from '@/lib/notifications'
+import { logAuditEvent } from '@/lib/audit'
 
 export async function GET(
   request: Request,
@@ -110,6 +111,22 @@ export async function PATCH(
         }
       }
     })
+
+    // Log important system change (status update or other modifications by buyer/seller/admin)
+    if (status || Object.keys(updateData).length > 0) {
+      await logAuditEvent({
+        performedById: userId,
+        action: status ? `ORDER_STATUS_${status.toUpperCase().replace(/\s+/g, '_')}` : 'ORDER_UPDATED',
+        targetType: 'Order',
+        targetId: orderId,
+        details: {
+          previousStatus: existingOrder.status,
+          newStatus: status || existingOrder.status,
+          updatedFields: Object.keys(updateData),
+          updatedByRole: (session?.user as any)?.role,
+        },
+      });
+    }
 
     // Create referral earning if order is completed and seller was referred.
     // Uses per-user custom rate if set on the referrer, otherwise global default (5%).

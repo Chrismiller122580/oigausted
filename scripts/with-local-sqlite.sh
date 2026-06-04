@@ -45,9 +45,12 @@ node -e '
   s = s.replace(/provider = "postgresql"/, "provider = \"sqlite\"");
   s = s.replace(/url      = env\("DATABASE_URL"\)/, "url      = \"file:./dev.db\"");
   // Also patch Json fields (sqlite connector does not support Json type)
+  s = s.replace(/details       Json\?    \/\/ Flexible JSON for extra context \(old values, new values, actor role, etc\.\)/, "details       String?  // JSON string (local sqlite)");
   s = s.replace(/details       Json\?    \/\/ Flexible JSON for extra context \(old values, new values, etc\.\)/, "details       String?  // JSON string (local sqlite)");
   s = s.replace(/data      Json\?    \/\/ Extra metadata/, "data      String?  // JSON string (local sqlite)");
   s = s.replace(/deliveryLog     Json\?     \/\/ Detailed history of attempts/, "deliveryLog     String?   // JSON string (local sqlite)");
+  // Catch any remaining Json? for sqlite dev
+  s = s.replace(/(\w+)\s+Json\?/g, '$1       String?');
   fs.writeFileSync(process.argv[1], s);
   console.log("  (schema patched to sqlite for this dev session)");
 ' "$SCHEMA"

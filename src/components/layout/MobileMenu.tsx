@@ -64,6 +64,9 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             <Link href="/profile" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <User size={22} /> Mi Perfil
             </Link>
+            <Link href="/support" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <MessageCircle size={22} /> Soporte
+            </Link>
             <div className="pt-4">
               <Button 
                 onClick={handleSignOut} 
@@ -98,6 +101,9 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             </Link>
             <Link href="/profile" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               Mi Perfil
+            </Link>
+            <Link href="/support" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <MessageCircle size={22} /> Soporte
             </Link>
 
             <div className="pt-6">
