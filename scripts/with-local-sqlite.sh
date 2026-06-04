@@ -51,6 +51,8 @@ node -e '
   s = s.replace(/deliveryLog     Json\?     \/\/ Detailed history of attempts/, "deliveryLog     String?   // JSON string (local sqlite)");
   // Catch any remaining Json? for sqlite dev
   s = s.replace(/(\w+)\s+Json\?/g, '$1       String?');
+  // Remove Postgres-specific @db.Text annotations for sqlite
+  s = s.replace(/\s+@db\.Text/g, '');
   fs.writeFileSync(process.argv[1], s);
   console.log("  (schema patched to sqlite for this dev session)");
 ' "$SCHEMA"

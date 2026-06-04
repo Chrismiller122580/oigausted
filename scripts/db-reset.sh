@@ -30,9 +30,14 @@ if [[ "$DB_URL" == file:* || "$DB_URL" == *.db || "$DB_URL" == sqlite:* ]]; then
   sed -i 's|url      = env("DATABASE_URL")|url      = "file:./dev.db"|' "$TMP_SCHEMA"
 
   # Patch Json fields to String for SQLite (Json type not supported by sqlite connector)
+  # Handle both old and new comments for details
   sed -i 's/  details       Json?    \/\/ Flexible JSON for extra context (old values, new values, etc.)/  details       String?  \/\/ JSON string (sqlite compat)/' "$TMP_SCHEMA"
+  sed -i 's/  details       Json?    \/\/ Flexible JSON for extra context (old values, new values, actor role, etc.)/  details       String?  \/\/ JSON string (sqlite compat)/' "$TMP_SCHEMA"
   sed -i 's/  data      Json?    \/\/ Extra metadata/  data      String?  \/\/ JSON string (sqlite compat)/' "$TMP_SCHEMA"
   sed -i 's/  deliveryLog     Json?     \/\/ Detailed history of attempts/  deliveryLog     String?   \/\/ JSON string (sqlite compat)/' "$TMP_SCHEMA"
+
+  # Remove Postgres @db.Text annotations (not supported in sqlite)
+  sed -i 's/\s\+@db\.Text//g' "$TMP_SCHEMA"
 
   # Make sure we have a clean dev.db target
   rm -f prisma/dev.db 2>/dev/null || true
