@@ -19,11 +19,20 @@ fi
 
 echo "Running prisma migrate deploy (using direct URL if provided)..."
 
-# Capture output so we can detect the specific failure
-if DATABASE_URL="$DB_URL" npx prisma migrate deploy 2>&1 | tee /tmp/migrate.log; then
+# Run migrate, capture output. We don't want to fail the script on the first attempt if it's the recoverable case.
+set +e
+DATABASE_URL="$DB_URL" npx prisma migrate deploy > /tmp/migrate.log 2>&1
+MIGRATE_EXIT=$?
+set -e
+
+if [ $MIGRATE_EXIT -eq 0 ]; then
   echo "✅ prisma migrate deploy succeeded on first attempt."
+  cat /tmp/migrate.log
   exit 0
 fi
+
+# Print the log for visibility on failure
+cat /tmp/migrate.log
 
 # Check if this is the known failed migration we can auto-recover from
 if grep -q "failed migrations in the target database" /tmp/migrate.log && \
