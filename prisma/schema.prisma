@@ -7,8 +7,8 @@ datasource db {
   // For local development you can temporarily switch to SQLite:
   // provider = "sqlite"
   // url      = "file:./dev.db"
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // Your models (clean version)
@@ -116,7 +116,7 @@ model AuditLog {
   targetType    String   // "User", "Gig", "Order", "Review", "Payment", etc.
   targetId      String?  // ID of the affected resource
 
-  details       String?  // JSON string (local sqlite)
+  details       Json?    // Flexible JSON for extra context (old values, new values, actor role, etc.)
 
   ipAddress     String?
   userAgent     String?
@@ -326,7 +326,7 @@ model ReferralEarning {
   id            String   @id @default(cuid())
   amount        Float    // The referral commission amount earned
   rateUsed      Float    // The referralCommissionRate at the time (for audit)
-  status        String   @default("Pending") // Pending, Paid, Cancelled, Requested (seller-initiated payout request)
+  status        String   @default("Pending") // Pending, Paid, Cancelled
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -344,11 +344,11 @@ model SupportTicket {
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject     String
-  message     String
+  message     String   @db.Text
   category    String?  // e.g. "payment", "gig", "account", "technical", "other"
   priority    String   @default("medium") // low, medium, high, urgent
   status      String   @default("open")  // open, in_progress, resolved, closed
-  adminReply  String?
+  adminReply  String?  @db.Text
   resolvedBy  String?  // admin id
   resolvedAt  DateTime?
   createdAt   DateTime @default(now())
