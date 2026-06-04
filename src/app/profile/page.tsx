@@ -329,7 +329,7 @@ export default function ProfilePage() {
                   {formData.imageUrl ? (
                     <img src={formData.imageUrl} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-7xl bg-gray-100">👤</div>
+                    <div className="w-full h-full flex items-center justify-center text-7xl bg-muted">👤</div>
                   )}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
                     <Camera className="text-white" size={32} />
@@ -529,7 +529,7 @@ export default function ProfilePage() {
                   <p className="text-2xl text-orange-600 mt-2">{formData.tagline}</p>
                 </div>
 
-                <p className="text-lg text-gray-700 leading-relaxed">{formData.bio || "Sin biografía aún."}</p>
+                <p className="text-lg text-foreground leading-relaxed">{formData.bio || "Sin biografía aún."}</p>
 
                 <div className="flex flex-wrap gap-x-10 gap-y-4 text-lg">
                   {formData.city && <div className="flex items-center gap-3"><MapPin /> {formData.city}</div>}
@@ -568,14 +568,14 @@ export default function ProfilePage() {
                     {/* Mini recent reviews */}
                     {recentReviews.length > 0 && (
                       <div className="mt-6 pt-6 border-t">
-                        <p className="text-sm font-medium text-gray-500 mb-3">Últimas reseñas</p>
+                        <p className="text-sm font-medium text-muted-foreground mb-3">Últimas reseñas</p>
                         <div className="space-y-3">
                           {recentReviews.map((r, idx) => (
                             <div key={idx} className="flex gap-3 text-sm">
                               <div className="flex text-yellow-500 shrink-0">
                                 {[1,2,3,4,5].map(n => <span key={n}>{n <= r.rating ? "★" : "☆"}</span>)}
                               </div>
-                              <p className="text-gray-600 line-clamp-2">"{r.comment || 'Sin comentario'}"</p>
+                              <p className="text-muted-foreground line-clamp-2">"{r.comment || 'Sin comentario'}"</p>
                             </div>
                           ))}
                         </div>
@@ -625,7 +625,7 @@ export default function ProfilePage() {
                     <button
                       type="button"
                       onClick={() => setShowCurrent(!showCurrent)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -646,7 +646,7 @@ export default function ProfilePage() {
                     <button
                       type="button"
                       onClick={() => setShowNew(!showNew)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -666,7 +666,7 @@ export default function ProfilePage() {
                     <button
                       type="button"
                       onClick={() => setShowConfirm(!showConfirm)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>

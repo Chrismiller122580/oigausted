@@ -145,20 +145,40 @@ export const authOptions = {
       if (user) {
         token.id = user.id
         token.role = (user as any).role || "buyer"
-      }
-
-      // On subsequent requests, make sure we have fresh role from DB (in case it changed)
-      // Use explicit select to avoid breaking auth if other columns are temporarily missing in DB
-      if (token.id && !user) {
+        // Populate profile fields at signin time only (avoids per-request DB in session)
+        // If profile edited later, client can refresh session or re-login for instant reflect
         const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { role: true }
+          where: { id: user.id as string },
+          select: {
+            name: true,
+            profilePicture: true,
+            businessName: true,
+            bio: true,
+            phone: true,
+            whatsapp: true,
+            instagram: true,
+            facebook: true,
+            rating: true,
+            reviewCount: true,
+            referredById: true,
+          }
         })
         if (dbUser) {
-          token.role = dbUser.role
+          ;(token as any).name = dbUser.name
+          ;(token as any).profilePicture = dbUser.profilePicture
+          ;(token as any).businessName = dbUser.businessName
+          ;(token as any).bio = dbUser.bio
+          ;(token as any).phone = dbUser.phone
+          ;(token as any).whatsapp = dbUser.whatsapp
+          ;(token as any).instagram = dbUser.instagram
+          ;(token as any).facebook = dbUser.facebook
+          ;(token as any).rating = dbUser.rating
+          ;(token as any).reviewCount = dbUser.reviewCount
+          ;(token as any).referredById = dbUser.referredById
         }
       }
 
+      // No per-request role/profile refetch to reduce DB load on every getServerSession (role changes require re-login or explicit session update)
       return token
     },
 
@@ -167,37 +187,22 @@ export const authOptions = {
         (session.user as any).id = token.id as string
         (session.user as any).role = token.role as string
 
-        // Pull fresh data from DB so profile updates are reflected immediately
-        if (token.id) {
-          const dbUser = await prisma.user.findUnique({ 
-            where: { id: token.id as string },
-            select: {
-              name: true,
-              profilePicture: true,
-              businessName: true,
-              bio: true,
-              phone: true,
-              whatsapp: true,
-              instagram: true,
-              facebook: true,
-              rating: true,
-              reviewCount: true,
-            }
-          })
-          if (dbUser) {
-            (session.user as any).name = dbUser.name
-            ;(session.user as any).image = dbUser.profilePicture
-            ;(session.user as any).profilePicture = dbUser.profilePicture
-            ;(session.user as any).businessName = dbUser.businessName
-            ;(session.user as any).bio = dbUser.bio
-            ;(session.user as any).phone = dbUser.phone
-            ;(session.user as any).whatsapp = dbUser.whatsapp
-            ;(session.user as any).instagram = dbUser.instagram
-            ;(session.user as any).facebook = dbUser.facebook
-            ;(session.user as any).rating = dbUser.rating
-            ;(session.user as any).reviewCount = dbUser.reviewCount
-          }
+        // Profile fields come from token (populated at signin/jwt to avoid N+1 DB per session)
+        const t: any = token
+        if (t.name) (session.user as any).name = t.name
+        if (t.profilePicture != null) {
+          ;(session.user as any).image = t.profilePicture
+          ;(session.user as any).profilePicture = t.profilePicture
         }
+        ;(session.user as any).businessName = t.businessName
+        ;(session.user as any).bio = t.bio
+        ;(session.user as any).phone = t.phone
+        ;(session.user as any).whatsapp = t.whatsapp
+        ;(session.user as any).instagram = t.instagram
+        ;(session.user as any).facebook = t.facebook
+        ;(session.user as any).rating = t.rating ?? 0
+        ;(session.user as any).reviewCount = t.reviewCount ?? 0
+        ;(session.user as any).referredById = t.referredById ?? null
       }
       return session
     },

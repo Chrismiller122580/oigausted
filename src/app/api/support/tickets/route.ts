@@ -67,12 +67,12 @@ export async function POST(request: NextRequest) {
         ).catch(() => {});
       }
     } catch (notifErr) {
-      console.error('Failed to send support confirmation notif:', notifErr);
+      devLog('Failed to send support confirmation notif:', notifErr);
     }
 
     return NextResponse.json({ success: true, ticket });
   } catch (error) {
-    console.error('Support ticket submit error:', error);
+    devLog('Support ticket submit error:', error);
     return NextResponse.json({ error: 'Error al enviar el ticket de soporte' }, { status: 500 });
   }
 }

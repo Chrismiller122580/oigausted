@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendNotification } from '@/lib/notifications'
+import { devLog } from '@/lib/utils'
 
 export async function POST() {
   const session = await getServerSession(authOptions)
@@ -42,7 +43,7 @@ export async function POST() {
     // Notify all admins
     const admins = await prisma.user.findMany({
       where: { role: 'admin' },
-      select: { id: true }
+      select: { id: true, email: true }
     })
 
     const requester = await prisma.user.findUnique({
@@ -70,23 +71,27 @@ export async function POST() {
       })
     }
 
-    // Also send email to support
+    // Also send email to support + all admins (better visibility)
     try {
       const { resend } = await import('@/lib/notifications')
       if (resend) {
-        await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'OigaUsted <support@oigagig.com>',
-          to: config?.supportEmail || 'soporte@oigagig.com',
-          subject: 'Nueva solicitud de pago por referidos',
-          html: `
-            <p><strong>${requester?.name || requester?.email}</strong> ha solicitado el pago de comisiones por referidos.</p>
-            <p><strong>Monto:</strong> $${totalPending.toLocaleString('es-CO')}</p>
-            <p>Revisa el panel de administración para procesar el pago.</p>
-          `
-        })
+        const adminEmails = admins.map(a => a.email).filter(Boolean) as string[]
+        const toList = Array.from(new Set([config?.supportEmail || 'soporte@oigagig.com', ...adminEmails]))
+        if (toList.length) {
+          await resend.emails.send({
+            from: process.env.RESEND_FROM_EMAIL || 'OigaUsted <support@oigagig.com>',
+            to: toList,
+            subject: 'Nueva solicitud de pago por referidos',
+            html: `
+              <p><strong>${requester?.name || requester?.email}</strong> ha solicitado el pago de comisiones por referidos.</p>
+              <p><strong>Monto:</strong> $${totalPending.toLocaleString('es-CO')}</p>
+              <p>Revisa el panel de administración para procesar el pago.</p>
+            `
+          })
+        }
       }
     } catch (e) {
-      console.error('Failed to send payout request email:', e)
+      devLog('Failed to send payout request email:', e)
     }
 
     return NextResponse.json({ 

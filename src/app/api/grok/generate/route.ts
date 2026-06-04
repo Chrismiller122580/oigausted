@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 // @ts-ignore
-// @ts-ignore
- import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { devLog } from '@/lib/utils';
 
 export async function POST(req: NextRequest) {
+  let parsedBody: any = {};
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
     }
 
-    const { title, category } = await req.json();
+    parsedBody = await req.json();
+    const { title, category } = parsedBody;
 
     if (!title || !category) {
       return NextResponse.json({ error: "Title and category are required" }, { status: 400 });
@@ -48,7 +50,7 @@ Responde SOLO con la descripción, sin introducciones.`;
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Grok API error:", data);
+      devLog("Grok API error:", data);
       throw new Error("Grok API failed");
     }
 
@@ -58,12 +60,12 @@ Responde SOLO con la descripción, sin introducciones.`;
     return NextResponse.json({ description });
 
   } catch (error) {
-    console.error("Grok generate error:", error);
+    devLog("Grok generate error:", error);
     // Fallback using the title from the request (safe)
-    const { title = "este servicio" } = await req.json().catch(() => ({}));
+    const fallbackTitle = parsedBody.title || "este servicio";
     
     return NextResponse.json({ 
-      description: `Ofrezco ${title} de forma profesional y confiable. Contáctame para coordinar detalles.` 
+      description: `Ofrezco ${fallbackTitle} de forma profesional y confiable. Contáctame para coordinar detalles.` 
     });
   }
 }

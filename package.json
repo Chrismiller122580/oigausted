@@ -8,6 +8,7 @@
     "build": "./scripts/with-local-sqlite.sh sh -c 'prisma generate && next build --webpack'",
     "start": "next start",
     "lint": "eslint .",
+    "test": "npx tsx scripts/test-payout.ts",
     "seed": "tsx prisma/seed.ts",
     "db:reset": "./scripts/db-reset.sh",
     "create-admin": "tsx scripts/create-admin.ts"

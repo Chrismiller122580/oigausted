@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { notifications } from '@/lib/notifications'
 import { logAuditEvent } from '@/lib/audit'
+import { devLog } from '@/lib/utils'
 
 export async function GET(
   request: Request,
@@ -179,7 +180,7 @@ export async function PATCH(
           data: { status: 'Cancelled' }
         });
       } catch (e) {
-        console.error('Failed to cancel referral earnings on order cancel:', e);
+        devLog('Failed to cancel referral earnings on order cancel:', e);
       }
     }
 

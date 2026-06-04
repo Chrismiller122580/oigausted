@@ -184,11 +184,10 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Soft validation for non-remote gigs
-    if (!gig.isRemote && !serviceAddress) {
-      toast("Recomendamos indicar la dirección del servicio para que el vendedor sepa dónde ir.", {
-        duration: 5000,
-      });
+    // Require address for non-remote gigs (enforce before payment)
+    if (!gig.isRemote && !serviceAddress?.trim()) {
+      toast.error("Por favor indica la dirección donde se realizará el servicio.");
+      return;
     }
 
     setOpening(true);
@@ -393,14 +392,14 @@ export default function CheckoutPage() {
 
     return (
       <div className="bg-muted p-6 rounded-2xl">
-        <p className="font-semibold text-gray-800 mb-4">Personaliza tu servicio</p>
+        <p className="font-semibold text-foreground mb-4">Personaliza tu servicio</p>
         <div className="space-y-5">
           {fields.map((field: any, index: number) => {
             const currentValue = selectedOptions[field.key];
 
             return (
               <div key={index}>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-foreground mb-1.5">
                   {field.label}
                   {field.extraPrice && (
                     <span className="text-orange-600 ml-1">
@@ -428,7 +427,7 @@ export default function CheckoutPage() {
                       onChange={(e) => handleFieldChange(field.key, e.target.checked)}
                       className="w-5 h-5 accent-orange-600"
                     />
-                    <span className="text-gray-700">Sí, incluir</span>
+                    <span className="text-foreground">Sí, incluir</span>
                   </label>
                 )}
 
@@ -475,7 +474,7 @@ export default function CheckoutPage() {
           {/* Service Location (only for non-remote gigs) */}
           {!gig?.isRemote && (
             <div className="bg-muted p-6 rounded-2xl">
-              <p className="font-semibold text-gray-800 mb-4">¿Dónde se realizará el servicio?</p>
+              <p className="font-semibold text-foreground mb-4">¿Dónde se realizará el servicio?</p>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -523,7 +522,7 @@ export default function CheckoutPage() {
 
           {/* Payment Breakdown */}
           <div className="bg-card border rounded-2xl p-5 text-sm">
-            <p className="font-semibold text-gray-800 mb-3">Resumen del pago</p>
+            <p className="font-semibold text-foreground mb-3">Resumen del pago</p>
 
             <div className="space-y-2">
               <div className="flex justify-between">
@@ -532,7 +531,7 @@ export default function CheckoutPage() {
               </div>
 
               {Object.keys(selectedOptions).length > 0 && (
-                <div className="pl-2 border-l-2 border-gray-200">
+                <div className="pl-2 border-l-2 border-border">
                   {Object.entries(selectedOptions).map(([key, value], idx) => {
                     // Find the field definition to show the extra price
                     const fieldDef = fields.find((f: any) => f.key === key);

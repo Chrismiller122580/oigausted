@@ -32,9 +32,10 @@ export default function AdminPayoutsPage() {
       setOrders(withBreakdown);
 
       // Also fetch pending referral payouts for admin visibility
-      const refRes = await fetch('/api/admin/referrals');
+      const refRes = await fetch('/api/admin/referrals?limit=100');
       if (refRes.ok) {
-        const refs = await refRes.json();
+        const json = await refRes.json();
+        const refs = Array.isArray(json) ? json : (json.data || []);
         const pendingRefs = refs.filter((r: any) => r.pendingPayout > 0);
         setReferralPayouts(pendingRefs);
       }

@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
+import { devLog } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
@@ -172,7 +173,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(orders);
   } catch (error: any) {
-    console.error('Orders fetch error:', error);
+    devLog('Orders fetch error:', error);
     return NextResponse.json({ error: 'Error cargando órdenes' }, { status: 500 });
   }
 }

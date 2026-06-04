@@ -49,6 +49,7 @@ export async function PUT(
     const { id } = await params;
     const session = await getServerSession(authOptions);
     const userId = (session?.user as any)?.id;
+    const isAdmin = (session?.user as any)?.role === 'admin';
 
     if (!userId) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
@@ -63,7 +64,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
     }
 
-    if (existing.sellerId !== userId) {
+    if (existing.sellerId !== userId && !isAdmin) {
       return NextResponse.json({ error: 'No tienes permiso para editar este gig' }, { status: 403 });
     }
 
@@ -128,6 +129,7 @@ export async function DELETE(
     const { id } = await params;
     const session = await getServerSession(authOptions);
     const userId = (session?.user as any)?.id;
+    const isAdmin = (session?.user as any)?.role === 'admin';
 
     if (!userId) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
@@ -142,7 +144,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
     }
 
-    if (existing.sellerId !== userId) {
+    if (existing.sellerId !== userId && !isAdmin) {
       return NextResponse.json({ error: 'No tienes permiso para eliminar este gig' }, { status: 403 });
     }
 

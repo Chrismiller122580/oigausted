@@ -4,8 +4,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logAuditEvent } from '@/lib/audit'
+import { devLog } from '@/lib/utils'
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
   const isAdmin = (session?.user as any)?.role === 'admin'
 
@@ -13,36 +14,43 @@ export async function GET() {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
+  const url = new URL(request.url)
+  const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10))
+  const limit = Math.min(100, Math.max(5, parseInt(url.searchParams.get('limit') || '20', 10)))
+  const skip = (page - 1) * limit
+
   try {
-    // Get all referral earnings grouped by referrer
+    // Get referrers with earnings (grouped) - paginate at referrer level
     const earnings = await prisma.referralEarning.groupBy({
       by: ['referrerId'],
       _sum: { amount: true },
       _count: { id: true },
     })
 
-    const referrerIds = earnings.map(e => e.referrerId)
+    const allReferrerIds = earnings.map(e => e.referrerId)
+    const total = allReferrerIds.length
+    const paginatedIds = allReferrerIds.slice(skip, skip + limit)
 
     const users = await prisma.user.findMany({
-      where: { id: { in: referrerIds } },
+      where: { id: { in: paginatedIds } },
       select: { id: true, name: true, email: true, customReferralRate: true }
     })
 
     const config = await prisma.platformConfig.findFirst()
     const globalRate = config?.referralCommissionRate ?? 0.05
 
-    // Count referred users per referrer
+    // Count referred users per referrer (only for current page ids)
     const referredCounts = await prisma.user.groupBy({
       by: ['referredById'],
       _count: { id: true },
-      where: { referredById: { in: referrerIds } }
+      where: { referredById: { in: paginatedIds } }
     })
 
     const referredCountMap = new Map(referredCounts.map(r => [r.referredById, r._count.id]))
 
-    // Fetch all earnings for status breakdown (for payout management)
-    const allEarnings = await prisma.referralEarning.findMany({
-      where: { referrerId: { in: referrerIds } },
+    // Fetch earnings only for current page referrers (reduces N+1 data)
+    const pageEarnings = await prisma.referralEarning.findMany({
+      where: { referrerId: { in: paginatedIds } },
       select: { referrerId: true, amount: true, status: true }
     })
 
@@ -50,7 +58,7 @@ export async function GET() {
     const paidMap = new Map<string, number>()
     const requestedMap = new Map<string, number>()
 
-    allEarnings.forEach(e => {
+    pageEarnings.forEach(e => {
       if (e.status === 'Pending') {
         pendingMap.set(e.referrerId, (pendingMap.get(e.referrerId) || 0) + e.amount)
       } else if (e.status === 'Paid') {
@@ -60,7 +68,9 @@ export async function GET() {
       }
     })
 
-    const result = earnings.map(e => {
+    // Build only for the paginated referrers (from group earnings that match page)
+    const pageEarningsGroup = earnings.filter(e => paginatedIds.includes(e.referrerId))
+    const result = pageEarningsGroup.map(e => {
       const user = users.find(u => u.id === e.referrerId)
       const customRate = user?.customReferralRate
       const effectiveRate = customRate != null ? customRate : globalRate
@@ -87,9 +97,13 @@ export async function GET() {
     // Sort by pending payout descending for easy payout management
     result.sort((a, b) => b.pendingPayout - a.pendingPayout)
 
-    return NextResponse.json(result)
+    const totalPages = Math.ceil(total / limit) || 1
+    return NextResponse.json({
+      data: result,
+      pagination: { page, limit, total, totalPages, hasNext: page < totalPages, hasPrev: page > 1 }
+    })
   } catch (error) {
-    console.error('Admin referrals error:', error)
+    devLog('Admin referrals error:', error)
     return NextResponse.json({ error: 'Error al obtener datos' }, { status: 500 })
   }
 }

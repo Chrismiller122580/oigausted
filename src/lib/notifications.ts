@@ -31,7 +31,7 @@ export async function sendNotification(payload: NotificationPayload) {
       where: { userId }
     });
   } catch (e) {
-    console.warn('[Notifications] Prefs lookup failed, defaulting to enabled:', e);
+    devLog('[Notifications] Prefs lookup failed, defaulting to enabled:', e);
   }
 
   const shouldSendInApp = prefs?.inAppEnabled !== false;
@@ -83,7 +83,7 @@ export async function sendNotification(payload: NotificationPayload) {
           message,
           link: link || null,
           data: data ? JSON.stringify(data) : undefined,
-          // Initialize delivery tracking
+          // Initialize delivery tracking (stringified for current schema compat; post-migrate to Json can pass object)
           deliveryLog: JSON.stringify({
             inAppCreatedAt: new Date().toISOString(),
           }),
@@ -92,7 +92,7 @@ export async function sendNotification(payload: NotificationPayload) {
       });
       inAppNotifId = created.id;
     } catch (err) {
-      console.error('Failed to save in-app notification:', err);
+      devLog('Failed to save in-app notification:', err);
     }
   }
 
@@ -212,12 +212,12 @@ export async function sendNotification(payload: NotificationPayload) {
           });
         }
       } catch (trackErr) {
-        console.warn('Failed to update email tracking', trackErr);
+        devLog('Failed to update email tracking', trackErr);
       }
 
       devLog(`[Resend] Email sent to ${user.email} (${category})`);
     } catch (emailError) {
-      console.error('Resend email error:', emailError);
+      devLog('Resend email error:', emailError);
     }
   }
 
@@ -237,7 +237,7 @@ export async function sendNotification(payload: NotificationPayload) {
     try {
       await sendWebPushIfEnabled(userId, title, message, link, data);
     } catch (e) {
-      console.error('Web Push error:', e);
+      devLog('Web Push error:', e);
     }
   }
 
@@ -365,7 +365,7 @@ async function sendWebPushIfEnabled(
       if (err.statusCode === 410 || err.statusCode === 404) {
         await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
       }
-      console.error('Failed to send push to one subscription:', err.message);
+      devLog('Failed to send push to one subscription:', err.message);
     }
   });
 

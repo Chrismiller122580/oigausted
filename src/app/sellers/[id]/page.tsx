@@ -211,7 +211,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
                           className="w-6 h-6 rounded-full object-cover" 
                         />
                       ) : (
-                        <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px]">👤</div>
+                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px]">👤</div>
                       )}
                       <span className="text-foreground font-medium">
                         {review.reviewer?.name || 'Cliente'}

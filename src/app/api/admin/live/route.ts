@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 // @ts-ignore
-// @ts-ignore
- import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { devLog } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -22,14 +22,16 @@ export async function GET(request: NextRequest) {
       onlineSellers: recentReferrals, // proxy for activity
       pendingOrders,
       openTickets,
-      message: "Live admin data (real counts)"
+      message: "Live admin data (real)"
     });
   } catch (e) {
+    devLog('admin/live error:', e);
     return NextResponse.json({
       activeChats: 0,
       onlineSellers: 0,
       pendingOrders: 0,
-      message: "Live admin data (error fetching)"
+      openTickets: 0,
+      message: "Live admin data (partial)"
     });
   }
 }

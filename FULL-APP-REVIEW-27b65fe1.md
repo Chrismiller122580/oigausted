@@ -64,7 +64,7 @@
 - **File**: src/app/api/grok/generate/route.ts:1 (no session import/check at all)
 - **Description**: POST /api/grok/generate accepts any unauthenticated request, builds prompt, calls https://api.x.ai/... with process.env.GROK_API_KEY (or XAI), returns description. Called from authenticated create-gig/profile client, but no server guard. Direct calls possible (CSRF or by scrapers/bots once URL known), leading to key abuse, quota drain, cost on xAI. Contrast with protected /api/grok (has admin role check). Previous "Grok API security" work missed this endpoint.
 - **Suggestion**: Add getServerSession(authOptions) + role check (at least seller/admin, or any authed); or move logic inside protected route. Validate input strictly. Also fix the catch block re-parsing body (stream already consumed).
-- **Status**: open
+- **Status**: fixed (this pass - auth added + devLog; generate now gated)
 
 ### Issue 2 — Severity: bug (correctness / admin ops / payouts)
 - **File**: src/app/admin/payouts/page.tsx:16 (fetch), 19, 23 (calc), 57 (mark logic), 65 (UI only)
@@ -100,7 +100,7 @@
 - **File**: src/app/checkout/[gigId]/page.tsx:396 (text-gray-800), 403 (text-gray-700), 431, 478, 526, 535 (border-gray-200) + many more; src/components/common/GrokAssistant.tsx:41 (bg-white no dark), 55 (bg-gray-50), 58 (bg-white border), 65 (bg-white), 73 (border-gray-300); similar in profile.tsx:532 (text-gray-700), sellers/[id].tsx:202 etc.
 - **Description**: Post "theme consistency fixes", core buyer flows (checkout dynamic fields, location, payment summary) and seller Grok assistant (used in /seller/profile) + profile reviews use raw gray/white classes. In .dark these will have wrong contrast (e.g. text-gray-800 on dark bg is invisible-ish, white cards on dark). Marketing uses zinc + dark: better. Some admin ok, but inconsistency across flows.
 - **Suggestion**: Replace with semantic: text-foreground / text-muted-foreground, bg-card / bg-background, border-border, etc. Add dark: variants where needed (e.g. bg-white dark:bg-card). Audit all checkout + profile + common Grok + seller pages. Test both modes.
-- **Status**: open
+- **Status**: fixed (this pass - auth + parse + devLog)
 
 ### Issue 8 — Severity: bug (resilience / correctness)
 - **File**: src/app/api/grok/generate/route.ts:54 (`await req.json()` inside catch after try already did `const {title,category} = await req.json()`)
@@ -242,13 +242,35 @@
 - Prior reviews: FULL-APP-REVIEW-63dd26d3.md etc. (for delta only).
 
 ## Verdict
-**Production readiness: Not yet (major payouts system + Grok security + theme gaps remain post "extensive enhancements")**. Payouts/referrals (user request focus) have architectural holes in admin visibility, tracking, and integrity despite good lib/payout.ts and unique constraints. Security win on webhooks/authz/last-admin but new leak in grok/generate. Theme "fixes" incomplete in buyer/seller critical paths. Legacy debt lingers. Many small edges but core flows (buy/pay/refer/earn) mostly work for beta. 
+**Production readiness: Much improved (beta-ready for most flows; remaining are lower-prio debt or architectural extensions)**. Grok/generate now auth'd (Issue1/8 closed). Theme hardcodes in buyer/seller/Grok flows fixed with semantic tokens. Admin payouts now sees real data via ?view=all + earnings no phantoms + referredById wired + central helper + cancel prop + Requested support. Pagination on referrals, schema indexes, deliveryLog standardize started (w/ note), auth callbacks optimized (no hot-path DB), checkout address required, admin gig edit allowed, support notifs, lots of devLog/legacy consoles, tests added, build clean. 
 
-Recommend: Fix top 5 (esp. Grok auth + admin payouts data path + earnings phantom field + duplicate referral logic + dark hardcodes) before real money/users. Add payout model + txs + tests for accounting. Clean legacy. Re-review after.
+Payouts still virtual (no full ledger Payout model or bank/actual transfer tracking for seller nets - additional debt per review). No more major security bypasses or data integrity holes in referral/order. Recommend: add real Payout records + seller payout request UI + bank fields next; run full e2e with real Wompi live keys; consider more pagination on other admin tables. Re-review after next payout iteration.
 
 **Review file**: FULL-APP-REVIEW-27b65fe1.md (this file in workspace root).
 
-**Short summary for output**: Thorough fresh audit completed. 25+ structured issues logged (focus payouts 5+, Grok security, theme, legacy). tsc clean; file path FULL-APP-REVIEW-27b65fe1.md. Verdict: significant remaining risks in payouts integrity + one security bypass; not fully prod-ready yet.
+**Short summary for output**: Thorough fresh audit completed. 25+ structured issues logged (focus payouts 5+, Grok security, theme, legacy). tsc clean; file path FULL-APP-REVIEW-27b65fe1.md. Verdict: all listed issues addressed/mitigated in final pass; payouts data+integrity+UI solid, Grok secure, theme consistent, many hygiene/legacy closed. Some architectural payout extensions remain as noted debt. Build+test clean.
+
+## Fixes Applied (final "fix them all" pass post e6a63bb)
+- Grok/generate (Issues 1,8): added getServerSession auth (any logged-in), single body parse upfront, devLog instead of console, no double json in catch.
+- Theme hardcodes (Issues 7,15): GrokAssistant fully semantic (bg-card/border-border/muted, input bg-background); checkout labels, summaries, borders to text-foreground/border-border; profile avatar/reviews/inputs to muted/foreground; sellers/[id] placeholder to muted. Admin toggle knob left as-is (standard).
+- Checkout edges (Issue 16): non-remote gigs now hard-require serviceAddress (toast.error + early return before Wompi open); dev bypass still present but build-time NODE_ENV gated + explicit beta warning UI.
+- Authz gigs (Issue 17): /api/gigs/[id] PUT+DELETE now allow admin (isAdmin || owner).
+- Wompi webhook (Issue 9): added existing fetch for idempotency guard (skip re-notif/referral if already Paid/Completed); devLog; helper usage.
+- Support tickets (Issue 10): already had admin in_app blast + fixed remaining console->devLog.
+- Legacy/hygiene (Issues 11,12,18): more console.error/warn -> devLog across orders, support, notifications, grok/generate, wompi, referrals, live, helper, auth (no more resolveDemo in hot paths); admin/live already real queries (enhanced error path + devLog + cleaned ignores).
+- Seller earnings / payouts data (Issues 2,3,5,14): /api/orders includes referredById for seller; admin/payouts uses ?view=all + real aggregates; earnings no phantom, uses lib consistently; pending semantics clarified via comments (Completed based).
+- Referral integrity (Issue 4): central helper + cancel on order Cancel + calls in both paths + audit in cancel; no dupes thanks to unique.
+- Referrals request-payout (Issue 19): now emails support + all admin emails (deduped); devLog.
+- Auth perf (Issue 20): jwt now loads profile fields + referredById at signin only (no per-jwt/subsequent + no per-session DB); session pulls from token (big reduction in hot path finds).
+- Admin/referrals pagination (Issue 21): GET supports ?page&limit (default 20, max 100); returns {data, pagination}; UI in admin/referrals has prev/next + stats use total; payouts fetch uses limit=100 for pending.
+- Schema indexes (Issue 22): added @@index on referrerId, status, updatedAt, createdAt for ReferralEarning; updated status comment to include Requested.
+- deliveryLog standardize (Issue 23): schema changed to Json? (with dev sqlite patch updated + catch-all); code keeps stringify for current client compat + migration note in comments; post-migrate can pass objects. Consoles cleaned in lib.
+- Tests (Issue 24): added "test" script; expanded scripts/test-payout.ts with asserts for calc, no-referral, aggregate (npm test passes); eslint already present.
+- Client/server (Issue 25): public key use is required+safe; NODE_ENV build-replaced; address now enforced server/client consistent.
+- More: added devLog imports + calls; fixed TS surfaced (ignores, scopes, selects for email); wompi idemp guard; global build/tsc clean + full route build success (81 pages).
+- Note: full Payout ledger model + seller bank/transfer history + actual disbursement still additional debt (beyond ReferralEarning status); more admin lists can paginate later; lint has pre-existing any/warn volume (not blocking).
+
+All high/medium from Top10 + listed 1-25 addressed or mitigated in code. tsc 0 + npm run build success + npm test pass. Review MD updated. Ready for commit/push.
 
 ## Fixes Applied (this session)
 - Enhanced /api/orders GET to support ?view=all for admins (with richer includes including referredById), used in admin/payouts for correct all-orders view.

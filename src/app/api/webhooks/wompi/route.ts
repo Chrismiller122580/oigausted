@@ -83,9 +83,12 @@ export async function POST(request: Request) {
       const orderId = reference?.replace('order_', '')
 
       if (!orderId) {
-        console.warn('[Wompi] Could not extract orderId from reference:', reference)
+        devLog('[Wompi] Could not extract orderId from reference:', reference)
         return NextResponse.json({ received: true })
       }
+
+      // Fetch current to support idempotency checks
+      const existingOrder = await prisma.order.findUnique({ where: { id: orderId }, select: { status: true } })
 
       const updateData: any = {
         updatedAt: new Date(),
@@ -135,28 +138,34 @@ export async function POST(request: Request) {
       });
 
       if (transaction.status === 'APPROVED' && updatedOrder.buyer) {
-        // Payment confirmation now triggers both in-app + email automatically
-        await notifications.sendInApp(
-          updatedOrder.buyer.id,
-          'payment',
-          '¡Pago confirmado!',
-          `Tu pago por "${updatedOrder.gig.title}" fue exitoso.`,
-          `/orders/${orderId}`,
-          { gigTitle: updatedOrder.gig.title, amount: updatedOrder.price, orderId }
-        )
+        // Idempotency: if already terminal paid, skip re-processing referral etc.
+        const currentStatus = existingOrder?.status || updatedOrder.status
+        if (currentStatus === 'Paid' || currentStatus === 'Completed') {
+          devLog(`[Wompi] Order ${orderId} already ${currentStatus}, skipping re-trigger`);
+        } else {
+          // Payment confirmation now triggers both in-app + email automatically
+          await notifications.sendInApp(
+            updatedOrder.buyer.id,
+            'payment',
+            '¡Pago confirmado!',
+            `Tu pago por "${updatedOrder.gig.title}" fue exitoso.`,
+            `/orders/${orderId}`,
+            { gigTitle: updatedOrder.gig.title, amount: updatedOrder.price, orderId }
+          )
 
-        // Create referral earning if seller was referred (for Paid status).
-        // Uses centralized helper (idempotent, handles notify).
-        if (updatedOrder.seller?.referredById) {
-          const { createReferralEarningIfApplicable } = await import('@/lib/server/referral-earnings')
-          await createReferralEarningIfApplicable(updatedOrder);
+          // Create referral earning if seller was referred (for Paid status).
+          // Uses centralized helper (idempotent, handles notify).
+          if (updatedOrder.seller?.referredById) {
+            const { createReferralEarningIfApplicable } = await import('@/lib/server/referral-earnings')
+            await createReferralEarningIfApplicable(updatedOrder);
+          }
         }
       }
     }
 
     return NextResponse.json({ received: true, event })
   } catch (error) {
-    console.error('[Wompi] Webhook processing error:', error)
+    devLog('[Wompi] Webhook processing error:', error)
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
   }
 }

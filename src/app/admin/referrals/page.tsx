@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { devLog } from '@/lib/utils';
 
 interface ReferralSummary {
   referrer: {
@@ -24,28 +25,38 @@ interface ReferralSummary {
 export default function AdminReferralsPage() {
   const [data, setData] = useState<ReferralSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<{page:number;limit:number;total:number;totalPages:number;hasNext:boolean;hasPrev:boolean} | null>(null);
 
-  useEffect(() => {
-    fetchReferrals();
-  }, []);
-
-  const fetchReferrals = async () => {
+  const fetchReferrals = async (p = page) => {
     try {
-      const res = await fetch('/api/admin/referrals');
+      setLoading(true);
+      const res = await fetch(`/api/admin/referrals?page=${p}&limit=20`);
       if (res.ok) {
         const json = await res.json();
-        setData(json);
+        if (Array.isArray(json)) {
+          // legacy shape
+          setData(json);
+          setPagination(null);
+        } else {
+          setData(json.data || []);
+          setPagination(json.pagination || null);
+        }
       }
     } catch (e) {
-      console.error(e);
+      devLog('fetch referrals', e);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchReferrals(page);
+  }, [page]);
+
   if (loading) return <div className="p-8">Cargando datos de referidos...</div>;
 
-  const totalReferrers = data.length;
+  const totalReferrers = pagination ? pagination.total : data.length;
   const totalReferred = data.reduce((sum, r) => sum + r.referredCount, 0);
   const totalGenerated = data.reduce((sum, r) => sum + (r.totalGenerated || 0), 0);
 
@@ -68,6 +79,19 @@ export default function AdminReferralsPage() {
           <div className="text-3xl font-bold mt-1 text-green-600">${totalGenerated.toLocaleString('es-CO')}</div>
         </div>
       </div>
+
+      {/* Pagination controls */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between mb-4 text-sm">
+          <div className="text-muted-foreground">
+            Página {pagination.page} de {pagination.totalPages} • {pagination.total} referidores
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={!pagination.hasPrev} onClick={() => setPage(p => Math.max(1, p-1))}>Anterior</Button>
+            <Button variant="outline" size="sm" disabled={!pagination.hasNext} onClick={() => setPage(p => p+1)}>Siguiente</Button>
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -126,7 +150,7 @@ export default function AdminReferralsPage() {
                                 });
                                 if (res.ok) {
                                   toast.success('Marcado como pagado');
-                                  window.location.reload();
+                                  fetchReferrals(page);
                                 } else {
                                   toast.error('Error al marcar');
                                 }

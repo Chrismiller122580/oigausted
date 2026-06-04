@@ -38,7 +38,7 @@ export default function GrokAssistant() {
       </button>
 
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-96 bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden z-50 flex flex-col" style={{ height: "480px" }}>
+        <div className="fixed bottom-24 right-6 w-96 bg-card rounded-3xl shadow-2xl border border-border overflow-hidden z-50 flex flex-col text-foreground" style={{ height: "480px" }}>
           <div className="bg-yellow-600 text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">🤖</div>
@@ -52,17 +52,17 @@ export default function GrokAssistant() {
             </button>
           </div>
 
-          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50">
+          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-muted/40">
             {messages.map((msg, index) => (
               <div key={index} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-yellow-600 text-white" : "bg-white border"}`}>
+                <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-yellow-600 text-white" : "bg-card border border-border"}`}>
                   {msg.content}
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="p-4 border-t bg-white">
+          <div className="p-4 border-t border-border bg-card">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -70,7 +70,7 @@ export default function GrokAssistant() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                 placeholder="Escribe tu pregunta..."
-                className="flex-1 border border-gray-300 rounded-2xl px-5 py-3 focus:outline-none focus:border-yellow-600"
+                className="flex-1 border border-border bg-background rounded-2xl px-5 py-3 focus:outline-none focus:border-yellow-600 text-foreground"
               />
               <button 
                 onClick={sendMessage}

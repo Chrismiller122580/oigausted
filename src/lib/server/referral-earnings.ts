@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { sendNotification } from '@/lib/notifications';
 import { getEffectiveReferralRate } from '@/lib/payout';
+import { devLog } from '@/lib/utils';
 
 /**
  * Create referral earning for a completed/paid order if the seller was referred.
@@ -38,12 +39,12 @@ export async function createReferralEarningIfApplicable(order: any) {
         link: '/referrals'
       });
     } catch (e) {
-      console.error('Failed to send referral earning email:', e);
+      devLog('Failed to send referral earning email:', e);
     }
   } catch (err: any) {
     // Unique constraint violation is expected on duplicate calls (idempotent)
     if (err.code !== 'P2002') {
-      console.error('Failed to create referral earning:', err);
+      devLog('Failed to create referral earning:', err);
     }
   }
 }
