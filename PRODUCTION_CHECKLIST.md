@@ -24,11 +24,12 @@ To avoid issues with dynamic preview deployments (especially with Google OAuth `
 
 ## Environment Variables in Vercel (Production)
 
-Set these in Vercel Dashboard → Settings → Environment Variables (apply to Production):
+Set these in Vercel Dashboard → Settings → Environment Variables (apply to Production and Build):
 
 | Variable | Example / Notes |
 |----------|-----------------|
-| `DATABASE_URL` | Your production Postgres connection string (with `?sslmode=require`) |
+| `DATABASE_URL` | Your production Postgres connection string (pooled if using PgBouncer/Accelerate) |
+| `DIRECT_DATABASE_URL` | Direct (non-pooled) Postgres connection string - **required for `prisma migrate deploy` during Vercel builds** (Prisma Postgres provides separate direct URL) |
 | `NEXTAUTH_URL` | `https://oigagig.com` |
 | `NEXTAUTH_SECRET` | Strong random string (32+ chars) |
 | `GOOGLE_CLIENT_ID` | From Google Cloud Console |

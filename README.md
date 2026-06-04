@@ -124,7 +124,7 @@ For a complete step-by-step checklist, see [PRODUCTION_CHECKLIST.md](./PRODUCTIO
 **Preferred workflow**: Push to `main` for production-like testing (especially auth/Google login). Use local dev or Codespaces for rapid iteration. Avoid relying on random preview deployments for stable testing.
 
 1. Conecta el repositorio a Vercel.
-2. En Vercel Dashboard → Settings → Environment Variables, agrega todas las variables de `.env.example` (usa PostgreSQL para `DATABASE_URL`).
+2. En Vercel Dashboard → Settings → Environment Variables, agrega todas las variables de `.env.example` (usa PostgreSQL para `DATABASE_URL` y `DIRECT_DATABASE_URL` para migraciones durante el build). Asegúrate de marcarlas para "Production" y "Build".
 3. **Importante para Auth**:
    - `NEXTAUTH_URL` debe ser tu dominio de producción: `https://oigagig.com`
    - Configura Google OAuth con el redirect URI de producción: `https://oigagig.com/api/auth/callback/google`
@@ -134,7 +134,7 @@ For a complete step-by-step checklist, see [PRODUCTION_CHECKLIST.md](./PRODUCTIO
 5. **Después del primer despliegue exitoso** (recomendado):
    - Cambia el build command en `vercel.json` de vuelta a:
      ```json
-     "buildCommand": "prisma generate && prisma migrate deploy && next build"
+     "buildCommand": "prisma generate && ( [ -n \"$DIRECT_DATABASE_URL\" ] && DATABASE_URL=\"$DIRECT_DATABASE_URL\" prisma migrate deploy || prisma migrate deploy ) && next build"
      ```
    - Haz commit y push (o redeploy manual). A partir de ese momento usarás migraciones reales.
 
