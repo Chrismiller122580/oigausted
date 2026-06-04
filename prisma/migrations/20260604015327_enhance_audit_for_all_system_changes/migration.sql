@@ -2,14 +2,38 @@
 -- Add support for performedById (any user or null for system/webhooks)
 -- Make adminId nullable for backward compat during transition
 
--- Add new columns (nullable for safety)
-ALTER TABLE "AuditLog" ADD COLUMN "performedById" TEXT;
+-- Add performedById column if it doesn't exist (idempotent for recovery)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'AuditLog' AND column_name = 'performedById'
+    ) THEN
+        ALTER TABLE "AuditLog" ADD COLUMN "performedById" TEXT;
+    END IF;
+END $$;
 
--- Make legacy adminId nullable (existing data keeps values)
-ALTER TABLE "AuditLog" ALTER COLUMN "adminId" DROP NOT NULL;
+-- Make legacy adminId nullable if not already (safe to run multiple times in practice)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'AuditLog' AND column_name = 'adminId' AND is_nullable = 'NO'
+    ) THEN
+        ALTER TABLE "AuditLog" ALTER COLUMN "adminId" DROP NOT NULL;
+    END IF;
+END $$;
 
--- Add index for the new actor field
-CREATE INDEX "AuditLog_performedById_idx" ON "AuditLog"("performedById");
+-- Add index for the new actor field if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace 
+        WHERE c.relname = 'AuditLog_performedById_idx' AND n.nspname = 'public'
+    ) THEN
+        CREATE INDEX "AuditLog_performedById_idx" ON "AuditLog"("performedById");
+    END IF;
+END $$;
 
 -- Note: The User.performedAuditLogs relation is virtual (no DB change needed)
 
