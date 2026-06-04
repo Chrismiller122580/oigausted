@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG, aggregatePayouts } from '@/lib/payout';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 export default function AdminPayoutsPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -13,7 +14,7 @@ export default function AdminPayoutsPage() {
 
   const fetchCompleted = async () => {
     try {
-      const res = await fetch('/api/orders?role=seller'); // admin view
+      const res = await fetch('/api/orders?view=all'); // admin view: all orders
       const data = await res.json();
       const list = Array.isArray(data) ? data : [];
       const completed = list.filter((o: any) => o.status === 'Completed');
@@ -108,6 +109,7 @@ export default function AdminPayoutsPage() {
             <p className="text-xl">No hay pagos pendientes en este momento.</p>
           </Card>
         ) : (
+          <ErrorBoundary>
           <div className="space-y-4">
             {orders.map(order => (
               <Card key={order.id} className="bg-card border-border">
@@ -132,6 +134,7 @@ export default function AdminPayoutsPage() {
               </Card>
             ))}
           </div>
+          </ErrorBoundary>
         )}
 
         {/* Referral Payouts Section */}

@@ -58,9 +58,9 @@ export default function SellerEarningsPage() {
       );
       const thisMonthNet = aggregatePayouts(thisMonthOrders.map(o => o.breakdown)).netToSeller;
 
-      // Pending gross (for display)
+      // Pending gross (for display) - all Completed contribute to earned; no separate paymentStatus field
       const pendingAmount = sellerOrders
-        .filter(o => o.status === 'Completed' && (o.paymentStatus !== 'Paid'))
+        .filter(o => o.status === 'Completed')
         .reduce((sum, o) => sum + (Number(o.price) || 0), 0);
 
       setEarnings({
@@ -82,7 +82,7 @@ export default function SellerEarningsPage() {
           date: new Date(o.createdAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }),
           gig: o.gig?.title || 'Servicio',
           amount: Number(o.price) || 0,
-          status: o.paymentStatus === 'Paid' ? 'Pagado' : 'Pendiente',
+          status: 'Pagado', // Completed orders are considered settled for earnings display
         }));
 
       setTransactions(tx);

@@ -174,7 +174,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
           </div>
         ) : (
           <div className="text-center py-20 bg-card rounded-3xl border-border">
-            <p className="text-2xl text-gray-400">Este vendedor aún no tiene gigs publicados.</p>
+            <p className="text-2xl text-muted-foreground">Este vendedor aún no tiene gigs publicados.</p>
           </div>
         )}
 
@@ -193,13 +193,13 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
                         <span key={n}>{n <= review.rating ? '⭐' : '☆'}</span>
                       ))}
                     </div>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-muted-foreground">
                       {new Date(review.createdAt).toLocaleDateString('es-CO')}
                     </span>
                   </div>
 
                   {review.comment && (
-                    <p className="text-gray-700 mb-4 leading-relaxed">"{review.comment}"</p>
+                    <p className="text-foreground mb-4 leading-relaxed">"{review.comment}"</p>
                   )}
 
                   <div className="flex items-center justify-between text-sm">
@@ -227,7 +227,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
                 </div>
               ))}
             </div>
-            <p className="text-center text-xs text-gray-400 mt-6">
+            <p className="text-center text-xs text-muted-foreground mt-6">
               Mostrando las reseñas más recientes
             </p>
           </div>

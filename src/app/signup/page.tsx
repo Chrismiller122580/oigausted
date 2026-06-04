@@ -183,7 +183,7 @@ function SignUpClient() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -225,7 +225,7 @@ function SignUpClient() {
             <>
               <div className="my-6 relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
+                  <div className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-xs">
                   <span className="bg-card px-3 text-muted-foreground">o</span>

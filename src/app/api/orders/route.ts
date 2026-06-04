@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+// @ts-ignore
+// @ts-ignore
+ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
@@ -145,15 +147,25 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url);
     const role = url.searchParams.get('role') || 'buyer';
+    const isAdmin = (session?.user as any)?.role === 'admin';
+    const viewAll = url.searchParams.get('view') === 'all' && isAdmin;
+
+    let where: any = {};
+    if (viewAll) {
+      // Admin can view all orders for payouts/oversight
+      where = {};
+    } else if (role === 'seller') {
+      where = { sellerId: userId };
+    } else {
+      where = { buyerId: userId };
+    }
 
     const orders = await prisma.order.findMany({
-      where: role === 'seller' 
-        ? { sellerId: userId } 
-        : { buyerId: userId },
+      where,
       include: {
         gig: { select: { title: true, imageUrl: true } },
-        buyer: { select: { name: true } },
-        seller: { select: { name: true, businessName: true } }
+        buyer: { select: { id: true, name: true, email: true } },
+        seller: { select: { id: true, name: true, businessName: true, referredById: true } }
       },
       orderBy: { createdAt: 'desc' }
     });

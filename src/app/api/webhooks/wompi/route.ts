@@ -146,50 +146,10 @@ export async function POST(request: Request) {
         )
 
         // Create referral earning if seller was referred (for Paid status).
-        // Uses per-referrer custom rate (editable in admin users page) or global default.
-        // Accounting model lives in src/lib/payout.ts
+        // Uses centralized helper (idempotent, handles notify).
         if (updatedOrder.seller?.referredById) {
-          try {
-            const { getEffectiveReferralRate } = await import('@/lib/payout')
-            const referralRate = await getEffectiveReferralRate(updatedOrder.seller.referredById)
-            const referralAmount = Math.round(updatedOrder.price * referralRate)
-
-            if (referralAmount > 0) {
-              await prisma.referralEarning.create({
-                data: {
-                  amount: referralAmount,
-                  rateUsed: referralRate,
-                  referrerId: updatedOrder.seller.referredById,
-                  orderId: updatedOrder.id,
-                  status: 'Pending',
-                }
-              })
-
-              // Notify referrer by email
-              try {
-                const referrer = await prisma.user.findUnique({
-                  where: { id: updatedOrder.seller.referredById },
-                  select: { email: true, name: true }
-                })
-                if (referrer?.email) {
-                  const { sendNotification } = await import('@/lib/notifications')
-                  await sendNotification({
-                    userId: updatedOrder.seller.referredById,
-                    category: 'payment',
-                    type: 'email',
-                    title: '¡Ganaste comisión por referido!',
-                    message: `Recibiste $${referralAmount.toLocaleString('es-CO')} de comisión por la venta de "${updatedOrder.gig.title}".`,
-                    link: '/referrals',
-                    data: { amount: referralAmount }
-                  })
-                }
-              } catch (emailErr) {
-                console.error('[Wompi] Failed to send referral earning email:', emailErr)
-              }
-            }
-          } catch (err) {
-            console.error('[Wompi] Failed to create referral earning:', err)
-          }
+          const { createReferralEarningIfApplicable } = await import('@/lib/server/referral-earnings')
+          await createReferralEarningIfApplicable(updatedOrder);
         }
       }
     }

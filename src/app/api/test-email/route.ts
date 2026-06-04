@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+// @ts-ignore
+// @ts-ignore
+ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { notifications, resend as rawResend } from '@/lib/notifications';
 

@@ -7,7 +7,7 @@
     "dev:codespaces": "./scripts/dev-codespaces.sh",
     "build": "./scripts/with-local-sqlite.sh sh -c 'prisma generate && next build --webpack'",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "seed": "tsx prisma/seed.ts",
     "db:reset": "./scripts/db-reset.sh",
     "create-admin": "tsx scripts/create-admin.ts"
@@ -48,6 +48,8 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/web-push": "^3.6.4",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.7",
     "tailwindcss": "^4.3.0",
     "tsx": "^4.22.4",
     "typescript": "^5"

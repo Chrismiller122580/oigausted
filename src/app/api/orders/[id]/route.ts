@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+// @ts-ignore
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { notifications } from '@/lib/notifications'
@@ -164,45 +165,21 @@ export async function PATCH(
     }
 
     // Create referral earning if order reaches Paid (webhook or bypass) or Completed.
-    // Uses per-user custom rate if set on the referrer, otherwise global default (5%).
-    // Note: The actual accounting (net to seller) lives in src/lib/payout.ts
-    // We trigger on Paid so that bypass/simulate paths (which set Paid directly) also credit referrers.
+    // Uses centralized helper for consistency and idempotency.
     if ((status === 'Paid' || status === 'Completed') && updatedOrder.seller?.referredById) {
+      const { createReferralEarningIfApplicable } = await import('@/lib/server/referral-earnings');
+      await createReferralEarningIfApplicable(updatedOrder);
+    }
+
+    // If cancelling a paid order, cancel any pending referral earnings to keep integrity
+    if (status === 'Cancelled') {
       try {
-        const { getEffectiveReferralRate } = await import('@/lib/payout');
-        const referralRate = await getEffectiveReferralRate(updatedOrder.seller.referredById);
-
-        const referralAmount = Math.round(updatedOrder.price * referralRate);
-
-        if (referralAmount > 0) {
-          await prisma.referralEarning.create({
-            data: {
-              amount: referralAmount,
-              rateUsed: referralRate,
-              referrerId: updatedOrder.seller.referredById,
-              orderId: updatedOrder.id,
-              status: 'Pending',
-            }
-          });
-
-          // Notify referrer
-          try {
-            const { sendNotification } = await import('@/lib/notifications')
-            await sendNotification({
-              userId: updatedOrder.seller.referredById,
-              category: 'payment',
-              type: 'email',
-              title: '¡Ganaste comisión por referido!',
-              message: `Recibiste $${referralAmount.toLocaleString('es-CO')} de comisión por una venta completada.`,
-              link: '/referrals'
-            })
-          } catch (e) {
-            console.error('Failed to send referral earning email:', e)
-          }
-        }
-      } catch (err) {
-        console.error('Failed to create referral earning:', err);
-        // Don't fail the main request
+        await prisma.referralEarning.updateMany({
+          where: { orderId: updatedOrder.id, status: { in: ['Pending', 'Requested'] } },
+          data: { status: 'Cancelled' }
+        });
+      } catch (e) {
+        console.error('Failed to cancel referral earnings on order cancel:', e);
       }
     }
 

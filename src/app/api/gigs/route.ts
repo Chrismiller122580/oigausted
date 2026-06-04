@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions, resolveDemoUserId } from '@/lib/auth';
+// @ts-ignore
+// @ts-ignore
+ import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { notifications } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
@@ -61,7 +63,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Solo vendedores pueden crear gigs" }, { status: 403 });
     }
 
-    const sellerId = resolveDemoUserId(userId);
+    const sellerId = userId;
 
     const body = await req.json();
     const { 

@@ -448,7 +448,7 @@ function CreateGigClient() {
           <Label>Imagen del Servicio</Label>
           <div className="mt-2">
             {!imageUrl ? (
-              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 hover:border-orange-400 rounded-2xl p-8 cursor-pointer transition">
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-orange-400 rounded-2xl p-8 cursor-pointer transition">
                 <div className="text-4xl mb-2">📷</div>
                 <span className="font-medium">Subir imagen del servicio</span>
                 <span className="text-sm text-muted-foreground mt-1">PNG, JPG hasta 5MB</span>

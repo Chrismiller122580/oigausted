@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+// @ts-ignore
+// @ts-ignore
+ import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';

@@ -238,7 +238,7 @@ export default function BuyerDashboard() {
         </div>
 
         {/* Become Seller nudge (only for pure buyers) */}
-        {session?.user?.role === 'buyer' && (
+        {(session?.user as any)?.role === 'buyer' && (
           <div className="mt-10 text-center">
             <p className="text-muted-foreground">
               ¿Tienes habilidades para ofrecer?{' '}

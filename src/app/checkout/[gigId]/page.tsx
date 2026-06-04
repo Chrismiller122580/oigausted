@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { parseJsonArrayField } from '@/lib/utils';
+import { parseJsonArrayField, devLog } from '@/lib/utils';
 import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
 
 declare global {
@@ -79,7 +79,7 @@ export default function CheckoutPage() {
     const loadScriptDynamically = () => {
       if (document.querySelector('script[src*="checkout.wompi.co"]')) return;
 
-      console.log('[Wompi] Attempting dynamic script load...');
+      devLog('[Wompi] Attempting dynamic script load...');
 
       const script = document.createElement('script');
       script.src = 'https://checkout.wompi.co/widget.js';
@@ -668,14 +668,7 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {/* Temporary debug info (dev only) */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="text-[10px] text-muted-foreground text-center -mt-2">
-              Debug: wompiReady={wompiReady ? 'true' : 'false'} | order={order ? 'ok' : 'no'}
-            </div>
-          )}
-
-          {/* DEV BYPASS - Simulate successful Wompi payment (now properly saves fields too) */}
+          {/* DEV BYPASS - Simulate successful Wompi payment (only in development) */}
           {process.env.NODE_ENV === 'development' && (!wompiReady || wompiLoadFailed) && order && (
             <div className="mt-4 p-4 border border-dashed border-orange-500 rounded-xl bg-orange-50 dark:bg-orange-950/30">
               <p className="text-sm font-medium text-orange-700 dark:text-orange-400 mb-2">

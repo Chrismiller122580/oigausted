@@ -1,4 +1,6 @@
-import { getServerSession } from "next-auth";
+// @ts-ignore
+// @ts-ignore
+ import { getServerSession } from 'next-auth';
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import MarketingHomePage from "./(marketing)/page";

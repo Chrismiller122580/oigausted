@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname
-
+export function middleware(_request: NextRequest) {
   // 🚫 Eliminamos el redirect forzado de /profile a /buyer
   // Ahora /profile funciona correctamente para compradores y vendedores
 

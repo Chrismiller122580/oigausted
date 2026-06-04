@@ -316,7 +316,7 @@ async function sendWebPushIfEnabled(
 ) {
   const webpush = await import('web-push').catch(() => null);
   if (!webpush) {
-    console.log('[WebPush] web-push not installed - skipping real push');
+    devLog('[WebPush] web-push not installed - skipping real push');
     return;
   }
 
@@ -324,7 +324,7 @@ async function sendWebPushIfEnabled(
   const privateKey = process.env.VAPID_PRIVATE_KEY;
 
   if (!publicKey || !privateKey) {
-    console.log('[WebPush] VAPID keys not configured');
+    devLog('[WebPush] VAPID keys not configured');
     return;
   }
 
@@ -370,7 +370,7 @@ async function sendWebPushIfEnabled(
   });
 
   await Promise.allSettled(sendPromises);
-  console.log(`[WebPush] Attempted push to ${subscriptions.length} device(s) for user ${userId}`);
+  devLog(`[WebPush] Attempted push to ${subscriptions.length} device(s) for user ${userId}`);
 }
 
 /**
