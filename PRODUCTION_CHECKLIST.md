@@ -134,6 +134,28 @@ After the first successful deploy:
 
 3. Future deploys will use real migrations.
 
+### Resolving a failed migration (e.g. P3009 or P3018)
+
+If a migration fails during deploy (e.g. due to type mismatch or previous bad SQL), Prisma will mark it as failed and refuse to apply new ones.
+
+To recover:
+
+1. Pull production env:
+   ```bash
+   vercel env pull .env.production.local
+   ```
+
+2. Use the **direct** connection if you have `DIRECT_DATABASE_URL` (recommended for migrations):
+   ```bash
+   DATABASE_URL="$DIRECT_DATABASE_URL" npx prisma migrate resolve --rolled-back 20260604015327_enhance_audit_for_all_system_changes
+   ```
+
+   (Replace the migration name with the one from the error.)
+
+3. Then redeploy. The (fixed) migration will be re-applied cleanly.
+
+See https://www.prisma.io/docs/concepts/components/prisma-migrate/resolve-migration-issues for details. Always test locally first with prod DB if possible.
+
 ## Useful Commands
 
 ```bash
