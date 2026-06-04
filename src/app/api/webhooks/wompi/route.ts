@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { notifications } from '@/lib/notifications'
 import { logAuditEvent } from '@/lib/audit'
+import { devLog } from '@/lib/utils'
 
 const WOMPI_EVENTS_KEY = process.env.WOMPI_EVENTS_KEY
 
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
     const event = body.event
     const transaction = body.data.transaction
 
-    console.log(`[Wompi] Valid webhook received: ${event} - Status: ${transaction.status}`)
+    devLog(`[Wompi] Valid webhook received: ${event} - Status: ${transaction.status}`)
 
     // Handle different transaction statuses
     if (event === 'transaction.updated') {
@@ -93,19 +94,19 @@ export async function POST(request: Request) {
       switch (transaction.status) {
         case 'APPROVED':
           updateData.status = 'Paid'
-          console.log(`✅ Payment APPROVED for order: ${orderId}`)
+          devLog(`✅ Payment APPROVED for order: ${orderId}`)
           break
 
         case 'DECLINED':
         case 'ERROR':
         case 'VOIDED':
           updateData.status = 'Cancelled'
-          console.log(`❌ Payment ${transaction.status} for order: ${orderId}`)
+          devLog(`❌ Payment ${transaction.status} for order: ${orderId}`)
           break
 
         case 'PENDING':
           // Keep current status or set to something like "Payment Pending"
-          console.log(`⏳ Payment still PENDING for order: ${orderId}`)
+          devLog(`⏳ Payment still PENDING for order: ${orderId}`)
           return NextResponse.json({ received: true, event })
       }
 

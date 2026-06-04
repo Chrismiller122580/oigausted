@@ -3,14 +3,17 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
 
-// Stable demo user IDs (UUID format)
+// Stable demo user IDs (UUID format) - LEGACY for old sessions/demo only.
+// In production, all users should use real UUIDs from Prisma.
 export const DEMO_IDS = {
   buyer: "11111111-1111-1111-1111-111111111111",
   seller: "22222222-2222-2222-2222-222222222222",
   admin: "33333333-3333-3333-3333-333333333333",
 }
 
-// Temporary bridge for any old sessions still carrying "1","2","3"
+/** Temporary bridge for any old sessions still carrying "1","2","3" (demo compat).
+ *  TODO: Remove once all sessions use real UUIDs.
+ */
 export function resolveDemoUserId(rawId: string | undefined): string {
   if (!rawId) return DEMO_IDS.buyer
   if (rawId === "1" || rawId === DEMO_IDS.buyer) return DEMO_IDS.buyer
@@ -23,6 +26,15 @@ export function resolveDemoUserId(rawId: string | undefined): string {
 export function isAdmin(userOrSession: any): boolean {
   const role = userOrSession?.role ?? (userOrSession as any)?.user?.role
   return role === 'admin'
+}
+
+export function getSessionRole(session: any): string {
+  return (session?.user as any)?.role || 'buyer'
+}
+
+export function isSeller(session: any): boolean {
+  const role = getSessionRole(session)
+  return role === 'seller' || role === 'admin'
 }
 
 const providers: any[] = [

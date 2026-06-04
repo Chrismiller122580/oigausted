@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
+import { devLog } from '@/lib/utils';
 
 // POST: Submit a new support ticket (any logged-in user)
 export async function POST(request: NextRequest) {
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       );
 
       // TODO: In real, notify admins via a dedicated admin notification or email to supportEmail
-      console.log(`[Support] New ticket from ${ticket.user.email}: ${subject}`);
+      devLog(`[Support] New ticket from ${ticket.user.email}: ${subject}`);
     } catch (notifErr) {
       console.error('Failed to send support confirmation notif:', notifErr);
     }

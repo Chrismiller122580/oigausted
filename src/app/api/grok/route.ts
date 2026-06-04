@@ -1,8 +1,16 @@
 import { NextRequest } from "next/server";
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    const role = (session?.user as any)?.role;
+    if (role !== 'admin') {
+      return Response.json({ error: 'Unauthorized - admin access required for Grok Build tools' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { 
       prompt, 

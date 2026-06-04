@@ -1,14 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import crypto from 'crypto';
+import { devLog } from '@/lib/utils';
 
 // Resend Webhook Handler for email delivery tracking
 // Configure this webhook URL in your Resend dashboard: /api/webhooks/resend
 
+function verifyResendSignature(
+  rawBody: string,
+  svixId: string,
+  svixTimestamp: string,
+  svixSignature: string,
+  secret: string
+): boolean {
+  if (!svixId || !svixTimestamp || !svixSignature || !secret) {
+    return false;
+  }
+
+  const signedPayload = `${svixId}.${svixTimestamp}.${rawBody}`;
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(signedPayload, 'utf8')
+    .digest('hex');
+
+  // Svix signatures are like "v1,hexvalue" (may have multiple space-separated)
+  const signatures = svixSignature.split(' ');
+  for (const sig of signatures) {
+    const [version, sigHex] = sig.split(',');
+    if (version === 'v1' && sigHex) {
+      try {
+        const received = Buffer.from(sigHex, 'hex');
+        const expected = Buffer.from(expectedSignature, 'hex');
+        if (received.length === expected.length && crypto.timingSafeEqual(received, expected)) {
+          return true;
+        }
+      } catch (e) {
+        // invalid hex, continue
+      }
+    }
+  }
+  return false;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const event = await req.json();
+    const rawBody = await req.text();
+    const event = JSON.parse(rawBody);
 
-    console.log('[Resend Webhook]', event.type, event.data?.email_id);
+    const svixId = req.headers.get('svix-id') || '';
+    const svixTimestamp = req.headers.get('svix-timestamp') || '';
+    const svixSignature = req.headers.get('svix-signature') || '';
+    const secret = process.env.RESEND_WEBHOOK_SECRET || '';
+
+    if (!verifyResendSignature(rawBody, svixId, svixTimestamp, svixSignature, secret)) {
+      console.error('[Resend] Invalid webhook signature');
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    }
+
+    // Optional replay protection (similar to Wompi)
+    if (svixTimestamp) {
+      const now = Math.floor(Date.now() / 1000);
+      const ts = parseInt(svixTimestamp, 10);
+      if (Math.abs(now - ts) > 5 * 60) { // 5 min tolerance
+        console.warn('[Resend] Webhook timestamp too old/future');
+        return NextResponse.json({ error: 'Timestamp too old' }, { status: 400 });
+      }
+    }
+
+    devLog('[Resend Webhook]', event.type, event.data?.email_id);
 
     const emailId = event.data?.email_id;
 

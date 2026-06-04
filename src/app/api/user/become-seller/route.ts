@@ -25,6 +25,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
 
+    // Last-admin safety for self-action
+    if (currentUserId === userId) {
+      const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+      if (me?.role === 'admin') {
+        const adminCount = await prisma.user.count({ where: { role: 'admin' } });
+        if (adminCount <= 1) {
+          return NextResponse.json({ error: 'No puedes cambiar tu rol si eres el último administrador' }, { status: 400 });
+        }
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {

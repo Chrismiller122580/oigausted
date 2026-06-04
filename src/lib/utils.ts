@@ -48,3 +48,14 @@ export function parseCustomFields(value: any): Record<string, any> {
   }
   return clean
 }
+
+/**
+ * Dev-only logging. Silences in production to keep Vercel logs clean.
+ * Use for success/trace logs; keep console.error for real issues.
+ */
+export function devLog(...args: any[]) {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(...args)
+  }
+}
+

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions, resolveDemoUserId } from '@/lib/auth';
+import { devLog } from '@/lib/utils';
 
 export async function GET() {
   try {
@@ -9,6 +10,10 @@ export async function GET() {
     const uid = (session?.user as any)?.id;
     if (!uid) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
+    }
+    const role = (session?.user as any)?.role;
+    if (role !== 'seller' && role !== 'admin') {
+      return NextResponse.json({ error: 'Solo vendedores pueden acceder' }, { status: 403 });
     }
 
     const sellerId = resolveDemoUserId(uid);
@@ -84,7 +89,7 @@ export async function GET() {
       }
     }));
 
-    console.log(`📦 /api/seller/gigs returned ${gigs.length} gigs + stats for seller ${sellerId}`);
+    devLog(`📦 /api/seller/gigs returned ${gigs.length} gigs + stats for seller ${sellerId}`);
 
     return NextResponse.json({
       gigs: gigsWithStats,

@@ -80,7 +80,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
         <div className="max-w-5xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
             {/* Avatar */}
-            <div className="w-24 h-24 rounded-3xl bg-white/20 backdrop-blur flex items-center justify-center overflow-hidden border-4 border-white/30 flex-shrink-0">
+            <div className="w-24 h-24 rounded-3xl bg-card/20 backdrop-blur flex items-center justify-center overflow-hidden border-4 border-border/30 flex-shrink-0">
               {seller.profilePicture ? (
                 <img src={seller.profilePicture} alt={displayName} className="w-full h-full object-cover" />
               ) : (
@@ -91,7 +91,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
             <div className="flex-1">
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-4xl md:text-5xl font-bold">{displayName}</h1>
-                <div className="bg-white/20 px-4 py-1 rounded-full text-sm flex items-center gap-1">
+                <div className="bg-card/20 px-4 py-1 rounded-full text-sm flex items-center gap-1">
                   ⭐ {avgRating.toFixed(1)} ({reviews.length} reseñas)
                 </div>
               </div>
@@ -110,7 +110,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
                     <a 
                       href={`https://wa.me/${seller.whatsapp.replace(/\D/g, '')}`}
                       target="_blank"
-                      className="bg-white text-orange-600 font-semibold px-5 py-2 rounded-2xl text-sm hover:bg-orange-50 transition"
+                      className="bg-card text-orange-600 font-semibold px-5 py-2 rounded-2xl text-sm hover:bg-muted transition"
                     >
                       💬 WhatsApp
                     </a>
@@ -119,7 +119,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
                     <a 
                       href={`https://instagram.com/${seller.instagram.replace('@','')}`}
                       target="_blank"
-                      className="border border-white/60 hover:bg-white/10 px-5 py-2 rounded-2xl text-sm transition"
+                      className="border border-border/60 hover:bg-muted/10 px-5 py-2 rounded-2xl text-sm transition"
                     >
                       📷 Instagram
                     </a>
@@ -133,7 +133,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
                 <a 
                   href={`https://wa.me/?text=${encodeURIComponent(`Mira los servicios de ${displayName} en OigaUsted`)}`}
                   target="_blank"
-                  className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-xl text-xs transition"
+                  className="px-3 py-1 bg-card/20 hover:bg-card/30 rounded-xl text-xs transition"
                 >
                   WhatsApp
                 </a>
@@ -143,7 +143,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
 
             <div className="md:ml-auto">
               <Link href="/gigs">
-                <Button variant="outline" className="border-white/70 text-white hover:bg-white/10">
+                <Button variant="outline" className="border-border/70 text-foreground hover:bg-muted/10">
                   Ver todos los gigs
                 </Button>
               </Link>
@@ -173,7 +173,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
             ))}
           </div>
         ) : (
-          <div className="text-center py-20 bg-white rounded-3xl border">
+          <div className="text-center py-20 bg-card rounded-3xl border-border">
             <p className="text-2xl text-gray-400">Este vendedor aún no tiene gigs publicados.</p>
           </div>
         )}
@@ -186,7 +186,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
             </h3>
             <div className="grid md:grid-cols-2 gap-6">
               {reviews.map((review) => (
-                <div key={review.id} className="bg-white border rounded-3xl p-6 hover:shadow-sm transition">
+                <div key={review.id} className="bg-card border rounded-3xl p-6 hover:shadow-sm transition">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex gap-0.5 text-xl">
                       {[1,2,3,4,5].map(n => (
@@ -235,7 +235,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
       </div>
 
       {/* Footer CTA */}
-      <div className="border-t py-8 bg-white">
+      <div className="border-t py-8 bg-card">
         <div className="max-w-4xl mx-auto px-6 text-center text-sm text-muted-foreground">
           ¿Te gusta lo que ves? <Link href="/gigs" className="text-orange-600 hover:underline">Explora más servicios locales</Link> o publica tu propia necesidad.
         </div>

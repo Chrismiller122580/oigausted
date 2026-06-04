@@ -12,6 +12,11 @@ import { resend } from '@/lib/notifications';
 // Call this via Vercel Cron, Inngest, or manually for now.
 // Example cron: POST /api/notifications/digest?frequency=daily
 
+export async function GET(req: NextRequest) {
+  // Vercel Cron calls use GET; delegate to the same logic
+  return POST(req);
+}
+
 export async function POST(req: NextRequest) {
   // Vercel Cron protection + optional admin key
   const authHeader = req.headers.get('authorization');

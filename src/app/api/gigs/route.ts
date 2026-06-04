@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions, resolveDemoUserId } from '@/lib/auth';
 import { notifications } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
+import { devLog } from '@/lib/utils';
 
 export async function GET() {
   try {
@@ -30,7 +31,7 @@ export async function GET() {
       seller: sellerMap[gig.sellerId] || null
     }));
 
-    console.log(`📦 /api/gigs returned ${gigs.length} gigs with full seller info`);
+    devLog(`📦 /api/gigs returned ${gigs.length} gigs with full seller info`);
 
     return NextResponse.json({
       gigs: gigsWithSeller || [],
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log("✅ Gig created successfully:", gig.id);
+    devLog("✅ Gig created successfully:", gig.id);
 
     // Audit log for system change (seller action)
     await logAuditEvent({

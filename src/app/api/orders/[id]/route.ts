@@ -66,6 +66,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
 
+    const isBuyer = existingOrder.buyerId === userId;
+    const isSeller = existingOrder.sellerId === userId;
+
     const updateData: any = {}
 
     if (status) {
@@ -73,6 +76,38 @@ export async function PATCH(
       if (!validStatuses.includes(status)) {
         return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
       }
+
+      const current = existingOrder.status;
+
+      // Role-aware transition rules (prevents buyers forcing completion, etc.)
+      // Bypass for dev/beta is allowed via explicit __bypass marker in customFields
+      if (!isAdmin) {
+        if (status === 'Paid' && current !== 'Pending') {
+          const isBypass = customFields && (customFields.__bypass || customFields.__bypassReason);
+          if (!isBypass) {
+            return NextResponse.json({ error: 'Cannot manually set to Paid outside payment flow' }, { status: 400 });
+          }
+        }
+        if (status === 'In Progress' && current !== 'Paid') {
+          return NextResponse.json({ error: 'Order must be Paid before In Progress' }, { status: 400 });
+        }
+        if (status === 'Completed' && !['Paid', 'In Progress'].includes(current)) {
+          return NextResponse.json({ error: 'Invalid transition to Completed' }, { status: 400 });
+        }
+        if (status === 'Cancelled' && !['Pending', 'Paid'].includes(current)) {
+          return NextResponse.json({ error: 'Cannot cancel at this stage' }, { status: 400 });
+        }
+        if (status === 'In Progress' && !isSeller) {
+          return NextResponse.json({ error: 'Only seller can mark In Progress' }, { status: 403 });
+        }
+        if (status === 'Completed' && !isSeller) {
+          return NextResponse.json({ error: 'Only seller can mark Completed' }, { status: 403 });
+        }
+        if (status === 'Cancelled' && !isBuyer) {
+          return NextResponse.json({ error: 'Only buyer can cancel' }, { status: 403 });
+        }
+      }
+
       updateData.status = status
     }
 
@@ -128,10 +163,11 @@ export async function PATCH(
       });
     }
 
-    // Create referral earning if order is completed and seller was referred.
+    // Create referral earning if order reaches Paid (webhook or bypass) or Completed.
     // Uses per-user custom rate if set on the referrer, otherwise global default (5%).
     // Note: The actual accounting (net to seller) lives in src/lib/payout.ts
-    if (status === 'Completed' && updatedOrder.seller?.referredById) {
+    // We trigger on Paid so that bypass/simulate paths (which set Paid directly) also credit referrers.
+    if ((status === 'Paid' || status === 'Completed') && updatedOrder.seller?.referredById) {
       try {
         const { getEffectiveReferralRate } = await import('@/lib/payout');
         const referralRate = await getEffectiveReferralRate(updatedOrder.seller.referredById);

@@ -205,7 +205,7 @@ function OrderDetailClient() {
         </a>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 bg-white p-6 rounded-3xl shadow">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 bg-card p-6 rounded-3xl shadow">
         <div className="flex items-center gap-4">
           <span className="text-6xl">{emoji}</span>
           <div>
@@ -252,7 +252,7 @@ function OrderDetailClient() {
       )}
 
       {/* TABS */}
-      <div className="flex border-b mb-8 bg-white rounded-t-2xl">
+      <div className="flex border-b mb-8 bg-card rounded-t-2xl">
         {[
           { key: 'overview', label: '📋 Resumen' },
           { key: 'chat', label: '💬 Chat' },
@@ -406,7 +406,7 @@ function OrderDetailClient() {
             })}
           </div>
 
-          <div className="p-3 border-t bg-white flex gap-2 items-end safe-area-inset-bottom">
+          <div className="p-3 border-t bg-card flex gap-2 items-end safe-area-inset-bottom">
             <label className="cursor-pointer flex items-center justify-center w-11 h-11 border rounded-2xl hover:bg-gray-100 text-xl flex-shrink-0 active:scale-95 transition" title="Adjuntar archivo">
               📎
               <input type="file" onChange={uploadFile} className="hidden" />

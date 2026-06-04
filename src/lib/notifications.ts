@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { Resend } from 'resend';
+import { devLog } from './utils';
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
@@ -52,7 +53,7 @@ export async function sendNotification(payload: NotificationPayload) {
   // === 2027 Rate Limiting + Grouping ===
   const rateLimitResult = await checkRateLimit(userId, category, prefs);
   if (rateLimitResult.limited) {
-    console.log(`[RateLimit] Suppressed notification for user ${userId} (${category})`);
+    devLog(`[RateLimit] Suppressed notification for user ${userId} (${category})`);
     return { success: true, skipped: rateLimitResult.reason };
   }
 
@@ -70,9 +71,10 @@ export async function sendNotification(payload: NotificationPayload) {
   }
 
   // 2. Store in-app notification (if enabled)
+  let inAppNotifId: string | null = null;
   if ((type === 'in_app' || ['email','sms','push'].includes(type)) && shouldSendInApp) {
     try {
-      await prisma.notification.create({
+      const created = await prisma.notification.create({
         data: {
           userId,
           category,
@@ -86,14 +88,16 @@ export async function sendNotification(payload: NotificationPayload) {
             inAppCreatedAt: new Date().toISOString(),
           }),
         },
+        select: { id: true }
       });
+      inAppNotifId = created.id;
     } catch (err) {
       console.error('Failed to save in-app notification:', err);
     }
   }
 
   // Email sending helper (reusable for both explicit email and triggered in-app notifications)
-  async function sendEmailIfEnabled() {
+  async function sendEmailIfEnabled(existingInAppId?: string | null) {
     if (!resend || !shouldSendEmail) return;
 
     try {
@@ -180,19 +184,25 @@ export async function sendNotification(payload: NotificationPayload) {
 
       // Update delivery tracking
       try {
-        const recentNotif = await prisma.notification.findFirst({
-          where: { userId, category },
-          orderBy: { createdAt: 'desc' }
-        });
+        let notifToUpdate = null;
+        if (existingInAppId) {
+          notifToUpdate = await prisma.notification.findUnique({ where: { id: existingInAppId } });
+        }
+        if (!notifToUpdate) {
+          notifToUpdate = await prisma.notification.findFirst({
+            where: { userId, category },
+            orderBy: { createdAt: 'desc' }
+          });
+        }
 
-        if (recentNotif) {
+        if (notifToUpdate) {
           await prisma.notification.update({
-            where: { id: recentNotif.id },
+            where: { id: notifToUpdate.id },
             data: {
               emailStatus: 'sent',
               emailSentAt: new Date(),
               deliveryLog: JSON.stringify({
-                ...(typeof recentNotif.deliveryLog === 'string' ? JSON.parse(recentNotif.deliveryLog) : (recentNotif.deliveryLog as any || {})),
+                ...(typeof notifToUpdate.deliveryLog === 'string' ? JSON.parse(notifToUpdate.deliveryLog) : (notifToUpdate.deliveryLog as any || {})),
                 emailAttempt: {
                   at: new Date().toISOString(),
                   resendId: (emailResult as any)?.id || null,
@@ -205,7 +215,7 @@ export async function sendNotification(payload: NotificationPayload) {
         console.warn('Failed to update email tracking', trackErr);
       }
 
-      console.log(`[Resend] Email sent to ${user.email} (${category})`);
+      devLog(`[Resend] Email sent to ${user.email} (${category})`);
     } catch (emailError) {
       console.error('Resend email error:', emailError);
     }
@@ -214,12 +224,12 @@ export async function sendNotification(payload: NotificationPayload) {
   // 2. Handle Email via Resend (explicit 'email' type OR triggered alongside in_app)
   const shouldAlsoEmail = type === 'email' || (type === 'in_app' && shouldSendEmail);
   if (shouldAlsoEmail) {
-    await sendEmailIfEnabled();
+    await sendEmailIfEnabled(inAppNotifId);
   }
 
   // 3. SMS (future) and server-side Push (future, currently browser client-side in UI)
   if (type === 'sms' && shouldSendSMS) {
-    console.log(`[NOTIF] SMS would be sent to user ${userId}`);
+    devLog(`[NOTIF] SMS would be sent to user ${userId}`);
   }
 
   if ((type === 'push' || shouldSendPush) && shouldSendPush) {
@@ -366,6 +376,9 @@ async function sendWebPushIfEnabled(
 /**
  * Simple but effective rate limiting + grouping (2027 user respect)
  */
+// In-memory rate limit cache (per server instance).
+// NOTE: On Vercel/serverless this is best-effort only (resets on cold starts / scale).
+// For production abuse protection consider Redis/Upstash or DB-backed counters.
 const recentNotificationCache = new Map<string, { count: number; lastSent: number }>();
 
 async function checkRateLimit(userId: string, category: string, prefs: any) {

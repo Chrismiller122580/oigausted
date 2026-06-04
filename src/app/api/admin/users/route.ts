@@ -82,6 +82,17 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'userId requerido' }, { status: 400 });
     }
 
+    // Prevent removing the last admin (would lock out admin access)
+    if (role && role !== 'admin') {
+      const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+      if (target?.role === 'admin') {
+        const adminCount = await prisma.user.count({ where: { role: 'admin' } });
+        if (adminCount <= 1) {
+          return NextResponse.json({ error: 'No se puede eliminar el último administrador del sistema' }, { status: 400 });
+        }
+      }
+    }
+
     const updated = await prisma.user.update({
       where: { id: userId },
       data: {

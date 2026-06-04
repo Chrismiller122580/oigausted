@@ -325,7 +325,7 @@ export default function ProfilePage() {
           <div className="h-64 bg-gradient-to-r from-orange-600 via-red-600 to-rose-600 relative">
             <div className="absolute -bottom-16 left-10">
               <label className="cursor-pointer">
-                <div className="w-32 h-32 bg-white rounded-3xl overflow-hidden border-4 border-white shadow-xl relative group">
+                <div className="w-32 h-32 bg-card rounded-3xl overflow-hidden border-4 border-white shadow-xl relative group">
                   {formData.imageUrl ? (
                     <img src={formData.imageUrl} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
@@ -393,7 +393,7 @@ export default function ProfilePage() {
 
             {/* Become Seller Form */}
             {showBecomeSeller && isBuyer && (
-              <div className="mb-10 bg-white border border-orange-200 rounded-3xl p-8">
+              <div className="mb-10 bg-card border border-orange-200 rounded-3xl p-8">
                 <div className="mb-6">
                   <h3 className="text-2xl font-semibold">Datos de tu Negocio</h3>
                   <p className="text-muted-foreground mt-1">Esta información aparecerá en tu perfil público de vendedor.</p>
@@ -540,7 +540,7 @@ export default function ProfilePage() {
 
                 {/* Seller Reputation Section */}
                 {isSeller && (
-                  <div className="bg-white border rounded-3xl p-8">
+                  <div className="bg-card border rounded-3xl p-8">
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-3 mb-2">

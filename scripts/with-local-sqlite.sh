@@ -14,6 +14,9 @@
 # - Run the given command (e.g. the dev server)
 # - On exit (normal, Ctrl-C, error), restore the original schema from git
 #
+# NOTE: This is a dev-only hack (see review debt). Prefer using .env.local with proper
+# DATABASE_URL for local Postgres or keep schema in sync manually for production parity.
+#
 set -e
 
 DB_URL="${DATABASE_URL:-}"

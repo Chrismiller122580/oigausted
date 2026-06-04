@@ -94,7 +94,7 @@ export default async function MarketingHomePage() {
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
                 href="/gigs"
-                className="bg-white text-orange-600 hover:bg-orange-50 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95"
+                className="bg-card text-orange-600 hover:bg-muted font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95"
               >
                 Ver todos los servicios
                 <span aria-hidden="true">→</span>
@@ -102,7 +102,7 @@ export default async function MarketingHomePage() {
 
               <Link
                 href="/create-gig"
-                className="border-2 border-white/80 hover:bg-white/10 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center transition-all"
+                className="border-2 border-border/80 hover:bg-muted/10 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center transition-all"
               >
                 Quiero ofrecer mis servicios
               </Link>
@@ -136,7 +136,7 @@ export default async function MarketingHomePage() {
             <Link
               key={cat.name}
               href={`/gigs?categoria=${encodeURIComponent(cat.name)}`}
-              className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 hover:border-orange-500 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center min-h-[220px]"
+              className="group bg-card dark:bg-card border border-border rounded-3xl p-6 hover:border-orange-500 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center min-h-[220px]"
             >
               <div className="text-5xl mb-4 transition-transform group-hover:scale-110">
                 {cat.emoji}
@@ -161,7 +161,7 @@ export default async function MarketingHomePage() {
       </section>
 
       {/* CÓMO FUNCIONA */}
-      <section className="max-w-7xl mx-auto px-6 py-16 bg-white dark:bg-zinc-900">
+      <section className="max-w-7xl mx-auto px-6 py-16 bg-card dark:bg-card">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-zinc-900 dark:text-white">Así de fácil es usar OigaUsted</h2>
           <p className="text-zinc-600 dark:text-zinc-400 mt-2">En 3 pasos encuentras o publicas el servicio que necesitas</p>
@@ -210,7 +210,7 @@ export default async function MarketingHomePage() {
       </section>
 
       {/* SIMPLE FOOTER */}
-      <footer className="border-t bg-white dark:bg-zinc-950 py-10 text-sm">
+      <footer className="border-t bg-card dark:bg-card py-10 text-sm">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between gap-6 text-zinc-500">
           <div>
             <div className="font-semibold text-zinc-900 dark:text-white mb-1">OigaUsted</div>

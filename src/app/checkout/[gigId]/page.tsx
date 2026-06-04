@@ -436,7 +436,7 @@ export default function CheckoutPage() {
                   <select
                     value={currentValue || ''}
                     onChange={(e) => handleFieldChange(field.key, e.target.value)}
-                    className="w-full border rounded-xl px-4 py-3 text-lg bg-white"
+                    className="w-full border rounded-xl px-4 py-3 text-lg bg-card"
                   >
                     <option value="">Seleccionar...</option>
                     {field.options.map((opt: any, idx: number) => {
@@ -522,7 +522,7 @@ export default function CheckoutPage() {
           )}
 
           {/* Payment Breakdown */}
-          <div className="bg-white border rounded-2xl p-5 text-sm">
+          <div className="bg-card border rounded-2xl p-5 text-sm">
             <p className="font-semibold text-gray-800 mb-3">Resumen del pago</p>
 
             <div className="space-y-2">

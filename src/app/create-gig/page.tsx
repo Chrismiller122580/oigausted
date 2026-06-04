@@ -469,7 +469,7 @@ function CreateGigClient() {
                 <button
                   type="button"
                   onClick={() => setImageUrl('')}
-                  className="absolute top-3 right-3 bg-white/90 text-black px-3 py-1 rounded-full text-sm hover:bg-white"
+                  className="absolute top-3 right-3 bg-card/90 text-foreground px-3 py-1 rounded-full text-sm hover:bg-muted"
                 >
                   Quitar imagen
                 </button>

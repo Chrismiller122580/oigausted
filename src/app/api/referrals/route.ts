@@ -78,11 +78,11 @@ export async function GET() {
     })
 
     const totalEarned = earnings
-      .filter(e => e.status === 'Paid' || e.status === 'Pending')
+      .filter(e => e.status === 'Paid' || e.status === 'Pending' || e.status === 'Requested')
       .reduce((sum, e) => sum + e.amount, 0)
 
     const pendingEarnings = earnings
-      .filter(e => e.status === 'Pending')
+      .filter(e => e.status === 'Pending' || e.status === 'Requested')
       .reduce((sum, e) => sum + e.amount, 0)
 
     const referralLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/signup?ref=${referralCode}`

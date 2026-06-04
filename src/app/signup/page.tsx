@@ -116,7 +116,7 @@ function SignUpClient() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 flex items-center justify-center p-4 sm:p-6">
-      <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden">
+      <div className="bg-card rounded-3xl max-w-md w-full shadow-2xl overflow-hidden">
         
         {/* Hero with Logo */}
         <div className="bg-gradient-to-r from-orange-500 to-red-600 p-8 sm:p-10 text-white text-center">
@@ -228,7 +228,7 @@ function SignUpClient() {
                   <div className="w-full border-t border-gray-200" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-white px-3 text-gray-400">o</span>
+                  <span className="bg-card px-3 text-muted-foreground">o</span>
                 </div>
               </div>
 

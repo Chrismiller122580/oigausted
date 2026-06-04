@@ -106,7 +106,7 @@ export default function GigDetailPage() {
         <div className="grid lg:grid-cols-5 gap-12">
           <div className="lg:col-span-3 space-y-10">
             {gig.imageUrl && (
-              <div className="rounded-3xl overflow-hidden shadow-xl bg-white">
+              <div className="rounded-3xl overflow-hidden shadow-xl bg-card">
                 <img
                   src={gig.imageUrl}
                   alt={gig.title}
@@ -127,7 +127,7 @@ export default function GigDetailPage() {
                   </span>
                 )}
                 {gig.completionTime && (
-                  <div className="flex items-center gap-1.5 bg-white px-4 py-1 rounded-full border">
+                  <div className="flex items-center gap-1.5 bg-card px-4 py-1 rounded-full border">
                     <Clock className="w-5 h-5 text-emerald-600" />
                     <span className="font-medium">Entrega en {gig.completionTime}</span>
                   </div>
@@ -156,7 +156,7 @@ export default function GigDetailPage() {
               {reviews.length > 0 ? (
                 <div className="space-y-4">
                   {reviews.map((review) => (
-                    <div key={review.id || review.createdAt} className="bg-white border rounded-3xl p-6">
+                    <div key={review.id || review.createdAt} className="bg-card border rounded-3xl p-6">
                       <div className="flex gap-1 text-xl mb-3">
                         {[1, 2, 3, 4, 5].map((n) => (
                           <span key={n}>{n <= review.rating ? '⭐' : '☆'}</span>
@@ -199,7 +199,7 @@ export default function GigDetailPage() {
                 <h2 className="text-2xl font-semibold mb-6">Opciones del servicio</h2>
                 <div className="grid gap-4">
                   {gigFields.map((field: any, index: number) => (
-                    <div key={index} className="bg-white p-6 rounded-3xl border">
+                    <div key={index} className="bg-card p-6 rounded-3xl border">
                       <p className="text-sm uppercase tracking-widest text-muted-foreground mb-1">
                         {field.label || field.key}
                       </p>
@@ -219,7 +219,7 @@ export default function GigDetailPage() {
           </div>
 
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-3xl p-8 shadow-sm border lg:sticky lg:top-8">
+            <div className="bg-card rounded-3xl p-8 shadow-sm border lg:sticky lg:top-8">
               <div className="text-5xl sm:text-6xl font-bold text-emerald-600 mb-1">
                 ${gig.price?.toLocaleString("es-CO")}
               </div>

@@ -13,6 +13,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
     }
 
+    const role = (session?.user as any)?.role;
+    if (role && role !== 'buyer' && role !== 'admin') {
+      return NextResponse.json({ error: 'Solo compradores pueden crear pedidos' }, { status: 403 });
+    }
+
+    // LEGACY: This creation path is deprecated in favor of /api/checkout (Wompi flow).
+    // Kept for backward compat but now has full isActive + role guards.
+
     const body = await request.json();
     const { gigId, price, customFields = {} } = body;
 
@@ -34,6 +42,11 @@ export async function POST(request: Request) {
     });
 
     if (!gig) return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
+
+    // Legacy creation path (main flow uses /api/checkout). Add missing guards for safety.
+    if (gig.isActive === false) {
+      return NextResponse.json({ error: 'Este servicio está pausado y no se puede comprar' }, { status: 400 });
+    }
 
     // Prevent sellers from purchasing their own gigs (server-side enforcement)
     if (gig.sellerId === userId) {

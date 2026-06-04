@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { devLog } from '@/lib/utils';
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    console.log("✅ Order created:", order.id);
+    devLog("✅ Order created:", order.id);
 
     return NextResponse.json({ 
       success: true, 
