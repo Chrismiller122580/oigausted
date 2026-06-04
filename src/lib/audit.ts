@@ -26,7 +26,7 @@ export async function logAuditEvent({
         action,
         targetType,
         targetId: targetId || null,
-        details: details || undefined,
+        details: details ? JSON.stringify(details) : undefined,
         ipAddress: ipAddress || null,
         userAgent: userAgent || null,
       },

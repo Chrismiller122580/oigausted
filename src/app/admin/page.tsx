@@ -107,7 +107,7 @@ export default function AdminDashboard() {
               <AlertCircle className="h-8 w-8 text-amber-400 mb-3" />
               <p className="text-sm text-muted-foreground">Pagos Pendientes</p>
               <p className="text-4xl font-bold mt-1">{stats?.pendingPayouts || 0}</p>
-              <p className="text-xs text-zinc-500 mt-1">Órdenes completadas</p>
+              <p className="text-xs text-muted-foreground mt-1">Órdenes completadas</p>
             </CardContent>
           </Card>
         </div>

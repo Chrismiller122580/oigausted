@@ -4,8 +4,6 @@ import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp, MessageCircle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ModeToggle } from '@/components/ui/mode-toggle';
-import { NotificationsBell } from './NotificationsBell';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -165,10 +163,6 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
           </>
         )}
 
-        <div className="pt-8 flex items-center justify-between border-t border-border mt-6">
-          <NotificationsBell />
-          <ModeToggle />
-        </div>
       </div>
     </div>
   );

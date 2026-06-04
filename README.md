@@ -22,15 +22,18 @@ Oiga Usted conecta personas que necesitan servicios con freelancers y negocios l
 - La autenticación y los flujos principales ahora funcionan con datos reales en base de datos.
 - El proyecto está listo para pruebas end-to-end.
 
-## Cuentas Demo (para pruebas rápidas)
+## Cuentas y Acceso
 
-| Rol     | Email                | Contraseña |
-|---------|----------------------|------------|
-| Buyer   | buyer@demo.com       | demo1234   |
-| Seller  | seller@demo.com      | demo1234   |
-| Admin   | admin@demo.com       | demo1234   |
+La base de datos inicia completamente vacía (sin usuarios ni datos de ejemplo).
 
-> También puedes registrarte normalmente desde `/signup`.
+- Regístrate normalmente desde `/signup` (o `/login`).
+- Para crear un administrador (en cualquier entorno, contra la misma base de datos):
+  ```bash
+  npm run create-admin admin@tu-dominio.com TuPasswordSeguro123!
+  ```
+- También puedes usar `ADMIN_EMAILS` (coma-separado) + login con Google para auto-promover administradores.
+
+> No se siembran datos de prueba. La aplicación comienza limpia.
 
 ## Tecnologías
 

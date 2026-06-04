@@ -198,44 +198,6 @@ export default function LoginPage() {
               Create an account
             </Link>
           </p>
-
-          {/* Dev-only helper while testing */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-6 p-4 bg-yellow-100 border-2 border-yellow-400 rounded-2xl text-sm text-yellow-900">
-              <div className="font-semibold mb-2 text-yellow-800">🚀 Dev Testing Accounts (click to login directly)</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                <Button
-                  size="sm"
-                  onClick={() => signIn('credentials', { 
-                    email: 'buyer@demo.com', 
-                    password: 'demo1234', 
-                    callbackUrl: getAuthCallbackUrl('/buyer') 
-                  })}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Login as Buyer
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => signIn('credentials', { 
-                    email: 'seller@demo.com', 
-                    password: 'demo1234', 
-                    callbackUrl: getAuthCallbackUrl('/seller') 
-                  })}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  Login as Seller
-                </Button>
-              </div>
-              <p className="text-[10px] text-yellow-700 mt-1.5">
-                Use the real admin account (<code>oigaustedcolombia@gmail.com</code>) for production/admin access.
-              </p>
-              <p className="text-[10px] text-yellow-700 mt-2">
-                Quick demo accounts for local development only.<br />
-                For production/admin use, create a real admin with <code>npm run create-admin</code> (works everywhere against the same DB).
-              </p>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

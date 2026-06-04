@@ -433,7 +433,7 @@ export default function AdminNotificationsDashboard() {
                     <div className="text-xs text-muted-foreground truncate">{log.message}</div>
                   </td>
                   <td className="p-3">
-                    <span className="px-2 py-0.5 text-xs rounded bg-zinc-100 dark:bg-zinc-800">{log.category}</span>
+                    <span className="px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground">{log.category}</span>
                   </td>
                   <td className="p-3 text-xs text-muted-foreground">
                     {new Date(log.createdAt).toLocaleDateString('es-CO', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}

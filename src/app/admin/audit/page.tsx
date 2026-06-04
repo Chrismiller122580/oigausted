@@ -154,7 +154,7 @@ export default function AdminAuditPage() {
                         <td className="p-4">
                           {log.details && (
                             <pre className="text-xs bg-muted p-2 rounded max-w-xs overflow-auto">
-                              {JSON.stringify(log.details, null, 2)}
+                              {typeof log.details === 'string' ? log.details : JSON.stringify(log.details, null, 2)}
                             </pre>
                           )}
                         </td>

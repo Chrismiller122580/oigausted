@@ -16,15 +16,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // Find notification by resend id in deliveryLog
-    const notifications = await prisma.notification.findMany({
-      where: {
-        deliveryLog: {
-          path: ['emailAttempt', 'resendId'],
-          equals: emailId,
-        },
-      },
-      take: 5,
+    // Find notification by resend id in deliveryLog (compatible with both Json (prod) and String (local sqlite) representations)
+    const recent = await prisma.notification.findMany({
+      take: 20,
+      orderBy: { createdAt: 'desc' },
+    });
+    const notifications = recent.filter((n: any) => {
+      const log = n.deliveryLog;
+      if (!log) return false;
+      const str = typeof log === 'string' ? log : JSON.stringify(log);
+      return str.includes(emailId);
     });
 
     for (const notif of notifications) {

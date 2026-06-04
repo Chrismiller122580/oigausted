@@ -310,8 +310,8 @@ Current session context:
         const users = await prisma.user.findMany({
           where: {
             OR: [
-              { name: { contains: args.query, mode: "insensitive" } },
-              { email: { contains: args.query, mode: "insensitive" } }
+              { name: { contains: args.query } },
+              { email: { contains: args.query } }
             ]
           },
           take: 8,

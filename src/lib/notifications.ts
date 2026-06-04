@@ -80,11 +80,11 @@ export async function sendNotification(payload: NotificationPayload) {
           title,
           message,
           link: link || null,
-          data: data || undefined,
+          data: data ? JSON.stringify(data) : undefined,
           // Initialize delivery tracking
-          deliveryLog: {
+          deliveryLog: JSON.stringify({
             inAppCreatedAt: new Date().toISOString(),
-          },
+          }),
         },
       });
     } catch (err) {
@@ -191,13 +191,13 @@ export async function sendNotification(payload: NotificationPayload) {
             data: {
               emailStatus: 'sent',
               emailSentAt: new Date(),
-              deliveryLog: {
-                ...(recentNotif.deliveryLog as any || {}),
+              deliveryLog: JSON.stringify({
+                ...(typeof recentNotif.deliveryLog === 'string' ? JSON.parse(recentNotif.deliveryLog) : (recentNotif.deliveryLog as any || {})),
                 emailAttempt: {
                   at: new Date().toISOString(),
                   resendId: (emailResult as any)?.id || null,
                 }
-              }
+              })
             }
           });
         }

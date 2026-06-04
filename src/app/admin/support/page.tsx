@@ -7,8 +7,8 @@ import { toast } from 'sonner';
 
 export default function AdminSupportPage() {
   const [tickets] = useState([
-    { id: 1, user: "buyer@demo.com", subject: "Problema con pago", status: "Abierto", priority: "Alta" },
-    { id: 2, user: "seller@demo.com", subject: "Mi gig no aparece", status: "Pendiente", priority: "Media" },
+    { id: 1, user: "cliente@ejemplo.com", subject: "Problema con pago", status: "Abierto", priority: "Alta" },
+    { id: 2, user: "proveedor@ejemplo.com", subject: "Mi gig no aparece", status: "Pendiente", priority: "Media" },
   ]);
 
   return (

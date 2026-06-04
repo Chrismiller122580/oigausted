@@ -40,14 +40,11 @@ async function main() {
   }
   console.log('Using DATABASE_URL host:', new URL(DATABASE_URL).host);
 
-  // Test the new admin we created
+  // Test a real admin account (example)
   await testLogin('admin@oigagig.co.com', 'OigagigAdmin2026!');
 
-  // Test one of the seeded demo accounts
-  await testLogin('buyer@demo.com', 'demo1234');
-
-  // Test with wrong password on purpose
-  await testLogin('buyer@demo.com', 'wrongpassword');
+  // Test a non-existing user
+  await testLogin('ghost@example.com', 'test1234');
 
   await prisma.$disconnect();
 }
