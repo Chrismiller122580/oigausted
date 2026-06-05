@@ -35,6 +35,7 @@ if [[ "$DB_URL" == file:* || "$DB_URL" == *.db || "$DB_URL" == sqlite:* ]]; then
   sed -i 's/  details       Json?    \/\/ Flexible JSON for extra context (old values, new values, actor role, etc.)/  details       String?  \/\/ JSON string (sqlite compat)/' "$TMP_SCHEMA"
   sed -i 's/  data      Json?    \/\/ Extra metadata/  data      String?  \/\/ JSON string (sqlite compat)/' "$TMP_SCHEMA"
   sed -i 's/  deliveryLog     Json?     \/\/ Detailed history of attempts/  deliveryLog     String?   \/\/ JSON string (sqlite compat)/' "$TMP_SCHEMA"
+  sed -i 's/  fields      Json?    \/\/ Array of dynamic field definitions/  fields      String?  \/\/ JSON string (sqlite compat)/' "$TMP_SCHEMA"
 
   # Remove Postgres @db.Text annotations (not supported in sqlite)
   sed -i 's/\s\+@db\.Text//g' "$TMP_SCHEMA"

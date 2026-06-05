@@ -7,8 +7,8 @@ datasource db {
   // For local development you can temporarily switch to SQLite:
   // provider = "sqlite"
   // url      = "file:./dev.db"
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // Your models (clean version)
@@ -116,7 +116,7 @@ model AuditLog {
   targetType    String   // "User", "Gig", "Order", "Review", "Payment", etc.
   targetId      String?  // ID of the affected resource
 
-  details       String?  // JSON string (local sqlite)
+  details       Json?    // Flexible JSON for extra context (old values, new values, actor role, etc.)
 
   ipAddress     String?
   userAgent     String?
@@ -140,7 +140,7 @@ model Notification {
   title     String
   message   String
   link      String?  // URL to navigate to when clicked
-  data      String?  // JSON string (local sqlite)
+  data      Json?    // Extra metadata (JSON)
 
   read      Boolean  @default(false)
   readAt    DateTime?
@@ -152,7 +152,7 @@ model Notification {
   pushStatus      String?   // sent, delivered, clicked, failed
   pushSentAt      DateTime?
   pushClickedAt   DateTime?
-  deliveryLog     String?   // JSON string (local sqlite)
+  deliveryLog     Json?     // structured delivery attempts (resend ids, timestamps, channels)
 
   createdAt DateTime @default(now())
 
@@ -242,6 +242,18 @@ model Gig {
   isRemote        Boolean? @default(false)  // Service can be done remotely/online
 }
 
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  icon        String   @default("🛠️")
+  description String?
+  fields      Json?    // Array of dynamic field definitions for pricing: e.g. [{ "key": "rooms", "label": "...", "type": "number", "extraPrice": 35000 }, { "key": "type", "label": "...", "type": "select", "options": [{"label": "X", "extraPrice": 10000}] }]
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model Order {
   id              String   @id @default(uuid())
   price           Float
@@ -310,7 +322,7 @@ model Review {
 }
 
 model PlatformConfig {
-  id                      String   @id @default(cuid())
+  id                      String   @id @default("singleton") // singleton row for race-free config (use findUnique/upsert)
   commissionRate          Float    @default(0.12)   // Plataforma (sobre el pedido)
   referralCommissionRate  Float    @default(0.05)   // Comisión por referidos (ej: 5%)
   minPayoutAmount         Float    @default(50000)
@@ -350,11 +362,11 @@ model SupportTicket {
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject     String
-  message     String
+  message     String   @db.Text
   category    String?  // e.g. "payment", "gig", "account", "technical", "other"
   priority    String   @default("medium") // low, medium, high, urgent
   status      String   @default("open")  // open, in_progress, resolved, closed
-  adminReply  String?
+  adminReply  String?  @db.Text
   resolvedBy  String?  // admin id
   resolvedAt  DateTime?
   createdAt   DateTime @default(now())

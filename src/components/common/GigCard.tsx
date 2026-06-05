@@ -95,11 +95,11 @@ export default function GigCard({
             )}
 
             {isOwnGig ? (
-              <span className="truncate text-gray-500 text-xs">{sellerName}</span>
+              <span className="truncate text-muted-foreground text-xs">{sellerName}</span>
             ) : (
               <Link 
                 href={`/sellers/${gig.seller?.id}`} 
-                className="truncate text-xs text-gray-500 hover:text-orange-600 hover:underline"
+                className="truncate text-xs text-muted-foreground hover:text-orange-600 hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
                 {sellerName}
@@ -119,7 +119,7 @@ export default function GigCard({
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-gray-600 line-clamp-3 mb-4">{gig.description}</p>
+        <p className="text-muted-foreground line-clamp-3 mb-4">{gig.description}</p>
         <div className="flex justify-between items-center">
           <span className="text-3xl font-bold text-orange-600">
             ${gig.price.toLocaleString("es-CO")}

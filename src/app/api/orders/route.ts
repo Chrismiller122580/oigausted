@@ -133,7 +133,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, orderId: order.id, order });
   } catch (error: any) {
-    console.error('Order creation error:', error);
+    devLog('Order creation error:', error);
     return NextResponse.json({ error: error.message || 'Error al crear la orden' }, { status: 500 });
   }
 }

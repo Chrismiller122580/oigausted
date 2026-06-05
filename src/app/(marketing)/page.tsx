@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
-import { categories, categoryEmojis } from '@/lib/categories';
+import { getGigCategories, categoryEmojis } from '@/lib/categories';
 
 export const metadata = {
   title: 'OigaUsted - Gigs Colombia | Encuentra el servicio que necesitas',
@@ -28,12 +28,15 @@ const categoryDescriptions: Record<string, string> = {
   "Artesanías y Productos Hechos a Mano": "Artesanos y productos únicos hechos a mano",
   "Cuidado Holístico y Bienestar": "Terapias, masajes y bienestar integral",
   "Marketing Digital y Redes Sociales": "Gestión de redes y marketing digital",
+  "Plomería y Fontanería": "Reparaciones de tuberías, grifos, desagües e instalaciones hidráulicas",
+  "Mensajería y Delivery": "Envíos, paquetes y domicilios rápidos en la ciudad",
 };
 
 export default async function MarketingHomePage() {
   // Fetch gigs for top categories and compute averages in JS (the groupBy above was removed because it was invalid)
 
-  const topCategoryNames = categories.slice(0, 12);
+  const allCategories = await getGigCategories();
+  const topCategoryNames = allCategories.slice(0, 12).map((c) => c.name);
   const gigsWithRatings = await prisma.gig.findMany({
     where: {
       isActive: true,

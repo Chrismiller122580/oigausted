@@ -249,7 +249,7 @@ function SignUpClient() {
             </>
           )}
 
-          <div className="text-center text-sm text-gray-500 pt-2">
+          <div className="text-center text-sm text-muted-foreground pt-2">
             ¿Ya tienes cuenta?{" "}
             <Link href="/login" className="text-orange-600 hover:underline font-medium">
               Inicia sesión

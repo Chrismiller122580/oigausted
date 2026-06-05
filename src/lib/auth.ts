@@ -2,18 +2,19 @@ import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
+import { devLog } from './utils'
 
 // Demo IDs removed - legacy support for old "1","2","3" sessions no longer needed.
 // All users now use real Prisma UUIDs.
 
 /** Type-safe admin check (works with both JWT session.user and token shapes) */
 export function isAdmin(userOrSession: any): boolean {
-  const role = userOrSession?.role ?? (userOrSession as any)?.user?.role
+  const role = userOrSession?.role ?? userOrSession?.user?.role
   return role === 'admin'
 }
 
 export function getSessionRole(session: any): string {
-  return (session?.user as any)?.role || 'buyer'
+  return session?.user?.role || 'buyer'
 }
 
 export function isSeller(session: any): boolean {
@@ -30,7 +31,7 @@ const providers: any[] = [
     },
     async authorize(credentials) {
       if (!credentials?.email || !credentials?.password) {
-        console.warn('[auth] Missing email or password in credentials')
+        devLog('[auth] Missing email or password in credentials')
         return null
       }
 
@@ -47,17 +48,17 @@ const providers: any[] = [
         })
 
         if (!user) {
-          console.warn('[auth] No user found for email:', credentials.email.toLowerCase())
+          devLog('[auth] No user found for email:', credentials.email.toLowerCase())
           return null
         }
         if (!user.password) {
-          console.warn('[auth] User has no password set (OAuth-only account?):', user.email)
+          devLog('[auth] User has no password set (OAuth-only account?):', user.email)
           return null
         }
 
         const isValid = await bcrypt.compare(credentials.password, user.password)
         if (!isValid) {
-          console.warn('[auth] Password mismatch for:', user.email)
+          devLog('[auth] Password mismatch for:', user.email)
           return null
         }
 
@@ -164,17 +165,18 @@ export const authOptions = {
           }
         })
         if (dbUser) {
-          ;(token as any).name = dbUser.name
-          ;(token as any).profilePicture = dbUser.profilePicture
-          ;(token as any).businessName = dbUser.businessName
-          ;(token as any).bio = dbUser.bio
-          ;(token as any).phone = dbUser.phone
-          ;(token as any).whatsapp = dbUser.whatsapp
-          ;(token as any).instagram = dbUser.instagram
-          ;(token as any).facebook = dbUser.facebook
-          ;(token as any).rating = dbUser.rating
-          ;(token as any).reviewCount = dbUser.reviewCount
-          ;(token as any).referredById = dbUser.referredById
+          const t = token as any
+          t.name = dbUser.name
+          t.profilePicture = dbUser.profilePicture
+          t.businessName = dbUser.businessName
+          t.bio = dbUser.bio
+          t.phone = dbUser.phone
+          t.whatsapp = dbUser.whatsapp
+          t.instagram = dbUser.instagram
+          t.facebook = dbUser.facebook
+          t.rating = dbUser.rating
+          t.reviewCount = dbUser.reviewCount
+          t.referredById = dbUser.referredById
         }
       }
 
@@ -184,25 +186,26 @@ export const authOptions = {
 
     async session({ session, token }: any) {
       if (session.user) {
-        (session.user as any).id = token.id as string
-        (session.user as any).role = token.role as string
+        const su = session.user as any
+        const t = token as any
+        su.id = t.id as string
+        su.role = t.role as string
 
         // Profile fields come from token (populated at signin/jwt to avoid N+1 DB per session)
-        const t: any = token
-        if (t.name) (session.user as any).name = t.name
+        if (t.name) su.name = t.name
         if (t.profilePicture != null) {
-          ;(session.user as any).image = t.profilePicture
-          ;(session.user as any).profilePicture = t.profilePicture
+          su.image = t.profilePicture
+          su.profilePicture = t.profilePicture
         }
-        ;(session.user as any).businessName = t.businessName
-        ;(session.user as any).bio = t.bio
-        ;(session.user as any).phone = t.phone
-        ;(session.user as any).whatsapp = t.whatsapp
-        ;(session.user as any).instagram = t.instagram
-        ;(session.user as any).facebook = t.facebook
-        ;(session.user as any).rating = t.rating ?? 0
-        ;(session.user as any).reviewCount = t.reviewCount ?? 0
-        ;(session.user as any).referredById = t.referredById ?? null
+        su.businessName = t.businessName
+        su.bio = t.bio
+        su.phone = t.phone
+        su.whatsapp = t.whatsapp
+        su.instagram = t.instagram
+        su.facebook = t.facebook
+        su.rating = t.rating ?? 0
+        su.reviewCount = t.reviewCount ?? 0
+        su.referredById = t.referredById ?? null
       }
       return session
     },

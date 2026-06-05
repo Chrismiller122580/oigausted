@@ -89,7 +89,7 @@ export default function AdminSupportPage() {
     if (status === 'open') return 'bg-blue-500';
     if (status === 'in_progress') return 'bg-yellow-500';
     if (status === 'resolved') return 'bg-green-500';
-    return 'bg-gray-500';
+    return 'bg-muted-foreground';
   };
 
   const askGrokForHelp = (ticket: Ticket) => {

@@ -1,5 +1,20 @@
 # What's New – OigaUsted
 
+## Post full-app review fixes (2026-06 follow-ups from FULL-APP-REVIEW-2b0773a1 + delta)
+- **Data integrity**: prisma.$transaction added to critical paths (wompi webhook for payment+referral earning; orders PATCH for status change + referral create + earnings cancel + audit).
+- **Security**: Removed visible prod "BETA BYPASS" UI and handler in checkout; manual `Paid` transition now only via webhook or admin (dev simulate gated by NODE_ENV).
+- **Json compat (schema + wrapper)**: Added `toPrismaJson()` helper in lib/utils; updated writes in audit.ts, notifications.ts (create + deliveryLog tracking), resend webhook to pass objects in pg (native Json) while stringify under sqlite-dev wrapper. Reads already defensive.
+- **Dev wrapper**: Restored signal traps + explicit restore in with-local-sqlite.sh; updated stale comments; better generate error surfacing + git fallback restore.
+- **Hygiene**: Replaced ~20+ non-fatal console.* (errors on expected paths, logs) with devLog in orders/*, gigs/*, webhooks/*, checkout page, layout mapsGuard (removed 3 consoles from always-on script). Count reduced.
+- **Types/debt**: Extended next-auth.d.ts with referredById, whatsapp, isActive, customReferralRate, referralCode; cleaned repeated (as any) in lib/auth.ts jwt/session callbacks and helpers.
+- **Config integrity**: PlatformConfig now uses fixed id="singleton" + upsert in admin/config (race-safe); other findFirst still work.
+- **Theme**: Replaced legacy text-gray-*/bg-gray-*/bg-white in GigCard, DynamicCheckoutFields, GrokAssistant, orders timeline, admin support/settings, login, signup, maps prompts, seller pages etc with semantic tokens (text-muted-foreground, bg-card, border-border, bg-muted, bg-background).
+- **Legacy**: Deleted unused ClientLayout.tsx + Providers.tsx (no imports).
+- **Ops/docs**: Added CRON_SECRET to .env.example + PRODUCTION_CHECKLIST table.
+- **Other**: Minor guard cleanups, tx in admin/referrals mark-paid + audit.
+
+tsc clean; many review items mitigated (more tx, bypass removed from prod, compat exercised, consoles/anys reduced, theme+legacy improved). Remaining per review: more tx coverage, full any/lint cleanup, payout ledger model, resend efficiency, impersonate, pagin, tests.
+
 ## Major Release: Referral Accounting Overhaul + Notification System 2.0
 
 This release focuses on two critical areas: **making the money flow correct** and **making notifications actually useful**.

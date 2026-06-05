@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { gigCategories } from '@/lib/gig-categories';
+import { useGigCategories } from '@/lib/useGigCategories';
 import { toast } from 'sonner';
 import { MapPin } from 'lucide-react';
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
@@ -46,6 +46,7 @@ function CreateGigClient() {
   const [loadingGig, setLoadingGig] = useState(false);
 
   const searchParams = useSearchParams();
+  const { categories: gigCategories, loading: categoriesLoading } = useGigCategories();
   const selectedCategory = gigCategories.find(c => c.name === category);
 
   // Clear dynamic form values when category changes (prevents stale data from previous category polluting pricing)
@@ -301,11 +302,15 @@ function CreateGigClient() {
                 <SelectValue placeholder="Selecciona una categoría" />
               </SelectTrigger>
               <SelectContent>
+                {categoriesLoading && <SelectItem value="" disabled>Cargando categorías...</SelectItem>}
                 {gigCategories.map(cat => (
                   <SelectItem key={cat.name} value={cat.name}>
                     {cat.icon} {cat.name}
                   </SelectItem>
                 ))}
+                {!categoriesLoading && gigCategories.length === 0 && (
+                  <SelectItem value="" disabled>No hay categorías disponibles</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>

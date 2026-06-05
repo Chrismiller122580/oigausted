@@ -50,7 +50,7 @@ node -e '
   // Also patch Json fields (sqlite connector does not support Json type)
   s = s.replace(/details       Json\?    \/\/ Flexible JSON for extra context \(old values, new values, actor role, etc\.\)/, "details       String?  // JSON string (local sqlite)");
   s = s.replace(/details       Json\?    \/\/ Flexible JSON for extra context \(old values, new values, etc\.\)/, "details       String?  // JSON string (local sqlite)");
-  s = s.replace(/data      Json\?    \/\/ Extra metadata/, "data      String?  // JSON string (local sqlite)");
+  s = s.replace(/data      Json\?    \/\/ Extra metadata \(JSON\)/, "data      String?  // JSON string (local sqlite)");
   s = s.replace(/deliveryLog     Json\?     \/\/ structured delivery attempts \(resend ids, timestamps, channels\)/, "deliveryLog     String?   // JSON string (local sqlite)");
   // Catch any remaining Json? for sqlite dev (data, deliveryLog, customFields etc become String for sqlite)
   s = s.replace(/(\w+)\s+Json\?/g, "$1       String?");
@@ -62,16 +62,36 @@ node -e '
 
 # Re-generate client matching the (patched) sqlite datasource to avoid init validation errors
 echo "  (re-generating Prisma client for local sqlite)"
-npx prisma generate --schema "$SCHEMA" >/dev/null 2>&1 || true
+if ! npx prisma generate --schema "$SCHEMA" 2>&1; then
+  echo "⚠️  prisma generate failed under patched schema (continuing; errors may surface later)"
+fi
 
 restore_schema() {
   if [ -f "$BACKUP" ]; then
-    mv "$BACKUP" "$SCHEMA"
+    mv -f "$BACKUP" "$SCHEMA" 2>/dev/null || true
+    # Belt-and-suspenders: if mv failed or file looks wrong, try git restore (dev only)
+    if ! grep -q 'provider = "postgresql"' "$SCHEMA" 2>/dev/null; then
+      git checkout -- "$SCHEMA" 2>/dev/null || true
+    fi
     echo "↩️  Restored prisma/schema.prisma (postgresql for prod)"
   fi
 }
 
-trap restore_schema EXIT INT TERM
+# Run the actual command (e.g. next dev or build).
+# We use explicit status capture + restore (instead of exec) so cleanup reliably
+# runs even on Ctrl-C or errors in the child. We also install a trap as
+# belt-and-suspenders for signals that may terminate the wrapper shell itself.
+# The extra parent shell is acceptable for dev workflows.
+trap 'restore_schema' EXIT INT TERM
 
-# Run the actual command (e.g. next dev). When it exits, trap fires.
-exec "$@"
+set +e
+"$@"
+cmd_status=$?
+set -e
+
+restore_schema
+
+# Clear trap to avoid double-restore on normal exit path (mv is idempotent via -f guard in fn but be clean)
+trap - EXIT INT TERM
+
+exit $cmd_status

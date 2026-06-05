@@ -3,8 +3,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { logAuditEvent } from '@/lib/audit'
-import { devLog } from '@/lib/utils'
+import { devLog, toPrismaJson } from '@/lib/utils'
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
@@ -122,20 +121,25 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'referrerId requerido' }, { status: 400 })
     }
 
-    const updated = await prisma.referralEarning.updateMany({
-      where: { referrerId, status: { in: ['Pending', 'Requested'] } },
-      data: { status: 'Paid' }
+    // tx for payout mark + audit
+    const result = await prisma.$transaction(async (tx) => {
+      const upd = await tx.referralEarning.updateMany({
+        where: { referrerId, status: { in: ['Pending', 'Requested'] } },
+        data: { status: 'Paid' }
+      })
+      await tx.auditLog.create({
+        data: {
+          performedById: (session?.user as any)?.id ?? undefined,
+          action: 'REFERRAL_PAYOUT_MARKED_PAID',
+          targetType: 'User',
+          targetId: referrerId,
+          details: toPrismaJson({ count: upd.count }),
+        },
+      })
+      return upd
     })
 
-    await logAuditEvent({
-      performedById: (session?.user as any)?.id,
-      action: 'REFERRAL_PAYOUT_MARKED_PAID',
-      targetType: 'User',
-      targetId: referrerId,
-      details: { count: updated.count },
-    })
-
-    return NextResponse.json({ success: true, updated: updated.count })
+    return NextResponse.json({ success: true, updated: result.count })
   } catch (error) {
     console.error('Mark payout paid error:', error)
     return NextResponse.json({ error: 'Error al marcar como pagado' }, { status: 500 })

@@ -70,7 +70,7 @@ export default function CheckoutPage() {
       // After many attempts without success, mark as failed
       if (attempts >= maxAttempts) {
         clearInterval(interval);
-        console.error('[Wompi] Failed to load after multiple attempts');
+        devLog('[Wompi] Failed to load after multiple attempts');
         setWompiLoadFailed(true);
       }
     }, 200);
@@ -101,7 +101,7 @@ export default function CheckoutPage() {
       };
 
       script.onerror = () => {
-        console.error('[Wompi] Failed to load widget script dynamically');
+        devLog('[Wompi] Failed to load widget script dynamically');
         setWompiLoadFailed(true);
       };
 
@@ -169,7 +169,7 @@ export default function CheckoutPage() {
       
       setOrder(orderResponse.order || orderResponse);
     } catch (err: any) {
-      console.error('Checkout load error:', err);
+      devLog('Checkout load error:', err);
       toast.error(err.message || "No se pudo cargar el checkout. ¿Estás logueado?");
     } finally {
       setLoading(false);
@@ -249,68 +249,15 @@ export default function CheckoutPage() {
         toast.error("No se pudo abrir Wompi. ¿Tienes las llaves de sandbox configuradas?");
       }
     } catch (err: any) {
-      console.error('Wompi widget error:', err);
+      devLog('Wompi widget error:', err);
       toast.error(err.message || "No se pudo abrir Wompi. Por favor intenta de nuevo o contacta soporte.");
     } finally {
       setOpening(false);
     }
   };
 
-  // Beta bypass for when Wompi widget fails to load (explicit user action only)
-  const handleBypassPayment = async () => {
-    if (!order || !gig) return;
-
-    const confirmed = window.confirm(
-      '⚠️ BYPASS BETA: Esto marcará el pedido como PAGADO manualmente sin usar Wompi.\n\n' +
-      'Úsalo SOLO si Wompi no carga y necesitas avanzar.\n' +
-      'El vendedor verá el pedido como pagado y podrá comenzar.\n\n' +
-      '¿Confirmas que quieres usar el bypass temporal?'
-    );
-    if (!confirmed) return;
-
-    try {
-      setOpening(true);
-
-      // 1. Save selections + final price (same as real flow)
-      const updateRes = await fetch(`/api/orders/${order.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          price: finalPrice,
-          customFields: {
-            ...selectedOptions,
-            __bypass: true,
-            __bypassReason: 'wompi_widget_failed',
-            __bypassAt: new Date().toISOString(),
-          },
-        }),
-      });
-
-      if (!updateRes.ok) {
-        const errData = await updateRes.json().catch(() => ({}));
-        throw new Error(errData.error || 'No se pudieron guardar las selecciones');
-      }
-
-      // 2. Mark as Paid (bypass)
-      const paidRes = await fetch(`/api/orders/${order.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Paid' }),
-      });
-
-      if (!paidRes.ok) {
-        throw new Error('No se pudo marcar el pedido como pagado');
-      }
-
-      toast.success('Pedido marcado como pagado manualmente (Bypass Beta). Redirigiendo...');
-      router.push(`/orders/${order.id}`);
-    } catch (err: any) {
-      console.error('Bypass error:', err);
-      toast.error(err.message || 'Error al aplicar el bypass. Intenta de nuevo.');
-    } finally {
-      setOpening(false);
-    }
-  };
+  // (Beta bypass handler removed per security review — prod users can no longer force Paid without webhook.
+  // Dev simulate button below remains for local testing.)
 
   const fields = parseJsonArrayField(gig?.fields);
 
@@ -624,46 +571,16 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {/* BETA BYPASS - Only when Wompi widget fails to load (explicit, warned action) */}
+          {/* Wompi load failed message (no more bypass button in prod; use support or wait for real payment/webhook) */}
           {wompiLoadFailed && order && (
-            <div className="mt-6 p-5 border-2 border-dashed border-orange-500 rounded-2xl bg-orange-50 dark:bg-orange-950/20">
-              <div className="flex items-start gap-3">
-                <span className="text-3xl mt-0.5">⚠️</span>
-                <div className="flex-1 space-y-3">
-                  <div>
-                    <p className="font-bold text-orange-800 dark:text-orange-300 text-lg">
-                      Wompi no está disponible ahora (Beta)
-                    </p>
-                    <p className="text-sm text-orange-700 dark:text-orange-400 mt-1">
-                      El widget de pagos falló al cargar. Este es un <strong>bypass temporal</strong> para que puedas completar tu compra durante la fase beta.
-                    </p>
-                  </div>
-
-                  <Button
-                    onClick={handleBypassPayment}
-                    disabled={opening}
-                    className="w-full py-7 text-base font-semibold bg-orange-600 hover:bg-orange-700 text-white"
-                  >
-                    {opening ? 'Procesando bypass...' : '✅ Confirmar pago manualmente (Bypass Beta)'}
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    onClick={() => router.push(`/orders/${order.id}`)}
-                    className="w-full border-orange-300 text-orange-700 hover:bg-orange-100 dark:border-orange-700 dark:text-orange-300"
-                  >
-                    Dejar pedido pendiente (ir a mis pedidos)
-                  </Button>
-
-                  <div className="text-[11px] text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-950/40 p-3 rounded-xl leading-snug">
-                    <strong>IMPORTANTE:</strong> Este botón marca tu pedido como <strong>Pagado</strong> sin pasar por Wompi. 
-                    El vendedor recibirá el pedido como pagado y podrá comenzar el trabajo. 
-                    Úsalo solo si Wompi no funciona o si ya pagaste por otro medio (transferencia, etc). 
-                    Este bypass será eliminado cuando el pago con Wompi esté estable. 
-                    Cualquier abuso será revisado.
-                  </div>
-                </div>
-              </div>
+            <div className="mt-6 p-4 border border-dashed border-orange-500 rounded-xl bg-orange-50 dark:bg-orange-950/20 text-sm">
+              <p className="font-medium text-orange-800 dark:text-orange-300">Wompi no pudo cargarse.</p>
+              <p className="mt-1 text-orange-700 dark:text-orange-400">
+                El pedido quedó en estado Pendiente. El pago se confirmará automáticamente vía webhook cuando se complete (o contacta soporte).
+              </p>
+              <Button variant="outline" size="sm" className="mt-3" onClick={() => router.push(`/orders/${order.id}`)}>
+                Ir a mi pedido
+              </Button>
             </div>
           )}
 
@@ -678,18 +595,13 @@ export default function CheckoutPage() {
                 onClick={async () => {
                   try {
                     setOpening(true);
-                    // Save selections + price with dev bypass marker
+                    // Save selections + price (dev simulate; server allows Paid transition only in NODE_ENV=development)
                     await fetch(`/api/orders/${order.id}`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                         price: finalPrice,
-                        customFields: {
-                          ...selectedOptions,
-                          __bypass: true,
-                          __bypassReason: 'dev_simulate',
-                          __bypassAt: new Date().toISOString(),
-                        },
+                        customFields: selectedOptions,
                       }),
                     });
                     // Then mark Paid

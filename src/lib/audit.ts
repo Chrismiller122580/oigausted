@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { toPrismaJson } from './utils';
 
 interface LogAuditParams {
   // Preferred: the user (admin, seller, buyer) or system that performed the action
@@ -34,9 +35,9 @@ export async function logAuditEvent({
         action,
         targetType,
         targetId: targetId ?? undefined,
-        // We stringify to be compatible with both SQLite (String columns in dev) and Postgres Json.
-        // The admin UI knows how to display string or object.
-        details: details ? (JSON.stringify(details) as any) : undefined,
+        // Use helper: in pg prod pass object (native Json column); under sqlite dev (wrapper) stringify
+        // so the patched client (which sees String? for these fields) accepts it. UI parsers handle both.
+        details: toPrismaJson(details),
         ipAddress: ipAddress ?? undefined,
         userAgent: userAgent ?? undefined,
       },

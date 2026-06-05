@@ -59,3 +59,17 @@ export function devLog(...args: any[]) {
   }
 }
 
+/**
+ * Convert a value (object) to what Prisma should receive for Json? fields.
+ * - Under local SQLite dev (detected via DATABASE_URL containing file:/.db/sqlite), stringify
+ *   because the with-local-sqlite.sh patches the schema + regenerates client treating these as String?
+ * - In real Postgres (prod or direct pg dev), pass the native object so it stores as structured JSON.
+ * This lets us use Json? in committed schema while keeping "npm run dev" working against sqlite.
+ */
+export function toPrismaJson(value: any): any {
+  if (value == null) return undefined;
+  const dbUrl = process.env.DATABASE_URL || process.env.DIRECT_DATABASE_URL || '';
+  const isSqliteDev = /file:|\.db|sqlite:/.test(dbUrl);
+  return isSqliteDev ? JSON.stringify(value) : value;
+}
+

@@ -17,7 +17,7 @@ export default function LocationPermissionPrompt({
   error,
 }: LocationPermissionPromptProps) {
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-border rounded-2xl p-5 shadow-sm">
+    <div className="bg-card dark:bg-zinc-900 border border-border rounded-2xl p-5 shadow-sm">
       <div className="flex items-start gap-4">
         <div className="mt-1">
           <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center">

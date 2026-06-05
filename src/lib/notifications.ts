@@ -1,6 +1,6 @@
 import { prisma } from './prisma';
 import { Resend } from 'resend';
-import { devLog } from './utils';
+import { devLog, toPrismaJson } from './utils';
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
@@ -82,9 +82,8 @@ export async function sendNotification(payload: NotificationPayload) {
           title,
           message,
           link: link || null,
-          data: data ? JSON.stringify(data) : undefined,
-          // Initialize delivery tracking (stringified for current schema compat; post-migrate to Json can pass object)
-          deliveryLog: JSON.stringify({
+          data: toPrismaJson(data),
+          deliveryLog: toPrismaJson({
             inAppCreatedAt: new Date().toISOString(),
           }),
         },
@@ -201,8 +200,8 @@ export async function sendNotification(payload: NotificationPayload) {
             data: {
               emailStatus: 'sent',
               emailSentAt: new Date(),
-              deliveryLog: JSON.stringify({
-                ...(typeof notifToUpdate.deliveryLog === 'string' ? JSON.parse(notifToUpdate.deliveryLog) : (notifToUpdate.deliveryLog as any || {})),
+              deliveryLog: toPrismaJson({
+                ...(typeof notifToUpdate.deliveryLog === 'string' ? JSON.parse(notifToUpdate.deliveryLog) : (notifToUpdate.deliveryLog || {})),
                 emailAttempt: {
                   at: new Date().toISOString(),
                   resendId: (emailResult as any)?.id || null,

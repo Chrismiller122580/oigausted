@@ -12,6 +12,11 @@ declare module "next-auth" {
       reviewCount?: number;
       phone?: string | null;
       city?: string | null;
+      whatsapp?: string | null;
+      isActive?: boolean;
+      referredById?: string | null;
+      customReferralRate?: number | null;
+      referralCode?: string | null;
     };
   }
 
@@ -22,6 +27,11 @@ declare module "next-auth" {
     profilePicture?: string | null;
     rating?: number;
     reviewCount?: number;
+    whatsapp?: string | null;
+    isActive?: boolean;
+    referredById?: string | null;
+    customReferralRate?: number | null;
+    referralCode?: string | null;
   }
 }
 
@@ -32,5 +42,8 @@ declare module "next-auth/jwt" {
     name?: string | null;
     email?: string | null;
     profilePicture?: string | null;
+    referredById?: string | null;
+    customReferralRate?: number | null;
+    isActive?: boolean;
   }
 }

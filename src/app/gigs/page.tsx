@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import GigCard from "@/components/common/GigCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { categories, categoryEmojis } from "@/lib/categories";
+import { useGigCategories } from "@/lib/useGigCategories";
 import { getCurrentLocation, calculateDistance } from "@/lib/distance";
 import LocationPermissionPrompt from "@/components/maps/LocationPermissionPrompt";
 
@@ -13,6 +13,16 @@ import LocationPermissionPrompt from "@/components/maps/LocationPermissionPrompt
 function GigsClient() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("categoria") || "Todas";
+
+  const { categories: loadedCategories, loading: catLoading } = useGigCategories();
+
+  // Build emoji map from loaded data for dynamic categories
+  const categoryEmojis = loadedCategories.reduce((acc: Record<string, string>, c) => {
+    acc[c.name] = c.icon;
+    return acc;
+  }, {});
+
+  const categoryList = loadedCategories.map((c) => c.name);
 
   const [gigs, setGigs] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -261,7 +271,7 @@ function GigsClient() {
             >
               Todas
             </button>
-            {categories.map(cat => (
+            {(catLoading ? [] : categoryList).map(cat => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}

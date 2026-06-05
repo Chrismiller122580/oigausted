@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp, MessageCircle, Settings } from 'lucide-react';
+import { X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp, MessageCircle, Settings, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface MobileMenuProps {
@@ -128,6 +128,9 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             </Link>
             <Link href="/admin/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               Gigs
+            </Link>
+            <Link href="/admin/categories" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Tag size={22} /> Categorías
             </Link>
             <Link href="/admin/earnings" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <TrendingUp size={22} /> Ganancias

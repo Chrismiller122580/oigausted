@@ -11,11 +11,15 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     const isAdmin = (session?.user as any)?.role === 'admin';
 
-    let config = await prisma.platformConfig.findFirst();
+    let config = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } });
 
     if (!config) {
-      config = await prisma.platformConfig.create({
-        data: {
+      // upsert for race safety (in case concurrent first creates)
+      config = await prisma.platformConfig.upsert({
+        where: { id: 'singleton' },
+        update: {},
+        create: {
+          id: 'singleton',
           commissionRate: 0.12,
           referralCommissionRate: 0.05,
           minPayoutAmount: 50000,

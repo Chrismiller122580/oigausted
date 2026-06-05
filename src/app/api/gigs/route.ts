@@ -40,7 +40,7 @@ export async function GET() {
       count: gigsWithSeller.length
     });
   } catch (error: any) {
-    console.error("❌ /api/gigs failed:", error.message);
+    devLog("/api/gigs failed:", error.message);
     return NextResponse.json({
       gigs: [],
       count: 0,
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
         { gigTitle: title }
       );
     } catch (notifErr) {
-      console.error("⚠️ Gig created but failed to send confirmation notification (prefs or delivery issue):", notifErr);
+      devLog("Gig created but failed to send confirmation notification (prefs or delivery issue):", notifErr);
     }
 
     return NextResponse.json({ 
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("❌ Error creating gig:", error);
+    devLog("Error creating gig:", error);
     return NextResponse.json({ 
       error: "Error al guardar en la base de datos", 
       details: error.message 

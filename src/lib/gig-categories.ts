@@ -63,6 +63,19 @@ export const gigCategories = [
     ]
   },
   {
+    name: "Mensajería y Delivery",
+    icon: "📦",
+    fields: [
+      { key: "distance", label: "Distancia aproximada (km)", type: "number", extraPrice: 8000 },
+      { key: "packageSize", label: "Tamaño del paquete", type: "select", options: [
+        { label: "Pequeño (sobre o caja chica)", extraPrice: 0 },
+        { label: "Mediano", extraPrice: 8000 },
+        { label: "Grande", extraPrice: 18000 }
+      ] },
+      { key: "urgency", label: "Entrega express (mismo día)", type: "checkbox", extraPrice: 15000 }
+    ]
+  },
+  {
     name: "Belleza y Maquillaje a Domicilio",
     icon: "💄",
     fields: [
@@ -133,6 +146,15 @@ export const gigCategories = [
     icon: "🔧",
     fields: [
       { key: "urgency", label: "Urgencia (mismo día)", type: "checkbox", extraPrice: 50000 }
+    ]
+  },
+  {
+    name: "Plomería y Fontanería",
+    icon: "🚰",
+    fields: [
+      { key: "repairs", label: "Número de reparaciones o instalaciones", type: "number", extraPrice: 28000 },
+      { key: "materials", label: "Materiales incluidos por el profesional", type: "checkbox", extraPrice: 55000 },
+      { key: "urgency", label: "Urgencia (mismo día)", type: "checkbox", extraPrice: 65000 }
     ]
   },
   {

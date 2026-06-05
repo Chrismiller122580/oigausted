@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
-import { devLog } from '@/lib/utils';
+import { devLog, toPrismaJson } from '@/lib/utils';
 
 // Resend Webhook Handler for email delivery tracking
 // Configure this webhook URL in your Resend dashboard: /api/webhooks/resend
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     const secret = process.env.RESEND_WEBHOOK_SECRET || '';
 
     if (!verifyResendSignature(rawBody, svixId, svixTimestamp, svixSignature, secret)) {
-      console.error('[Resend] Invalid webhook signature');
+      devLog('[Resend] Invalid webhook signature');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       const now = Math.floor(Date.now() / 1000);
       const ts = parseInt(svixTimestamp, 10);
       if (Math.abs(now - ts) > 5 * 60) { // 5 min tolerance
-        console.warn('[Resend] Webhook timestamp too old/future');
+        devLog('[Resend] Webhook timestamp too old/future');
         return NextResponse.json({ error: 'Timestamp too old' }, { status: 400 });
       }
     }
@@ -88,17 +88,17 @@ export async function POST(req: NextRequest) {
     });
 
     for (const notif of notifications) {
-      const currentLog = (notif.deliveryLog as any) || {};
+      const currentLog = typeof notif.deliveryLog === 'string' ? JSON.parse(notif.deliveryLog) : (notif.deliveryLog || {});
 
       let updateData: any = {
-        deliveryLog: {
+        deliveryLog: toPrismaJson({
           ...currentLog,
           lastResendEvent: {
             type: event.type,
             at: new Date().toISOString(),
             data: event.data,
           }
-        }
+        })
       };
 
       switch (event.type) {
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Resend webhook error:', error);
+    devLog('Resend webhook error:', error);
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }

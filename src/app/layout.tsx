@@ -74,7 +74,7 @@ export default function RootLayout({
           if (g.maps.places && g.maps.places.Autocomplete) {
             try {
               g.maps.places.Autocomplete = function() {
-                console.warn('[MapsGuard] Blocked legacy google.maps.places.Autocomplete (causes React DOM conflicts). Use plain input instead.');
+                // console.warn suppressed in prod guard (dev only noise)
                 return {};
               };
             } catch(e) {}
@@ -91,7 +91,7 @@ export default function RootLayout({
                 RankBy: {},
                 PlaceAutocompleteElement: function() {}
               };
-              console.warn('[MapsGuard] Nuked google.maps.places to prevent DOM conflicts');
+              // console.warn suppressed (prod guard noise)
             } catch(e) {}
           }
           return true;
@@ -128,7 +128,7 @@ export default function RootLayout({
           try { mo.disconnect(); } catch(e) {}
         }, 10000);
         
-        console.debug('[MapsGuard] Installed early + aggressive neutralization for legacy Google Places Autocomplete');
+        // console.debug suppressed for prod (guard still active)
       } catch (e) {
         // Never break the page
       }

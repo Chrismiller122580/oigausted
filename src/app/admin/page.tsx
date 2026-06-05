@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock } from 'lucide-react';
+import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock, Tag } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -62,7 +62,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-12">
           <Card className="bg-card border-border">
             <CardContent className="p-6">
               <Users className="h-8 w-8 text-blue-400 mb-3" />
@@ -78,6 +78,15 @@ export default function AdminDashboard() {
               <p className="text-sm text-muted-foreground">Gigs Publicados</p>
               <p className="text-4xl font-bold mt-1">{stats?.gigs || 0}</p>
               <p className="text-xs text-emerald-400 mt-1">{stats?.activeGigs || 0} activos</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card border-border">
+            <CardContent className="p-6">
+              <Tag className="h-8 w-8 text-indigo-400 mb-3" />
+              <p className="text-sm text-muted-foreground">Categorías</p>
+              <p className="text-4xl font-bold mt-1">{stats?.totalCategories || 0}</p>
+              <p className="text-xs text-muted-foreground mt-1">de servicios</p>
             </CardContent>
           </Card>
 
@@ -113,7 +122,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Link href="/admin/users">
             <Card className="bg-card border-border hover:border-accent transition cursor-pointer h-full">
               <CardContent className="p-8">
@@ -130,6 +139,16 @@ export default function AdminDashboard() {
                 <Package className="h-10 w-10 text-orange-400 mb-4" />
                 <h3 className="text-2xl font-semibold mb-2">Moderar Gigs</h3>
                 <p className="text-muted-foreground">Pausar, eliminar o revisar servicios</p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/admin/categories">
+            <Card className="bg-card border-border hover:border-accent transition cursor-pointer h-full">
+              <CardContent className="p-8">
+                <Tag className="h-10 w-10 text-indigo-400 mb-4" />
+                <h3 className="text-2xl font-semibold mb-2">Gestionar Categorías</h3>
+                <p className="text-muted-foreground">Crear/editar categorías y sus campos dinámicos de precio</p>
               </CardContent>
             </Card>
           </Link>

@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { notifications } from '@/lib/notifications'
 import { logAuditEvent } from '@/lib/audit'
-import { devLog } from '@/lib/utils'
+import { devLog, toPrismaJson } from '@/lib/utils'
 
 export async function GET(
   request: Request,
@@ -37,7 +37,7 @@ export async function GET(
 
     return NextResponse.json({ order })
   } catch (error) {
-    console.error('Fetch order error:', error)
+    devLog('Fetch order error:', error)
     return NextResponse.json({ error: 'Failed to fetch order' }, { status: 500 })
   }
 }
@@ -82,13 +82,13 @@ export async function PATCH(
       const current = existingOrder.status;
 
       // Role-aware transition rules (prevents buyers forcing completion, etc.)
-      // Bypass for dev/beta is allowed via explicit __bypass marker in customFields
+      // Manual 'Paid' only via webhook (wompi) or admin. Dev simulate allowed for testing.
       if (!isAdmin) {
         if (status === 'Paid' && current !== 'Pending') {
-          const isBypass = customFields && (customFields.__bypass || customFields.__bypassReason);
-          if (!isBypass) {
+          if (process.env.NODE_ENV !== 'development') {
             return NextResponse.json({ error: 'Cannot manually set to Paid outside payment flow' }, { status: 400 });
           }
+          // In dev, the simulate button (in checkout page) is allowed to force Paid for testing without webhook.
         }
         if (status === 'In Progress' && current !== 'Paid') {
           return NextResponse.json({ error: 'Order must be Paid before In Progress' }, { status: 400 });
@@ -131,58 +131,83 @@ export async function PATCH(
       updateData.serviceLongitude = serviceLongitude
     }
 
-    const updatedOrder = await prisma.order.update({
-      where: { id: orderId },
-      data: updateData,
-      include: {
-        gig: true,
-        buyer: { select: { id: true, name: true, email: true } },
-        seller: { 
-          select: { 
-            id: true, 
-            name: true, 
-            businessName: true, 
-            email: true,
-            referredById: true 
-          } 
+    // Wrap core order status + audit + referral create + cancel earnings in tx for data integrity
+    const updatedOrder = await prisma.$transaction(async (tx) => {
+      const u = await tx.order.update({
+        where: { id: orderId },
+        data: updateData,
+        include: {
+          gig: true,
+          buyer: { select: { id: true, name: true, email: true } },
+          seller: { 
+            select: { 
+              id: true, 
+              name: true, 
+              businessName: true, 
+              email: true,
+              referredById: true 
+            } 
+          }
+        }
+      })
+
+      // Audit inside tx (critical change)
+      if (status || Object.keys(updateData).length > 0) {
+        await tx.auditLog.create({
+          data: {
+            performedById: userId ?? undefined,
+            action: status ? `ORDER_STATUS_${status.toUpperCase().replace(/\s+/g, '_')}` : 'ORDER_UPDATED',
+            targetType: 'Order',
+            targetId: orderId,
+            details: toPrismaJson({
+              previousStatus: existingOrder.status,
+              newStatus: status || existingOrder.status,
+              updatedFields: Object.keys(updateData),
+              updatedByRole: (session?.user as any)?.role,
+            }),
+            // ip/ua if available in context (omitted here for brevity)
+          },
+        });
+      }
+
+      // Referral earning create inside tx (atomic with status)
+      if ((status === 'Paid' || status === 'Completed') && u.seller?.referredById) {
+        const { getEffectiveReferralRate } = await import('@/lib/payout');
+        const rate = await getEffectiveReferralRate(u.seller.referredById);
+        const amount = Math.round((u.price || 0) * rate);
+        if (amount > 0) {
+          try {
+            await tx.referralEarning.create({
+              data: {
+                amount,
+                rateUsed: rate,
+                referrerId: u.seller.referredById,
+                orderId: u.id,
+                status: 'Pending',
+              }
+            });
+          } catch (e: any) {
+            if (e.code !== 'P2002') devLog('tx referral create non-dup err:', e);
+          }
         }
       }
+
+      // Cancel earnings on cancel inside tx
+      if (status === 'Cancelled') {
+        try {
+          await tx.referralEarning.updateMany({
+            where: { orderId: u.id, status: { in: ['Pending', 'Requested'] } },
+            data: { status: 'Cancelled' }
+          });
+        } catch (e) {
+          devLog('Failed to cancel referral earnings on order cancel (tx):', e);
+        }
+      }
+
+      return u;
     })
 
-    // Log important system change (status update or other modifications by buyer/seller/admin)
-    if (status || Object.keys(updateData).length > 0) {
-      await logAuditEvent({
-        performedById: userId,
-        action: status ? `ORDER_STATUS_${status.toUpperCase().replace(/\s+/g, '_')}` : 'ORDER_UPDATED',
-        targetType: 'Order',
-        targetId: orderId,
-        details: {
-          previousStatus: existingOrder.status,
-          newStatus: status || existingOrder.status,
-          updatedFields: Object.keys(updateData),
-          updatedByRole: (session?.user as any)?.role,
-        },
-      });
-    }
-
-    // Create referral earning if order reaches Paid (webhook or bypass) or Completed.
-    // Uses centralized helper for consistency and idempotency.
-    if ((status === 'Paid' || status === 'Completed') && updatedOrder.seller?.referredById) {
-      const { createReferralEarningIfApplicable } = await import('@/lib/server/referral-earnings');
-      await createReferralEarningIfApplicable(updatedOrder);
-    }
-
-    // If cancelling a paid order, cancel any pending referral earnings to keep integrity
-    if (status === 'Cancelled') {
-      try {
-        await prisma.referralEarning.updateMany({
-          where: { orderId: updatedOrder.id, status: { in: ['Pending', 'Requested'] } },
-          data: { status: 'Cancelled' }
-        });
-      } catch (e) {
-        devLog('Failed to cancel referral earnings on order cancel:', e);
-      }
-    }
+    // Note: sendNotification / notif calls are intentionally outside tx (side effects / email)
 
     // Send notifications on important status changes
     if (status) {
@@ -236,7 +261,7 @@ export async function PATCH(
 
     return NextResponse.json({ order: updatedOrder })
   } catch (error) {
-    console.error('Update status error:', error)
+    devLog('Update status error:', error)
     return NextResponse.json({ error: 'Failed to update status' }, { status: 500 })
   }
 }

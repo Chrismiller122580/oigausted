@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 // @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { devLog } from '@/lib/utils';
 
 export async function GET(
   request: Request,
@@ -35,7 +36,7 @@ export async function GET(
 
     return NextResponse.json(gig);
   } catch (error) {
-    console.error('Get gig error:', error);
+    devLog('Get gig error:', error);
     return NextResponse.json({ error: 'Error al cargar el gig' }, { status: 500 });
   }
 }
@@ -106,7 +107,7 @@ export async function PUT(
       },
     });
 
-    console.log("✅ Gig updated:", id);
+    devLog("Gig updated:", id);
 
     return NextResponse.json({ 
       success: true, 
@@ -115,7 +116,7 @@ export async function PUT(
     });
 
   } catch (error: any) {
-    console.error('PUT gig error:', error);
+    devLog('PUT gig error:', error);
     return NextResponse.json({ error: 'Error al actualizar el gig' }, { status: 500 });
   }
 }
@@ -164,7 +165,7 @@ export async function DELETE(
 
     await prisma.gig.delete({ where: { id } });
 
-    console.log("🗑️ Gig deleted:", id);
+    devLog("Gig deleted:", id);
 
     return NextResponse.json({ 
       success: true, 
@@ -172,7 +173,7 @@ export async function DELETE(
     });
 
   } catch (error: any) {
-    console.error('DELETE gig error:', error);
+    devLog('DELETE gig error:', error);
     return NextResponse.json({ error: 'Error al eliminar el gig' }, { status: 500 });
   }
 }

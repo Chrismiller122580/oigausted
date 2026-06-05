@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { gigCategories } from '@/lib/gig-categories';
+import { useGigCategories } from '@/lib/useGigCategories';
 import { parseCustomFields } from '@/lib/utils';
 import GoogleMap from '@/components/maps/GoogleMap';
 import { MapPin } from 'lucide-react';
@@ -18,6 +18,7 @@ function OrderDetailClient() {
   const searchParams = useSearchParams();
   const orderId = params.id as string;
   const { data: session } = useSession();
+  const { categories: gigCategories } = useGigCategories();
 
   const [order, setOrder] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -430,14 +431,14 @@ function OrderDetailClient() {
         <Card className="shadow-lg">
           <CardHeader><CardTitle>📈 Progreso del Pedido</CardTitle></CardHeader>
           <CardContent className="pt-8">
-            <div className="space-y-10 relative pl-8 before:absolute before:left-4 before:top-0 before:bottom-0 before:w-0.5 before:bg-gray-200">
+            <div className="space-y-10 relative pl-8 before:absolute before:left-4 before:top-0 before:bottom-0 before:w-0.5 before:bg-muted">
               {[
                 { step: "Pedido creado", date: order.createdAt, done: true },
                 { step: "En progreso", date: null, done: order.status === 'In Progress' || isCompleted },
                 { step: "Trabajo completado", date: null, done: isCompleted },
               ].map((s, i) => (
                 <div key={i} className="flex gap-6 relative">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${s.done ? 'bg-green-500 text-white' : 'bg-gray-200'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${s.done ? 'bg-green-500 text-white' : 'bg-muted'}`}>
                     {s.done ? '✓' : i+1}
                   </div>
                   <div>

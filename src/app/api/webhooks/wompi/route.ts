@@ -36,7 +36,7 @@ function verifyWompiSignature(body: any, receivedSignature: string): boolean {
       Buffer.from(expectedSignature, 'hex')
     )
   } catch (e) {
-    console.error('[Wompi] Signature comparison failed (likely invalid hex)', e)
+    devLog('[Wompi] Signature comparison failed (likely invalid hex)', e)
     return false
   }
 }
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
     // 1. Verify signature first (critical security check)
     if (!verifyWompiSignature(body, receivedSignature)) {
-      console.error('[Wompi] Invalid webhook signature received')
+      devLog('[Wompi] Invalid webhook signature received')
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
 
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       const now = Math.floor(Date.now() / 1000)
       const tenMinutes = 10 * 60
       if (Math.abs(now - receivedTimestamp) > tenMinutes) {
-        console.warn('[Wompi] Webhook timestamp too old or in the future — possible replay attack')
+        devLog('[Wompi] Webhook timestamp too old or in the future — possible replay attack')
         return NextResponse.json({ error: 'Timestamp too old' }, { status: 400 })
       }
     }
@@ -113,17 +113,46 @@ export async function POST(request: Request) {
           return NextResponse.json({ received: true, event })
       }
 
-      const updatedOrder = await prisma.order.update({
-        where: { id: orderId },
-        data: updateData,
-        include: {
-          buyer: { select: { id: true, name: true } },
-          gig: { select: { title: true } },
-          seller: { select: { id: true, referredById: true } }
+      // Wrap status update + referralEarning create in tx for atomicity (prevents orphan earnings on crash/partial)
+      const updatedOrder = await prisma.$transaction(async (tx) => {
+        const u = await tx.order.update({
+          where: { id: orderId },
+          data: updateData,
+          include: {
+            buyer: { select: { id: true, name: true } },
+            gig: { select: { title: true } },
+            seller: { select: { id: true, referredById: true } }
+          }
+        })
+
+        if (transaction.status === 'APPROVED' && u.seller?.referredById) {
+          // Idempotency inside tx too (best effort)
+          const currentStatus = existingOrder?.status || u.status
+          if (currentStatus !== 'Paid' && currentStatus !== 'Completed') {
+            const { getEffectiveReferralRate } = await import('@/lib/payout')
+            const rate = await getEffectiveReferralRate(u.seller.referredById)
+            const amount = Math.round((u.price || 0) * rate)
+            if (amount > 0) {
+              try {
+                await tx.referralEarning.create({
+                  data: {
+                    amount,
+                    rateUsed: rate,
+                    referrerId: u.seller.referredById,
+                    orderId: u.id,
+                    status: 'Pending',
+                  }
+                })
+              } catch (e: any) {
+                if (e.code !== 'P2002') devLog('[Wompi tx] referral create err (non dup):', e)
+              }
+            }
+          }
         }
+        return u
       })
 
-      // Audit log for critical payment system change (webhook driven)
+      // Audit log for critical payment system change (webhook driven) — after tx commit
       await logAuditEvent({
         performedById: null, // system / webhook
         action: `PAYMENT_${transaction.status}`,
@@ -153,8 +182,8 @@ export async function POST(request: Request) {
             { gigTitle: updatedOrder.gig.title, amount: updatedOrder.price, orderId }
           )
 
-          // Create referral earning if seller was referred (for Paid status).
-          // Uses centralized helper (idempotent, handles notify).
+          // Note: referral earning create moved inside the tx above (the helper's notify still happens via the send path or can be called)
+          // If needed, the helper can still be called for its notify side-effect (it will no-op create on P2002)
           if (updatedOrder.seller?.referredById) {
             const { createReferralEarningIfApplicable } = await import('@/lib/server/referral-earnings')
             await createReferralEarningIfApplicable(updatedOrder);

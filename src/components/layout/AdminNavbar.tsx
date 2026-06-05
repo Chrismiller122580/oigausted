@@ -3,7 +3,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LogOut, Users, Package, TrendingUp, Home, Settings, BarChart3, DollarSign, MessageCircle, Menu, X } from 'lucide-react';
+import { LogOut, Users, Package, TrendingUp, Home, Settings, BarChart3, DollarSign, MessageCircle, Menu, X, Tag } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
@@ -42,6 +42,9 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
             </Link>
             <Link href="/admin/gigs" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
               <Package size={18} /> Gigs
+            </Link>
+            <Link href="/admin/categories" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
+              <Tag size={18} /> Categorías
             </Link>
             <Link href="/admin/earnings" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
               <TrendingUp size={18} /> Ganancias
