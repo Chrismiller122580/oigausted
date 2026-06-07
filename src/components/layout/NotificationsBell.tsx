@@ -27,8 +27,8 @@ export function NotificationsBell() {
     refresh 
   } = useRealtimeNotifications({
     enableToasts: true,
-    enableSound: true,
-    enableDesktop: true,
+    enableSound: false,   // Bell's own detect effect handles sound based on user prefs
+    enableDesktop: false, // Bell's own detect effect handles desktop based on user prefs
   });
 
   const [unreadCount, setUnreadCount] = useState(0);

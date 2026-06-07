@@ -112,7 +112,6 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
 
           {/* Mobile Right Side (compact hamburger area) */}
           <div className="md:hidden flex items-center gap-1">
-            <NotificationsBell />
             <ModeToggle />
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

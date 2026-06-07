@@ -77,7 +77,6 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
 
             {/* Mobile compact controls */}
             <div className="md:hidden flex items-center gap-1">
-              <NotificationsBell />
               <ModeToggle />
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

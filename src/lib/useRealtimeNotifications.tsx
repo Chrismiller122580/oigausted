@@ -49,11 +49,21 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
   const lastNotificationIds = useRef<Set<string>>(new Set());
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Global dedup for toasts across any hook instances (prevents multiples from responsive nav renders etc.)
+  // Module level so shared.
+  if (!(globalThis as any).__notifShownIds) {
+    (globalThis as any).__notifShownIds = new Set<string>();
+  }
+  const globalShownIds: Set<string> = (globalThis as any).__notifShownIds;
+
   const isAuthed = sessionStatus === 'authenticated' && !!session?.user;
 
   // Show rich actionable toast with 2027-grade buttons
   const showNotificationToast = useCallback((notif: RealtimeNotification) => {
     if (!enableToasts) return;
+
+    if (globalShownIds.has(notif.id)) return;
+    globalShownIds.add(notif.id);
 
     const notifData = (notif as any).data || {};
     const customActions: Array<{ label: string; action: string; data?: any }> = notifData.actions || [];

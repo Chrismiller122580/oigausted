@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp, MessageCircle, Settings, Tag, Briefcase } from 'lucide-react';
+import { X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp, MessageCircle, Settings, Tag, Briefcase, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface MobileMenuProps {
@@ -40,6 +40,9 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
       <div className="px-6 py-8 space-y-2 text-lg overflow-y-auto h-[calc(100vh-5rem)]">
         {role === 'public' && (
           <>
+            <Link href="/notifications" onClick={onClose} className="block py-4 border-b border-border">
+              Notificaciones
+            </Link>
             {!isAuthPage && (
               <Link href="/gigs" onClick={onClose} className="block py-4 border-b border-border">
                 Explorar Gigs
@@ -56,6 +59,9 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
 
         {role === 'buyer' && (
           <>
+            <Link href="/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Bell size={22} /> Notificaciones
+            </Link>
             <Link href="/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Home size={22} /> Explorar Gigs
             </Link>
@@ -85,6 +91,9 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
 
         {role === 'seller' && (
           <>
+            <Link href="/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Bell size={22} /> Notificaciones
+            </Link>
             <Link href="/seller" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Home size={22} /> Dashboard
             </Link>
@@ -124,6 +133,9 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
 
         {role === 'admin' && (
           <>
+            <Link href="/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Bell size={22} /> Notificaciones
+            </Link>
             <Link href="/admin" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               Overview
             </Link>
