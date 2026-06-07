@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp, MessageCircle, Settings, Tag } from 'lucide-react';
+import { X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp, MessageCircle, Settings, Tag, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface MobileMenuProps {
@@ -87,25 +87,25 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
         {role === 'seller' && (
           <>
             <Link href="/seller" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              Dashboard
+              <Home size={22} /> Dashboard
             </Link>
             <Link href="/seller/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              Mis Gigs
+              <Package size={22} /> Mis Gigs
             </Link>
             <Link href="/seller/profile" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              Mi Negocio
+              <Briefcase size={22} /> Mi Negocio
             </Link>
             <Link href="/seller/earnings" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <DollarSign size={22} /> Ganancias
             </Link>
             <Link href="/referrals" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              Referidos
+              <Users size={22} /> Referidos
             </Link>
             <Link href="/create-gig" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Plus size={22} /> Crear Gig
             </Link>
             <Link href="/profile" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              Mi Perfil
+              <User size={22} /> Mi Perfil
             </Link>
             <Link href="/support" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <MessageCircle size={22} /> Soporte

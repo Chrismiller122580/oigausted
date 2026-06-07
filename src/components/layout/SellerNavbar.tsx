@@ -3,20 +3,27 @@
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LogOut, Plus, DollarSign, Menu, X, MessageCircle } from 'lucide-react';
+import { LogOut, Plus, DollarSign, Menu, X, MessageCircle, Home, Briefcase, Users } from 'lucide-react';
 import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import MobileMenu from './MobileMenu';
 import MobileBottomNav from './MobileBottomNav';
 
 export default function SellerNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
+  const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     setIsMobileMenuOpen(false);
     await signOut({ callbackUrl: '/' });
+  };
+
+  const isActive = (path: string) => {
+    if (path === '/seller') return pathname === '/seller';
+    return pathname.startsWith(path);
   };
 
   return (
@@ -32,16 +39,38 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8 font-medium">
-            <Link href="/seller" className="text-muted-foreground hover:text-foreground transition">Dashboard</Link>
-            <Link href="/seller/gigs" className="text-muted-foreground hover:text-foreground transition">Mis Gigs</Link>
-            <Link href="/seller/profile" className="font-semibold bg-orange-100 dark:bg-orange-900/40 px-4 py-1 rounded-2xl hover:bg-orange-200 dark:hover:bg-orange-900/60 transition">
-              Mi Negocio
+            <Link 
+              href="/seller" 
+              className={`flex items-center gap-2 transition ${isActive('/seller') ? 'text-foreground font-semibold border-b-2 border-orange-600 pb-1' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <Home size={18} /> Dashboard
             </Link>
-            <Link href="/seller/earnings" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
+            <Link 
+              href="/seller/gigs" 
+              className={`flex items-center gap-2 transition ${isActive('/seller/gigs') ? 'text-foreground font-semibold border-b-2 border-orange-600 pb-1' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <Briefcase size={18} /> Mis Gigs
+            </Link>
+            <Link 
+              href="/seller/profile" 
+              className={isActive('/seller/profile') 
+                ? 'font-semibold bg-orange-100 dark:bg-orange-900/40 px-4 py-1 rounded-2xl hover:bg-orange-200 dark:hover:bg-orange-900/60 transition flex items-center gap-2' 
+                : 'flex items-center gap-2 text-muted-foreground hover:text-foreground transition'
+              }
+            >
+              {isActive('/seller/profile') ? 'Mi Negocio' : <><Briefcase size={18} /> Mi Negocio</>}
+            </Link>
+            <Link 
+              href="/seller/earnings" 
+              className={`flex items-center gap-2 transition ${isActive('/seller/earnings') ? 'text-foreground font-semibold border-b-2 border-orange-600 pb-1' : 'text-muted-foreground hover:text-foreground'}`}
+            >
               <DollarSign size={18} /> Ganancias
             </Link>
-            <Link href="/referrals" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
-              Referidos
+            <Link 
+              href="/referrals" 
+              className={`flex items-center gap-2 transition ${isActive('/referrals') ? 'text-foreground font-semibold border-b-2 border-orange-600 pb-1' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <Users size={18} /> Referidos
             </Link>
             <Link href="/create-gig">
               <Button className="bg-orange-600 hover:bg-orange-700 flex items-center gap-2">
