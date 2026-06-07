@@ -365,7 +365,9 @@ export default function MiNegocioPage() {
                           {[1,2,3,4,5].map(n => <span key={n}>{n <= r.rating ? "★" : "☆"}</span>)}
                         </div>
                         <p className="text-muted-foreground mt-1 line-clamp-2">"{r.comment || 'Sin comentario'}"</p>
-                        <p className="text-xs text-muted-foreground mt-1">— {r.reviewer?.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          — {r.reviewer?.name} {r.order?.gig?.title ? `• ${r.order.gig.title}` : ''}
+                        </p>
                       </div>
                     ))}
                   </div>

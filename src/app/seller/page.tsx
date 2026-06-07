@@ -12,30 +12,37 @@ export default function SellerDashboard() {
   const { data: session } = useSession();
   const [gigs, setGigs] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const fetchData = async () => {
     try {
-      const [gigsRes, ordersRes] = await Promise.all([
+      const sellerId = (session?.user as any)?.id;
+      const [gigsRes, ordersRes, reviewsRes] = await Promise.all([
         fetch('/api/seller/gigs'),
-        fetch('/api/orders?role=seller')
+        fetch('/api/orders?role=seller'),
+        sellerId ? fetch(`/api/reviews?sellerId=${sellerId}&limit=3`).then(r => r.json()).catch(() => ({ reviews: [] })) : Promise.resolve({ reviews: [] })
       ]);
 
       const gigsData = await gigsRes.json();
       const ordersData = await ordersRes.json();
+      const reviewsData = await reviewsRes;
 
       setGigs(Array.isArray(gigsData) ? gigsData : gigsData?.gigs || []);
       setOrders(Array.isArray(ordersData) ? ordersData : []);
+      setReviews(reviewsData.reviews || []);
     } catch (error) {
       console.error('Error fetching seller data:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (session?.user) {
+      fetchData();
+    }
+  }, [session]);
 
   const activeOrders = orders.filter(o => ['Pending', 'In Progress'].includes(o.status || ''));
   const completedOrders = orders.filter(o => o.status === 'Completed');
@@ -111,6 +118,37 @@ export default function SellerDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Recent Reviews for Seller */}
+        <Card className="mb-8">
+          <CardContent className="p-10">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-semibold text-foreground">Reseñas Recientes</h3>
+              <Link href="/seller/profile">
+                <Button variant="outline" size="sm">Ver todas</Button>
+              </Link>
+            </div>
+            {reviews.length > 0 ? (
+              <div className="space-y-4">
+                {reviews.map((review, idx) => (
+                  <div key={idx} className="flex gap-4 p-4 border rounded-2xl">
+                    <div className="flex text-lg text-yellow-500 shrink-0">
+                      {[1,2,3,4,5].map(n => <span key={n}>{n <= review.rating ? "★" : "☆"}</span>)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-muted-foreground line-clamp-2">"{review.comment || 'Sin comentario'}"</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        — {review.reviewer?.name || 'Cliente'} {review.order?.gig?.title ? `• ${review.order.gig.title}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground py-4 text-center">Aún no tienes reseñas. ¡Sigue ofreciendo buenos servicios!</p>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* My Gigs - Summary */}
