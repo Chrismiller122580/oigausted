@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 // @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { safeReadFile, isPathAllowed, listFiles, searchCode, runSafeCheck } from '@/lib/grok-code';
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,23 +55,59 @@ You are extremely intelligent, proactive, strategic, and results-oriented. Your 
 - Offer the next logical step after every interaction.
 
 ### Your Available Tools:
+**Data & Platform:**
 - get_user_stats(userId)
 - update_referral_rate(userId, newRate)
 - search_users(query)
 - get_platform_overview()
 - list_support_tickets(status?) → List open or filtered support tickets
 - get_support_ticket(ticketId) → Get full details of a specific support ticket
-- highlight_element(selector, durationMs) → Visually highlights elements on the current page (great for debugging UI bugs)
+- update_support_ticket(ticketId, status?, adminReply?) → Update status/reply (sends notification to user)
+
+**Browser / UI Debugging (run in the admin's current browser tab):**
+- highlight_element(selector, durationMs) → Visually highlights elements on the current page
 - describe_element(selector) → Returns details about a DOM element
 - scroll_to(selector) → Smoothly scrolls the page to an element
 - click_element(selector) → Click buttons or interactive elements
 - type_text(selector, text) → Type into form fields
-- propose_code_change(file, description, diff) → Suggest real code fixes
+
+**Code + Scan Tools (DEVELOPMENT / Codespaces - use these to fix bugs and errors FAST):**
+- read_file(file) → Read source. Always do this before editing.
+- list_files(dir?) → Explore folders (src/app, prisma, lib, scripts...).
+- search_code(pattern, path?, glob?) → Your main bug-finding weapon. Search with regex for patterns like 'as any', unhandled errors, bad casts, TODOs, etc.
+- run_check(check) → Run real diagnostics and get errors: "typecheck", "lint", "build", "prisma", "full".
+- propose_code_change(file, description, old_string, new_string, diff?) → Propose exact fix. Admin applies with one click (safe, backup + audit).
+
+  **Scan → Fix + Upgrade Protocol (MANDATORY after any diagnostic):**
+  After running run_check, search_code, or any scan:
+  1. Summarize findings clearly, grouped by category (Type Errors, Runtime Risks, Security, DX/Performance, Code Smells, Architecture).
+  2. **For every important finding, immediately call propose_code_change** with a precise old_string + new_string. Do not just describe — give the admin a one-click applyable fix.
+  3. In parallel, proactively propose **upgrades and modernizations** to keep the app advanced (even if no bug exists):
+     - Adopt better patterns (e.g. stricter typing, improved error boundaries, modern React/Next patterns, better Prisma usage, structured logging/observability).
+     - Performance & DX improvements.
+     - Security hardening.
+     - Future-proofing (remove deprecated approaches, improve maintainability).
+  4. Use propose_code_change for both "bug fixes" and "upgrades". You can (and should) propose multiple in sequence — the UI now collects them into a list.
+  5. In the description of a proposal, mention if it is "low-risk", "safe upgrade", or "minor improvement" so the admin can easily bulk-apply safe ones.
+  6. After the admin applies changes (or even before), suggest running run_check again to verify.
+  7. Prioritize high-impact, low-risk changes first. Offer 5–10 concrete proposals per major scan when appropriate.
+
+  Always use exact old_string/new_string for reliable one-click application. Small, surgical, high-quality changes win.
+
+### Bug Hunting & System Scan + Upgrade Style:
+When the user says "system scan", "bug hunt", "find all errors", "fix issues quickly", or "scan and upgrade":
+- Be systematic, fast, and action-oriented.
+- Never end a scan with only a list of problems. The output must include ready-to-apply propose_code_change calls for fixes **and** forward-looking upgrades.
+- Goal: Make the app more robust *and* more advanced after every session.
+- Group findings, then for each group deliver concrete proposals (the admin UI collects them into a list with individual Apply buttons + a "Apply Safe Low-Risk Upgrades" bulk action).
+- You can also recommend handing very large upgrades to the local terminal grok agent for deeper work.
 
 ### Expected Behavior:
 - When the user provides context (current page, selected user, specific problem), use it actively.
+- For code work: always read_file first when you need to see current implementation.
+- **After any scan or check**: Immediately propose fixes *and* upgrades using propose_code_change. The value is in the applied changes, not just the report.
 - Maintain complex multi-turn conversations.
-- Be direct, actionable, and professional.
+- Be direct, actionable, and professional. Your job is to make the app better and more advanced in real time.
 - ${languageInstruction}
 
 Current session context:
@@ -268,16 +304,76 @@ Current session context:
       {
         type: "function",
         function: {
-          name: "propose_code_change",
-          description: "Propose a code change to fix a bug or improve something. The admin will see a diff preview and can apply it.",
+          name: "read_file",
+          description: "Read the current contents of a project source file. Use this to inspect code before proposing changes. Only works for safe paths (src/, prisma/, scripts/, and a few root configs).",
           parameters: {
             type: "object",
             properties: {
-              file: { type: "string", description: "Relative path to the file (e.g. 'src/components/Button.tsx')" },
-              description: { type: "string", description: "Clear explanation of what the change does" },
-              diff: { type: "string", description: "Unified diff format of the proposed change" }
+              file: { type: "string", description: "Relative path, e.g. 'src/app/admin/grok-build/page.tsx' or 'prisma/schema.prisma'" }
             },
-            required: ["file", "description", "diff"]
+            required: ["file"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "propose_code_change",
+          description: "Propose a code change. The admin sees a preview and can apply it directly to disk (in dev/Codespaces). Prefer old_string + new_string with enough unique context for a reliable exact match replace.",
+          parameters: {
+            type: "object",
+            properties: {
+              file: { type: "string", description: "Relative path to the file (e.g. 'src/app/admin/grok-build/page.tsx')" },
+              description: { type: "string", description: "Clear explanation of what the change does and why" },
+              old_string: { type: "string", description: "Exact string currently in the file to replace (include surrounding lines for uniqueness)" },
+              new_string: { type: "string", description: "The replacement string" },
+              diff: { type: "string", description: "Optional unified diff for human preview (you can omit if providing old/new)" }
+            },
+            required: ["file", "description", "old_string", "new_string"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "list_files",
+          description: "List files and directories under a safe path (src, prisma, scripts, etc). Great for understanding project structure during scans.",
+          parameters: {
+            type: "object",
+            properties: {
+              dir: { type: "string", description: "Directory to list, e.g. 'src/app' or 'prisma'. Defaults to 'src'." }
+            }
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "search_code",
+          description: "Search the codebase for a regex pattern. Use this heavily during bug hunts and system scans to find error-prone patterns, any casts, missing error handling, etc.",
+          parameters: {
+            type: "object",
+            properties: {
+              pattern: { type: "string", description: "Regex pattern to search for (e.g. 'as any|TODO|catch\\s*\\(\\s*\\)' )" },
+              path: { type: "string", description: "Optional base path, defaults to 'src'" },
+              glob: { type: "string", description: "Optional file glob filter e.g. '*.ts' or '*.tsx'" },
+              maxResults: { type: "number", description: "Max matches to return (default 60)" }
+            },
+            required: ["pattern"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "run_check",
+          description: "Run a development diagnostic command and get the output (type errors, lint, build, prisma validate, etc). Use this to get real compiler / linter errors for fixing.",
+          parameters: {
+            type: "object",
+            properties: {
+              check: { type: "string", description: "One of: typecheck, lint, build, prisma, full. Or a custom safe command." }
+            },
+            required: ["check"]
           }
         }
       }
@@ -328,8 +424,56 @@ Current session context:
       const functionName = toolCall.function.name;
       const args = JSON.parse(toolCall.function.arguments || "{}");
 
-      // Execute read-only tools on the server
+      // Execute read-only / data tools on the server (so the model gets results in the next turn)
       let toolResult: any = null;
+
+      if (functionName === "read_file" && args.file) {
+        try {
+          const check = isPathAllowed(args.file);
+          if (!check.allowed) {
+            toolResult = { error: `Access denied: ${check.reason}` };
+          } else {
+            const content = await safeReadFile(args.file);
+            // Return limited size to avoid blowing up context
+            const max = 8000;
+            toolResult = {
+              file: args.file,
+              content: content.length > max ? content.slice(0, max) + '\n... [truncated, file is longer]' : content,
+              size: content.length,
+            };
+          }
+        } catch (e: any) {
+          toolResult = { error: e.message || 'Failed to read file' };
+        }
+      }
+
+      if (functionName === "list_files") {
+        try {
+          toolResult = await listFiles(args.dir || 'src');
+        } catch (e: any) {
+          toolResult = { error: e.message };
+        }
+      }
+
+      if (functionName === "search_code" && args.pattern) {
+        try {
+          toolResult = await searchCode(args.pattern, {
+            path: args.path,
+            glob: args.glob,
+            maxResults: args.maxResults,
+          });
+        } catch (e: any) {
+          toolResult = { error: e.message };
+        }
+      }
+
+      if (functionName === "run_check" && args.check) {
+        try {
+          toolResult = await runSafeCheck(args.check);
+        } catch (e: any) {
+          toolResult = { error: e.message };
+        }
+      }
 
       if (functionName === "get_platform_overview") {
         const [userCount, sellerCount, orderCount, completedOrders, totalRevenue] = await Promise.all([
@@ -445,6 +589,26 @@ Current session context:
         return Response.json({
           tool_calls: message.tool_calls,
           content: message.content
+        });
+      }
+
+      // Client-side interactive tools (browser DOM + code proposal preview).
+      // Return the raw tool_calls so the frontend can render rich UI (pending code panel, live highlights, etc.)
+      // and call executeTool() locally. The server does NOT auto-execute these.
+      const CLIENT_SIDE_TOOLS = [
+        'propose_code_change',
+        'highlight_element',
+        'describe_element',
+        'scroll_to',
+        'click_element',
+        'type_text',
+        'get_visible_text',
+      ];
+
+      if (CLIENT_SIDE_TOOLS.includes(functionName)) {
+        return Response.json({
+          tool_calls: message.tool_calls,
+          content: message.content,
         });
       }
 
