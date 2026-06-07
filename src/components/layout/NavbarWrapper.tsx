@@ -37,7 +37,6 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition">
             <div className="w-9 h-9 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold">OU</div>
-            <span className="font-bold text-2xl text-foreground">Oiga Usted</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-4">

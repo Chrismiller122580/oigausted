@@ -31,10 +31,9 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
       <nav className="bg-background border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           
-          {/* Logo - matches BuyerNavbar style */}
+          {/* Logo */}
           <Link href="/" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition">
             <div className="w-9 h-9 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold">OU</div>
-            <span className="font-bold text-2xl text-foreground">Oiga Usted</span>
           </Link>
 
           {/* Desktop Navigation */}

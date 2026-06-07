@@ -27,9 +27,6 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
             <div className="w-10 h-10 bg-red-600 rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg">
               ⚡
             </div>
-            <span className="font-bold text-xl sm:text-2xl tracking-tight text-foreground">
-              OigaUsted <span className="text-red-500">Admin</span>
-            </span>
           </Link>
 
           {/* Desktop Menu */}

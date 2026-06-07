@@ -27,7 +27,6 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
             {/* Logo - links to homepage */}
             <Link href="/" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition">
               <div className="w-9 h-9 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold">OU</div>
-              <span className="font-bold text-2xl text-foreground">Oiga Usted</span>
             </Link>
 
             {/* Desktop Navigation */}
