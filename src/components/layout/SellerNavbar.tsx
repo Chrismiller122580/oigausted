@@ -3,7 +3,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LogOut, Plus, DollarSign, Menu, X } from 'lucide-react';
+import { LogOut, Plus, DollarSign, Menu, X, MessageCircle } from 'lucide-react';
 import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { useState } from 'react';
@@ -61,8 +61,13 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
                 👤
               </div>
             </Link>
-            <Link href="/support" className="text-sm text-muted-foreground hover:text-foreground transition hidden lg:inline">
-              Soporte
+            <Link 
+              href="/support" 
+              className="hidden lg:inline text-muted-foreground hover:text-foreground transition p-2 rounded-md hover:bg-accent" 
+              title="Soporte" 
+              aria-label="Soporte"
+            >
+              <MessageCircle size={18} />
             </Link>
 
             <NotificationsBell />

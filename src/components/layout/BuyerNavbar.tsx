@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { Home, Package, LogOut, User, Menu, X, Search } from 'lucide-react';
+import { Home, Package, LogOut, User, Menu, X, Search, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { NotificationsBell } from './NotificationsBell';
@@ -46,22 +46,25 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
             {/* Desktop User Area */}
             <div className="hidden md:flex items-center gap-4">
               {session?.user && (
-                <>
-                  <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition">
-                    <div className="text-right">
-                      <p className="font-medium text-sm text-foreground">Hola, {session.user.name?.split(" ")[0]}</p>
-                      <p className="text-xs text-muted-foreground">Comprador</p>
-                    </div>
-                    <div className="w-9 h-9 bg-orange-100 dark:bg-orange-900/40 rounded-full flex items-center justify-center text-2xl cursor-pointer hover:ring-2 hover:ring-orange-600 transition">
-                      👤
-                    </div>
-                  </Link>
-                  <Link href="/support" className="text-sm text-muted-foreground hover:text-foreground transition hidden lg:inline">
-                    Soporte
-                  </Link>
-                </>
+                <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition">
+                  <div className="text-right">
+                    <p className="font-medium text-sm text-foreground">Hola, {session.user.name?.split(" ")[0]}</p>
+                    <p className="text-xs text-muted-foreground">Comprador</p>
+                  </div>
+                  <div className="w-9 h-9 bg-orange-100 dark:bg-orange-900/40 rounded-full flex items-center justify-center text-2xl cursor-pointer hover:ring-2 hover:ring-orange-600 transition">
+                    👤
+                  </div>
+                </Link>
               )}
 
+              <Link 
+                href="/support" 
+                className="hidden lg:inline text-muted-foreground hover:text-foreground transition p-2 rounded-md hover:bg-accent" 
+                title="Soporte" 
+                aria-label="Soporte"
+              >
+                <MessageCircle size={18} />
+              </Link>
               <NotificationsBell />
               <ModeToggle />
               <Button 
