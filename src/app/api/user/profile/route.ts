@@ -19,7 +19,9 @@ export async function PATCH(request: Request) {
       where: { id: userId },
       data: {
         name: data.name || undefined,
+        tagline: data.tagline || undefined,
         profilePicture: data.imageUrl || undefined,
+        businessName: data.businessName || undefined,
         bio: data.bio || null,
         phone: data.phone || null,
         whatsapp: data.whatsapp || null,
@@ -28,6 +30,7 @@ export async function PATCH(request: Request) {
         city: data.city || undefined,
         latitude: data.latitude ?? undefined,
         longitude: data.longitude ?? undefined,
+        serviceRadiusKm: data.serviceRadiusKm ?? undefined,
       },
     });
 

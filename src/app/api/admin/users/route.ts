@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 // @ts-ignore
-// @ts-ignore
- import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { devLog } from '@/lib/utils';
 import { logAuditEvent } from '@/lib/audit';
 import { notifications } from '@/lib/notifications';
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (!isAdmin(session)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ users });
   } catch (error) {
-    console.error('Admin users error:', error);
+    devLog('Admin users error:', error);
     return NextResponse.json({ error: 'Error cargando usuarios' }, { status: 500 });
   }
 }
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (!isAdmin(session)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -70,10 +70,16 @@ export async function PATCH(req: NextRequest) {
       userId, 
       role, 
       name, 
+      tagline,
       businessName, 
       phone, 
       whatsapp, 
+      instagram,
+      facebook,
       city, 
+      latitude,
+      longitude,
+      serviceRadiusKm,
       bio,
       nit,
       isActive,
@@ -100,26 +106,40 @@ export async function PATCH(req: NextRequest) {
       data: {
         ...(role && { role }),
         ...(name !== undefined && { name }),
+        ...(tagline !== undefined && { tagline }),
         ...(businessName !== undefined && { businessName }),
         ...(phone !== undefined && { phone }),
         ...(whatsapp !== undefined && { whatsapp }),
+        ...(instagram !== undefined && { instagram }),
+        ...(facebook !== undefined && { facebook }),
 
         ...(bio !== undefined && { bio }),
         ...(nit !== undefined && { nit }),
+        ...(city !== undefined && { city }),
+        ...(latitude !== undefined && { latitude }),
+        ...(longitude !== undefined && { longitude }),
+        ...(serviceRadiusKm !== undefined && { serviceRadiusKm }),
         ...(isActive !== undefined && { isActive }),
         ...(customReferralRate !== undefined && { customReferralRate: customReferralRate === '' || customReferralRate == null ? null : parseFloat(customReferralRate) }),
       },
       select: { 
         id: true, 
         name: true, 
+        tagline: true,
         email: true, 
         role: true, 
         businessName: true,
         phone: true,
         whatsapp: true,
+        instagram: true,
+        facebook: true,
 
         bio: true,
         nit: true,
+        city: true,
+        latitude: true,
+        longitude: true,
+        serviceRadiusKm: true,
         customReferralRate: true
       }
     });
@@ -171,7 +191,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ success: true, user: updated });
   } catch (error) {
-    console.error('Admin user update error:', error);
+    devLog('Admin user update error:', error);
     return NextResponse.json({ error: 'Error actualizando usuario' }, { status: 500 });
   }
 }

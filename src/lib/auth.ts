@@ -142,7 +142,7 @@ export const authOptions = {
       return true
     },
 
-    async jwt({ token, user, account }: any) {
+    async jwt({ token, user, account, trigger, session }: any) {
       if (user) {
         token.id = user.id
         token.role = (user as any).role || "buyer"
@@ -152,6 +152,7 @@ export const authOptions = {
           where: { id: user.id as string },
           select: {
             name: true,
+            tagline: true,
             profilePicture: true,
             businessName: true,
             bio: true,
@@ -159,6 +160,10 @@ export const authOptions = {
             whatsapp: true,
             instagram: true,
             facebook: true,
+            city: true,
+            latitude: true,
+            longitude: true,
+            serviceRadiusKm: true,
             rating: true,
             reviewCount: true,
             referredById: true,
@@ -167,6 +172,7 @@ export const authOptions = {
         if (dbUser) {
           const t = token as any
           t.name = dbUser.name
+          t.tagline = dbUser.tagline
           t.profilePicture = dbUser.profilePicture
           t.businessName = dbUser.businessName
           t.bio = dbUser.bio
@@ -174,10 +180,38 @@ export const authOptions = {
           t.whatsapp = dbUser.whatsapp
           t.instagram = dbUser.instagram
           t.facebook = dbUser.facebook
+          t.city = dbUser.city
+          t.latitude = dbUser.latitude
+          t.longitude = dbUser.longitude
+          t.serviceRadiusKm = dbUser.serviceRadiusKm
           t.rating = dbUser.rating
           t.reviewCount = dbUser.reviewCount
           t.referredById = dbUser.referredById
         }
+      }
+
+      // Support client-side session.update({ ... }) calls from profile editors
+      // This lets saves reflect immediately without requiring a full re-login or page reload.
+      if (trigger === 'update' && session) {
+        const t = token as any
+        if (session.name !== undefined) t.name = session.name
+        if (session.tagline !== undefined) t.tagline = session.tagline
+        const pic = session.profilePicture ?? session.image
+        if (pic !== undefined) {
+          t.profilePicture = pic
+        }
+        if (session.businessName !== undefined) t.businessName = session.businessName
+        if (session.bio !== undefined) t.bio = session.bio
+        if (session.phone !== undefined) t.phone = session.phone
+        if (session.whatsapp !== undefined) t.whatsapp = session.whatsapp
+        if (session.instagram !== undefined) t.instagram = session.instagram
+        if (session.facebook !== undefined) t.facebook = session.facebook
+        // city can come as 'city' (main profile) or 'location' (seller profile form)
+        if (session.city !== undefined) t.city = session.city
+        else if (session.location !== undefined) t.city = session.location
+        if (session.latitude !== undefined) t.latitude = session.latitude
+        if (session.longitude !== undefined) t.longitude = session.longitude
+        if (session.serviceRadiusKm !== undefined) t.serviceRadiusKm = session.serviceRadiusKm
       }
 
       // No per-request role/profile refetch to reduce DB load on every getServerSession (role changes require re-login or explicit session update)
@@ -193,6 +227,7 @@ export const authOptions = {
 
         // Profile fields come from token (populated at signin/jwt to avoid N+1 DB per session)
         if (t.name) su.name = t.name
+        if (t.tagline != null) su.tagline = t.tagline
         if (t.profilePicture != null) {
           su.image = t.profilePicture
           su.profilePicture = t.profilePicture
@@ -203,6 +238,10 @@ export const authOptions = {
         su.whatsapp = t.whatsapp
         su.instagram = t.instagram
         su.facebook = t.facebook
+        su.city = t.city
+        su.latitude = t.latitude
+        su.longitude = t.longitude
+        su.serviceRadiusKm = t.serviceRadiusKm
         su.rating = t.rating ?? 0
         su.reviewCount = t.reviewCount ?? 0
         su.referredById = t.referredById ?? null
