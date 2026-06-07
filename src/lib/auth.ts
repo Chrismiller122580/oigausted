@@ -152,7 +152,6 @@ export const authOptions = {
           where: { id: user.id as string },
           select: {
             name: true,
-            tagline: true,
             profilePicture: true,
             businessName: true,
             bio: true,
@@ -172,7 +171,6 @@ export const authOptions = {
         if (dbUser) {
           const t = token as any
           t.name = dbUser.name
-          t.tagline = dbUser.tagline
           t.profilePicture = dbUser.profilePicture
           t.businessName = dbUser.businessName
           t.bio = dbUser.bio
@@ -195,7 +193,6 @@ export const authOptions = {
       if (trigger === 'update' && session) {
         const t = token as any
         if (session.name !== undefined) t.name = session.name
-        if (session.tagline !== undefined) t.tagline = session.tagline
         const pic = session.profilePicture ?? session.image
         if (pic !== undefined) {
           t.profilePicture = pic
@@ -227,7 +224,6 @@ export const authOptions = {
 
         // Profile fields come from token (populated at signin/jwt to avoid N+1 DB per session)
         if (t.name) su.name = t.name
-        if (t.tagline != null) su.tagline = t.tagline
         if (t.profilePicture != null) {
           su.image = t.profilePicture
           su.profilePicture = t.profilePicture

@@ -19,7 +19,9 @@ export async function PATCH(request: Request) {
       where: { id: userId },
       data: {
         name: data.name || undefined,
-        tagline: data.tagline || undefined,
+        // tagline temporarily omitted until the migration adding the column is deployed
+        // (see prisma/migrations/20260607153000_add_missing_tagline_column)
+        // tagline: data.tagline || undefined,
         profilePicture: data.imageUrl || undefined,
         businessName: data.businessName || undefined,
         bio: data.bio || null,
