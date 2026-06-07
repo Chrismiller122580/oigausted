@@ -101,14 +101,16 @@ function CreateGigClient() {
     }
   }, [editParam]);
 
-  // Redirect unauthenticated users to login (with return to create-gig)
+  // Redirect unauthenticated or non-seller users
   useEffect(() => {
     if (status === "loading") return;
     if (!session?.user) {
       const callbackUrl = getAuthCallbackUrl("/create-gig");
       router.replace(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+    } else if (!canPublish) {
+      router.replace('/profile');
     }
-  }, [status, session?.user, router]);
+  }, [status, session?.user, canPublish, router]);
 
   const loadGigForEdit = async (id: string) => {
     setLoadingGig(true);
@@ -266,18 +268,22 @@ function CreateGigClient() {
     );
   }
 
-  return (
-    <div className="max-w-4xl mx-auto p-6 md:p-8">
-      <MapsPollutionNuke />
-      {!canPublish && session && (
-        <div className="mb-8 p-6 bg-amber-50 border border-amber-200 rounded-3xl text-center">
-          <p className="text-amber-800 font-medium mb-2">Debes ser vendedor para publicar servicios.</p>
-          <p className="text-sm text-amber-700 mb-4">Actualiza tu perfil para convertirte en vendedor y comenzar a publicar gigs.</p>
-          <Button onClick={() => router.push('/profile')} className="bg-amber-600 hover:bg-amber-700">
+  if (session && !canPublish) {
+    return (
+      <div className="max-w-4xl mx-auto p-8 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <p className="text-lg text-muted-foreground mb-4">Debes ser vendedor para publicar servicios.</p>
+          <Button onClick={() => router.push('/profile')} className="bg-orange-600 hover:bg-orange-700">
             Ir a mi perfil
           </Button>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 md:p-8">
+      <MapsPollutionNuke />
       <div className="mb-8">
         <h1 className="text-4xl font-bold tracking-tight">
           {isEditing ? "Editar Servicio" : "Publica tu Servicio"}
@@ -591,7 +597,7 @@ function CreateGigClient() {
 
         <Button 
           type="submit" 
-          disabled={submitting || !canPublish}
+          disabled={submitting}
           className="w-full py-7 text-lg font-semibold bg-orange-600 hover:bg-orange-700 disabled:opacity-70"
         >
           {submitting 
