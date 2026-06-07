@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { Home, Package, LogOut, User, Menu, X } from 'lucide-react';
+import { Home, Package, LogOut, User, Menu, X, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { NotificationsBell } from './NotificationsBell';
@@ -32,7 +32,9 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8 font-medium">
-              <Link href="/gigs" className="text-muted-foreground hover:text-foreground transition">Explorar Gigs</Link>
+              <Link href="/gigs" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
+                <Search size={18} /> Explorar Gigs
+              </Link>
               <Link href="/buyer" className="flex items-center gap-2 text-orange-600 font-semibold border-b-2 border-orange-600 pb-1">
                 <Home size={18} /> Dashboard
               </Link>
