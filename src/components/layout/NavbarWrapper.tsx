@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { ModeToggle } from '@/components/ui/mode-toggle';
-import { NotificationsBell } from './NotificationsBell';
 import MobileMenu from './MobileMenu';
 
 // Same-folder imports (all files are in layout/)
@@ -17,6 +17,8 @@ import SellerNavbar from './SellerNavbar';
 export default function NavbarWrapper({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password' || pathname?.startsWith('/login/') || false;
 
   if (status === "loading") {
     return <div className="min-h-[80px] bg-background border-b border-border flex items-center justify-center">Cargando...</div>;
@@ -39,16 +41,16 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
           </Link>
 
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/gigs" className="text-foreground hover:text-orange-600 transition-colors">Explorar Gigs</Link>
+            {!isAuthPage && (
+              <Link href="/gigs" className="text-foreground hover:text-orange-600 transition-colors">Explorar Gigs</Link>
+            )}
             <Link href="/login"><Button variant="outline">Iniciar Sesión</Button></Link>
             <Link href="/signup"><Button className="bg-orange-600">Registrarse</Button></Link>
-            <NotificationsBell />
-            <ModeToggle />
+            {!isAuthPage && <ModeToggle />}
           </div>
 
           <div className="md:hidden flex items-center gap-2">
-            <NotificationsBell />
-            <ModeToggle />
+            {!isAuthPage && <ModeToggle />}
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Toggle menu"

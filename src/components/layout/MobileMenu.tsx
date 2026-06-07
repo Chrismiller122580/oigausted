@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
 import { X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp, MessageCircle, Settings, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -13,6 +14,8 @@ interface MobileMenuProps {
 
 export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileMenuProps) {
   const { data: session } = useSession();
+  const pathname = usePathname();
+  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password' || pathname?.startsWith('/login/') || false;
 
   if (!isOpen) return null;
 
@@ -38,9 +41,11 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
       <div className="px-6 py-8 space-y-2 text-lg overflow-y-auto h-[calc(100vh-5rem)]">
         {role === 'public' && (
           <>
-            <Link href="/gigs" onClick={onClose} className="block py-4 border-b border-border">
-              Explorar Gigs
-            </Link>
+            {!isAuthPage && (
+              <Link href="/gigs" onClick={onClose} className="block py-4 border-b border-border">
+                Explorar Gigs
+              </Link>
+            )}
             <Link href="/login" onClick={onClose} className="block py-4 border-b border-border">
               Iniciar Sesión
             </Link>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { toast } from 'sonner'; // Using Sonner for 2027-grade beautiful actionable toasts
 import { playNotificationSound } from './notificationSound';
 
@@ -40,11 +41,15 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
     onNewNotification,
   } = options;
 
+  const { data: session, status: sessionStatus } = useSession();
+
   const [notifications, setNotifications] = useState<RealtimeNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
   const lastNotificationIds = useRef<Set<string>>(new Set());
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const isAuthed = sessionStatus === 'authenticated' && !!session?.user;
 
   // Show rich actionable toast with 2027-grade buttons
   const showNotificationToast = useCallback((notif: RealtimeNotification) => {
@@ -241,6 +246,7 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
   // Connect to SSE (primary real-time channel)
   const connectSSE = useCallback(() => {
     if (typeof window === 'undefined') return;
+    if (!isAuthed) return;
 
     connectionCount++;
     if (globalEventSource) {
@@ -296,6 +302,7 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
   // Fallback polling (when SSE fails or as backup)
   const startPollingFallback = useCallback(() => {
     if (pollingIntervalRef.current) return;
+    if (!isAuthed) return;
 
     pollingIntervalRef.current = setInterval(async () => {
       try {
@@ -327,6 +334,13 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    // Do not attempt SSE or polling for unauthenticated users.
+    // Prevents 401 errors and console noise on public pages (login, /gigs when logged out, etc.).
+    if (!isAuthed) {
+      setIsConnected(false);
+      return;
+    }
+
     connectSSE();
     startPollingFallback();
 
@@ -342,7 +356,7 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
         pollingIntervalRef.current = null;
       }
     };
-  }, [connectSSE, startPollingFallback]);
+  }, [connectSSE, startPollingFallback, isAuthed]);
 
   // Manual refresh
   const refresh = useCallback(async () => {

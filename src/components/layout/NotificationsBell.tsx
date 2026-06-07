@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Bell, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useSession } from 'next-auth/react';
 import { useRealtimeNotifications } from '@/lib/useRealtimeNotifications';
 import { playNotificationSound as playChime } from '@/lib/notificationSound';
 
@@ -17,6 +18,8 @@ interface AppNotification {
 }
 
 export function NotificationsBell() {
+  const { data: session, status: sessionStatus } = useSession();
+
   const { 
     notifications: realtimeNotifs, 
     unreadCount: realtimeUnread, 
@@ -70,10 +73,11 @@ export function NotificationsBell() {
   };
 
   useEffect(() => {
+    if (!session?.user) return;
     // Initial load + manual refresh support
     fetchNotifications(true);
     // The useRealtimeNotifications hook handles the real-time updates now
-  }, []);
+  }, [session?.user]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -88,6 +92,7 @@ export function NotificationsBell() {
 
   // Load client notification presentation prefs (desktop + sound)
   useEffect(() => {
+    if (!session?.user) return;
     const loadPrefs = async () => {
       try {
         const res = await fetch('/api/user/notification-preferences');
@@ -109,7 +114,7 @@ export function NotificationsBell() {
       }
     };
     loadPrefs();
-  }, []);
+  }, [session?.user]);
 
   const triggerDesktopNotification = (n: AppNotification) => {
     if (!clientPrefs.desktop) return;
@@ -195,6 +200,13 @@ export function NotificationsBell() {
     }
     setIsOpen(!isOpen);
   };
+
+  // Do not render the bell UI (or trigger any side effects that assume auth)
+  // for unauthenticated users. Combined with guards in useRealtimeNotifications
+  // and the fetch effects, this eliminates 401 noise on public pages.
+  if (sessionStatus === 'loading' || !session?.user) {
+    return null;
+  }
 
   return (
     <div className="relative" ref={dropdownRef}>
