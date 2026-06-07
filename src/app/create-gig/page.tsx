@@ -308,14 +308,16 @@ function CreateGigClient() {
                 <SelectValue placeholder="Selecciona una categoría" />
               </SelectTrigger>
               <SelectContent>
-                {categoriesLoading && <SelectItem value="" disabled>Cargando categorías...</SelectItem>}
-                {gigCategories.map(cat => (
-                  <SelectItem key={cat.name} value={cat.name}>
-                    {cat.icon} {cat.name}
-                  </SelectItem>
-                ))}
-                {!categoriesLoading && gigCategories.length === 0 && (
-                  <SelectItem value="" disabled>No hay categorías disponibles</SelectItem>
+                {categoriesLoading ? (
+                  <div className="py-2 px-3 text-sm text-muted-foreground">Cargando categorías...</div>
+                ) : gigCategories.length > 0 ? (
+                  gigCategories.map(cat => (
+                    <SelectItem key={cat.name} value={cat.name}>
+                      {cat.icon} {cat.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="py-2 px-3 text-sm text-muted-foreground">No hay categorías disponibles</div>
                 )}
               </SelectContent>
             </Select>
