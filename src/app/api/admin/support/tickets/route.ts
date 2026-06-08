@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 // @ts-ignore
-// @ts-ignore
- import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
+import { devLog } from '@/lib/utils';
 
 // GET: List all support tickets (admin only), with optional filters
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (!isAdmin(session)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ tickets });
   } catch (error) {
-    console.error('Admin get support tickets error:', error);
+    devLog('Admin get support tickets error:', error);
     return NextResponse.json({ error: 'Error cargando tickets de soporte' }, { status: 500 });
   }
 }
@@ -56,10 +56,10 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const adminId = (session?.user as any)?.id;
-    if ((session?.user as any)?.role !== 'admin' || !adminId) {
+    if (!isAdmin(session)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
+    const adminId = (session?.user as any)?.id; // still needed for resolvedBy, kept minimal cast
 
     const body = await request.json();
     const { ticketId, status, adminReply, priority } = body;
@@ -111,12 +111,12 @@ export async function PATCH(request: NextRequest) {
         { ticketId: updated.id, status: updated.status }
       );
     } catch (notifErr) {
-      console.error('Failed to notify user of ticket update:', notifErr);
+      devLog('Failed to notify user of ticket update:', notifErr);
     }
 
     return NextResponse.json({ success: true, ticket: updated });
   } catch (error) {
-    console.error('Admin update support ticket error:', error);
+    devLog('Admin update support ticket error:', error);
     return NextResponse.json({ error: 'Error actualizando ticket' }, { status: 500 });
   }
 }

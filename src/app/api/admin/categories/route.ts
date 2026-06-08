@@ -1,15 +1,13 @@
 // @ts-ignore
-// @ts-ignore
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
-import { authOptions } from '@/lib/auth';
+import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { parseJsonArrayField, toPrismaJson } from '@/lib/utils';
+import { parseJsonArrayField, toPrismaJson, devLog } from '@/lib/utils';
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
-  const role = (session?.user as any)?.role;
-  if (!session?.user || role !== 'admin') {
+  if (!session?.user || !isAdmin(session)) {
     return null;
   }
   return session;
@@ -43,7 +41,7 @@ export async function GET() {
 
     return NextResponse.json({ categories: normalized });
   } catch (error) {
-    console.error('Admin categories GET error:', error);
+    devLog('Admin categories GET error:', error);
     return NextResponse.json({ error: 'Error al cargar categorías' }, { status: 500 });
   }
 }
@@ -80,7 +78,7 @@ export async function POST(req: NextRequest) {
     if (error.code === 'P2002') {
       return NextResponse.json({ error: 'Ya existe una categoría con ese nombre' }, { status: 409 });
     }
-    console.error('Admin categories POST error:', error);
+    devLog('Admin categories POST error:', error);
     return NextResponse.json({ error: 'Error al crear categoría' }, { status: 500 });
   }
 }
@@ -113,7 +111,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ category: { ...updated, fields: parseJsonArrayField(updated.fields) } });
   } catch (error) {
-    console.error('Admin categories PUT error:', error);
+    devLog('Admin categories PUT error:', error);
     return NextResponse.json({ error: 'Error al actualizar categoría' }, { status: 500 });
   }
 }
@@ -144,7 +142,7 @@ export async function DELETE(req: NextRequest) {
     await prisma.category.delete({ where: { name } });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Admin categories DELETE error:', error);
+    devLog('Admin categories DELETE error:', error);
     return NextResponse.json({ error: 'Error al eliminar categoría' }, { status: 500 });
   }
 }

@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { parseJsonArrayField, devLog } from '@/lib/utils';
+import { parseJsonArrayField, devLog, computePriceFromSelections } from '@/lib/utils';
 import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
 
 declare global {
@@ -257,11 +257,11 @@ export default function CheckoutPage() {
   };
 
   // (Beta bypass handler removed per security review — prod users can no longer force Paid without webhook.
-  // Dev simulate button below remains for local testing.)
+  // Dev simulate button is gated to NODE_ENV=development and server also restricts the Paid transition.)
 
   const fields = parseJsonArrayField(gig?.fields);
 
-  // Calculate extra cost from selections
+  // Calculate extra cost from selections (for breakdown display)
   const calculateExtra = () => {
     let extra = 0;
     fields.forEach((field: any) => {
@@ -283,7 +283,8 @@ export default function CheckoutPage() {
   };
 
   const extraCost = calculateExtra();
-  const finalPrice = (gig?.price || 0) + extraCost;
+  // Authoritative finalPrice via shared util (matches server enforcement in orders PATCH)
+  const finalPrice = computePriceFromSelections(gig?.price || 0, fields, selectedOptions);
 
   // Handle field change
   const handleFieldChange = (key: string, value: any) => {
@@ -584,18 +585,18 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {/* DEV BYPASS - Simulate successful Wompi payment (only in development) */}
+          {/* DEV SIMULATE - only visible in development builds. Never use with real Wompi live keys. */}
           {process.env.NODE_ENV === 'development' && (!wompiReady || wompiLoadFailed) && order && (
             <div className="mt-4 p-4 border border-dashed border-orange-500 rounded-xl bg-orange-50 dark:bg-orange-950/30">
               <p className="text-sm font-medium text-orange-700 dark:text-orange-400 mb-2">
-                DEV TESTING ONLY
+                DEV TESTING ONLY — Do not use with real Wompi keys
               </p>
               <Button
                 variant="outline"
                 onClick={async () => {
                   try {
                     setOpening(true);
-                    // Save selections + price (dev simulate; server allows Paid transition only in NODE_ENV=development)
+                    // Server will sanitize customFields + enforce computed price from gig snapshot (even if we send finalPrice here).
                     await fetch(`/api/orders/${order.id}`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
@@ -604,7 +605,7 @@ export default function CheckoutPage() {
                         customFields: selectedOptions,
                       }),
                     });
-                    // Then mark Paid
+                    // Then mark Paid (server only allows this transition in NODE_ENV=development)
                     await fetch(`/api/orders/${order.id}`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
@@ -623,7 +624,7 @@ export default function CheckoutPage() {
                 Simulate Successful Wompi Payment (Dev Only)
               </Button>
               <p className="text-xs text-muted-foreground mt-2 text-center">
-                Bypasses the real Wompi widget so you can test the rest of the flow. Now correctly saves custom fields.
+                Bypasses the real Wompi widget for local testing against sandbox keys. Server enforces price + sanitizes fields.
               </p>
             </div>
           )}

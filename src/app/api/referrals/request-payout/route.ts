@@ -4,7 +4,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendNotification } from '@/lib/notifications'
-import { devLog } from '@/lib/utils'
+import { devLog, toPrismaJson } from '@/lib/utils'
+import { logAuditEvent } from '@/lib/audit'
 
 export async function POST() {
   const session = await getServerSession(authOptions)
@@ -34,13 +35,23 @@ export async function POST() {
       }, { status: 400 })
     }
 
-    // Mark these earnings as requested (simple status update for beta)
-    await prisma.referralEarning.updateMany({
-      where: { referrerId: userId, status: 'Pending' },
-      data: { status: 'Requested' }
+    // Mark as requested + audit in tx
+    await prisma.$transaction(async (tx) => {
+      await tx.referralEarning.updateMany({
+        where: { referrerId: userId, status: 'Pending' },
+        data: { status: 'Requested' }
+      })
+
+      await logAuditEvent({
+        performedById: userId,
+        action: 'REFERRAL_PAYOUT_REQUESTED',
+        targetType: 'User',
+        targetId: userId,
+        details: toPrismaJson({ amount: totalPending }),
+      });
     })
 
-    // Notify all admins
+    // Notify all admins (best effort outside tx)
     const admins = await prisma.user.findMany({
       where: { role: 'admin' },
       select: { id: true, email: true }
@@ -99,7 +110,7 @@ export async function POST() {
       message: 'Solicitud enviada. Te contactaremos pronto para procesar el pago.' 
     })
   } catch (error) {
-    console.error('Payout request error:', error)
+    devLog('Payout request error:', error)
     return NextResponse.json({ error: 'Error al solicitar el pago de comisiones' }, { status: 500 })
   }
 }

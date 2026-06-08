@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { notifications } from '@/lib/notifications'
 import { logAuditEvent } from '@/lib/audit'
-import { devLog, toPrismaJson } from '@/lib/utils'
+import { devLog, toPrismaJson, parseJsonArrayField, computePriceFromSelections, parseCustomFields } from '@/lib/utils'
 
 export async function GET(
   request: Request,
@@ -71,6 +71,61 @@ export async function PATCH(
     const isBuyer = existingOrder.buyerId === userId;
     const isSeller = existingOrder.sellerId === userId;
 
+    // --- Server-side validations for live payments (price + required address) ---
+    // 1. Fetch gig snapshot once (price + fields for dynamic pricing + isRemote for address rules).
+    // 2. For non-remote gigs: enforce serviceAddress server-side (client only does a toast guard today).
+    // 3. For dynamic fields: sanitize incoming customFields (strip any __* internal keys), then
+    //    re-compute authoritative total from the published gig.fields snapshot using the shared util.
+    //    Enforce the server value; audit mismatches. This is critical before real Wompi charges.
+    let enforcedPrice: number | undefined = undefined;
+    let gigSnap: { price: number | null; fields: any; isRemote: boolean | null } | null = null;
+
+    try {
+      gigSnap = await prisma.gig.findUnique({
+        where: { id: existingOrder.gigId },
+        select: { price: true, fields: true, isRemote: true }
+      });
+    } catch (e) {
+      devLog('gig snapshot fetch failed (non-fatal)', e);
+    }
+
+    // Address enforcement for non-remote gigs (defense in depth for real money bookings)
+    if (gigSnap && gigSnap.isRemote !== true) {
+      const candidateAddress = serviceAddress !== undefined ? serviceAddress : existingOrder.serviceAddress;
+      if (!candidateAddress || !String(candidateAddress).trim()) {
+        return NextResponse.json(
+          { error: 'La dirección del servicio es obligatoria para gigs locales/no-remotos' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Price enforcement + sanitization (only when buyer is sending selections)
+    if (customFields !== undefined && gigSnap) {
+      try {
+        const selections = parseCustomFields(customFields); // strips __* keys, normalizes to object
+        const fieldDefs = parseJsonArrayField(gigSnap.fields);
+        enforcedPrice = computePriceFromSelections(gigSnap.price || 0, fieldDefs, selections);
+
+        if (price !== undefined) {
+          const submitted = Number(price);
+          if (Math.abs(submitted - enforcedPrice) > 1) {
+            devLog('ORDER_PRICE_MISMATCH', { orderId, submitted, enforced: enforcedPrice });
+            logAuditEvent({
+              performedById: userId ?? undefined,
+              action: 'ORDER_PRICE_MISMATCH',
+              targetType: 'Order',
+              targetId: orderId,
+              details: toPrismaJson({ submitted, computed: enforcedPrice, gigId: existingOrder.gigId })
+            }).catch(() => {});
+          }
+        }
+      } catch (e) {
+        devLog('price enforcement non-fatal error (will fall back)', e);
+      }
+    }
+    // --- end live payment validations ---
+
     const updateData: any = {}
 
     if (status) {
@@ -82,13 +137,15 @@ export async function PATCH(
       const current = existingOrder.status;
 
       // Role-aware transition rules (prevents buyers forcing completion, etc.)
-      // Manual 'Paid' only via webhook (wompi) or admin. Dev simulate allowed for testing.
+      // Manual 'Paid' only via webhook (wompi) or admin.
+      // Dev simulate is **only** allowed when NODE_ENV=development (for local/sandbox testing).
+      // When real Wompi live keys are configured, do not rely on this path.
       if (!isAdmin) {
         if (status === 'Paid' && current !== 'Pending') {
           if (process.env.NODE_ENV !== 'development') {
             return NextResponse.json({ error: 'Cannot manually set to Paid outside payment flow' }, { status: 400 });
           }
-          // In dev, the simulate button (in checkout page) is allowed to force Paid for testing without webhook.
+          // Dev-only simulate (checkout page button is also gated to NODE_ENV=development).
         }
         if (status === 'In Progress' && current !== 'Paid') {
           return NextResponse.json({ error: 'Order must be Paid before In Progress' }, { status: 400 });
@@ -113,12 +170,18 @@ export async function PATCH(
       updateData.status = status
     }
 
-    if (price !== undefined) {
-      updateData.price = Number(price)
+    if (enforcedPrice !== undefined) {
+      // Always enforce server-computed price when buyer supplied selections (anti-tamper for live)
+      updateData.price = enforcedPrice;
+    } else if (price !== undefined) {
+      updateData.price = Number(price);
     }
 
     if (customFields !== undefined) {
-      updateData.customFields = customFields ? JSON.stringify(customFields) : null
+      const sanitizedForStorage = parseCustomFields(customFields);
+      updateData.customFields = Object.keys(sanitizedForStorage).length > 0
+        ? JSON.stringify(sanitizedForStorage)
+        : null;
     }
 
     if (serviceAddress !== undefined) {

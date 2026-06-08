@@ -59,7 +59,7 @@ export default function AdminAuditPage() {
 
   useEffect(() => {
     fetchLogs();
-  }, [actionFilter, targetTypeFilter, actorFilter]);
+  }, [fetchLogs]); // useCallback dep prevents stale closures and lint "setState in effect" indirect issues
 
   // Auto-refresh so logs "update" live without manual browser reload (every 15s when enabled)
   useEffect(() => {

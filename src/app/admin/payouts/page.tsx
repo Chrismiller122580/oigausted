@@ -84,6 +84,7 @@ export default function AdminPayoutsPage() {
       <div className="max-w-6xl mx-auto">
         <h1 className="text-5xl font-bold mb-2">Pagos a Vendedores</h1>
         <div className="text-muted-foreground mb-8 space-y-1">
+          <p className="text-xs text-amber-600">Beta en vivo: Marcas de "Pagado" rastrean comisiones de referidos (con tx+audit). Pagos netos a vendedores se calculan con lib/payout en el momento (sin ledger persistente aún; desembolsos manuales/externos por fase actual).</p>
           <div>
             Neto a pagar a vendedores: <span className="font-bold text-2xl text-emerald-400">${totalNetToSellers.toLocaleString('es-CO')}</span>
           </div>

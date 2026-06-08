@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 // @ts-ignore
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { devLog } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if ((session?.user as any)?.role !== 'admin') {
+  if (!isAdmin(session)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
   try {
@@ -17,11 +17,15 @@ export async function GET(request: NextRequest) {
       prisma.referralEarning.count({ where: { status: 'Pending' } }),
     ]);
 
+    const wompiPublicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '';
+    const isWompiSandbox = wompiPublicKey.includes('test') || !wompiPublicKey;
+
     return NextResponse.json({
       activeChats: pendingOrders + openTickets, // rough proxy
       onlineSellers: recentReferrals, // proxy for activity
       pendingOrders,
       openTickets,
+      wompiMode: isWompiSandbox ? 'sandbox' : 'live',
       message: "Live admin data (real)"
     });
   } catch (e) {

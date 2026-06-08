@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { notifications } from '@/lib/notifications'
 import { logAuditEvent } from '@/lib/audit'
-import { devLog } from '@/lib/utils'
+import { devLog, toPrismaJson } from '@/lib/utils'
 
 const WOMPI_EVENTS_KEY = process.env.WOMPI_EVENTS_KEY
 
@@ -13,7 +13,7 @@ if (process.env.NODE_ENV === 'production' && WOMPI_EVENTS_KEY?.includes('test'))
 
 function verifyWompiSignature(body: any, receivedSignature: string): boolean {
   if (!WOMPI_EVENTS_KEY) {
-    console.error('[Wompi] WOMPI_EVENTS_KEY is not set in environment')
+    devLog('[Wompi] WOMPI_EVENTS_KEY is not set in environment')
     return false
   }
 
@@ -87,8 +87,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ received: true })
       }
 
-      // Fetch current to support idempotency checks
-      const existingOrder = await prisma.order.findUnique({ where: { id: orderId }, select: { status: true } })
+      // Fetch current to support idempotency checks + amount reconciliation
+      const existingOrder = await prisma.order.findUnique({ where: { id: orderId }, select: { status: true, price: true } })
 
       const updateData: any = {
         updatedAt: new Date(),
@@ -111,6 +111,28 @@ export async function POST(request: Request) {
           // Keep current status or set to something like "Payment Pending"
           devLog(`⏳ Payment still PENDING for order: ${orderId}`)
           return NextResponse.json({ received: true, event })
+      }
+
+      // Amount reconciliation check for live Wompi (real money safety)
+      if (transaction.status === 'APPROVED') {
+        const txAmount = (transaction.amount_in_cents || 0) / 100;
+        const ourPrice = existingOrder?.price ?? 0;
+        if (Math.abs(txAmount - ourPrice) > 1) {
+          devLog('WOMPI_AMOUNT_MISMATCH', { orderId, txAmount, ourPrice, reference: transaction.reference });
+          await logAuditEvent({
+            performedById: null,
+            action: 'WOMPI_AMOUNT_MISMATCH',
+            targetType: 'Order',
+            targetId: orderId,
+            details: toPrismaJson({
+              wompiAmount: txAmount,
+              orderPrice: ourPrice,
+              transactionId: transaction.id,
+              reference: transaction.reference,
+            }),
+          }).catch(() => {});
+          // We still proceed (Wompi approved this amount), but the mismatch is now audited for ops review.
+        }
       }
 
       // Wrap status update + referralEarning create in tx for atomicity (prevents orphan earnings on crash/partial)

@@ -8,7 +8,7 @@
  *   npx tsx scripts/test-email.ts you@gmail.com password-reset
  *
  * Override the FROM address easily (very useful while setting up domains):
- *   npx tsx scripts/test-email.ts you@gmail.com welcome --from "OigaUsted <support@support.oigagig.com>"
+ *   npx tsx scripts/test-email.ts you@gmail.com welcome --from "OigaUsted <support@oigagig.com>"
  *
  * Or with env var (recommended for quick testing):
  *   RESEND_FROM_EMAIL="OigaUsted <onboarding@resend.dev>" npx tsx scripts/test-email.ts you@gmail.com welcome
@@ -52,7 +52,7 @@ const fromEmail =
   'OigaUsted <onboarding@resend.dev>';
 
 if (!toEmail || !toEmail.includes('@')) {
-  console.error('\nUsage: npx tsx scripts/test-email.ts you@gmail.com [welcome|order|review|password-reset] [--from "OigaUsted <support@support.oigagig.com>"]');
+  console.error('\nUsage: npx tsx scripts/test-email.ts you@gmail.com [welcome|order|review|password-reset] [--from "OigaUsted <support@oigagig.com>"]');
   process.exit(1);
 }
 
@@ -87,7 +87,7 @@ async function send() {
             </a>
           </div>
           <p style="color: #666; font-size: 14px; text-align: center;">
-            ¿Tienes preguntas? Escríbenos a <a href="mailto:support@support.oigagig.com" style="color: #f97316;">support@support.oigagig.com</a>
+            ¿Tienes preguntas? Escríbenos a <a href="mailto:support@oigagig.com" style="color: #f97316;">support@oigagig.com</a>
           </p>
         </div>
       `;

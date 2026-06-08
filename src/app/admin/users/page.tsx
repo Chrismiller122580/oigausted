@@ -206,7 +206,7 @@ export default function AdminUsersPage() {
   };
 
   const impersonateUser = async (user: User) => {
-    if (!confirm(`¿Impersonar a ${user.email}? Esta acción registrará la actividad.`)) return;
+    if (!confirm(`¿Ver perfil de ${user.email} como admin? Esta acción se registrará en auditoría (NO es un cambio real de sesión).`)) return;
 
     try {
       const res = await fetch('/api/admin/impersonate', {
@@ -216,14 +216,15 @@ export default function AdminUsersPage() {
       });
 
       if (res.ok) {
-        toast.success(`Abriendo sesión como ${user.email}...`);
-        // Open their profile in a new tab with impersonation flag
+        toast.success(`Abriendo vista del perfil de ${user.email} (audited view only)...`);
+        // Opens the target's profile in a new tab. This is a read-only convenience view + full audit trail.
+        // It does NOT switch your admin session or grant the target's permissions.
         window.open(`/profile?impersonate=${user.id}`, '_blank');
       } else {
-        toast.error('No se pudo iniciar impersonación');
+        toast.error('No se pudo abrir la vista');
       }
     } catch (e) {
-      toast.error('Error al impersonar usuario');
+      toast.error('Error al iniciar vista de usuario');
     }
   };
 

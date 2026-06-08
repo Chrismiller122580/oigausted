@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
 
       try {
         await resend?.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'OigaUsted <support@support.oigagig.com>',
+          from: process.env.RESEND_FROM_EMAIL || 'OigaUsted <support@oigagig.com>',
           to: pref.user.email,
           subject,
           html,

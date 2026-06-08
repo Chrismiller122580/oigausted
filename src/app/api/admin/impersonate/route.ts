@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 // @ts-ignore
-// @ts-ignore
- import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
+import { devLog } from '@/lib/utils';
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if ((session?.user as any)?.role !== 'admin') {
+    if (!isAdmin(session)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -29,9 +29,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
-    // In a more advanced setup we would issue a special JWT here.
-    // For now we return the user data so the frontend can open their view.
-    // Log the impersonation
+    // NOTE: This is "view profile as" only + full audit. 
+    // It does NOT perform real session impersonation or elevate privileges.
+    // The frontend opens /profile?impersonate=... in a new tab while the admin remains logged in.
+    // Log the access for compliance.
     const adminId = (session.user as any).id;
     const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
     const userAgent = req.headers.get('user-agent') || null;
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
       message: `Impersonación iniciada para ${targetUser.email}`
     });
   } catch (error) {
-    console.error('Impersonate error:', error);
+    devLog('Impersonate error:', error);
     return NextResponse.json({ error: 'Error al impersonar' }, { status: 500 });
   }
 }

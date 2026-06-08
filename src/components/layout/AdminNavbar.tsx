@@ -12,6 +12,7 @@ import {
 import { useState } from 'react';
 import MobileMenu from './MobileMenu';
 import { NotificationsBell } from './NotificationsBell';
+import { ModeToggle } from '@/components/ui/mode-toggle';
 
 interface NavItem {
   href: string;
@@ -85,6 +86,7 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
             </div>
 
             <NotificationsBell />
+            <ModeToggle />
 
             <Button
               variant="ghost"
@@ -95,7 +97,10 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
               <LogOut size={18} />
             </Button>
 
-            {/* Mobile hamburger */}
+            {/* Mobile controls */}
+            <div className="md:hidden">
+              <ModeToggle />
+            </div>
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-2 text-muted-foreground hover:text-foreground"
@@ -125,7 +130,7 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
                     href={item.href}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
                       active
-                        ? 'bg-orange-100 text-orange-700 font-medium'
+                        ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 font-medium'
                         : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                     }`}
                   >

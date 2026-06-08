@@ -1,9 +1,7 @@
 // @ts-ignore
-// @ts-ignore
- import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions, isAdmin } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import FloatingGrokChat from '@/components/admin/FloatingGrokChat';
 
 export default async function AdminLayout({
   children,
@@ -12,8 +10,8 @@ export default async function AdminLayout({
 }) {
   const session = await getServerSession(authOptions);
 
-  // Basic admin protection for beta
-  if (!session?.user || (session.user as any).role !== 'admin') {
+  // Admin protection (consistent with isAdmin helper)
+  if (!session?.user || !isAdmin(session)) {
     redirect('/login?callbackUrl=/admin');
   }
 
@@ -22,8 +20,6 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen bg-background text-foreground">
       {children}
-      {/* Floating Grok chat available on all admin pages */}
-      <FloatingGrokChat />
     </div>
   );
 }

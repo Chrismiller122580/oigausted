@@ -59,6 +59,15 @@ export default function AdminDashboard() {
         <div className="mb-10">
           <h1 className="text-5xl font-bold tracking-tight">Panel de Administración</h1>
           <p className="text-muted-foreground mt-2 text-xl">Vista general de OigaUsted • Datos en tiempo real</p>
+          {stats?.wompiMode === 'sandbox' && (
+            <div className="mt-4 p-4 bg-yellow-900/30 border border-yellow-600 rounded-2xl text-sm text-yellow-300 flex items-start gap-3">
+              <span>⚠️</span>
+              <div>
+                <strong>Wompi en modo Sandbox (pruebas)</strong> — Los pagos no son reales. Cambia a llaves de producción (live) antes de lanzar con usuarios reales.
+                {stats?.wompiWarning && <div className="text-xs mt-1 opacity-80">{stats.wompiWarning}</div>}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Grid */}

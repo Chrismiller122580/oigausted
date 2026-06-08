@@ -52,7 +52,7 @@ export default function GigCard({
 
   const sellerInitial = sellerName[0]?.toUpperCase() || "V"
 
-  const userId = (session?.user as any)?.id
+  const userId = (session?.user as { id?: string })?.id
   const isOwnGig = userId && gig.seller?.id === userId
 
   const handleBuyNow = () => {

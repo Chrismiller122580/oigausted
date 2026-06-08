@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 // @ts-ignore
-// @ts-ignore
- import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { devLog } from '@/lib/utils';
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (!isAdmin(session)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ logs });
   } catch (error) {
-    console.error('Audit log fetch error:', error);
+    devLog('Audit log fetch error:', error);
     return NextResponse.json({ error: 'Error cargando registros de auditoría' }, { status: 500 });
   }
 }

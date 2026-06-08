@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
+import { devLog } from '@/lib/utils';
 
 const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
 const WOMPI_INTEGRITY_KEY = process.env.WOMPI_INTEGRITY_KEY;
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Wompi checkout error:', error);
+    devLog('Wompi checkout error:', error);
     return NextResponse.json(
       { error: 'Failed to prepare Wompi checkout', details: error.message },
       { status: 500 }

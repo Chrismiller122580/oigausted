@@ -7,8 +7,12 @@ import { parseJsonArrayField } from '@/lib/utils';
 import { useGigCategories } from '@/lib/useGigCategories';
 
 interface Props {
-  gig: any;
-  formData: any;
+  gig: {
+    id: string;
+    category: string;
+    fields?: any; // TODO: replace with shared GigField[] type
+  };
+  formData: Record<string, any>;
   onChange: (key: string, value: any) => void;
 }
 
