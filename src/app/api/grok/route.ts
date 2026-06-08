@@ -439,7 +439,7 @@ Current session context:
     const data = await res.json();
     const message = data.choices?.[0]?.message;
 
-    // Handle tool calls - upgraded to support multiple tool calls per response for comprehensive scans
+    // Handle tool calls - support multiple for comprehensive scans
     if (message?.tool_calls && message.tool_calls.length > 0) {
       const toolCalls = message.tool_calls;
       let lastServerResult: any = null;
@@ -453,7 +453,6 @@ Current session context:
         const clientTools = ["propose_code_change", "highlight_element", "describe_element", "scroll_to", "click_element", "type_text", "get_visible_text"];
 
         if (serverTools.includes(functionName)) {
-          // Execute server tool (collect last result; in future could return batch)
           if (functionName === "read_file" && args.file) {
             try {
               const check = isPathAllowed(args.file);
@@ -518,16 +517,7 @@ Current session context:
             } catch (e: any) {
               lastServerResult = { error: e.message };
             }
-      }
-    }
-
-    const reply = message?.content || "No pude generar la respuesta.";
-    return Response.json({ description: reply, reply });
-  } catch (error) {
-    console.error(error);
-    return Response.json({ reply: "Sorry, there was an error contacting Grok." });
-  }
-}
+          } else if (functionName === "get_platform_overview") {
             const [userCount, sellerCount, orderCount, completedOrders, totalRevenue] = await Promise.all([
               prisma.user.count(),
               prisma.user.count({ where: { role: "seller" } }),
@@ -622,7 +612,6 @@ Current session context:
             } catch {}
             lastServerResult = { success: true, updated: { id: updated.id, status: updated.status, adminReply: updated.adminReply } };
           } else if (functionName === "update_referral_rate") {
-            // defer to frontend as before
             return Response.json({ tool_calls: [toolCall], content: message.content });
           }
         } else if (clientTools.includes(functionName)) {
@@ -637,7 +626,6 @@ Current session context:
         });
       }
 
-      // For pure server tools (or last result), return the last executed result
       if (lastServerResult !== null) {
         const firstCall = toolCalls[0];
         return Response.json({
@@ -648,156 +636,9 @@ Current session context:
           }
         });
       }
-
-      // Multi-support handled above; if pure server result, it was already returned.
-      // Reaching here means no client tools and no last result - fall through to normal text reply.
-    }
-        const [userCount, sellerCount, orderCount, completedOrders, totalRevenue] = await Promise.all([
-          prisma.user.count(),
-          prisma.user.count({ where: { role: "seller" } }),
-          prisma.order.count(),
-          prisma.order.count({ where: { status: "Completed" } }),
-          prisma.order.aggregate({ where: { status: "Completed" }, _sum: { price: true } })
-        ]);
-
-        toolResult = {
-          totalUsers: userCount,
-          totalSellers: sellerCount,
-          totalOrders: orderCount,
-          completedOrders,
-          totalRevenue: totalRevenue._sum.price || 0
-        };
-      }
-
-      if (functionName === "get_user_stats" && args.userId) {
-        const [user, earnings] = await Promise.all([
-          prisma.user.findUnique({ where: { id: args.userId }, select: { name: true, email: true, role: true, createdAt: true } }),
-          prisma.referralEarning.aggregate({ where: { referrerId: args.userId }, _sum: { amount: true } })
-        ]);
-
-        toolResult = {
-          user,
-          totalReferralEarnings: earnings._sum.amount || 0
-        };
-      }
-
-      if (functionName === "search_users" && args.query) {
-        const users = await prisma.user.findMany({
-          where: {
-            OR: [
-              { name: { contains: args.query } },
-              { email: { contains: args.query } }
-            ]
-          },
-          take: 8,
-          select: { id: true, name: true, email: true, role: true }
-        });
-        toolResult = { users };
-      }
-
-      if (functionName === "list_support_tickets") {
-        const where: any = {};
-        if (args.status) where.status = args.status;
-        const tickets = await prisma.supportTicket.findMany({
-          where,
-          include: { user: { select: { id: true, name: true, email: true, role: true } } },
-          orderBy: { createdAt: 'desc' },
-          take: 20
-        });
-        toolResult = { tickets: tickets.map(t => ({
-          id: t.id,
-          subject: t.subject,
-          user: t.user.email,
-          status: t.status,
-          priority: t.priority,
-          category: t.category,
-          createdAt: t.createdAt
-        })) };
-      }
-
-      if (functionName === "get_support_ticket" && args.ticketId) {
-        const ticket = await prisma.supportTicket.findUnique({
-          where: { id: args.ticketId },
-          include: { user: { select: { id: true, name: true, email: true, role: true } } }
-        });
-        toolResult = ticket ? {
-          id: ticket.id,
-          subject: ticket.subject,
-          message: ticket.message,
-          user: ticket.user,
-          category: ticket.category,
-          priority: ticket.priority,
-          status: ticket.status,
-          adminReply: ticket.adminReply,
-          createdAt: ticket.createdAt,
-          resolvedAt: ticket.resolvedAt
-        } : { error: 'Ticket not found' };
-      }
-
-      if (functionName === "update_support_ticket" && args.ticketId) {
-        const data: any = {};
-        if (args.status) data.status = args.status;
-        if (args.adminReply) data.adminReply = args.adminReply;
-        if (args.status === 'resolved' || args.status === 'closed') data.resolvedAt = new Date();
-
-        const updated = await prisma.supportTicket.update({
-          where: { id: args.ticketId },
-          data,
-          include: { user: { select: { id: true, email: true } } }
-        });
-        // Notify the ticket owner
-        try {
-          const { notifications } = await import('@/lib/notifications');
-          await notifications.sendInApp(
-            updated.userId,
-            'system',
-            'Actualización en tu ticket de soporte',
-            args.adminReply || `Tu ticket ahora está en estado: ${args.status}`,
-            '/support',
-            { ticketId: updated.id }
-          );
-        } catch {}
-        toolResult = { success: true, updated: { id: updated.id, status: updated.status, adminReply: updated.adminReply } };
-      }
-
-      if (functionName === "update_referral_rate") {
-        // Return to frontend for confirmation + execution (safety)
-        return Response.json({
-          tool_calls: message.tool_calls,
-          content: message.content
-        });
-      }
-
-      // Client-side interactive tools (browser DOM + code proposal preview).
-      // Return the raw tool_calls so the frontend can render rich UI (pending code panel, live highlights, etc.)
-      // and call executeTool() locally. The server does NOT auto-execute these.
-      const CLIENT_SIDE_TOOLS = [
-        'propose_code_change',
-        'highlight_element',
-        'describe_element',
-        'scroll_to',
-        'click_element',
-        'type_text',
-        'get_visible_text',
-      ];
-
-      if (CLIENT_SIDE_TOOLS.includes(functionName)) {
-        return Response.json({
-          tool_calls: message.tool_calls,
-          content: message.content,
-        });
-      }
-
-      return Response.json({
-        tool_result: {
-          tool_call_id: toolCall.id,
-          name: functionName,
-          result: toolResult
-        }
-      });
     }
 
-    const reply = message?.content || "No pude generar la respuesta.";
+    const reply = message?.content || "Sorry, I could not generate a response.";
     return Response.json({ description: reply, reply });
   } catch (error) {
     console.error(error);
