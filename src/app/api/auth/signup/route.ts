@@ -64,13 +64,45 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    const newUser = await prisma.user.create({
-      data: {
-        name,
-        email,
-        role: safeRole,
-        password: hashedPassword,
-      }
+    // Create user + default notification prefs atomically so welcome email (and future notifs)
+    // see a real prefs row instead of defensive defaults. This reduces the large fallback
+    // objects in the prefs API and ensures consistent behavior from signup.
+    const newUser = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          name,
+          email,
+          role: safeRole,
+          password: hashedPassword,
+        }
+      })
+
+      // Create default prefs immediately (matches the defaults used in the prefs API)
+      await tx.notificationPreference.create({
+        data: {
+          userId: createdUser.id,
+          inAppEnabled: true,
+          emailEnabled: true,
+          smsEnabled: false,
+          pushEnabled: true,
+          orderUpdates: true,
+          gigUpdates: true,
+          reviewAlerts: true,
+          paymentAlerts: true,
+          messageAlerts: true,
+          systemAlerts: true,
+          desktopNotifications: true,
+          soundEnabled: true,
+          quietHoursEnabled: false,
+          quietHoursStart: "22:00",
+          quietHoursEnd: "08:00",
+          digestEnabled: false,
+          digestFrequency: "daily",
+          maxNotificationsPerHour: 8,
+        }
+      }).catch(() => {}); // non-fatal if schema drift
+
+      return createdUser;
     })
 
     // Audit log for system change (new user registration)
@@ -82,7 +114,7 @@ export async function POST(request: NextRequest) {
       details: { email: newUser.email, role: safeRole, viaReferral: !!referralCode },
     });
 
-    // Link referral if referralCode was provided
+    // Link referral if referralCode was provided (outside tx for simplicity; can be improved)
     if (referralCode) {
       const referrer = await prisma.user.findUnique({
         where: { referralCode: referralCode.toUpperCase() }

@@ -56,6 +56,20 @@ export async function POST(req: NextRequest) {
     for (const pref of usersWithDigest) {
       if (!pref.user?.email) continue;
 
+      // Respect quiet hours for the digest batch (summaries are low-urgency)
+      if (pref.quietHoursEnabled && pref.quietHoursStart && pref.quietHoursEnd) {
+        const now = new Date();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        const [startH, startM] = (pref.quietHoursStart || '22:00').split(':').map(Number);
+        const [endH, endM] = (pref.quietHoursEnd || '08:00').split(':').map(Number);
+        const startMinutes = startH * 60 + (startM || 0);
+        const endMinutes = endH * 60 + (endM || 0);
+        const inQuiet = startMinutes < endMinutes 
+          ? (currentMinutes >= startMinutes && currentMinutes <= endMinutes)
+          : (currentMinutes >= startMinutes || currentMinutes <= endMinutes);
+        if (inQuiet) continue;
+      }
+
       // Get recent unread notifications
       const since = new Date();
       if (frequency === 'daily') {

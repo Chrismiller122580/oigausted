@@ -167,6 +167,29 @@ export async function sendNotification(payload: NotificationPayload) {
           userName: user.name,
           resetLink: data?.resetLink || link || '',
         });
+      } else if (category === 'gig' && data?.gigTitle) {
+        const { gigPublishedEmail } = await import('./emails/templates');
+        emailContent = gigPublishedEmail({
+          userName: user.name,
+          gigTitle: data.gigTitle,
+          gigId: data.gigId,
+        });
+      } else if (category === 'payment' && data?.amount) {
+        // Referral payout request or payment alerts
+        const { referralPayoutRequestEmail } = await import('./emails/templates');
+        emailContent = referralPayoutRequestEmail({
+          userName: user.name,
+          amount: data.amount,
+          requesterName: data.requesterName,
+        });
+      } else if (category === 'system' && (data?.ticketId || title?.toLowerCase().includes('ticket') || title?.toLowerCase().includes('soporte'))) {
+        const { supportTicketEmail } = await import('./emails/templates');
+        emailContent = supportTicketEmail({
+          userName: user.name,
+          subject: data?.subject || title || 'Soporte',
+          isAdmin: data?.isAdmin || false,
+          ticketId: data?.ticketId,
+        });
       } else if (category === 'message' && data?.gigTitle) {
         // Simple but useful message email
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
@@ -239,8 +262,13 @@ export async function sendNotification(payload: NotificationPayload) {
       }
 
       devLog(`[Resend] Email sent to ${user.email} (${category})`);
-    } catch (emailError) {
+    } catch (emailError: any) {
       devLog('Resend email error:', emailError);
+      // Basic backpressure note: if 429/rate from Resend, we just log; in future could
+      // implement retry with backoff or queue.
+      if (emailError?.status === 429) {
+        devLog('[Resend] Rate limited (429) - consider backing off or queuing');
+      }
     }
   }
 
@@ -448,12 +476,31 @@ async function checkRateLimit(userId: string, category: string, prefs: any) {
     cached = { count: 0, lastSent: 0 };
   }
 
-  if (cached.count >= maxPerHour) {
+  // DB-backed count for cross-instance reliability on serverless (authoritative fallback)
+  let dbCount = cached.count;
+  try {
+    // Only query DB if in-mem suggests we are close to limit (to avoid perf hit on every notif)
+    if (cached.count >= Math.max(1, Math.floor(maxPerHour * 0.6))) {
+      dbCount = await prisma.notification.count({
+        where: {
+          userId,
+          category,
+          createdAt: { gte: new Date(hourAgo) },
+        },
+      });
+    }
+  } catch (e) {
+    devLog('[RateLimit] DB count failed, using in-mem only:', e);
+  }
+
+  const effectiveCount = Math.max(cached.count, dbCount);
+
+  if (effectiveCount >= maxPerHour) {
     return { limited: true, reason: `rate limit (${maxPerHour}/hour for ${category})` };
   }
 
-  // Increment
-  cached.count++;
+  // Increment in-mem
+  cached.count = effectiveCount + 1;
   cached.lastSent = now;
   recentNotificationCache.set(key, cached);
 

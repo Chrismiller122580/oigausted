@@ -165,3 +165,65 @@ export function passwordResetEmail({ userName = 'Usuario', resetLink }: Password
     `
   };
 }
+
+export function gigPublishedEmail({ userName = 'Usuario', gigTitle, gigId }: BaseEmailProps & { gigTitle: string; gigId?: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
+  const link = gigId ? `${appUrl}/seller/gigs` : `${appUrl}/gigs`;
+  return {
+    subject: `¡Tu gig "${gigTitle}" ha sido publicado!`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
+        <h2 style="color: #111;">¡Gig publicado exitosamente!</h2>
+        <p>Hola <strong>${userName}</strong>,</p>
+        <p>Tu servicio <strong>"${gigTitle}"</strong> ya está visible para compradores en OigaUsted.</p>
+        <a href="${link}" 
+           style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin-top: 16px;">
+          Ver mis gigs
+        </a>
+        <p style="margin-top: 32px; font-size: 12px; color: #888;">OigaUsted • Servicios locales de confianza en Colombia</p>
+      </div>
+    `
+  };
+}
+
+export function supportTicketEmail({ userName = 'Usuario', subject, isAdmin = false, ticketId }: BaseEmailProps & { subject: string; isAdmin?: boolean; ticketId?: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
+  const link = ticketId ? `${appUrl}/${isAdmin ? 'admin/support' : 'support'}?id=${ticketId}` : `${appUrl}/support`;
+  const title = isAdmin ? 'Nuevo ticket de soporte' : 'Ticket de soporte recibido';
+  const body = isAdmin 
+    ? `Se ha recibido un nuevo ticket de soporte: "${subject}".`
+    : `Tu ticket "${subject}" ha sido recibido. Te responderemos pronto.`;
+  return {
+    subject: title,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
+        <h2 style="color: #111;">${title}</h2>
+        <p>Hola <strong>${userName}</strong>,</p>
+        <p>${body}</p>
+        <a href="${link}" 
+           style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin-top: 16px;">
+          ${isAdmin ? 'Ver en admin' : 'Ver mi ticket'}
+        </a>
+        <p style="margin-top: 32px; font-size: 12px; color: #888;">OigaUsted • Servicios locales de confianza en Colombia</p>
+      </div>
+    `
+  };
+}
+
+export function referralPayoutRequestEmail({ userName = 'Usuario', amount, requesterName }: BaseEmailProps & { amount: number; requesterName?: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
+  return {
+    subject: `Solicitud de pago por referidos: $${amount.toLocaleString('es-CO')}`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
+        <h2 style="color: #111;">Solicitud de pago por referidos</h2>
+        <p><strong>${requesterName || 'Un usuario'}</strong> ha solicitado el pago de comisiones por referidos por <strong>$${amount.toLocaleString('es-CO')}</strong>.</p>
+        <a href="${appUrl}/admin/referrals" 
+           style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin-top: 16px;">
+          Revisar en admin
+        </a>
+        <p style="margin-top: 32px; font-size: 12px; color: #888;">OigaUsted • Servicios locales de confianza en Colombia</p>
+      </div>
+    `
+  };
+}

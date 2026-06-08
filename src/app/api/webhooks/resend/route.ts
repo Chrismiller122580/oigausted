@@ -151,6 +151,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Simple in-memory last received for ops visibility (in prod use a DB row or metric)
+    (global as any).__lastResendWebhookAt = new Date().toISOString();
+
     return NextResponse.json({ received: true });
   } catch (error) {
     devLog('Resend webhook error:', error);

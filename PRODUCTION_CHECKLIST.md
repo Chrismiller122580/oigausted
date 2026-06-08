@@ -64,7 +64,7 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
 
 - [ ] Using real PostgreSQL (not SQLite)
 - [ ] `DATABASE_URL` points to production database
-- [ ] Run `prisma migrate deploy` (handled automatically by Vercel build)
+- [ ] Run `prisma migrate deploy` (handled automatically by Vercel build). New in 2026: the `Notification.resendEmailId` column (for email tracking) requires the migration `add_resend_email_id_to_notification` to be in your migrations folder and deployed.
 
 ## After First Successful Deploy
 

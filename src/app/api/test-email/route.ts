@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { notifications, resend as rawResend } from '@/lib/notifications';
+import { logAuditEvent } from '@/lib/audit';
 
 // Simple protected test endpoint to send a test email
 // Usage: POST /api/test-email with { "emailType": "welcome" | "order" | "review" | "password-reset", "to?": "someone@example.com" }
@@ -24,6 +25,7 @@ export async function POST(req: NextRequest) {
     const isAdmin = (session.user as any)?.role === 'admin';
 
     // Direct send when admin provides a "to" address (bypasses user lookup)
+    // Hardened: only admins, audited, and in prod consider extra gates (e.g. feature flag).
     if (to && isAdmin && rawResend) {
       try {
         const subject = emailType === 'welcome' ? '¡Bienvenido a OigaUsted! (TEST)' :
@@ -41,6 +43,19 @@ export async function POST(req: NextRequest) {
           subject,
           html,
         });
+
+        // Audit direct test sends (security / abuse tracking)
+        const adminId = (session.user as any).id;
+        const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
+        await logAuditEvent({
+          performedById: adminId,
+          action: 'ADMIN_TEST_EMAIL_DIRECT',
+          targetType: 'User',
+          targetId: null,
+          details: { emailType, to, subject },
+          ipAddress,
+        }).catch(() => {});
+
         return NextResponse.json({ success: true, message: `Direct test email sent to ${to}`, sendResult });
       } catch (e: any) {
         return NextResponse.json({ error: 'Direct send failed', details: e.message }, { status: 500 });

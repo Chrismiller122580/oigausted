@@ -76,6 +76,8 @@ export function toPrismaJson(value: any): any {
 /**
  * Safely parse deliveryLog (or similar Json/String fields) that may be stored
  * as a JSON string (sqlite-dev shim) or native object (Postgres).
+ * TODO (compat-cleanup): After full Postgres migration, consider removing
+ * stringification path for deliveryLog/data if no longer needed for local dev.
  */
 export function parseDeliveryLog(val: any): Record<string, any> {
   if (!val) return {};
