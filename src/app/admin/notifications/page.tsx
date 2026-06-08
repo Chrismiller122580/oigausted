@@ -128,16 +128,16 @@ export default function AdminNotificationsDashboard() {
       });
 
       if (res.ok) {
-        toast.success('Notificación enviada exitosamente');
+        toast.success('Notification sent successfully');
         setTitle('');
         setMessage('');
         // Refresh analytics after sending
         fetchStats();
       } else {
-        toast.error('Error al enviar notificación');
+        toast.error('Error sending notification');
       }
     } catch (e) {
-      toast.error('Error de conexión');
+      toast.error('Connection error');
     } finally {
       setSending(false);
     }
@@ -146,32 +146,32 @@ export default function AdminNotificationsDashboard() {
   return (
     <div className="max-w-7xl mx-auto p-8 space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Centro de Notificaciones</h1>
-        <p className="text-muted-foreground">Analytics + Envío manual de notificaciones</p>
+        <h1 className="text-3xl font-bold">Notifications Center</h1>
+        <p className="text-muted-foreground">Analytics + Manual notification sending</p>
       </div>
 
       {/* Analytics Overview */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">Estadísticas de Notificaciones</h2>
+        <h2 className="text-xl font-semibold mb-4">Notification Statistics</h2>
         
         {loadingStats ? (
           <div className="text-muted-foreground">Cargando estadísticas...</div>
         ) : stats ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-card p-4 rounded-xl border">
-              <div className="text-sm text-muted-foreground">Total Enviadas</div>
+              <div className="text-sm text-muted-foreground">Total Sent</div>
               <div className="text-3xl font-bold">{stats.total.toLocaleString()}</div>
             </div>
             <div className="bg-card p-4 rounded-xl border">
-              <div className="text-sm text-muted-foreground">Sin Leer</div>
+              <div className="text-sm text-muted-foreground">Unread</div>
               <div className="text-3xl font-bold text-orange-600">{stats.unread.toLocaleString()}</div>
             </div>
             <div className="bg-card p-4 rounded-xl border">
-              <div className="text-sm text-muted-foreground">Últimas 24h</div>
+              <div className="text-sm text-muted-foreground">Last 24h</div>
               <div className="text-3xl font-bold">{stats.last24h.toLocaleString()}</div>
             </div>
             <div className="bg-card p-4 rounded-xl border">
-              <div className="text-sm text-muted-foreground">Últimos 7 días</div>
+              <div className="text-sm text-muted-foreground">Last 7 days</div>
               <div className="text-3xl font-bold">{stats.last7d.toLocaleString()}</div>
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function AdminNotificationsDashboard() {
         {/* Category Breakdown */}
         {stats?.byCategory && stats.byCategory.length > 0 && (
           <div className="mb-6">
-            <h3 className="font-medium mb-2">Por Categoría</h3>
+            <h3 className="font-medium mb-2">By Category</h3>
             <div className="flex flex-wrap gap-2">
               {stats.byCategory.map((cat) => (
                 <div key={cat.category} className="px-3 py-1 bg-muted rounded-full text-sm">
@@ -194,16 +194,16 @@ export default function AdminNotificationsDashboard() {
         {/* Recent Notifications Table */}
         {stats?.recent && stats.recent.length > 0 && (
           <div>
-            <h3 className="font-medium mb-3">Notificaciones Recientes</h3>
+            <h3 className="font-medium mb-3">Recent Notifications</h3>
             <div className="overflow-x-auto border rounded-xl">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="text-left p-3">Usuario</th>
-                    <th className="text-left p-3">Título</th>
-                    <th className="text-left p-3">Categoría</th>
-                    <th className="text-left p-3">Fecha</th>
-                    <th className="text-left p-3">Estado</th>
+                    <th className="text-left p-3">User</th>
+                    <th className="text-left p-3">Title</th>
+                    <th className="text-left p-3">Category</th>
+                    <th className="text-left p-3">Date</th>
+                    <th className="text-left p-3">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -223,9 +223,9 @@ export default function AdminNotificationsDashboard() {
                       </td>
                       <td className="p-3">
                         {n.read ? (
-                          <span className="text-green-600 text-xs">Leída</span>
+                          <span className="text-green-600 text-xs">Read</span>
                         ) : (
-                          <span className="text-orange-600 text-xs font-medium">Sin leer</span>
+                          <span className="text-orange-600 text-xs font-medium">Unread</span>
                         )}
                         {(n as any).emailStatus && (
                           <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">
@@ -244,9 +244,9 @@ export default function AdminNotificationsDashboard() {
 
       {/* Manual Send Tool */}
       <div className="max-w-2xl">
-        <h2 className="text-xl font-semibold mb-4">Enviar Notificación Manual</h2>
+        <h2 className="text-xl font-semibold mb-4">Send Manual Notification</h2>
         <p className="text-muted-foreground mb-4 text-sm">
-          Envía notificaciones (in-app + email automático). Ideal para soporte y pruebas.
+          Send notifications (in-app + automatic email). Ideal for support and testing.
         </p>
 
         <form onSubmit={handleSend} className="space-y-5 bg-card p-6 rounded-2xl border">
@@ -255,34 +255,34 @@ export default function AdminNotificationsDashboard() {
             <Input 
               value={userId} 
               onChange={(e) => setUserId(e.target.value)} 
-              placeholder="ID del usuario" 
+              placeholder="User ID" 
               required 
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium">Categoría</label>
+            <label className="text-sm font-medium">Category</label>
             <select 
               value={category} 
               onChange={(e) => setCategory(e.target.value)}
               className="w-full border rounded-md p-2 bg-background"
             >
-              <option value="system">Sistema</option>
-              <option value="order">Pedido</option>
+              <option value="system">System</option>
+              <option value="order">Order</option>
               <option value="gig">Gig</option>
-              <option value="payment">Pago</option>
-              <option value="review">Reseña</option>
-              <option value="message">Mensaje</option>
+              <option value="payment">Payment</option>
+              <option value="review">Review</option>
+              <option value="message">Message</option>
             </select>
           </div>
 
           <div>
-            <label className="text-sm font-medium">Título</label>
+            <label className="text-sm font-medium">Title</label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
           </div>
 
           <div>
-            <label className="text-sm font-medium">Mensaje</label>
+            <label className="text-sm font-medium">Message</label>
             <Textarea 
               value={message} 
               onChange={(e) => setMessage(e.target.value)} 
@@ -292,19 +292,19 @@ export default function AdminNotificationsDashboard() {
           </div>
 
           <Button type="submit" disabled={sending} className="w-full">
-            {sending ? 'Enviando...' : 'Enviar Notificación'}
+            {sending ? 'Sending...' : 'Send Notification'}
           </Button>
         </form>
 
         <p className="text-xs text-muted-foreground mt-4">
-          Las notificaciones enviadas aquí respetan las preferencias del usuario (incluyendo horario silencioso).
+          Notifications sent here respect user preferences (including quiet hours).
         </p>
 
         {/* Digest Trigger Tools */}
         <div className="mt-8 pt-6 border-t">
-          <h3 className="font-semibold mb-2">Herramientas de Digest</h3>
+          <h3 className="font-semibold mb-2">Digest Tools</h3>
           <p className="text-sm text-muted-foreground mb-3">
-            Envía resúmenes manualmente (útil para pruebas o envíos fuera de horario).
+            Send summaries manually (useful for tests or off-schedule sends).
           </p>
           <div className="flex gap-3">
             <Button 
@@ -313,13 +313,13 @@ export default function AdminNotificationsDashboard() {
                 const res = await fetch('/api/notifications/digest?frequency=daily', { method: 'POST' });
                 if (res.ok) {
                   const data = await res.json();
-                  toast.success(`Digest diario enviado a ${data.digestsSent || 0} usuarios`);
+                  toast.success(`Daily digest sent to ${data.digestsSent || 0} users`);
                 } else {
-                  toast.error('Error enviando digest');
+                  toast.error('Error sending digest');
                 }
               }}
             >
-              Enviar Digest Diario Ahora
+              Send Daily Digest Now
             </Button>
             <Button 
               variant="outline"
@@ -327,13 +327,13 @@ export default function AdminNotificationsDashboard() {
                 const res = await fetch('/api/notifications/digest?frequency=weekly', { method: 'POST' });
                 if (res.ok) {
                   const data = await res.json();
-                  toast.success(`Digest semanal enviado a ${data.digestsSent || 0} usuarios`);
+                  toast.success(`Weekly digest sent to ${data.digestsSent || 0} users`);
                 } else {
-                  toast.error('Error enviando digest');
+                  toast.error('Error sending digest');
                 }
               }}
             >
-              Enviar Digest Semanal Ahora
+              Send Weekly Digest Now
             </Button>
           </div>
         </div>

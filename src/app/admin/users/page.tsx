@@ -58,7 +58,7 @@ export default function AdminUsersPage() {
       setUsers(list);
       setFilteredUsers(list);
     } catch (e) {
-      toast.error('Error cargando usuarios');
+      toast.error('Error loading users');
     } finally {
       setLoading(false);
     }
@@ -91,14 +91,14 @@ export default function AdminUsersPage() {
       });
 
       if (res.ok) {
-        toast.success('Rol actualizado');
+        toast.success('Role updated');
         setRoleEditingId(null);
         fetchUsers(); // refresh
       } else {
-        toast.error('No se pudo actualizar el rol');
+        toast.error('Could not update role');
       }
     } catch (e) {
-      toast.error('Error en la petición');
+      toast.error('Request error');
     }
   };
 
@@ -142,22 +142,22 @@ export default function AdminUsersPage() {
       });
 
       if (res.ok) {
-        toast.success('Usuario actualizado correctamente');
+        toast.success('User updated successfully');
         closeEditModal();
         fetchUsers();
       } else {
         const data = await res.json();
-        toast.error(data.error || 'No se pudo actualizar el usuario');
+        toast.error(data.error || 'Could not update user');
       }
     } catch (e) {
-      toast.error('Error al guardar cambios');
+      toast.error('Error saving changes');
     } finally {
       setSaving(false);
     }
   };
 
   const resetUserPassword = async (user: User) => {
-    if (!confirm(`¿Resetear contraseña de ${user.email}? Se generará una temporal.`)) return;
+    if (!confirm(`Reset password for ${user.email}? A temporary one will be generated.`)) return;
 
     try {
       const tempPassword = 'Temp' + Math.random().toString(36).slice(2, 10) + '!';
@@ -173,19 +173,19 @@ export default function AdminUsersPage() {
       });
 
       if (res.ok) {
-        toast.success(`Contraseña temporal: ${tempPassword}`, { duration: 15000 });
+        toast.success(`Temporary password: ${tempPassword}`, { duration: 15000 });
         // In real scenario we should send it by email instead of showing it
       } else {
-        toast.error('No se pudo resetear la contraseña');
+        toast.error('Could not reset password');
       }
     } catch (e) {
-      toast.error('Error al resetear contraseña');
+      toast.error('Error resetting password');
     }
   };
 
   const toggleUserActive = async (user: User) => {
-    const action = user.isActive ? 'desactivar' : 'activar';
-    if (!confirm(`¿${action.charAt(0).toUpperCase() + action.slice(1)} a ${user.email}?`)) return;
+    const action = user.isActive ? 'deactivate' : 'activate';
+    if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} ${user.email}?`)) return;
 
     try {
       const res = await fetch('/api/admin/users', {
@@ -195,18 +195,18 @@ export default function AdminUsersPage() {
       });
 
       if (res.ok) {
-        toast.success(`Usuario ${action}do correctamente`);
+        toast.success(`User ${action}d successfully`);
         fetchUsers();
       } else {
-        toast.error(`No se pudo ${action} el usuario`);
+        toast.error(`Could not ${action} user`);
       }
     } catch (e) {
-      toast.error('Error al cambiar estado');
+      toast.error('Error changing status');
     }
   };
 
   const impersonateUser = async (user: User) => {
-    if (!confirm(`¿Impersonar a ${user.email}? Esta acción registrará la actividad.`)) return;
+    if (!confirm(`Impersonate ${user.email}? This action will be logged.`)) return;
 
     try {
       const res = await fetch('/api/admin/impersonate', {
@@ -216,31 +216,31 @@ export default function AdminUsersPage() {
       });
 
       if (res.ok) {
-        toast.success(`Abriendo sesión como ${user.email}...`);
+        toast.success(`Opening session as ${user.email}...`);
         // Open their profile in a new tab with impersonation flag
         window.open(`/profile?impersonate=${user.id}`, '_blank');
       } else {
-        toast.error('No se pudo iniciar impersonación');
+        toast.error('Could not start impersonation');
       }
     } catch (e) {
-      toast.error('Error al impersonar usuario');
+      toast.error('Error impersonating user');
     }
   };
 
   const exportToCSV = () => {
     if (filteredUsers.length === 0) {
-      toast.error('No hay usuarios para exportar');
+      toast.error('No users to export');
       return;
     }
 
-    const headers = ['ID', 'Nombre', 'Email', 'Rol', 'Activo', 'Negocio', 'Custom Ref %', 'Teléfono', 'WhatsApp', 'Ciudad', 'Fecha Registro'];
+    const headers = ['ID', 'Name', 'Email', 'Role', 'Active', 'Business', 'Custom Ref %', 'Phone', 'WhatsApp', 'City', 'Registration Date'];
     
     const rows = filteredUsers.map(u => [
       u.id,
       u.name || '',
       u.email,
       u.role,
-      u.isActive ? 'Sí' : 'No',
+      u.isActive ? 'Yes' : 'No',
       u.businessName || '',
       u.customReferralRate != null ? (u.customReferralRate * 100).toFixed(1) + '%' : 'default (5%)',
       u.phone || '',
@@ -258,9 +258,9 @@ export default function AdminUsersPage() {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
-    link.download = `usuarios_${new Date().toISOString().slice(0,10)}.csv`;
+    link.download = `users_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
-    toast.success('Exportando usuarios a CSV...');
+    toast.success('Exporting users to CSV...');
   };
 
   if (loading) {
@@ -268,7 +268,7 @@ export default function AdminUsersPage() {
       <div className="min-h-screen bg-background flex items-center justify-center text-foreground">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-lg text-muted-foreground">Cargando usuarios...</p>
+          <p className="text-lg text-muted-foreground">Loading users...</p>
         </div>
       </div>
     );
@@ -279,13 +279,13 @@ export default function AdminUsersPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-5xl font-bold">Usuarios</h1>
-            <p className="text-muted-foreground mt-1">Gestión completa de cuentas • {users.length} registrados</p>
+            <h1 className="text-5xl font-bold">Users</h1>
+            <p className="text-muted-foreground mt-1">Full account management • {users.length} registered</p>
           </div>
 
           <div className="flex flex-wrap gap-3 items-center">
             <Input
-              placeholder="Buscar por nombre, email..."
+              placeholder="Search by name, email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-64 bg-card border-border"
@@ -296,9 +296,9 @@ export default function AdminUsersPage() {
               onChange={(e) => setRoleFilter(e.target.value)}
               className="bg-card border border-border rounded px-3 py-2 text-sm"
             >
-              <option value="all">Todos los roles</option>
-              <option value="buyer">Compradores</option>
-              <option value="seller">Vendedores</option>
+              <option value="all">All roles</option>
+              <option value="buyer">Buyers</option>
+              <option value="seller">Sellers</option>
               <option value="admin">Admins</option>
             </select>
 
@@ -307,13 +307,13 @@ export default function AdminUsersPage() {
               onChange={(e) => setActiveFilter(e.target.value)}
               className="bg-card border border-border rounded px-3 py-2 text-sm"
             >
-              <option value="all">Todos los estados</option>
-              <option value="active">Activos</option>
-              <option value="inactive">Desactivados</option>
+              <option value="all">All statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
             </select>
 
             <Button onClick={exportToCSV} variant="outline" className="border-border">
-              Exportar CSV
+              Export CSV
             </Button>
           </div>
         </div>
@@ -323,7 +323,7 @@ export default function AdminUsersPage() {
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-background">
                 <tr>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Usuario</th>
+                  <th className="text-left p-4 font-medium text-muted-foreground">User</th>
                   <th className="text-left p-4 font-medium text-muted-foreground">Email</th>
                   <th className="text-left p-4 font-medium text-muted-foreground">Rol</th>
                   <th className="text-left p-4 font-medium text-muted-foreground">Estado</th>
@@ -337,15 +337,15 @@ export default function AdminUsersPage() {
                 {filteredUsers.length === 0 && (
                   <tr>
                     <td colSpan={8} className="p-12 text-center">
-                      <p className="text-lg text-muted-foreground">No se encontraron usuarios.</p>
-                      <p className="text-sm text-muted-foreground mt-1">Intenta con otro término de búsqueda.</p>
+                      <p className="text-lg text-muted-foreground">No users found.</p>
+                      <p className="text-sm text-muted-foreground mt-1">Try a different search term.</p>
                     </td>
                   </tr>
                 )}
                 {filteredUsers.map(user => (
                   <tr key={user.id} className="border-b border-border hover:bg-background">
                     <td className="p-4">
-                      <div className="font-medium">{user.name || 'Sin nombre'}</div>
+                      <div className="font-medium">{user.name || 'No name'}</div>
                       <div className="text-xs text-muted-foreground">{new Date(user.createdAt).toLocaleDateString('es-CO')}</div>
                     </td>
                     <td className="p-4 text-foreground">{user.email}</td>
@@ -356,8 +356,8 @@ export default function AdminUsersPage() {
                           onChange={(e) => setNewRole(e.target.value)}
                           className="bg-muted border border-border rounded px-3 py-1 text-foreground"
                         >
-                          <option value="buyer">Comprador</option>
-                          <option value="seller">Vendedor</option>
+                          <option value="buyer">Buyer</option>
+                          <option value="seller">Seller</option>
                           <option value="admin">Admin</option>
                         </select>
                       ) : (
@@ -383,7 +383,7 @@ export default function AdminUsersPage() {
                       <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         user.isActive !== false ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
                       }`}>
-                        {user.isActive !== false ? 'Activo' : 'Desactivado'}
+                        {user.isActive !== false ? 'Active' : 'Inactive'}
                       </span>
                     </td>
                     <td className="p-4 text-center font-mono">{user._count?.gigs || 0}</td>
@@ -394,7 +394,7 @@ export default function AdminUsersPage() {
                         onClick={() => openEditModal(user)}
                         className="border-border hover:bg-muted"
                       >
-                        Editar
+                        Edit
                       </Button>
 
                       <Button
@@ -418,7 +418,7 @@ export default function AdminUsersPage() {
                         target="_blank"
                         className="text-xs px-2 py-1 border border-border rounded hover:bg-muted inline-block"
                       >
-                        Pedidos
+                        Orders
                       </a>
 
                       {roleEditingId === user.id ? (
@@ -442,7 +442,7 @@ export default function AdminUsersPage() {
                           onClick={() => startRoleEdit(user)}
                           className="border-border hover:bg-muted text-xs"
                         >
-                          Rol
+                          Role
                         </Button>
                       )}
                     </td>
@@ -454,7 +454,7 @@ export default function AdminUsersPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Cambiar roles es inmediato. Los usuarios verán las nuevas opciones en su siguiente sesión.
+          Role changes are immediate. Users will see the new options on their next login.
         </p>
       </div>
 
@@ -464,7 +464,7 @@ export default function AdminUsersPage() {
           <div className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-border flex justify-between items-center">
               <div>
-                <h3 className="text-xl font-semibold">Editar Usuario</h3>
+                <h3 className="text-xl font-semibold">Edit User</h3>
                 <p className="text-sm text-muted-foreground">{editingUser.email}</p>
               </div>
               <Button variant="ghost" onClick={closeEditModal}>✕</Button>
@@ -473,21 +473,21 @@ export default function AdminUsersPage() {
             <div className="p-6 space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Nombre completo</Label>
+                  <Label>Full name</Label>
                   <Input 
                     value={editForm.name} 
                     onChange={(e) => setEditForm({...editForm, name: e.target.value})}
                   />
                 </div>
                 <div>
-                  <Label>Nombre del Negocio</Label>
+                  <Label>Business Name</Label>
                   <Input 
                     value={editForm.businessName} 
                     onChange={(e) => setEditForm({...editForm, businessName: e.target.value})}
                   />
                 </div>
                 <div>
-                  <Label>Teléfono</Label>
+                  <Label>Phone</Label>
                   <Input 
                     value={editForm.phone} 
                     onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
@@ -502,7 +502,7 @@ export default function AdminUsersPage() {
                 </div>
 
                 <div>
-                  <Label>NIT</Label>
+                  <Label>NIT / Tax ID</Label>
                   <Input 
                     value={editForm.nit} 
                     onChange={(e) => setEditForm({...editForm, nit: e.target.value})}
@@ -532,7 +532,7 @@ export default function AdminUsersPage() {
               </div>
 
               <div>
-                <Label>Biografía / Descripción</Label>
+                <Label>Bio / Description</Label>
                 <Textarea 
                   value={editForm.bio} 
                   onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
@@ -542,9 +542,9 @@ export default function AdminUsersPage() {
             </div>
 
             <div className="p-6 border-t border-border flex justify-end gap-3">
-              <Button variant="outline" onClick={closeEditModal}>Cancelar</Button>
+              <Button variant="outline" onClick={closeEditModal}>Cancel</Button>
               <Button onClick={saveUserEdit} disabled={saving} className="bg-emerald-600">
-                {saving ? 'Guardando...' : 'Guardar Cambios'}
+                {saving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </div>

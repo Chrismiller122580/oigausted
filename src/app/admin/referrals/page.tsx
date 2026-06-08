@@ -54,7 +54,7 @@ export default function AdminReferralsPage() {
     fetchReferrals(page);
   }, [page]);
 
-  if (loading) return <div className="p-8">Cargando datos de referidos...</div>;
+  if (loading) return <div className="p-8">Loading referrals data...</div>;
 
   const totalReferrers = pagination ? pagination.total : data.length;
   const totalReferred = data.reduce((sum, r) => sum + r.referredCount, 0);
@@ -62,20 +62,20 @@ export default function AdminReferralsPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Gestión de Referidos</h1>
+      <h1 className="text-3xl font-bold mb-6">Referrals Management</h1>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-card border rounded-2xl p-4">
-          <div className="text-sm text-muted-foreground">Referidores activos</div>
+          <div className="text-sm text-muted-foreground">Active referrers</div>
           <div className="text-3xl font-bold mt-1">{totalReferrers}</div>
         </div>
         <div className="bg-card border rounded-2xl p-4">
-          <div className="text-sm text-muted-foreground">Personas referidas</div>
+          <div className="text-sm text-muted-foreground">People referred</div>
           <div className="text-3xl font-bold mt-1">{totalReferred}</div>
         </div>
         <div className="bg-card border rounded-2xl p-4">
-          <div className="text-sm text-muted-foreground">Comisiones generadas (total)</div>
+          <div className="text-sm text-muted-foreground">Commissions generated (total)</div>
           <div className="text-3xl font-bold mt-1 text-green-600">${totalGenerated.toLocaleString('es-CO')}</div>
         </div>
       </div>
@@ -84,35 +84,35 @@ export default function AdminReferralsPage() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between mb-4 text-sm">
           <div className="text-muted-foreground">
-            Página {pagination.page} de {pagination.totalPages} • {pagination.total} referidores
+            Page {pagination.page} of {pagination.totalPages} • {pagination.total} referrers
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={!pagination.hasPrev} onClick={() => setPage(p => Math.max(1, p-1))}>Anterior</Button>
-            <Button variant="outline" size="sm" disabled={!pagination.hasNext} onClick={() => setPage(p => p+1)}>Siguiente</Button>
+            <Button variant="outline" size="sm" disabled={!pagination.hasPrev} onClick={() => setPage(p => Math.max(1, p-1))}>Previous</Button>
+            <Button variant="outline" size="sm" disabled={!pagination.hasNext} onClick={() => setPage(p => p+1)}>Next</Button>
           </div>
         </div>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Resumen de Referidos</CardTitle>
+          <CardTitle>Referrals Summary</CardTitle>
         </CardHeader>
         <CardContent>
           {data.length === 0 ? (
-            <p className="text-muted-foreground">Aún no hay referidos registrados.</p>
+            <p className="text-muted-foreground">No referrals registered yet.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4">Referidor</th>
+                    <th className="text-left py-3 px-4">Referrer</th>
                     <th className="text-left py-3 px-4">Email</th>
-                    <th className="text-center py-3 px-4">Invitados</th>
-                    <th className="text-center py-3 px-4">Ganado Total</th>
-                    <th className="text-center py-3 px-4">Pendiente Pago</th>
-                    <th className="text-center py-3 px-4">Pagado</th>
+                    <th className="text-center py-3 px-4">Referred</th>
+                    <th className="text-center py-3 px-4">Total Earned</th>
+                    <th className="text-center py-3 px-4">Pending Payout</th>
+                    <th className="text-center py-3 px-4">Paid</th>
                     <th className="text-center py-3 px-4">Rate</th>
-                    <th className="text-right py-3 px-4">Acción</th>
+                    <th className="text-right py-3 px-4">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -149,20 +149,20 @@ export default function AdminReferralsPage() {
                                   body: JSON.stringify({ referrerId: row.referrer.id })
                                 });
                                 if (res.ok) {
-                                  toast.success('Marcado como pagado');
+                                  toast.success('Marked as paid');
                                   fetchReferrals(page);
                                 } else {
-                                  toast.error('Error al marcar');
+                                  toast.error('Error marking');
                                 }
                               } catch {
-                                toast.error('Error de conexión');
+                                toast.error('Connection error');
                               }
                             }}
                           >
                             Marcar Pagado
                           </Button>
                         ) : (
-                          <span className="text-xs text-muted-foreground">Sin pendiente</span>
+                          <span className="text-xs text-muted-foreground">No pending</span>
                         )}
                       </td>
                     </tr>
@@ -175,9 +175,9 @@ export default function AdminReferralsPage() {
       </Card>
 
       <div className="mt-6 text-xs text-muted-foreground">
-        Los datos se actualizan en tiempo real. Usa la búsqueda del navegador (Ctrl+F) para filtrar.
+        Data updates in real time. Use browser search (Ctrl+F) to filter.
         <br />
-        Los ingresos se generan automáticamente cuando los referidos completan pedidos pagados.
+        Earnings are generated automatically when referred users complete paid orders.
       </div>
     </div>
   );

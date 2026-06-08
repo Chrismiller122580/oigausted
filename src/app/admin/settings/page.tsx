@@ -104,7 +104,7 @@ function RecentConfigActivity() {
     <div className="mt-6 bg-card border border-border rounded-3xl p-6">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-sm font-medium">
-          <History className="w-4 h-4" /> Cambios recientes de configuración
+          <History className="w-4 h-4" /> Recent configuration changes
         </div>
         <Link href="/admin/audit" className="text-xs text-orange-400 hover:underline flex items-center gap-1">
           Ver auditoría completa <ExternalLink className="w-3 h-3" />
@@ -112,15 +112,15 @@ function RecentConfigActivity() {
       </div>
 
       {loading && logs.length === 0 ? (
-        <div className="text-xs text-muted-foreground">Cargando historial...</div>
+        <div className="text-xs text-muted-foreground">Loading history...</div>
       ) : (
         <div className="divide-y divide-border text-xs">
-          {logs.length === 0 && <div className="py-2 text-muted-foreground">No hay cambios de configuración registrados todavía.</div>}
+          {logs.length === 0 && <div className="py-2 text-muted-foreground">No configuration changes recorded yet.</div>}
           {logs.map((log, idx) => (
             <div key={idx} className="py-2 flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <span className="font-medium">{log.performedBy?.name || log.admin?.name || log.performedBy?.email || 'Admin'}</span>
-                <span className="text-muted-foreground"> actualizó </span>
+                <span className="text-muted-foreground"> updated </span>
                 <span className="font-mono text-[10px]">{(log.details?.changedFields || []).join(', ') || 'config'}</span>
               </div>
               <div className="text-muted-foreground whitespace-nowrap shrink-0">
@@ -253,10 +253,10 @@ export default function AdminSettings() {
         setConfig(normalized);
         setOriginalConfig(JSON.parse(JSON.stringify(normalized))); // deep clone
       } else {
-        toast.error('No se pudo cargar la configuración');
+        toast.error('Could not load configuration');
       }
     } catch (e) {
-      toast.error('Error al cargar configuración');
+      toast.error('Error loading configuration');
     } finally {
       setLoading(false);
     }
@@ -334,16 +334,16 @@ export default function AdminSettings() {
 
       if (res.ok) {
         const updated = await res.json();
-        toast.success('Configuración guardada correctamente');
+        toast.success('Configuration saved successfully');
         setLastSaved(new Date());
         // Refresh to get fresh _meta + server values (normalize inside fetchConfig)
         await fetchConfig();
       } else {
         const err = await res.json().catch(() => ({}));
-        toast.error(err?.error || 'Error al guardar');
+        toast.error(err?.error || 'Error saving');
       }
     } catch (e) {
-      toast.error('Error de red al guardar');
+      toast.error('Network error saving');
     } finally {
       setSaving(false);
     }
@@ -352,7 +352,7 @@ export default function AdminSettings() {
   const discardChanges = () => {
     if (originalConfig) {
       setConfig(JSON.parse(JSON.stringify(originalConfig)));
-      toast.info('Cambios descartados');
+      toast.info('Changes discarded');
     }
   };
 
@@ -361,14 +361,14 @@ export default function AdminSettings() {
     if (!config) return;
     const next = { ...config, ...partial };
     setConfig(next);
-    toast.success('Valores por defecto aplicados (recuerda guardar)');
+    toast.success('Default values applied (remember to save)');
   };
 
   const resetAllToDefaults = () => {
     if (!config) return;
     const next = { ...config, ...DEFAULTS } as PlatformConfig;
     setConfig(next);
-    toast('Configuración restaurada a valores por defecto. Presiona Guardar para aplicar.');
+    toast('Configuration restored to defaults. Press Save to apply.');
   };
 
   const loadTestHistory = async () => {
@@ -412,7 +412,7 @@ export default function AdminSettings() {
         break;
     }
     setConfig({ ...config, ...patch });
-    toast.info(`Sección ${section} restaurada a defaults (guarda para aplicar)`);
+    toast.info(`Section ${section} restored to defaults (save to apply)`);
   };
 
   const updateField = (field: keyof PlatformConfig, value: any) => {
@@ -440,15 +440,15 @@ export default function AdminSettings() {
       const data = await res.json();
 
       if (res.ok) {
-        toast.success(data.message || 'Email de prueba enviado');
+        toast.success(data.message || 'Test email sent');
         if (data.to) setTestEmailTo('');
         // Refresh history after successful send
         loadTestHistory();
       } else {
-        toast.error(data.error || 'No se pudo enviar el email de prueba');
+        toast.error(data.error || 'Could not send test email');
       }
     } catch (e) {
-      toast.error('Error enviando email de prueba');
+      toast.error('Error sending test email');
     } finally {
       setTestEmailSending(false);
     }
@@ -459,12 +459,12 @@ export default function AdminSettings() {
     e.preventDefault();
 
     if (adminPasswordForm.newPassword.length < 8) {
-      toast.error('La nueva contraseña debe tener al menos 8 caracteres');
+      toast.error('New password must be at least 8 characters');
       return;
     }
 
     if (adminPasswordForm.newPassword !== adminPasswordForm.confirmPassword) {
-      toast.error('Las contraseñas nuevas no coinciden');
+      toast.error('New passwords do not match');
       return;
     }
 
@@ -484,13 +484,13 @@ export default function AdminSettings() {
       const data = await res.json();
 
       if (res.ok) {
-        toast.success('Contraseña del administrador actualizada correctamente');
+        toast.success('Administrator password updated successfully');
         setAdminPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       } else {
-        toast.error(data.error || 'No se pudo cambiar la contraseña');
+        toast.error(data.error || 'Could not change password');
       }
     } catch (err) {
-      toast.error('Error al cambiar la contraseña');
+      toast.error('Error changing password');
     } finally {
       setAdminPasswordLoading(false);
     }
@@ -517,31 +517,31 @@ export default function AdminSettings() {
         {/* Top status bar */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight">Configuración del Sistema</h1>
-            <p className="text-muted-foreground mt-1">Control central de la plataforma • Cambios aplican inmediatamente después de guardar</p>
+            <h1 className="text-4xl font-bold tracking-tight">System Settings</h1>
+            <p className="text-muted-foreground mt-1">Central platform control • Changes apply immediately after saving</p>
           </div>
 
           <div className="flex items-center gap-3">
             {isDirty && (
               <div className="flex items-center gap-2 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3 py-1 text-xs font-medium">
-                <AlertTriangle className="w-3.5 h-3.5" /> Cambios sin guardar
+                <AlertTriangle className="w-3.5 h-3.5" /> Unsaved changes
               </div>
             )}
             {lastSaved && !isDirty && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Check className="w-3.5 h-3.5 text-emerald-500" />
-                Guardado {lastSaved.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                Saved {lastSaved.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
               </div>
             )}
             {lastUpdated && !isDirty && (
               <div className="text-[10px] text-muted-foreground/70 hidden md:block">
-                Última actualización del servidor: {new Date(lastUpdated).toLocaleString('es-CO')}
+                Last server update: {new Date(lastUpdated).toLocaleString('es-CO')}
               </div>
             )}
 
             {isDirty && (
               <Button variant="outline" onClick={discardChanges} disabled={saving}>
-                <RotateCcw className="mr-2 h-4 w-4" /> Descartar
+                <RotateCcw className="mr-2 h-4 w-4" /> Discard
               </Button>
             )}
             <Button 
@@ -558,7 +558,7 @@ export default function AdminSettings() {
               className="bg-orange-600 hover:bg-orange-700 disabled:opacity-60"
             >
               <Save className="mr-2 h-4 w-4" />
-              {saving ? 'Guardando...' : 'Guardar Cambios'}
+              {saving ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
         </div>
@@ -568,13 +568,13 @@ export default function AdminSettings() {
           <div className="mb-8 p-4 bg-yellow-900/30 border border-yellow-600/70 rounded-2xl flex items-start gap-3">
             <AlertTriangle className="w-6 h-6 text-yellow-400 mt-0.5 flex-shrink-0" />
             <div className="text-sm">
-              <p className="font-semibold text-yellow-400">⚠️ Wompi en modo de pruebas (Sandbox)</p>
+              <p className="font-semibold text-yellow-400">⚠️ Wompi in test mode (Sandbox)</p>
               <p className="text-yellow-300 mt-1">
-                Los pagos procesados actualmente son de prueba. Los usuarios no serán cobrados con dinero real.
+                Payments processed currently are test payments. Users will not be charged real money.
                 {wompi?.publicKeyPreview && <> Clave pública actual: <code className="font-mono bg-black/30 px-1 rounded">{wompi.publicKeyPreview}</code></>}
               </p>
               <p className="text-yellow-300/80 text-xs mt-1">
-                Configura llaves LIVE (pub_live_...) en las variables de entorno para aceptar pagos reales.
+                Configure LIVE keys (pub_live_...) in environment variables to accept real payments.
               </p>
             </div>
           </div>
@@ -583,7 +583,7 @@ export default function AdminSettings() {
         {/* Unsaved banner (prominent when dirty) */}
         {isDirty && (
           <div className="mb-6 rounded-xl border border-amber-500/40 bg-amber-500/5 px-4 py-2 text-sm flex items-center gap-2 text-amber-400">
-            Tienes cambios sin guardar. Los ajustes no tendrán efecto hasta que pulses "Guardar Cambios".
+            You have unsaved changes. Settings will not take effect until you click "Save Changes".
           </div>
         )}
 
@@ -595,31 +595,31 @@ export default function AdminSettings() {
                 <CreditCard className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold">Pasarela de Pagos — Wompi</h2>
-                <p className="text-sm text-muted-foreground">Estado de integración y llaves (sin exponer secretos)</p>
+                <h2 className="text-xl font-semibold">Payment Gateway — Wompi</h2>
+                <p className="text-sm text-muted-foreground">Integration status and keys (secrets not exposed)</p>
               </div>
             </div>
             {wompi && (
               <div className={`px-3 py-1 rounded-full text-xs font-medium border ${wompi.mode === 'live' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : wompi.mode === 'sandbox' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'}`}>
-                {wompi.mode === 'live' ? 'LIVE — Pagos reales' : wompi.mode === 'sandbox' ? 'SANDBOX — Pruebas' : 'SIN CONFIGURAR'}
+                {wompi.mode === 'live' ? 'LIVE — Real payments' : wompi.mode === 'sandbox' ? 'SANDBOX — Test' : 'NOT CONFIGURED'}
               </div>
             )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
             <div className="rounded-2xl border border-border bg-background p-4">
-              <div className="text-muted-foreground text-xs mb-1">Clave Pública</div>
+              <div className="text-muted-foreground text-xs mb-1">Public Key</div>
               <div className="font-mono text-xs break-all">{wompi?.publicKeyPreview || 'No configurada (NEXT_PUBLIC_WOMPI_PUBLIC_KEY)'}</div>
               <div className={`mt-2 text-[10px] ${wompi?.configured ? 'text-emerald-400' : 'text-red-400'}`}>
-                {wompi?.configured ? 'Configurada' : 'Falta en variables de entorno'}
+                {wompi?.configured ? 'Configured' : 'Missing in environment variables'}
               </div>
             </div>
 
             <div className="rounded-2xl border border-border bg-background p-4">
-              <div className="text-muted-foreground text-xs mb-1">Modo detectado</div>
+              <div className="text-muted-foreground text-xs mb-1">Detected mode</div>
               <div className="font-semibold text-lg">{wompi?.mode?.toUpperCase() || 'DESCONOCIDO'}</div>
               <div className="text-[10px] text-muted-foreground mt-1">
-                Basado en el prefijo de la clave pública
+                Based on the public key prefix
               </div>
             </div>
 
@@ -651,7 +651,7 @@ export default function AdminSettings() {
         <div className="mb-6 bg-card border border-border rounded-3xl p-8">
           <div className="flex items-center gap-3 mb-5">
             <Globe className="text-sky-400" />
-            <h2 className="text-xl font-semibold">Integraciones y Entorno</h2>
+            <h2 className="text-xl font-semibold">Integrations & Environment</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
@@ -682,7 +682,7 @@ export default function AdminSettings() {
 
             <div className="rounded-2xl border border-border bg-background p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                <Clock className="w-3.5 h-3.5" /> Entorno actual
+                <Clock className="w-3.5 h-3.5" /> Current environment
               </div>
               <div className="font-semibold">{config._meta?.environment || process.env.NODE_ENV || 'unknown'}</div>
               <div className="text-[10px] text-muted-foreground mt-1">CRON_SECRET y otros jobs controlados por secrets</div>
@@ -699,12 +699,12 @@ export default function AdminSettings() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <DollarSign className="text-emerald-400" />
-                <h2 className="text-xl font-semibold">Economía de la Plataforma</h2>
+                <h2 className="text-xl font-semibold">Platform Economy</h2>
               </div>
               <button
                 onClick={() => resetSection('fees')}
                 className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition"
-                title="Restaurar comisiones y monto mínimo por defecto"
+                title="Restore default commissions and min payout"
               >
                 <RotateCcw className="w-3 h-3" /> reset
               </button>
@@ -714,7 +714,7 @@ export default function AdminSettings() {
               {/* Platform Commission */}
               <div>
                 <div className="flex items-baseline justify-between mb-1.5">
-                  <Label className="text-sm text-muted-foreground">Comisión de Plataforma</Label>
+                  <Label className="text-sm text-muted-foreground">Platform Commission</Label>
                   <span className="text-2xl font-semibold tabular-nums">{(config.commissionRate * 100).toFixed(0)}%</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -733,16 +733,16 @@ export default function AdminSettings() {
                     ))}
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1.5">Se descuenta de cada orden completada antes de pagar al vendedor.</p>
+                <p className="text-xs text-muted-foreground mt-1.5">Deducted from every completed order before paying the seller.</p>
                 <div className="mt-2 text-xs bg-emerald-500/10 text-emerald-400 p-2.5 rounded-xl">
-                  Ejemplo con pedido de $120.000: Plataforma recibe <strong>{formatCOP(config.commissionRate * 120000)}</strong>
+                  Example on $120,000 order: Platform receives <strong>{formatCOP(config.commissionRate * 120000)}</strong>
                 </div>
               </div>
 
               {/* Referral Commission */}
               <div>
                 <div className="flex items-baseline justify-between mb-1.5">
-                  <Label className="text-sm text-muted-foreground">Comisión por Referidos</Label>
+                  <Label className="text-sm text-muted-foreground">Referral Commission</Label>
                   <span className="text-2xl font-semibold tabular-nums">{((config.referralCommissionRate ?? 0.05) * 100).toFixed(0)}%</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -761,15 +761,15 @@ export default function AdminSettings() {
                     ))}
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1.5">Se paga al referente (quien invitó al vendedor) cuando se completa un pedido.</p>
+                <p className="text-xs text-muted-foreground mt-1.5">Paid to the referrer (who invited the seller) when an order completes.</p>
                 <div className="mt-2 text-xs bg-amber-500/10 text-amber-400 p-2.5 rounded-xl">
-                  Ejemplo: Pedido $120.000 → Referente recibe <strong>{formatCOP((config.referralCommissionRate ?? 0.05) * 120000)}</strong>
+                  Example: $120,000 order → Referrer receives <strong>{formatCOP((config.referralCommissionRate ?? 0.05) * 120000)}</strong>
                 </div>
               </div>
 
               {/* Min Payout */}
               <div>
-                <Label className="text-sm text-muted-foreground">Monto mínimo para pago a vendedores</Label>
+                <Label className="text-sm text-muted-foreground">Minimum payout amount for sellers</Label>
                 <div className="flex items-center gap-3 mt-2">
                   <div className="text-xl text-muted-foreground">$</div>
                   <Input
@@ -781,7 +781,7 @@ export default function AdminSettings() {
                   />
                   <span className="text-muted-foreground">COP</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Los vendedores deben alcanzar este umbral para poder solicitar retiros.</p>
+                <p className="text-xs text-muted-foreground mt-1">Sellers must reach this threshold to request withdrawals.</p>
                 <div className="text-[10px] text-muted-foreground mt-1">Actual: {formatCOP(config.minPayoutAmount)}</div>
               </div>
             </div>
@@ -792,12 +792,12 @@ export default function AdminSettings() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <MessageCircle className="text-blue-400" />
-                <h2 className="text-xl font-semibold">Soporte y Comunicaciones</h2>
+                <h2 className="text-xl font-semibold">Support & Communications</h2>
               </div>
               <button
                 onClick={() => resetSection('support')}
                 className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition"
-                title="Restaurar emails y teléfono por defecto"
+                title="Restore default emails and phone"
               >
                 <RotateCcw className="w-3 h-3" /> reset
               </button>
@@ -805,7 +805,7 @@ export default function AdminSettings() {
 
             <div className="space-y-5 flex-1">
               <div>
-                <Label className="text-sm text-muted-foreground">Email de soporte visible</Label>
+                <Label className="text-sm text-muted-foreground">Public support email</Label>
                 <Input
                   type="email"
                   value={config.supportEmail}
@@ -813,11 +813,11 @@ export default function AdminSettings() {
                   className="mt-2 bg-background border-border"
                   placeholder="support@fitmelive.com"
                 />
-                <p className="text-xs text-muted-foreground mt-1">Usado en pie de página, correos y página de soporte.</p>
+                <p className="text-xs text-muted-foreground mt-1">Used in footer, emails and support page.</p>
               </div>
 
               <div>
-                <Label className="text-sm text-muted-foreground">Teléfono / WhatsApp de soporte (opcional)</Label>
+                <Label className="text-sm text-muted-foreground">Support phone / WhatsApp (optional)</Label>
                 <Input
                   type="tel"
                   value={config.supportPhone || ''}
@@ -825,14 +825,14 @@ export default function AdminSettings() {
                   className="mt-2 bg-background border-border"
                   placeholder="+57 300 123 4567"
                 />
-                <p className="text-xs text-muted-foreground mt-1">Se puede mostrar en páginas de contacto y plantillas de email.</p>
+                <p className="text-xs text-muted-foreground mt-1">Can be shown on contact pages and in email templates.</p>
               </div>
 
               {/* Email Testing Tool */}
               <div className="pt-3 border-t border-border">
                 <div className="flex items-center gap-2 mb-2">
                   <Mail className="w-4 h-4 text-blue-400" />
-                  <span className="font-medium text-sm">Enviar email de prueba</span>
+                  <span className="font-medium text-sm">Send test email</span>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -841,10 +841,10 @@ export default function AdminSettings() {
                     onChange={(e) => setTestEmailType(e.target.value as any)}
                     className="bg-background border border-border rounded-md px-3 py-2 text-sm flex-1"
                   >
-                    <option value="welcome">Bienvenida</option>
-                    <option value="order">Nuevo pedido</option>
-                    <option value="review">Nueva reseña</option>
-                    <option value="password-reset">Restablecer contraseña</option>
+                    <option value="welcome">Welcome</option>
+                    <option value="order">New order</option>
+                    <option value="review">New review</option>
+                    <option value="password-reset">Password reset</option>
                   </select>
 
                   <Input
@@ -860,11 +860,11 @@ export default function AdminSettings() {
                     variant="outline"
                     className="whitespace-nowrap"
                   >
-                    {testEmailSending ? 'Enviando…' : 'Enviar prueba'}
+                    {testEmailSending ? 'Sending…' : 'Send test'}
                   </Button>
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-1.5">
-                  Si dejas el campo vacío se envía al administrador actual. Los envíos directos quedan registrados en auditoría.
+                  If left empty it sends to the current admin. Direct sends are logged in audit.
                 </p>
 
                 {/* Test Email History (bulk/history "All" feature) */}
@@ -897,12 +897,12 @@ export default function AdminSettings() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <Shield className="text-violet-400" />
-                <h2 className="text-xl font-semibold">Funcionalidades</h2>
+                <h2 className="text-xl font-semibold">Features</h2>
               </div>
               <button
                 onClick={() => resetSection('features')}
                 className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition"
-                title="Restaurar toggles de reseñas y chat"
+                title="Restore review and chat toggles"
               >
                 <RotateCcw className="w-3 h-3" /> reset
               </button>
@@ -911,22 +911,22 @@ export default function AdminSettings() {
             <div className="space-y-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="font-medium">Reseñas y Calificaciones</div>
-                  <div className="text-sm text-muted-foreground">Permite que los compradores califiquen y dejen comentarios sobre vendedores después de una orden completada.</div>
+                  <div className="font-medium">Reviews & Ratings</div>
+                  <div className="text-sm text-muted-foreground">Allows buyers to rate and leave comments on sellers after a completed order.</div>
                 </div>
                 <Switch checked={config.enableReviews} onCheckedChange={(c) => updateField('enableReviews', c)} />
               </div>
 
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="font-medium">Chat dentro de las Órdenes</div>
-                  <div className="text-sm text-muted-foreground">Habilita mensajería en tiempo real + adjuntar archivos entre comprador y vendedor mientras la orden está activa.</div>
+                  <div className="font-medium">Chat inside Orders</div>
+                  <div className="text-sm text-muted-foreground">Enables real-time messaging + file attachments between buyer and seller while the order is active.</div>
                 </div>
                 <Switch checked={config.enableChat} onCheckedChange={(c) => updateField('enableChat', c)} />
               </div>
 
               <div className="pt-3 border-t text-xs text-muted-foreground">
-                Más flags granulares (notificaciones push globales, nuevas categorías, etc.) se pueden agregar aquí en el futuro.
+                More granular flags (global push notifications, new categories, etc.) can be added here in the future.
               </div>
             </div>
           </div>
@@ -983,12 +983,12 @@ export default function AdminSettings() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <UserPlus className="text-indigo-400" />
-                <h2 className="text-xl font-semibold">Crecimiento y Acceso</h2>
+                <h2 className="text-xl font-semibold">Growth & Access</h2>
               </div>
               <button
                 onClick={() => resetSection('growth')}
                 className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition"
-                title="Restaurar toggles de referidos y registros"
+                title="Restore referral and signup toggles"
               >
                 <RotateCcw className="w-3 h-3" /> reset
               </button>
@@ -997,10 +997,10 @@ export default function AdminSettings() {
             <div className="space-y-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="font-medium flex items-center gap-2">Programa de Referidos <span className="text-[10px] px-1.5 py-px rounded bg-indigo-500/10 text-indigo-400">GLOBAL</span></div>
-                  <div className="text-sm text-muted-foreground">Habilita la creación de ReferralEarnings cuando se completan órdenes. Útil para pausar temporalmente el programa sin borrar datos.</div>
+                  <div className="font-medium flex items-center gap-2">Referral Program <span className="text-[10px] px-1.5 py-px rounded bg-indigo-500/10 text-indigo-400">GLOBAL</span></div>
+                  <div className="text-sm text-muted-foreground">Enables creation of ReferralEarnings when orders complete. Useful to temporarily pause the program without deleting data.</div>
                   {!config.referralsEnabled && (
-                    <div className="mt-1 text-xs text-amber-400">Referidos desactivados — no se generarán nuevos créditos por referidos.</div>
+                    <div className="mt-1 text-xs text-amber-400">Referrals disabled — no new referral credits will be generated.</div>
                   )}
                 </div>
                 <Switch checked={config.referralsEnabled} onCheckedChange={(c) => updateField('referralsEnabled', c)} />
@@ -1008,14 +1008,14 @@ export default function AdminSettings() {
 
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="font-medium">Permitir nuevos registros</div>
-                  <div className="text-sm text-muted-foreground">Control maestro para signup. Cuando está apagado, nuevos usuarios no podrán crear cuenta (páginas de login/signup pueden mostrar mensaje).</div>
+                  <div className="font-medium">Allow new signups</div>
+                  <div className="text-sm text-muted-foreground">Master switch for signup. When off, new users cannot create accounts (login/signup pages may show a message).</div>
                 </div>
                 <Switch checked={config.allowNewSignups} onCheckedChange={(c) => updateField('allowNewSignups', c)} />
               </div>
 
               <div>
-                <Label className="text-sm text-muted-foreground">Tamaño máximo de archivos subidos (chat / órdenes)</Label>
+                <Label className="text-sm text-muted-foreground">Max upload file size (chat / orders)</Label>
                 <div className="flex items-center gap-3 mt-2">
                   <Input
                     type="number"
@@ -1027,7 +1027,7 @@ export default function AdminSettings() {
                   />
                   <span className="text-muted-foreground">MB</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Límite por archivo para OrderFile y chat attachments. Afecta el componente de subida.</p>
+                <p className="text-xs text-muted-foreground mt-1">Per-file limit for OrderFile and chat attachments. Affects the upload component.</p>
               </div>
             </div>
           </div>

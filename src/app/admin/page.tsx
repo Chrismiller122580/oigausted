@@ -47,7 +47,7 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-background text-foreground p-8 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p>Cargando panel de administración...</p>
+          <p>Loading admin dashboard...</p>
         </div>
       </div>
     );
@@ -57,8 +57,8 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-background text-foreground p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-10">
-          <h1 className="text-5xl font-bold tracking-tight">Panel de Administración</h1>
-          <p className="text-muted-foreground mt-2 text-xl">Vista general de FitMe Live • Datos en tiempo real</p>
+          <h1 className="text-5xl font-bold tracking-tight">Admin Dashboard</h1>
+          <p className="text-muted-foreground mt-2 text-xl">Platform overview • Real-time data</p>
         </div>
 
         {/* Stats Grid - Clickable tiles wired to data pages */}
@@ -67,9 +67,9 @@ export default function AdminDashboard() {
             <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
               <CardContent className="p-6">
                 <Users className="h-8 w-8 text-blue-400 mb-3" />
-                <p className="text-sm text-muted-foreground">Usuarios Totales</p>
+                <p className="text-sm text-muted-foreground">Total Users</p>
                 <p className="text-4xl font-bold mt-1">{stats?.users?.toLocaleString() || 0}</p>
-                <p className="text-xs text-emerald-400 mt-1">{stats?.sellers || 0} vendedores</p>
+                <p className="text-xs text-emerald-400 mt-1">{stats?.sellers || 0} sellers</p>
               </CardContent>
             </Card>
           </Link>
@@ -78,9 +78,9 @@ export default function AdminDashboard() {
             <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
               <CardContent className="p-6">
                 <Package className="h-8 w-8 text-orange-400 mb-3" />
-                <p className="text-sm text-muted-foreground">Gigs Publicados</p>
+                <p className="text-sm text-muted-foreground">Published Gigs</p>
                 <p className="text-4xl font-bold mt-1">{stats?.gigs || 0}</p>
-                <p className="text-xs text-emerald-400 mt-1">{stats?.activeGigs || 0} activos</p>
+                <p className="text-xs text-emerald-400 mt-1">{stats?.activeGigs || 0} active</p>
               </CardContent>
             </Card>
           </Link>
@@ -89,9 +89,9 @@ export default function AdminDashboard() {
             <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
               <CardContent className="p-6">
                 <Tag className="h-8 w-8 text-indigo-400 mb-3" />
-                <p className="text-sm text-muted-foreground">Categorías</p>
+                <p className="text-sm text-muted-foreground">Categories</p>
                 <p className="text-4xl font-bold mt-1">{stats?.totalCategories || 0}</p>
-                <p className="text-xs text-muted-foreground mt-1">de servicios</p>
+                <p className="text-xs text-muted-foreground mt-1">service categories</p>
               </CardContent>
             </Card>
           </Link>
@@ -100,9 +100,9 @@ export default function AdminDashboard() {
             <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
               <CardContent className="p-6">
                 <TrendingUp className="h-8 w-8 text-purple-400 mb-3" />
-                <p className="text-sm text-muted-foreground">Pedidos Totales</p>
+                <p className="text-sm text-muted-foreground">Total Orders</p>
                 <p className="text-4xl font-bold mt-1">{stats?.orders || 0}</p>
-                <p className="text-xs text-emerald-400 mt-1">{stats?.completedOrders || 0} completados</p>
+                <p className="text-xs text-emerald-400 mt-1">{stats?.completedOrders || 0} completed</p>
               </CardContent>
             </Card>
           </Link>
@@ -111,11 +111,11 @@ export default function AdminDashboard() {
             <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
               <CardContent className="p-6">
                 <DollarSign className="h-8 w-8 text-green-400 mb-3" />
-                <p className="text-sm text-muted-foreground">Ingresos Brutos</p>
+                <p className="text-sm text-muted-foreground">Gross Revenue</p>
                 <p className="text-4xl font-bold mt-1">${(stats?.totalRevenue || 0).toLocaleString('es-CO')}</p>
                 <p className="text-xs text-emerald-400 mt-1">
-                  Plataforma: ${(stats?.platformRevenue || 0).toLocaleString('es-CO')} 
-                  {stats?.estimatedReferralRevenue ? ` • Referidos: $${(stats.estimatedReferralRevenue).toLocaleString('es-CO')}` : ''}
+                  Platform: ${(stats?.platformRevenue || 0).toLocaleString('es-CO')} 
+                  {stats?.estimatedReferralRevenue ? ` • Referrals: $${(stats.estimatedReferralRevenue).toLocaleString('es-CO')}` : ''}
                 </p>
               </CardContent>
             </Card>
@@ -125,24 +125,24 @@ export default function AdminDashboard() {
             <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
               <CardContent className="p-6">
                 <AlertCircle className="h-8 w-8 text-amber-400 mb-3" />
-                <p className="text-sm text-muted-foreground">Pagos Pendientes</p>
+                <p className="text-sm text-muted-foreground">Pending Payouts</p>
                 <p className="text-4xl font-bold mt-1">{stats?.pendingPayouts || 0}</p>
-                <p className="text-xs text-muted-foreground mt-1">Órdenes completadas</p>
+                <p className="text-xs text-muted-foreground mt-1">Completed orders</p>
               </CardContent>
             </Card>
           </Link>
         </div>
 
         <div className="mb-4">
-          <h2 className="text-xl font-semibold mb-4 text-muted-foreground">Acciones Rápidas</h2>
+          <h2 className="text-xl font-semibold mb-4 text-muted-foreground">Quick Actions</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <Link href="/admin/users">
             <Card className="bg-card border-border hover:border-accent transition cursor-pointer h-full">
               <CardContent className="p-8">
                 <Users className="h-10 w-10 text-blue-400 mb-4" />
-                <h3 className="text-2xl font-semibold mb-2">Gestionar Usuarios</h3>
-                <p className="text-muted-foreground">Cambiar roles, ver vendedores, buscar usuarios</p>
+                <h3 className="text-2xl font-semibold mb-2">Manage Users</h3>
+                <p className="text-muted-foreground">Change roles, view sellers, search users</p>
               </CardContent>
             </Card>
           </Link>
@@ -151,8 +151,8 @@ export default function AdminDashboard() {
             <Card className="bg-card border-border hover:border-accent transition cursor-pointer h-full">
               <CardContent className="p-8">
                 <Package className="h-10 w-10 text-orange-400 mb-4" />
-                <h3 className="text-2xl font-semibold mb-2">Moderar Gigs</h3>
-                <p className="text-muted-foreground">Pausar, eliminar o revisar servicios</p>
+                <h3 className="text-2xl font-semibold mb-2">Moderate Gigs</h3>
+                <p className="text-muted-foreground">Pause, delete or review services</p>
               </CardContent>
             </Card>
           </Link>
@@ -161,8 +161,8 @@ export default function AdminDashboard() {
             <Card className="bg-card border-border hover:border-accent transition cursor-pointer h-full">
               <CardContent className="p-8">
                 <Tag className="h-10 w-10 text-indigo-400 mb-4" />
-                <h3 className="text-2xl font-semibold mb-2">Gestionar Categorías</h3>
-                <p className="text-muted-foreground">Crear/editar categorías y sus campos dinámicos de precio</p>
+                <h3 className="text-2xl font-semibold mb-2">Manage Categories</h3>
+                <p className="text-muted-foreground">Create/edit categories and their dynamic price fields</p>
               </CardContent>
             </Card>
           </Link>
@@ -171,8 +171,8 @@ export default function AdminDashboard() {
             <Card className="bg-card border-border hover:border-accent transition cursor-pointer h-full">
               <CardContent className="p-8">
                 <DollarSign className="h-10 w-10 text-green-400 mb-4" />
-                <h3 className="text-2xl font-semibold mb-2">Gestionar Pagos</h3>
-                <p className="text-muted-foreground">Revisar y marcar pagos a vendedores</p>
+                <h3 className="text-2xl font-semibold mb-2">Manage Payouts</h3>
+                <p className="text-muted-foreground">Review and mark seller payouts</p>
               </CardContent>
             </Card>
           </Link>
@@ -184,8 +184,8 @@ export default function AdminDashboard() {
               <CardContent className="p-6 flex items-center gap-4">
                 <BarChart3 className="h-8 w-8 text-purple-400" />
                 <div>
-                  <div className="font-semibold">Reportes</div>
-                  <div className="text-sm text-muted-foreground">Estadísticas y exportes</div>
+                  <div className="font-semibold">Reports</div>
+                  <div className="text-sm text-muted-foreground">Statistics and exports</div>
                 </div>
               </CardContent>
             </Card>
@@ -195,8 +195,8 @@ export default function AdminDashboard() {
               <CardContent className="p-6 flex items-center gap-4">
                 <MessageCircle className="h-8 w-8 text-blue-400" />
                 <div>
-                  <div className="font-semibold">Soporte</div>
-                  <div className="text-sm text-muted-foreground">Tickets y respuestas</div>
+                  <div className="font-semibold">Support</div>
+                  <div className="text-sm text-muted-foreground">Tickets and replies</div>
                 </div>
               </CardContent>
             </Card>
@@ -206,8 +206,8 @@ export default function AdminDashboard() {
               <CardContent className="p-6 flex items-center gap-4">
                 <Tag className="h-8 w-8 text-amber-400" />
                 <div>
-                  <div className="font-semibold">Ajustes y Config</div>
-                  <div className="text-sm text-muted-foreground">Comisiones, mantenimiento, branding</div>
+                  <div className="font-semibold">Settings & Config</div>
+                  <div className="text-sm text-muted-foreground">Commissions, maintenance, branding</div>
                 </div>
               </CardContent>
             </Card>
@@ -219,7 +219,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <Clock className="h-6 w-6 text-purple-400" />
-              <h2 className="text-2xl font-semibold">Actividad Reciente del Sistema</h2>
+              <h2 className="text-2xl font-semibold">Recent System Activity</h2>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <button 
@@ -227,10 +227,10 @@ export default function AdminDashboard() {
                 className="text-orange-400 hover:underline"
                 disabled={loading}
               >
-                Refrescar
+                Refresh
               </button>
               <Link href="/admin/audit" className="text-orange-400 hover:underline">
-                Ver todo el historial →
+                View full history →
               </Link>
             </div>
           </div>
@@ -239,7 +239,7 @@ export default function AdminDashboard() {
             <CardContent className="p-0">
               {recentActivity.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground">
-                  No hay actividad reciente.
+                  No recent activity.
                 </div>
               ) : (
                 <div className="divide-y divide-border">

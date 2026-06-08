@@ -36,7 +36,7 @@ export default function AdminSupportPage() {
       const data = await res.json();
       setTickets(data.tickets || []);
     } catch (e) {
-      toast.error('Error cargando tickets');
+      toast.error('Error loading tickets');
     } finally {
       setLoading(false);
     }
@@ -75,11 +75,11 @@ export default function AdminSupportPage() {
 
       if (!res.ok) throw new Error('Update failed');
 
-      toast.success('Ticket actualizado');
+      toast.success('Ticket updated');
       closeDetail();
       fetchTickets(); // refresh list
     } catch (e) {
-      toast.error('No se pudo actualizar el ticket');
+      toast.error('Could not update ticket');
     } finally {
       setUpdating(false);
     }
@@ -115,22 +115,22 @@ Please help draft a helpful reply or suggest how to resolve this.`;
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-5xl font-bold">Soporte</h1>
-            <p className="text-muted-foreground mt-1">Gestiona tickets enviados por usuarios (compradores y vendedores)</p>
+            <h1 className="text-5xl font-bold">Support</h1>
+            <p className="text-muted-foreground mt-1">Manage tickets submitted by users (buyers and sellers)</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => fetchTickets()}>Actualizar</Button>
-            <Button variant="outline" onClick={() => fetchTickets('open')}>Solo Abiertos</Button>
+            <Button variant="outline" onClick={() => fetchTickets()}>Refresh</Button>
+            <Button variant="outline" onClick={() => fetchTickets('open')}>Open Only</Button>
             <Link href="/admin/grok-build" className="inline-flex items-center px-4 py-2 border rounded text-sm hover:bg-muted">
-              ✨ Abrir Grok Build
+              ✨ Open Grok Build
             </Link>
           </div>
         </div>
 
         {loading ? (
-          <div className="text-center py-12">Cargando tickets...</div>
+          <div className="text-center py-12">Loading tickets...</div>
         ) : tickets.length === 0 ? (
-          <Card className="bg-card border-border p-8 text-center">No hay tickets que coincidan.</Card>
+          <Card className="bg-card border-border p-8 text-center">No matching tickets.</Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* List */}
@@ -155,7 +155,7 @@ Please help draft a helpful reply or suggest how to resolve this.`;
                     <p className="text-sm line-clamp-2 text-muted-foreground">{ticket.message}</p>
                     <div className="mt-3 flex gap-2">
                       <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); askGrokForHelp(ticket); }}>
-                        ✨ Pedir ayuda a Grok
+                        ✨ Ask Grok for help
                       </Button>
                     </div>
                   </CardContent>
@@ -170,58 +170,58 @@ Please help draft a helpful reply or suggest how to resolve this.`;
                   <CardContent className="p-6">
                     <div className="flex justify-between mb-4">
                       <h3 className="font-semibold text-lg">Ticket #{selectedTicket.id.slice(0,8)}</h3>
-                      <Button variant="ghost" size="sm" onClick={closeDetail}>Cerrar</Button>
+                      <Button variant="ghost" size="sm" onClick={closeDetail}>Close</Button>
                     </div>
 
                     <div className="mb-4 text-sm">
-                      <strong>De:</strong> {selectedTicket.user.email} ({selectedTicket.user.role})<br />
-                      <strong>Asunto:</strong> {selectedTicket.subject}<br />
-                      <strong>Categoría:</strong> {selectedTicket.category || 'N/A'} • <strong>Prioridad:</strong> {selectedTicket.priority}
+                      <strong>From:</strong> {selectedTicket.user.email} ({selectedTicket.user.role})<br />
+                      <strong>Subject:</strong> {selectedTicket.subject}<br />
+                      <strong>Category:</strong> {selectedTicket.category || 'N/A'} • <strong>Priority:</strong> {selectedTicket.priority}
                     </div>
 
                     <div className="mb-4">
-                      <p className="text-xs text-muted-foreground mb-1">MENSAJE DEL USUARIO</p>
+                      <p className="text-xs text-muted-foreground mb-1">USER MESSAGE</p>
                       <div className="bg-muted p-3 rounded text-sm whitespace-pre-wrap">{selectedTicket.message}</div>
                     </div>
 
                     <div className="space-y-4">
                       <div>
-                        <Label>Estado</Label>
+                        <Label>Status</Label>
                         <select 
                           value={newStatus || selectedTicket.status} 
                           onChange={e => setNewStatus(e.target.value)}
                           className="w-full border rounded p-2 bg-background"
                         >
-                          <option value="open">Abierto</option>
-                          <option value="in_progress">En Progreso</option>
-                          <option value="resolved">Resuelto</option>
-                          <option value="closed">Cerrado</option>
+                          <option value="open">Open</option>
+                          <option value="in_progress">In Progress</option>
+                          <option value="resolved">Resolved</option>
+                          <option value="closed">Closed</option>
                         </select>
                       </div>
 
                       <div>
-                        <Label>Respuesta / Notas del Admin</Label>
+                        <Label>Admin Reply / Notes</Label>
                         <Textarea 
                           value={replyText} 
                           onChange={e => setReplyText(e.target.value)} 
                           rows={5} 
-                          placeholder="Escribe tu respuesta aquí. Se enviará notificación al usuario."
+                          placeholder="Write your reply here. It will notify the user."
                         />
                       </div>
 
                       <div className="flex gap-2">
                         <Button onClick={updateTicket} disabled={updating} className="flex-1">
-                          {updating ? 'Guardando...' : 'Guardar Cambios y Notificar'}
+                          {updating ? 'Saving...' : 'Save Changes & Notify'}
                         </Button>
                         <Button variant="outline" onClick={() => askGrokForHelp(selectedTicket)}>
-                          ✨ Ayuda de Grok
+                          ✨ Grok Help
                         </Button>
                       </div>
                     </div>
 
                     {selectedTicket.adminReply && (
                       <div className="mt-4 p-3 bg-muted rounded text-sm">
-                        <p className="text-xs font-medium mb-1">Respuesta actual:</p>
+                        <p className="text-xs font-medium mb-1">Current reply:</p>
                         {selectedTicket.adminReply}
                       </div>
                     )}
@@ -229,7 +229,7 @@ Please help draft a helpful reply or suggest how to resolve this.`;
                 </Card>
               ) : (
                 <div className="text-muted-foreground p-8 border border-dashed rounded text-center">
-                  Selecciona un ticket para ver detalles y responder. <br />Usa el botón "Pedir ayuda a Grok" para que el asistente te ayude a redactar respuestas o diagnosticar problemas.
+                  Select a ticket to view details and respond. <br />Use the "Grok Help" button for the assistant to help draft replies or diagnose issues.
                 </div>
               )}
             </div>
@@ -237,7 +237,7 @@ Please help draft a helpful reply or suggest how to resolve this.`;
         )}
 
         <div className="mt-8 text-xs text-muted-foreground">
-          Los usuarios pueden enviar tickets desde <Link href="/support" className="underline">/support</Link>. Los cambios aquí envían notificaciones automáticas.
+          Users can submit tickets from <Link href="/support" className="underline">/support</Link>. Changes here send automatic notifications.
         </div>
       </div>
     </div>

@@ -575,7 +575,7 @@ export default function GrokBuildPage() {
             </div>
             <div>
               <h1 className="text-4xl font-bold">Grok Build</h1>
-              <p className="text-muted-foreground">Tu asistente de IA para construir y mejorar la plataforma</p>
+              <p className="text-muted-foreground">Your AI assistant to build and improve the platform</p>
             </div>
           </div>
         </div>
@@ -639,7 +639,7 @@ export default function GrokBuildPage() {
           <div className="lg:col-span-1">
             <div className="bg-card border border-border rounded-2xl p-5 sticky top-6">
               <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <Sparkles size={18} /> Prompts recomendados
+                <Sparkles size={18} /> Recommended Prompts
               </h3>
               <div className="space-y-2">
                 {(SUGGESTED_PROMPTS[activeMode] || SUGGESTED_PROMPTS.chat).map((prompt, index) => (
@@ -662,17 +662,17 @@ export default function GrokBuildPage() {
                 <textarea
                   value={customContext}
                   onChange={(e) => setCustomContext(e.target.value)}
-                  placeholder="Ej: Usuario 123abc (refirió 47 vendedores de alto volumen). Decidiendo si subir su tasa."
+                  placeholder="E.g. User 123abc (referred 47 high-volume sellers). Deciding whether to raise their rate."
                   className="w-full text-xs p-2 border rounded bg-background h-20 resize-y"
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Este contexto se envía en **todos** los mensajes. Grok lo recuerda.
+                  This context is sent with **all** messages. Grok remembers it.
                 </p>
 
                 {/* Quick Context Buttons */}
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <button onClick={() => setCustomContext("Mirando la lista de usuarios con muchos referidos")} className="text-[10px] px-2 py-1 bg-muted rounded hover:bg-muted/80">+ Usuarios con muchos referidos</button>
-                  <button onClick={() => setCustomContext("Analizando payouts pendientes este mes")} className="text-[10px] px-2 py-1 bg-muted rounded hover:bg-muted/80">+ Payouts pendientes</button>
+                  <button onClick={() => setCustomContext("Looking at list of users with many referrals")} className="text-[10px] px-2 py-1 bg-muted rounded hover:bg-muted/80">+ Users with many referrals</button>
+                  <button onClick={() => setCustomContext("Analyzing pending payouts this month")} className="text-[10px] px-2 py-1 bg-muted rounded hover:bg-muted/80">+ Pending payouts</button>
                 </div>
               </div>
             </div>
@@ -687,7 +687,7 @@ export default function GrokBuildPage() {
                   <Bot className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="font-semibold">Grok Build — Modo Admin</p>
+                  <p className="font-semibold">Grok Build — Admin Mode</p>
                   <p className="text-xs text-muted-foreground">
                     Modo activo: {activeMode}
                     {customContext && <span className="ml-2 text-orange-500">• Context attached</span>}
@@ -725,7 +725,7 @@ export default function GrokBuildPage() {
                       {/* Render suggested actions from Grok - Smart Action Cards */}
                       {message.actions && message.actions.length > 0 && (
                         <div className="mt-4 space-y-2">
-                          <div className="text-xs font-medium text-muted-foreground mb-1">Acciones sugeridas por Grok:</div>
+                          <div className="text-xs font-medium text-muted-foreground mb-1">Actions suggested by Grok:</div>
                           {message.actions.map((action, i) => (
                             <div 
                               key={i} 
@@ -745,9 +745,9 @@ export default function GrokBuildPage() {
                                 className="text-xs h-7"
                               >
                                 {action.executed ? (
-                                  <>✓ Ejecutado</>
+                                  <>✓ Executed</>
                                 ) : (
-                                  <>Ejecutar acción</>
+                                  <>Execute action</>
                                 )}
                               </Button>
                             </div>

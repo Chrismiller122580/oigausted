@@ -59,10 +59,10 @@ export default function AdminCategoriesPage() {
       if (res.ok) {
         setCategories(data.categories || []);
       } else {
-        toast.error(data.error || 'Error cargando categorías');
+        toast.error(data.error || 'Error loading categories');
       }
     } catch (e) {
-      toast.error('Error de red al cargar categorías');
+      toast.error('Network error loading categories');
     } finally {
       setLoading(false);
     }
@@ -99,7 +99,7 @@ export default function AdminCategoriesPage() {
 
   function addField() {
     if (!newField.key || !newField.label) {
-      toast.error('Clave y etiqueta son requeridas para el campo');
+      toast.error('Key and label are required for the field');
       return;
     }
     const field: FieldDef = {
@@ -143,7 +143,7 @@ export default function AdminCategoriesPage() {
     e.preventDefault();
 
     if (!formName.trim()) {
-      toast.error('El nombre es obligatorio');
+      toast.error('Name is required');
       return;
     }
 
@@ -166,15 +166,15 @@ export default function AdminCategoriesPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || 'Error al guardar');
+        toast.error(data.error || 'Error saving');
         return;
       }
 
-      toast.success(editingName ? 'Categoría actualizada' : 'Categoría creada exitosamente');
+      toast.success(editingName ? 'Category updated' : 'Category created successfully');
       resetForm();
       await loadCategories();
     } catch (err) {
-      toast.error('Error de red');
+      toast.error('Network error');
     }
   }
 
@@ -189,7 +189,7 @@ export default function AdminCategoriesPage() {
         }),
       });
       if (res.ok) {
-        toast.success(`Categoría ${!cat.isActive ? 'activada' : 'desactivada'}`);
+        toast.success(`Category ${!cat.isActive ? 'activated' : 'deactivated'}`);
         loadCategories();
       } else {
         const d = await res.json();
@@ -201,7 +201,7 @@ export default function AdminCategoriesPage() {
   }
 
   async function handleDelete(name: string) {
-    if (!confirm(`¿Eliminar la categoría "${name}"? Esta acción no se puede deshacer.`)) return;
+    if (!confirm(`Delete category "${name}"? This cannot be undone.`)) return;
 
     try {
       const res = await fetch(`/api/admin/categories?name=${encodeURIComponent(name)}`, {
@@ -209,13 +209,13 @@ export default function AdminCategoriesPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success('Categoría eliminada');
+        toast.success('Category deleted');
         loadCategories();
       } else {
-        toast.error(data.error || 'No se pudo eliminar');
+        toast.error(data.error || 'Could not delete');
       }
     } catch {
-      toast.error('Error de red');
+      toast.error('Network error');
     }
   }
 
@@ -223,54 +223,54 @@ export default function AdminCategoriesPage() {
     <div className="p-6 max-w-6xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Tag className="h-8 w-8" /> Gestión de Categorías de Servicios
+          <Tag className="h-8 w-8" /> Service Categories Management
         </h1>
         <p className="text-muted-foreground mt-2">
-          Crea y administra las categorías de gigs. Las categorías definen los campos dinámicos de precio que ven los compradores en el checkout.
+          Create and manage gig categories. Categories define the dynamic price fields buyers see at checkout.
         </p>
       </div>
 
       {/* CREATE / EDIT FORM */}
       <Card>
         <CardHeader>
-          <CardTitle>{editingName ? `Editando: ${editingName}` : 'Crear Nueva Categoría'}</CardTitle>
+          <CardTitle>{editingName ? `Editing: ${editingName}` : 'Create New Category'}</CardTitle>
           <CardDescription>
-            Los campos dinámicos permiten agregar precios extras según las opciones que elija el cliente (ej: número de habitaciones, materiales, urgencia).
+            Dynamic fields allow adding extra prices based on the options the client chooses (e.g. number of rooms, materials, urgency).
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Nombre de la categoría *</Label>
+                <Label>Category Name *</Label>
                 <Input
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Plomería y Fontanería"
+                  placeholder="Plumbing and Plumbing Services"
                   required
                   disabled={!!editingName}
                 />
-                {editingName && <p className="text-xs text-muted-foreground mt-1">El nombre no se puede cambiar (usado por gigs existentes).</p>}
+                {editingName && <p className="text-xs text-muted-foreground mt-1">Name cannot be changed (used by existing gigs).</p>}
               </div>
               <div>
-                <Label>Icono (emoji)</Label>
+                <Label>Icon (emoji)</Label>
                 <Input value={formIcon} onChange={(e) => setFormIcon(e.target.value)} placeholder="🚰" />
               </div>
             </div>
 
             <div>
-              <Label>Descripción (para homepage y listados)</Label>
+              <Label>Description (for homepage and listings)</Label>
               <Textarea
                 value={formDescription}
                 onChange={(e) => setFormDescription(e.target.value)}
-                placeholder="Reparaciones de tuberías, grifos e instalaciones hidráulicas"
+                placeholder="Pipe repairs, faucets and hydraulic installations"
                 rows={2}
               />
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
               <div>
-                <Label>Orden (para mostrar primero)</Label>
+                <Label>Order (to show first)</Label>
                 <Input type="number" value={formOrder} onChange={(e) => setFormOrder(parseInt(e.target.value) || 0)} />
               </div>
               <div className="flex items-center gap-2 pt-6">
@@ -281,15 +281,15 @@ export default function AdminCategoriesPage() {
                   onChange={(e) => setFormIsActive(e.target.checked)}
                   className="h-4 w-4 accent-orange-600"
                 />
-                <Label htmlFor="active">Activa (visible para vendedores)</Label>
+                <Label htmlFor="active">Active (visible to sellers)</Label>
               </div>
             </div>
 
             {/* FIELDS BUILDER */}
             <div>
-              <Label className="text-base font-semibold">Campos dinámicos (precio variable)</Label>
+              <Label className="text-base font-semibold">Dynamic Fields (variable pricing)</Label>
               <p className="text-sm text-muted-foreground mb-3">
-                Estos campos aparecen en el formulario de creación de gig y en el checkout. Agregan al precio base según lo que elija el comprador.
+                These fields appear in the gig creation form and at checkout. They add to the base price based on what the buyer chooses.
               </p>
 
               {/* Current fields list */}
@@ -348,7 +348,7 @@ export default function AdminCategoriesPage() {
 
               {/* Add new field controls */}
               <div className="border rounded-lg p-4 bg-background">
-                <div className="font-medium mb-2 text-sm">Agregar nuevo campo</div>
+                <div className="font-medium mb-2 text-sm">Add new field</div>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
                   <Input
                     placeholder="Clave (ej: rooms)"
@@ -378,21 +378,21 @@ export default function AdminCategoriesPage() {
                     />
                   )}
                   <Button type="button" onClick={addField} className="md:col-span-1">
-                    <Plus className="h-4 w-4 mr-1" /> Agregar campo
+                    <Plus className="h-4 w-4 mr-1" /> Add field
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Para tipo "select" agrega opciones después de crear el campo.</p>
+                <p className="text-xs text-muted-foreground mt-1">For "select" type, add options after creating the field.</p>
               </div>
             </div>
 
             <div className="flex gap-3">
               <Button type="submit">
                 <Save className="h-4 w-4 mr-2" />
-                {editingName ? 'Guardar cambios' : 'Crear categoría'}
+                {editingName ? 'Save changes' : 'Create category'}
               </Button>
               {editingName && (
                 <Button type="button" variant="outline" onClick={resetForm}>
-                  <X className="h-4 w-4 mr-2" /> Cancelar edición
+                  <X className="h-4 w-4 mr-2" /> Cancel edit
                 </Button>
               )}
             </div>
@@ -405,7 +405,7 @@ export default function AdminCategoriesPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>
-              Categorías en DB: {categories.length} / Estáticas: {staticGigCategories.length}
+              Categories in DB: {categories.length} / Static: {staticGigCategories.length}
             </CardTitle>
             <div className="flex gap-2">
               <Button 
@@ -426,11 +426,11 @@ export default function AdminCategoriesPage() {
                       toast.error(data.error || 'Error');
                     }
                   } catch {
-                    toast.error('Error de red');
+                    toast.error('Network error');
                   }
                 }}
               >
-                <RefreshCw className="h-4 w-4 mr-1" /> Sincronizar iniciales
+                <RefreshCw className="h-4 w-4 mr-1" /> Sync initials
               </Button>
               <Button 
                 variant="destructive" 
@@ -460,7 +460,7 @@ export default function AdminCategoriesPage() {
                   }
                 }}
               >
-                <AlertTriangle className="h-4 w-4 mr-1" /> Forzar reset a iniciales
+                <AlertTriangle className="h-4 w-4 mr-1" /> Force reset to initials
               </Button>
             </div>
           </div>
@@ -471,8 +471,8 @@ export default function AdminCategoriesPage() {
           ) : categories.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">
-                No hay categorías en la base de datos. 
-                Actualmente se usan definiciones estáticas de respaldo (20 categorías).
+                No categories in the database yet. 
+                Static fallback definitions are currently in use (20 categories).
               </p>
               <Button 
                 onClick={async () => {
@@ -495,11 +495,11 @@ export default function AdminCategoriesPage() {
                 }}
                 className="mx-auto"
               >
-                <Plus className="h-4 w-4 mr-2" /> Importar las 20 categorías iniciales (recomendado)
+                <Plus className="h-4 w-4 mr-2" /> Import the 20 initial categories (recommended)
               </Button>
               <p className="text-xs text-muted-foreground mt-2">
-                Esto poblará la base de datos para que el admin y las páginas públicas usen las categorías gestionadas.
-                Usa el botón "Forzar reset a iniciales" (arriba) si quieres limpiar categorías personalizadas que no estén en la lista estática.
+                This will populate the database so the admin and public pages use the managed categories.
+                Use the "Force reset to initials" button (above) if you want to clean custom categories not in the static list.
               </p>
             </div>
           ) : (
@@ -508,11 +508,11 @@ export default function AdminCategoriesPage() {
                 <div className="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded text-sm flex items-start gap-2">
                   <AlertTriangle className="h-4 w-4 mt-0.5 text-yellow-600 flex-shrink-0" />
                   <div>
-                    <strong>Atención:</strong> Solo hay {categories.length} categorías en la base de datos, 
-                    pero hay {staticGigCategories.length} definiciones estáticas conocidas.
+                    <strong>Warning:</strong> Only {categories.length} categories in the database, 
+                    but there are {staticGigCategories.length} known static definitions.
                     <br />
-                    Haz clic en <strong>"Sincronizar iniciales"</strong> arriba para importar las que faltan 
-                    (no se eliminará nada).
+                    Click <strong>"Sync initials"</strong> above to import the missing ones 
+                    (nothing will be deleted).
                   </div>
                 </div>
               )}
@@ -520,12 +520,12 @@ export default function AdminCategoriesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2 pr-4">Icono</th>
-                    <th className="text-left py-2 pr-4">Nombre</th>
-                    <th className="text-left py-2 pr-4">Campos</th>
+                    <th className="text-left py-2 pr-4">Icon</th>
+                    <th className="text-left py-2 pr-4">Name</th>
+                    <th className="text-left py-2 pr-4">Fields</th>
                     <th className="text-left py-2 pr-4">Gigs</th>
-                    <th className="text-left py-2 pr-4">Estado</th>
-                    <th className="text-right py-2">Acciones</th>
+                    <th className="text-left py-2 pr-4">Status</th>
+                    <th className="text-right py-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -562,7 +562,7 @@ export default function AdminCategoriesPage() {
             </>
           )}
           <p className="text-xs text-muted-foreground mt-4">
-            Nota: Las categorías con gigs asociados no se pueden eliminar (usa el botón de desactivar). Los vendedores solo ven las categorías activas.
+            Note: Categories with associated gigs cannot be deleted (use the deactivate button instead). Sellers only see active categories.
           </p>
         </CardContent>
       </Card>

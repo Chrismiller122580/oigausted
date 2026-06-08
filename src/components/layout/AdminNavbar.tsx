@@ -22,17 +22,17 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: '/admin', label: 'Overview', icon: Home },
-  { href: '/admin/users', label: 'Usuarios', icon: Users },
+  { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/gigs', label: 'Gigs', icon: Package },
-  { href: '/admin/categories', label: 'Categorías', icon: Tag },
-  { href: '/admin/earnings', label: 'Ganancias', icon: TrendingUp },
-  { href: '/admin/payouts', label: 'Pagos', icon: DollarSign },
-  { href: '/admin/reports', label: 'Reportes', icon: BarChart3 },
-  { href: '/admin/referrals', label: 'Referidos', icon: Users },
-  { href: '/admin/notifications', label: 'Notificaciones', icon: Bell },
-  { href: '/admin/support', label: 'Soporte', icon: MessageCircle },
-  { href: '/admin/settings', label: 'Ajustes', icon: Settings },
-  { href: '/admin/audit', label: 'Auditoría', icon: BarChart3 },
+  { href: '/admin/categories', label: 'Categories', icon: Tag },
+  { href: '/admin/earnings', label: 'Earnings', icon: TrendingUp },
+  { href: '/admin/payouts', label: 'Payouts', icon: DollarSign },
+  { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
+  { href: '/admin/referrals', label: 'Referrals', icon: Users },
+  { href: '/admin/notifications', label: 'Notifications', icon: Bell },
+  { href: '/admin/support', label: 'Support', icon: MessageCircle },
+  { href: '/admin/settings', label: 'Settings', icon: Settings },
+  { href: '/admin/audit', label: 'Audit', icon: BarChart3 },
   { href: '/admin/grok-build', label: 'Grok Build', icon: MessageCircle },
 ];
 

@@ -30,11 +30,11 @@ export default function AdminReports() {
     setError(null);
     try {
       const res = await fetch('/api/admin/reports');
-      if (!res.ok) throw new Error('Error al cargar reportes');
+      if (!res.ok) throw new Error('Error loading reports');
       const json = await res.json();
       setData(json);
     } catch (e: any) {
-      setError(e.message || 'Error cargando reportes');
+      setError(e.message || 'Error loading reports');
       console.error(e);
     } finally {
       setLoading(false);
@@ -53,12 +53,12 @@ export default function AdminReports() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-5xl font-bold tracking-tight">Reportes</h1>
-            <p className="text-muted-foreground mt-2 text-lg">Análisis de ventas, categorías, retención y más</p>
+            <h1 className="text-5xl font-bold tracking-tight">Reports</h1>
+            <p className="text-muted-foreground mt-2 text-lg">Sales analysis, categories, retention and more</p>
           </div>
           <Button onClick={fetchReports} disabled={loading} variant="outline" className="gap-2">
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Actualizar
+            Update
           </Button>
         </div>
 
@@ -66,7 +66,7 @@ export default function AdminReports() {
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
               <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4" />
-              <p className="text-muted-foreground">Generando reportes...</p>
+              <p className="text-muted-foreground">Generating reports...</p>
             </div>
           </div>
         )}
@@ -85,7 +85,7 @@ export default function AdminReports() {
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-2">
                     <BarChart3 className="h-5 w-5 text-blue-400" />
-                    <p className="text-sm text-muted-foreground">Órdenes Completadas</p>
+                    <p className="text-sm text-muted-foreground">Completed Orders</p>
                   </div>
                   <p className="text-4xl font-bold">{data.totalCompleted.toLocaleString('es-CO')}</p>
                 </CardContent>
@@ -95,7 +95,7 @@ export default function AdminReports() {
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-2">
                     <DollarSign className="h-5 w-5 text-green-400" />
-                    <p className="text-sm text-muted-foreground">Ingresos Brutos</p>
+                    <p className="text-sm text-muted-foreground">Gross Revenue</p>
                   </div>
                   <p className="text-4xl font-bold">${data.grossRevenue.toLocaleString('es-CO')}</p>
                   <p className="text-xs text-muted-foreground mt-1">Promedio: ${data.avgOrderValue.toLocaleString('es-CO')}</p>
@@ -106,7 +106,7 @@ export default function AdminReports() {
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-2">
                     <TrendingUp className="h-5 w-5 text-emerald-400" />
-                    <p className="text-sm text-muted-foreground">Ingresos Plataforma</p>
+                    <p className="text-sm text-muted-foreground">Platform Revenue</p>
                   </div>
                   <p className="text-4xl font-bold text-emerald-400">${data.platformRevenue.toLocaleString('es-CO')}</p>
                   <p className="text-xs text-amber-400 mt-1">+ Referidos: ${data.referralRevenue.toLocaleString('es-CO')}</p>
@@ -117,7 +117,7 @@ export default function AdminReports() {
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-2">
                     <Users className="h-5 w-5 text-purple-400" />
-                    <p className="text-sm text-muted-foreground">Compradores Únicos</p>
+                    <p className="text-sm text-muted-foreground">Unique Buyers</p>
                   </div>
                   <p className="text-4xl font-bold">{data.totalBuyersWithOrders}</p>
                   <p className="text-xs text-muted-foreground mt-1">{data.repeatBuyers} con 2+ pedidos ({data.totalBuyersWithOrders > 0 ? Math.round((data.repeatBuyers / data.totalBuyersWithOrders) * 100) : 0}% retención)</p>
@@ -128,7 +128,7 @@ export default function AdminReports() {
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-2">
                     <DollarSign className="h-5 w-5 text-amber-400" />
-                    <p className="text-sm text-muted-foreground">Neto a Vendedores</p>
+                    <p className="text-sm text-muted-foreground">Net to Sellers</p>
                   </div>
                   <p className="text-4xl font-bold">${data.netToSellers.toLocaleString('es-CO')}</p>
                 </CardContent>
@@ -138,12 +138,12 @@ export default function AdminReports() {
             {/* Ventas por Categoría */}
             <div className="mb-8">
               <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
-                <BarChart3 className="h-6 w-6" /> Ventas por Categoría
+                <BarChart3 className="h-6 w-6" /> Sales by Category
               </h2>
               <Card className="bg-card border-border">
                 <CardContent className="p-6">
                   {data.categorySales.length === 0 ? (
-                    <p className="text-muted-foreground">No hay datos de categorías aún.</p>
+                    <p className="text-muted-foreground">No category data yet.</p>
                   ) : (
                     <div className="space-y-4">
                       {data.categorySales.map((cat, idx) => {
@@ -174,7 +174,7 @@ export default function AdminReports() {
 
             {/* Ingresos Mensuales */}
             <div className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">Ingresos por Mes (últimos 6 meses)</h2>
+              <h2 className="text-2xl font-semibold mb-4">Monthly Revenue (last 6 months)</h2>
               <Card className="bg-card border-border">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -202,9 +202,9 @@ export default function AdminReports() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <Card className="bg-card border-border">
                 <CardContent className="p-6">
-                  <h3 className="font-semibold mb-4 text-lg">Servicios Más Vendidos</h3>
+                  <h3 className="font-semibold mb-4 text-lg">Top Selling Services</h3>
                   {data.topGigs.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Sin datos.</p>
+                    <p className="text-sm text-muted-foreground">No data.</p>
                   ) : (
                     <div className="space-y-3 text-sm">
                       {data.topGigs.map((g, i) => (
@@ -222,9 +222,9 @@ export default function AdminReports() {
 
               <Card className="bg-card border-border">
                 <CardContent className="p-6">
-                  <h3 className="font-semibold mb-4 text-lg">Top Vendedores</h3>
+                  <h3 className="font-semibold mb-4 text-lg">Top Sellers</h3>
                   {data.topSellers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Sin datos.</p>
+                    <p className="text-sm text-muted-foreground">No data.</p>
                   ) : (
                     <div className="space-y-3 text-sm">
                       {data.topSellers.map((s, i) => (
@@ -244,8 +244,8 @@ export default function AdminReports() {
             </div>
 
             <div className="text-xs text-muted-foreground text-center">
-              Los datos se calculan únicamente sobre órdenes con estado "Completed". 
-              Retención = compradores con 2 o más pedidos completados.
+              Data is calculated only on orders with status "Completed". 
+              Retention = buyers with 2 or more completed orders.
             </div>
           </>
         )}

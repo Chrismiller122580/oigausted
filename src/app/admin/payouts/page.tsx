@@ -40,7 +40,7 @@ export default function AdminPayoutsPage() {
         setReferralPayouts(pendingRefs);
       }
     } catch (e) {
-      toast.error('Error cargando pagos');
+      toast.error('Error loading payouts');
     } finally {
       setLoading(false);
     }
@@ -66,9 +66,9 @@ export default function AdminPayoutsPage() {
 
       // Remove from UI list (in real: would update order payout status too)
       setOrders(prev => prev.filter((o: any) => o.id !== orderId));
-      toast.success('Pago marcado como realizado. Referidos actualizados si aplicaba.');
+      toast.success('Payout marked as paid. Referrals updated if applicable.');
     } catch (e) {
-      toast.error('Error al marcar pago');
+      toast.error('Error marking payout');
     }
   };
 
@@ -82,18 +82,18 @@ export default function AdminPayoutsPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-8">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-5xl font-bold mb-2">Pagos a Vendedores</h1>
+        <h1 className="text-5xl font-bold mb-2">Seller Payouts</h1>
         <div className="text-muted-foreground mb-8 space-y-1">
           <div>
-            Neto a pagar a vendedores: <span className="font-bold text-2xl text-emerald-400">${totalNetToSellers.toLocaleString('es-CO')}</span>
+            Net to pay to sellers: <span className="font-bold text-2xl text-emerald-400">${totalNetToSellers.toLocaleString('es-CO')}</span>
           </div>
           <div className="text-sm">
-            Ingreso plataforma estimado: <span className="font-semibold text-amber-400">${totalPlatformRevenue.toLocaleString('es-CO')}</span> &nbsp;•&nbsp;
-            Pasivo referidos: <span className="font-semibold">${totalReferralLiability.toLocaleString('es-CO')}</span>
+            Estimated platform revenue: <span className="font-semibold text-amber-400">${totalPlatformRevenue.toLocaleString('es-CO')}</span> &nbsp;•&nbsp;
+            Referral liability: <span className="font-semibold">${totalReferralLiability.toLocaleString('es-CO')}</span>
           </div>
           {totalPendingReferrals > 0 && (
             <div className="text-sm text-orange-600">
-              Pendiente pago referidos (solicitados): <span className="font-semibold">${totalPendingReferrals.toLocaleString('es-CO')}</span>
+              Pending referral payouts (requested): <span className="font-semibold">${totalPendingReferrals.toLocaleString('es-CO')}</span>
             </div>
           )}
         </div>
@@ -102,12 +102,12 @@ export default function AdminPayoutsPage() {
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
               <div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Cargando pagos...</p>
+              <p className="text-muted-foreground">Loading payouts...</p>
             </div>
           </div>
         ) : orders.length === 0 ? (
           <Card className="bg-card border-border p-12 text-center">
-            <p className="text-xl">No hay pagos pendientes en este momento.</p>
+            <p className="text-xl">No pending payouts at this time.</p>
           </Card>
         ) : (
           <ErrorBoundary>
@@ -118,17 +118,17 @@ export default function AdminPayoutsPage() {
                   <div>
                     <p className="font-semibold text-lg">{order.gig?.title || 'Servicio'}</p>
                     <p className="text-sm text-muted-foreground">
-                      Vendedor: {order.seller?.businessName || order.seller?.name} • Comprador: {order.buyer?.name}
+                      Seller: {order.seller?.businessName || order.seller?.name} • Buyer: {order.buyer?.name}
                     </p>
                   </div>
                   <div className="flex items-center gap-6">
                     <div className="text-right">
                       <p className="text-2xl font-bold text-emerald-400">${(order.breakdown?.netToSeller || order.price || 0).toLocaleString('es-CO')}</p>
-                      <p className="text-xs text-muted-foreground line-through">${(order.price || 0).toLocaleString('es-CO')} bruto</p>
-                      <p className="text-[10px] text-muted-foreground">Neto a vendedor</p>
+                      <p className="text-xs text-muted-foreground line-through">${(order.price || 0).toLocaleString('es-CO')} gross</p>
+                      <p className="text-[10px] text-muted-foreground">Net to seller</p>
                     </div>
                     <Button onClick={() => markAsPaid(order.id)} className="bg-emerald-600 hover:bg-emerald-700">
-                      Marcar como Pagado
+                      Mark as Paid
                     </Button>
                   </div>
                 </CardContent>
@@ -141,20 +141,20 @@ export default function AdminPayoutsPage() {
         {/* Referral Payouts Section */}
         {referralPayouts.length > 0 && (
           <div className="mt-10">
-            <h2 className="text-2xl font-semibold mb-4">Pagos Pendientes por Referidos</h2>
+            <h2 className="text-2xl font-semibold mb-4">Pending Referral Payouts</h2>
             <div className="space-y-4">
               {referralPayouts.map((ref: any) => (
                 <Card key={ref.referrer.id} className="bg-card border-border">
                   <CardContent className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                      <p className="font-semibold text-lg">Referidor: {ref.referrer.name}</p>
+                      <p className="font-semibold text-lg">Referrer: {ref.referrer.name}</p>
                       <p className="text-sm text-muted-foreground">{ref.referrer.email}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Invitados: {ref.referredCount} • Generado: ${(ref.totalGenerated || 0).toLocaleString('es-CO')}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Referred: {ref.referredCount} • Generated: ${(ref.totalGenerated || 0).toLocaleString('es-CO')}</p>
                     </div>
                     <div className="flex items-center gap-6">
                       <div className="text-right">
                         <p className="text-2xl font-bold text-orange-600">${(ref.pendingPayout || 0).toLocaleString('es-CO')}</p>
-                        <p className="text-xs text-muted-foreground">Pendiente / Solicitado</p>
+                        <p className="text-xs text-muted-foreground">Pending / Requested</p>
                       </div>
                       <Button 
                         onClick={async () => {
@@ -176,7 +176,7 @@ export default function AdminPayoutsPage() {
                         }}
                         className="bg-orange-600 hover:bg-orange-700"
                       >
-                        Marcar Referidos Pagados
+                        Mark Referrals Paid
                       </Button>
                     </div>
                   </CardContent>

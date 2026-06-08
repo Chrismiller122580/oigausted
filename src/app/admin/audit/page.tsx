@@ -51,7 +51,7 @@ export default function AdminAuditPage() {
       setLogs(data.logs || []);
       setLastUpdated(new Date());
     } catch (e) {
-      if (!isBackground) toast.error('Error cargando registros de auditoría');
+      if (!isBackground) toast.error('Error loading audit records');
     } finally {
       if (!isBackground) setLoading(false);
     }
@@ -78,47 +78,47 @@ export default function AdminAuditPage() {
     <div className="min-h-screen bg-background text-foreground p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-5xl font-bold">Registro de Auditoría</h1>
+          <h1 className="text-5xl font-bold">Audit Log</h1>
           <p className="text-muted-foreground mt-1">
-            Historial completo de cambios en el sistema (admins, usuarios, webhooks y eventos automáticos)
+            Complete history of system changes (admins, users, webhooks and automatic events)
           </p>
         </div>
 
         <div className="flex flex-wrap gap-4 mb-6 items-center">
           <Input
-            placeholder="Filtrar por acción (ej: USER o ROLE)"
+            placeholder="Filter by action (e.g. USER or ROLE)"
             value={actionFilter}
             onChange={(e) => setActionFilter(e.target.value)}
             className="max-w-xs"
           />
           <Input
-            placeholder="Filtrar por tipo (ej: User o Gig)"
+            placeholder="Filter by type (e.g. User or Gig)"
             value={targetTypeFilter}
             onChange={(e) => setTargetTypeFilter(e.target.value)}
             className="max-w-xs"
           />
           <Input
-            placeholder="Filtrar por actor (email o ID)"
+            placeholder="Filter by actor (email or ID)"
             value={actorFilter}
             onChange={(e) => setActorFilter(e.target.value)}
             className="max-w-xs"
           />
           <Button variant="outline" onClick={() => { setActionFilter(''); setTargetTypeFilter(''); setActorFilter(''); }}>
-            Limpiar Filtros
+            Clear Filters
           </Button>
           <Button variant="outline" onClick={() => fetchLogs(false)} disabled={loading}>
-            Refrescar
+            Refresh
           </Button>
           <Button 
             variant={autoRefresh ? "default" : "outline"} 
             onClick={() => setAutoRefresh(!autoRefresh)}
             size="sm"
           >
-            {autoRefresh ? '⏸ Pausar auto' : '▶ Auto-actualizar (15s)'}
+            {autoRefresh ? '⏸ Pause auto' : '▶ Auto-refresh (15s)'}
           </Button>
           {lastUpdated && (
             <span className="text-xs text-muted-foreground ml-2">
-              Actualizado: {lastUpdated.toLocaleTimeString('es-CO')}
+              Updated: {lastUpdated.toLocaleTimeString('es-CO')}
             </span>
           )}
         </div>
@@ -126,19 +126,19 @@ export default function AdminAuditPage() {
         <Card>
           <CardContent className="p-0">
             {loading ? (
-              <div className="p-12 text-center text-muted-foreground">Cargando registros...</div>
+              <div className="p-12 text-center text-muted-foreground">Loading records...</div>
             ) : logs.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground">No se encontraron registros.</div>
+              <div className="p-12 text-center text-muted-foreground">No records found.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
-                      <th className="text-left p-4">Fecha</th>
+                      <th className="text-left p-4">Date</th>
                       <th className="text-left p-4">Actor</th>
-                      <th className="text-left p-4">Acción</th>
-                      <th className="text-left p-4">Recurso</th>
-                      <th className="text-left p-4">Detalles</th>
+                      <th className="text-left p-4">Action</th>
+                      <th className="text-left p-4">Resource</th>
+                      <th className="text-left p-4">Details</th>
                       <th className="text-left p-4">IP</th>
                     </tr>
                   </thead>
@@ -186,7 +186,7 @@ export default function AdminAuditPage() {
                                 navigator.clipboard.writeText(text);
                                 // simple feedback
                                 const el = document.createElement('span');
-                                el.textContent = ' ✓ Copiado';
+                                el.textContent = ' ✓ Copied';
                                 el.style.fontSize = '10px';
                                 // could use toast but keep simple
                               }}

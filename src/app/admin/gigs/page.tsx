@@ -38,7 +38,7 @@ export default function AdminGigsPage() {
       setGigs(list);
       setFiltered(list);
     } catch (e) {
-      toast.error('Error cargando gigs');
+      toast.error('Error loading gigs');
     } finally {
       setLoading(false);
     }
@@ -67,10 +67,10 @@ export default function AdminGigsPage() {
         body: JSON.stringify({ gigId: gig.id, isActive: !gig.isActive })
       });
       if (res.ok) {
-        toast.success(gig.isActive ? 'Gig pausado' : 'Gig activado');
+        toast.success(gig.isActive ? 'Gig paused' : 'Gig activated');
         fetchGigs();
       } else {
-        toast.error('No se pudo cambiar el estado');
+        toast.error('Could not change status');
       }
     } catch {
       toast.error('Error');
@@ -78,7 +78,7 @@ export default function AdminGigsPage() {
   };
 
   const deleteGig = async (gig: Gig) => {
-    if (!window.confirm(`¿Eliminar "${gig.title}"? Esta acción es permanente.`)) return;
+    if (!window.confirm(`Delete "${gig.title}"? This action is permanent.`)) return;
 
     try {
       const res = await fetch('/api/admin/gigs', {
@@ -87,14 +87,14 @@ export default function AdminGigsPage() {
         body: JSON.stringify({ gigId: gig.id })
       });
       if (res.ok) {
-        toast.success('Gig eliminado');
+        toast.success('Gig deleted');
         fetchGigs();
       } else {
         const err = await res.json();
-        toast.error(err.error || 'No se pudo eliminar');
+        toast.error(err.error || 'Could not delete');
       }
     } catch {
-      toast.error('Error al eliminar');
+      toast.error('Error deleting');
     }
   };
 
@@ -103,11 +103,11 @@ export default function AdminGigsPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-5xl font-bold">Moderación de Gigs</h1>
-            <p className="text-muted-foreground mt-1">Administra todos los servicios de la plataforma</p>
+            <h1 className="text-5xl font-bold">Gig Moderation</h1>
+            <p className="text-muted-foreground mt-1">Manage all platform services</p>
           </div>
           <Input
-            placeholder="Buscar por título, vendedor o email..."
+            placeholder="Search by title, seller or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm bg-card border-border"
@@ -118,15 +118,15 @@ export default function AdminGigsPage() {
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
               <div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Cargando gigs...</p>
+              <p className="text-muted-foreground">Loading gigs...</p>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
             {filtered.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-xl text-muted-foreground">No se encontraron gigs con ese criterio.</p>
-                <p className="text-sm text-muted-foreground mt-1">Prueba con otra búsqueda.</p>
+                <p className="text-xl text-muted-foreground">No gigs found matching the criteria.</p>
+                <p className="text-sm text-muted-foreground mt-1">Try a different search.</p>
               </div>
             )}
 
@@ -137,14 +137,14 @@ export default function AdminGigsPage() {
                     <div className="flex items-center gap-3">
                       <h3 className="text-xl font-semibold truncate">{gig.title}</h3>
                       <span className={`px-3 py-0.5 text-xs rounded-full ${gig.isActive ? 'bg-emerald-600' : 'bg-muted'}`}>
-                        {gig.isActive ? 'Activo' : 'Pausado'}
+                        {gig.isActive ? 'Active' : 'Paused'}
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {gig.seller?.businessName || gig.seller?.name || 'Vendedor'} • ${gig.price?.toLocaleString('es-CO')} • {gig.category}
+                      {gig.seller?.businessName || gig.seller?.name || 'Seller'} • ${gig.price?.toLocaleString('es-CO')} • {gig.category}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {gig.orderCount || 0} pedidos • Creado {new Date(gig.createdAt).toLocaleDateString('es-CO')}
+                      {gig.orderCount || 0} orders • Created {new Date(gig.createdAt).toLocaleDateString('es-CO')}
                     </p>
                   </div>
 
@@ -156,12 +156,12 @@ export default function AdminGigsPage() {
                       className="border-border flex items-center gap-2"
                     >
                       {gig.isActive ? <Pause size={16} /> : <Play size={16} />}
-                      {gig.isActive ? 'Pausar' : 'Activar'}
+                      {gig.isActive ? 'Pause' : 'Activate'}
                     </Button>
 
                     <a href={`/gigs/${gig.id}`} target="_blank" rel="noreferrer">
                       <Button variant="outline" size="sm" className="border-border flex items-center gap-2">
-                        <Eye size={16} /> Ver
+                        <Eye size={16} /> View
                       </Button>
                     </a>
 
@@ -171,7 +171,7 @@ export default function AdminGigsPage() {
                       onClick={() => deleteGig(gig)}
                       className="flex items-center gap-2"
                     >
-                      <Trash2 size={16} /> Eliminar
+                      <Trash2 size={16} /> Delete
                     </Button>
                   </div>
                 </CardContent>
