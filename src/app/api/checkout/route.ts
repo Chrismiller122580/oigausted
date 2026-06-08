@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma';
 // @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { devLog } from '@/lib/utils';
+import { devLog, toPrismaJson } from '@/lib/utils';
+import { logAuditEvent } from '@/lib/audit';
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,18 +33,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Este servicio está pausado y no se puede comprar" }, { status: 400 });
     }
 
-    const order = await prisma.order.create({
-      data: {
-        buyerId: userId,
-        sellerId: gig.sellerId,
-        gigId: gig.id,
-        price: gig.price,
-        status: 'Pending',
-        customFields: null
-      }
+    // Wrap create + audit in tx for integrity (order + audit atomic)
+    const order = await prisma.$transaction(async (tx) => {
+      const created = await tx.order.create({
+        data: {
+          buyerId: userId,
+          sellerId: gig.sellerId,
+          gigId: gig.id,
+          price: gig.price,
+          status: 'Pending',
+          customFields: null
+        }
+      });
+      await logAuditEvent({
+        performedById: userId,
+        action: 'ORDER_CREATED',
+        targetType: 'Order',
+        targetId: created.id,
+        details: toPrismaJson({ gigId: gig.id, price: gig.price })
+      });
+      return created;
     });
 
-    devLog("✅ Order created:", order.id);
+    devLog('Order created via checkout:', order.id);
 
     return NextResponse.json({ 
       success: true, 
@@ -51,7 +63,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("Checkout error:", error);
+    devLog('Checkout error:', error);
     return NextResponse.json({ 
       error: "Failed to create order", 
       details: error.message 

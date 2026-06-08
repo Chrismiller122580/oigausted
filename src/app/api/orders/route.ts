@@ -6,7 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
-import { devLog } from '@/lib/utils';
+import { devLog, toPrismaJson } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
@@ -67,34 +67,38 @@ export async function POST(request: Request) {
       }
     });
 
-    const order = await prisma.order.create({
-      data: {
-        buyerId: userId,
-        sellerId: gig.sellerId,
-        gigId: gig.id,
-        price: Number(price),
-        customFields: customFields ? JSON.stringify(customFields) : null,
-        status: 'Pending',
-      },
-      include: {
-        gig: true,
-        buyer: true,
-        seller: true
-      }
-    });
+    // Wrap order create + audit in tx for integrity
+    const order = await prisma.$transaction(async (tx) => {
+      const created = await tx.order.create({
+        data: {
+          buyerId: userId,
+          sellerId: gig.sellerId,
+          gigId: gig.id,
+          price: Number(price),
+          customFields: customFields ? JSON.stringify(customFields) : null,
+          status: 'Pending',
+        },
+        include: {
+          gig: true,
+          buyer: true,
+          seller: true
+        }
+      });
 
-    // Audit log for system change (buyer action)
-    await logAuditEvent({
-      performedById: userId,
-      action: 'ORDER_CREATED',
-      targetType: 'Order',
-      targetId: order.id,
-      details: {
-        gigId: gig.id,
-        gigTitle: gig.title,
-        price: Number(price),
-        sellerId: gig.sellerId,
-      },
+      await logAuditEvent({
+        performedById: userId,
+        action: 'ORDER_CREATED',
+        targetType: 'Order',
+        targetId: created.id,
+        details: toPrismaJson({
+          gigId: gig.id,
+          gigTitle: gig.title,
+          price: Number(price),
+          sellerId: gig.sellerId,
+        }),
+      });
+
+      return created;
     });
 
     // Notify seller about new order (email will be sent automatically by the notification system)

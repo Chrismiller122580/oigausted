@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
  import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { devLog } from '@/lib/utils';
 import { logAuditEvent } from '@/lib/audit';
 import { notifications } from '@/lib/notifications';
 
@@ -40,8 +41,9 @@ export async function GET(req: NextRequest) {
           select: { orders: true }
         }
       },
-      orderBy: { createdAt: 'desc' },
-      take: 100
+      orderBy: { createdAt: 'desc' }
+      // No hard take limit: keep adding new gigs; old ones stay visible unless explicitly deleted or filtered.
+      // For large scale, add pagination (cursor or page/limit) like referrals.
     });
 
     const gigsWithStats = gigs.map(g => ({
@@ -51,7 +53,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ gigs: gigsWithStats });
   } catch (error) {
-    console.error('Admin gigs error:', error);
+    devLog('Admin gigs error:', error);
     return NextResponse.json({ error: 'Error cargando gigs' }, { status: 500 });
   }
 }
@@ -102,7 +104,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ success: true, gig: updated });
   } catch (error) {
-    console.error('Admin gig update error:', error);
+    devLog('Admin gig update error:', error);
     return NextResponse.json({ error: 'Error actualizando gig' }, { status: 500 });
   }
 }
@@ -153,7 +155,7 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Admin gig delete error:', error);
+    devLog('Admin gig delete error:', error);
     return NextResponse.json({ error: 'Error eliminando gig' }, { status: 500 });
   }
 }

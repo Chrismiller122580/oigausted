@@ -73,3 +73,37 @@ export function toPrismaJson(value: any): any {
   return isSqliteDev ? JSON.stringify(value) : value;
 }
 
+/**
+ * Server-authoritative (and client-consistent) price calculator for dynamic smart fields.
+ * Replays extraPrice logic from a Category/Gig field definition snapshot against buyer selections.
+ * Used to enforce price in order updates before Wompi (prevents client tampering of finalPrice).
+ * Matches the calculateExtra logic in checkout and create-gig.
+ */
+export function computePriceFromSelections(
+  basePrice: number,
+  fieldDefs: any[],
+  selections: Record<string, any>
+): number {
+  let extra = 0;
+  (fieldDefs || []).forEach((field: any) => {
+    const value = selections?.[field?.key];
+    if (value == null) return;
+
+    if (field?.type === 'number' && typeof value === 'number') {
+      extra += value * (field.extraPrice || 0);
+    } else if (field?.type === 'checkbox' && value === true) {
+      extra += field.extraPrice || 0;
+    } else if (field?.type === 'select' && field.options) {
+      const chosen = field.options.find((o: any) =>
+        typeof o === 'string' ? o === value : o?.label === value
+      );
+      if (chosen && typeof chosen === 'object' && chosen.extraPrice) {
+        extra += chosen.extraPrice;
+      }
+    }
+  });
+  const total = (basePrice || 0) + extra;
+  // Prices are in whole COP in practice; round to avoid float drift
+  return Math.round(total);
+}
+

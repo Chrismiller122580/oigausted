@@ -1,5 +1,33 @@
 # What's New – OigaUsted
 
+## Upgrades to In-App Grok Build Tool (self-meta & UX improvements)
+Major round of self-improvement applied to the admin Grok Build experience at `/admin/grok-build`:
+
+- **A. Component Extraction**: Proposal rendering extracted into reusable `src/components/admin/ProposalCard.tsx` (with `Proposal` interface). Main page is now cleaner and easier to maintain.
+- **B. Streaming Support**: `sendMessageWithHistory` (post-tool continuations) now uses `stream: true` with a ReadableStream + TextDecoder accumulator. Live "thinking" feedback during long scans and final replies.
+- **C. Self-Meta Capabilities**: New `analyze_own_code` tool (server-side) that reads the tool's own source files for meta-analysis. Added "🧠 Improve the Tool Itself (self-meta scan)" button that triggers it + `propose_code_change` for self-upgrades.
+- **D. Undo Polish & Visibility**: Full `undoLastApply` in `grok-code.ts` + route support. Per-proposal "Undo" buttons, header "Undo Last Apply", `createdAt` timestamps on proposals, and improved audit logging (`GROK_CODE_UNDO`).
+- **E. Better Diffs + Auto-Verification**: Side-by-side OLD/NEW preview blocks (when using structured `old_string`/`new_string`). After every apply, the assistant now auto-suggests a verification `run_check`.
+- **F. Local CLI Handoff**: "📤 Handoff to Local grok CLI" button that copies a ready-to-paste continuation prompt referencing the current in-app session and proposals.
+
+These changes were driven by a self-scan of the tool and close the "improve the tool itself" loop. The tool is now more maintainable, responsive, self-aware, and safe.
+
+See `GROK_BUILD_IN_APP.md` for the full rationale and replication guide (written to be highly consumable by other Grok instances).
+
+## In-App Grok Build: System Scans, Fixes & Upgrades (admin/grok-build)
+- **Powerful new admin tool at `/admin/grok-build`**: Full agentic Grok experience inside the app.
+  - Modes now include **System Scan / Bug Hunt**.
+  - New server-side tools: `run_check` (typecheck/lint/build/prisma/full), `search_code` (regex across safe paths), `list_files`, `read_file`.
+  - `propose_code_change` now supports precise `old_string` + `new_string` (and diff for preview).
+- **Direct apply in Codespaces/dev**: One-click "Apply to Codebase" writes changes safely (path allowlist, .grok-bak backups, audit log via `GROK_CODE_APPLY`).
+- **Multi-proposal UI**: After scans, Grok can propose many fixes + upgrades; they accumulate in a scrollable list with per-item Apply/Copy/Dismiss + checkboxes.
+- **Bulk safe upgrades**: "Apply Safe Low-Risk Upgrades" flow with double-confirmation for low-risk modernization changes.
+- **Upgrade Categories**: Quick picker (Performance, DX, Security, Architecture, Observability, Modern Patterns, etc.) + "Full Modernization" to drive focused or broad proactive improvements.
+- **Master action**: Big "🚀 Full Scan + Propose Fixes & Upgrades" button that triggers comprehensive diagnostic + proposal sequence.
+- **Strong post-scan behavior**: System prompt updated so scans never end at diagnosis — Grok immediately proposes ready-to-apply fixes **and** forward-looking upgrades to keep the app advanced.
+- **Implementation**: New `src/lib/grok-code.ts` (safety, search, checks, apply logic) + `/api/grok/apply-code-change` endpoint + enhanced `/api/grok` + major updates to the admin grok-build page.
+- Works only in dev/Codespaces (env guard + path restrictions). Production remains read-only for code changes. Pairs well with the standalone `grok` CLI for larger refactors.
+
 ## Post full-app review fixes (2026-06 follow-ups from FULL-APP-REVIEW-2b0773a1 + delta)
 - **Data integrity**: prisma.$transaction added to critical paths (wompi webhook for payment+referral earning; orders PATCH for status change + referral create + earnings cancel + audit).
 - **Security**: Removed visible prod "BETA BYPASS" UI and handler in checkout; manual `Paid` transition now only via webhook or admin (dev simulate gated by NODE_ENV).
@@ -14,6 +42,16 @@
 - **Other**: Minor guard cleanups, tx in admin/referrals mark-paid + audit.
 
 tsc clean; many review items mitigated (more tx, bypass removed from prod, compat exercised, consoles/anys reduced, theme+legacy improved). Remaining per review: more tx coverage, full any/lint cleanup, payout ledger model, resend efficiency, impersonate, pagin, tests.
+
+## Deep Review Live Prep (post c7e6d5d dynamic categories)
+- **Price integrity (top blocker)**: Added `computePriceFromSelections()` shared util (exact replay of number*extraPrice / checkbox / select-option extras). Client checkout uses it for finalPrice. Server in orders PATCH now *enforces* computed total from gig.fields snapshot + submitted customFields before Wompi (tamper-proof; mismatches audited). Dev sim + all buyer selection paths covered.
+- **Tx expansion**: Checkout order create + audit now wrapped in $transaction (core payment path atomic).
+- **Cat feature hygiene + authz**: /api/admin/categories + public /api/categories now use devLog (no prod console pollution); requireAdmin uses isAdmin() helper (removed inline any cast). Admin categories page load uses useCallback (hook lint hygiene).
+- **Payouts clarity**: Added beta disclaimer in /admin/payouts UI (referral status tracked with tx; seller nets = runtime calc, manual disbursements currently).
+- **Debt clean**: Deleted dead ClientLayout.tsx + Providers.tsx (zero imports). 
+- Verification: tsc clean, prisma validate (wrapper), npm test pass, price fn runtime cases correct (155k/105k etc).
+
+See DEEP-REVIEW-LIVE-FIXES.md + /tmp/grok-deep-review-4ef4965f.md for full findings + deltas vs 2b0773a1. Core "make live" payment integrity + new feature surfaces now hardened. Recommend e2e with live Wompi + admin cat runtime before full traffic.
 
 ## Major Release: Referral Accounting Overhaul + Notification System 2.0
 

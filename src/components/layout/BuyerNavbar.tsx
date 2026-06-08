@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { Home, Package, LogOut, User, Menu, X, Search, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ModeToggle } from '@/components/ui/mode-toggle';
 import { NotificationsBell } from './NotificationsBell';
 import { useState } from 'react';
 import MobileMenu from './MobileMenu';
@@ -65,11 +64,10 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
                 <MessageCircle size={18} />
               </Link>
               <NotificationsBell />
-              <ModeToggle />
               <Button 
                 onClick={handleSignOut} 
                 variant="ghost" 
-                className="flex items-center gap-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                className="flex items-center gap-2 text-red-600 hover:bg-red-50"
               >
                 <LogOut size={18} /> Salir
               </Button>
@@ -77,7 +75,6 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
 
             {/* Mobile compact controls */}
             <div className="md:hidden flex items-center gap-1">
-              <ModeToggle />
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="p-2 text-muted-foreground hover:text-foreground transition"

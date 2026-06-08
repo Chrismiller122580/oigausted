@@ -59,6 +59,15 @@ export default function AdminDashboard() {
         <div className="mb-10">
           <h1 className="text-5xl font-bold tracking-tight">Panel de Administración</h1>
           <p className="text-muted-foreground mt-2 text-xl">Vista general de OigaUsted • Datos en tiempo real</p>
+          {stats?.wompiMode === 'sandbox' && (
+            <div className="mt-4 p-4 bg-yellow-900/30 border border-yellow-600 rounded-2xl text-sm text-yellow-300 flex items-start gap-3">
+              <span>⚠️</span>
+              <div>
+                <strong>Wompi en modo Sandbox (pruebas)</strong> — Los pagos no son reales. Cambia a llaves de producción (live) antes de lanzar con usuarios reales.
+                {stats?.wompiWarning && <div className="text-xs mt-1 opacity-80">{stats.wompiWarning}</div>}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Grid */}
@@ -193,27 +202,36 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className="divide-y divide-border">
-                  {recentActivity.map((log: any, index: number) => (
-                    <div key={index} className="px-6 py-4 flex items-start justify-between hover:bg-muted/50 transition">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm">
-                          {log.admin?.name || log.admin?.email || 'Admin'} 
-                          <span className="text-muted-foreground font-normal"> • {log.action.replace(/_/g, ' ').toLowerCase()}</span>
-                        </div>
-                        {log.details && (
-                          <div className="text-xs text-muted-foreground mt-1 truncate">
-                            {log.targetType} {log.targetId ? `(${log.targetId.slice(0,8)}...)` : ''}
+                  {recentActivity.map((log: any, index: number) => {
+                    // Support both new performedBy (any user) and legacy admin
+                    const actor = log.performedBy
+                      ? `${log.performedBy.name || log.performedBy.email}${log.performedBy.role ? ` (${log.performedBy.role})` : ''}`
+                      : log.admin
+                        ? `${log.admin.name || log.admin.email} (admin)`
+                        : 'System';
+
+                    return (
+                      <div key={index} className="px-6 py-4 flex items-start justify-between hover:bg-muted/50 transition">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm">
+                            {actor} 
+                            <span className="text-muted-foreground font-normal"> • {log.action.replace(/_/g, ' ').toLowerCase()}</span>
                           </div>
-                        )}
+                          <div className="text-xs text-muted-foreground mt-1 truncate">
+                            {log.targetType}
+                            {log.targetId ? ` (${log.targetId.slice(0, 8)}...)` : ''}
+                            {log.details && typeof log.details === 'object' && log.details.gigTitle ? ` • ${log.details.gigTitle}` : ''}
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground whitespace-nowrap ml-4">
+                          {new Date(log.createdAt).toLocaleTimeString('es-CO', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground whitespace-nowrap ml-4">
-                        {new Date(log.createdAt).toLocaleTimeString('es-CO', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

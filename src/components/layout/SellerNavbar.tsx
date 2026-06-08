@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { LogOut, Plus, DollarSign, Menu, X, MessageCircle, Home, Briefcase, Users } from 'lucide-react';
 import { NotificationsBell } from './NotificationsBell';
-import { ModeToggle } from '@/components/ui/mode-toggle';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import MobileMenu from './MobileMenu';
@@ -99,7 +98,6 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
             </Link>
 
             <NotificationsBell />
-            <ModeToggle />
             <Button
               variant="ghost"
               size="icon"
@@ -112,7 +110,6 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
 
           {/* Mobile Right Side (compact hamburger area) */}
           <div className="md:hidden flex items-center gap-1">
-            <ModeToggle />
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-2 text-muted-foreground hover:text-foreground transition"

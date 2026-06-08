@@ -1,7 +1,6 @@
 import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 // @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 

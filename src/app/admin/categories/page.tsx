@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,7 +50,7 @@ export default function AdminCategoriesPage() {
   });
   const [newOption, setNewOption] = useState({ label: '', extraPrice: 0 });
 
-  async function loadCategories() {
+  const loadCategories = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/admin/categories');
@@ -65,11 +65,11 @@ export default function AdminCategoriesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, [loadCategories]);
 
   function resetForm() {
     setEditingName(null);

@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 // @ts-ignore
-// @ts-ignore
- import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { devLog } from '@/lib/utils';
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (!isAdmin(session)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -87,10 +87,12 @@ export async function GET() {
       platformRevenue,
       estimatedReferralRevenue,
       pendingPayouts: aggregated.netToSeller, // now the real net amount owed to sellers
-      pendingReviews: 0 // can be improved later
+      pendingReviews: 0, // can be improved later
+      wompiMode: (process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '').includes('test') ? 'sandbox' : 'live',
+      wompiWarning: (process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '').includes('test') ? 'Using Wompi SANDBOX keys — real payments disabled' : null,
     });
   } catch (error) {
-    console.error('Admin stats error:', error);
+    devLog('Admin stats error:', error);
     return NextResponse.json({ error: 'Error obteniendo estadísticas' }, { status: 500 });
   }
 }

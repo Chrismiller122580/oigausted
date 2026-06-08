@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server'
 // @ts-ignore
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { authOptions, isAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { devLog, toPrismaJson } from '@/lib/utils'
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
-  const isAdmin = (session?.user as any)?.role === 'admin'
 
-  if (!isAdmin) {
+  if (!isAdmin(session)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -110,8 +109,7 @@ export async function GET(request: Request) {
 // PATCH to mark earnings as Paid (admin action for payouts)
 export async function PATCH(request: Request) {
   const session = await getServerSession(authOptions)
-  const isAdmin = (session?.user as any)?.role === 'admin'
-  if (!isAdmin) {
+  if (!isAdmin(session)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -141,7 +139,7 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ success: true, updated: result.count })
   } catch (error) {
-    console.error('Mark payout paid error:', error)
+    devLog('Mark payout paid error:', error)
     return NextResponse.json({ error: 'Error al marcar como pagado' }, { status: 500 })
   }
 }

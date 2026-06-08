@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 // @ts-ignore
-// @ts-ignore
- import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
+import { devLog } from '@/lib/utils';
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    const isAdmin = (session?.user as any)?.role === 'admin';
+    if (!isAdmin(session)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    }
 
     let config = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } });
 
@@ -23,7 +25,7 @@ export async function GET() {
           commissionRate: 0.12,
           referralCommissionRate: 0.05,
           minPayoutAmount: 50000,
-          supportEmail: 'support@support.oigagig.com',
+          supportEmail: 'support@oigagig.com',
           enableReviews: true,
           enableChat: true,
           maintenanceMode: false,
@@ -43,7 +45,7 @@ export async function GET() {
 
     return NextResponse.json(config);
   } catch (error) {
-    console.error('Config GET error:', error);
+    devLog('Config GET error:', error);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
@@ -51,7 +53,7 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (!isAdmin(session)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -98,7 +100,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(updated);
   } catch (error) {
-    console.error('Config PUT error:', error);
+    devLog('Config PUT error:', error);
     return NextResponse.json({ error: 'Error al guardar configuración' }, { status: 500 });
   }
 }

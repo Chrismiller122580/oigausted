@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ tickets });
   } catch (error) {
-    console.error('Get my tickets error:', error);
+    devLog('Get my tickets error:', error);
     return NextResponse.json({ error: 'Error obteniendo tus tickets' }, { status: 500 });
   }
 }

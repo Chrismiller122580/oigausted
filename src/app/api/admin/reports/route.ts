@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
 // @ts-ignore
-// @ts-ignore
- import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { devLog } from '@/lib/utils';
 import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG, aggregatePayouts } from '@/lib/payout';
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (!isAdmin(session)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -138,7 +138,7 @@ export async function GET() {
         : 0,
     });
   } catch (error) {
-    console.error('Admin reports error:', error);
+    devLog('Admin reports error:', error);
     return NextResponse.json({ error: 'Error generando reportes' }, { status: 500 });
   }
 }
