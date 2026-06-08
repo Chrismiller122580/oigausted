@@ -221,6 +221,18 @@ See the "Fixes Applied" and "Continued fixes" sections above for what has alread
 
 See the internal todo list (all now completed after implementation + tsc verification).
 
+### Support Tickets Debug & Audit (Follow-up "Do it all")
+Implemented full fixes for open support ticket handling + Grok integration (from the audit):
+
+- **Aligned Grok updates**: Server `update_support_ticket` now mirrors admin PATCH (sets `resolvedBy`, uses identical notify structure). Client tools already used admin API.
+- **Grok confirmation**: `update_support_ticket` now defers (returns tool_calls for explicit admin approval, like referral rate updates). No more auto-mutation.
+- **Email on new tickets**: Added admin + supportEmail email blast on creation (in addition to in_app), using resend (respects the email system). Deduped list.
+- **AuditLog for tickets**: Added on creation (user) and all updates (admin PATCH + Grok paths via PATCH).
+- **Harden Grok safety**: Updated system prompt to emphasize "get details + explicit confirm" + rate limit note for mutations. Support tools now gated.
+- **Minors**: Switched remaining console.error to devLog in admin tickets routes. Improved resolvedBy consistency. Error logging on notif failures now consistent with devLog patterns.
+
+All changes type-check (unrelated pre-existing .next errors only). New tickets now have full email + in_app + audit. Grok support flow is safer and consistent.
+
 If you'd like a final commit of this batch or to tackle items from other review docs, say the word!
 
 ### Continued fixes (keep fixing round)

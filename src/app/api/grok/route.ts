@@ -72,6 +72,8 @@ You are extremely intelligent, proactive, strategic, and results-oriented. Your 
 - When the user provides context (current page, selected user, specific problem), use it actively.
 - Maintain complex multi-turn conversations.
 - Be direct, actionable, and professional.
+- ALWAYS get explicit admin confirmation before any data mutation (e.g. support ticket updates, rate changes). Use tools to gather info first.
+- Rate limit sensitive actions; do not spam tools.
 - ${languageInstruction}
 
 Current session context:
@@ -415,29 +417,12 @@ Current session context:
       }
 
       if (functionName === "update_support_ticket" && args.ticketId) {
-        const data: any = {};
-        if (args.status) data.status = args.status;
-        if (args.adminReply) data.adminReply = args.adminReply;
-        if (args.status === 'resolved' || args.status === 'closed') data.resolvedAt = new Date();
-
-        const updated = await prisma.supportTicket.update({
-          where: { id: args.ticketId },
-          data,
-          include: { user: { select: { id: true, email: true } } }
+        // Defer to frontend for explicit admin confirmation (like update_referral_rate)
+        // This prevents auto-execution of ticket mutations by Grok.
+        return Response.json({
+          tool_calls: message.tool_calls,
+          content: message.content
         });
-        // Notify the ticket owner
-        try {
-          const { notifications } = await import('@/lib/notifications');
-          await notifications.sendInApp(
-            updated.userId,
-            'system',
-            'Actualización en tu ticket de soporte',
-            args.adminReply || `Tu ticket ahora está en estado: ${args.status}`,
-            '/support',
-            { ticketId: updated.id }
-          );
-        } catch {}
-        toolResult = { success: true, updated: { id: updated.id, status: updated.status, adminReply: updated.adminReply } };
       }
 
       if (functionName === "update_referral_rate") {

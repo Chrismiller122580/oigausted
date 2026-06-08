@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
+import { logAuditEvent } from '@/lib/audit';
+import { devLog } from '@/lib/utils';
 
 // GET: List all support tickets (admin only), with optional filters
 export async function GET(request: NextRequest) {
@@ -47,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ tickets });
   } catch (error) {
-    console.error('Admin get support tickets error:', error);
+    devLog('Admin get support tickets error:', error);
     return NextResponse.json({ error: 'Error cargando tickets de soporte' }, { status: 500 });
   }
 }
@@ -114,9 +116,22 @@ export async function PATCH(request: NextRequest) {
       console.error('Failed to notify user of ticket update:', notifErr);
     }
 
+    // Audit the update (via admin UI)
+    try {
+      await logAuditEvent({
+        performedById: adminId,
+        action: 'SUPPORT_TICKET_UPDATED',
+        targetType: 'SupportTicket',
+        targetId: ticketId,
+        details: { status, adminReply: adminReply?.substring(0, 100), priority },
+      });
+    } catch (auditErr) {
+      console.error('Audit log failed for ticket update:', auditErr);
+    }
+
     return NextResponse.json({ success: true, ticket: updated });
   } catch (error) {
-    console.error('Admin update support ticket error:', error);
+    devLog('Admin update support ticket error:', error);
     return NextResponse.json({ error: 'Error actualizando ticket' }, { status: 500 });
   }
 }

@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
 import { devLog } from '@/lib/utils';
+import { logAuditEvent } from '@/lib/audit';
 
 // POST: Submit a new support ticket (any logged-in user)
 export async function POST(request: NextRequest) {
@@ -36,10 +37,10 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Notify admins (in-app to all admins? or via email to supportEmail)
-    // For simplicity, send in-app to a system or find admins. Since no easy "all admins", we'll log and perhaps email support.
+    // Notify admins (in-app blast + email to support + admins, like payout requests)
+    // Ties into recent email/notif improvements (prefs, quiet, rate, delivery tracking).
     try {
-      // Send to the ticket submitter confirmation
+      // Send to the ticket submitter confirmation (in_app + potential email via prefs)
       await notifications.sendInApp(
         userId,
         'system',
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
       // Notify all admins (in-app)
       const admins = await prisma.user.findMany({
         where: { role: 'admin' },
-        select: { id: true }
+        select: { id: true, email: true }
       });
 
       const notifyMsg = `Nuevo ticket de soporte de ${ticket.user.name || ticket.user.email}: "${subject}"`;
@@ -66,8 +67,42 @@ export async function POST(request: NextRequest) {
           { ticketId: ticket.id }
         ).catch(() => {});
       }
+
+      // Email blast to supportEmail + all admin emails (deduped)
+      const { resend } = await import('@/lib/notifications');
+      const config = await prisma.platformConfig.findFirst();
+      const supportEmail = config?.supportEmail || 'support@support.oigagig.com';
+      const adminEmails = admins.map(a => a.email).filter(Boolean) as string[];
+      const toList = Array.from(new Set([supportEmail, ...adminEmails]));
+      if (resend && toList.length) {
+        await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL || 'OigaUsted <support@support.oigagig.com>',
+          to: toList,
+          subject: `Nuevo ticket de soporte: ${subject}`,
+          html: `
+            <p><strong>${ticket.user.name || ticket.user.email}</strong> ha enviado un nuevo ticket de soporte.</p>
+            <p><strong>Asunto:</strong> ${subject}</p>
+            <p><strong>Mensaje:</strong> ${message.substring(0, 300)}${message.length > 300 ? '...' : ''}</p>
+            <p><strong>Categoría:</strong> ${category} • <strong>Prioridad:</strong> ${priority}</p>
+            <p>Revisa y responde en el panel de administración: /admin/support?id=${ticket.id}</p>
+          `
+        }).catch((e: any) => devLog('Support ticket email blast failed:', e));
+      }
     } catch (notifErr) {
       devLog('Failed to send support confirmation notif:', notifErr);
+    }
+
+    // Audit the creation
+    try {
+      await logAuditEvent({
+        performedById: userId,
+        action: 'SUPPORT_TICKET_CREATED',
+        targetType: 'SupportTicket',
+        targetId: ticket.id,
+        details: { subject, category, priority },
+      });
+    } catch (auditErr) {
+      devLog('Audit log failed for ticket creation:', auditErr);
     }
 
     return NextResponse.json({ success: true, ticket });
