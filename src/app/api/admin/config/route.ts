@@ -38,6 +38,7 @@ export async function GET() {
           globalPushNotificationsEnabled: true,
           globalEmailNotificationsEnabled: true,
           maintenanceBypassIps: '',
+          wompiRealPaymentsEnabled: false,
         },
       });
     }
@@ -59,6 +60,8 @@ export async function GET() {
         // Global notification masters (for future client respect)
         globalPushNotificationsEnabled: (config as any).globalPushNotificationsEnabled ?? true,
         globalEmailNotificationsEnabled: (config as any).globalEmailNotificationsEnabled ?? true,
+        // Wompi payments status (public so checkout UI can show "test mode" warnings)
+        wompiRealPaymentsEnabled: (config as any).wompiRealPaymentsEnabled ?? false,
       });
     }
 
@@ -112,6 +115,7 @@ export async function GET() {
       globalPushNotificationsEnabled: (config as any).globalPushNotificationsEnabled ?? true,
       globalEmailNotificationsEnabled: (config as any).globalEmailNotificationsEnabled ?? true,
       maintenanceBypassIps: (config as any).maintenanceBypassIps || '',
+      wompiRealPaymentsEnabled: (config as any).wompiRealPaymentsEnabled ?? false,
     };
 
     return NextResponse.json({
@@ -166,6 +170,8 @@ export async function PUT(request: NextRequest) {
           globalEmailNotificationsEnabled: body.globalEmailNotificationsEnabled ?? existing.globalEmailNotificationsEnabled ?? true,
           // Maintenance advanced
           maintenanceBypassIps: body.maintenanceBypassIps ?? existing.maintenanceBypassIps ?? '',
+          // Wompi real payments master switch
+          wompiRealPaymentsEnabled: body.wompiRealPaymentsEnabled ?? existing.wompiRealPaymentsEnabled ?? false,
         },
       });
     } else {

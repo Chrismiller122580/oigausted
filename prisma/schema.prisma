@@ -357,6 +357,9 @@ model PlatformConfig {
   // Maintenance advanced
   maintenanceBypassIps    String?                     // Comma-separated IPs that bypass maintenance banner + blocks
 
+  // Wompi payments control (admin can turn real/live payments on/off independently of env keys)
+  wompiRealPaymentsEnabled Boolean @default(false)
+
   updatedAt               DateTime @updatedAt
 }
 

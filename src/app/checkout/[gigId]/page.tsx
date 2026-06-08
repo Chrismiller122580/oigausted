@@ -28,6 +28,7 @@ export default function CheckoutPage() {
   const [opening, setOpening] = useState(false);
   const [wompiReady, setWompiReady] = useState(false);
   const [wompiLoadFailed, setWompiLoadFailed] = useState(false);
+  const [realPaymentsEnabled, setRealPaymentsEnabled] = useState<boolean | null>(null);
 
   const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '';
 
@@ -144,6 +145,11 @@ export default function CheckoutPage() {
 
     // User is authenticated → proceed to create order
     loadGigAndCreateOrder();
+    // Also fetch public payment gate status
+    fetch('/api/admin/config')
+      .then(r => r.json())
+      .then(data => setRealPaymentsEnabled(!!data.wompiRealPaymentsEnabled))
+      .catch(() => setRealPaymentsEnabled(false));
   }, [gigId, sessionStatus, session?.user, router]);
 
   const loadGigAndCreateOrder = async () => {
@@ -178,6 +184,11 @@ export default function CheckoutPage() {
 
   const openWompiWidget = async () => {
     if (!order || !gig) return;
+
+    if (realPaymentsEnabled === false) {
+      toast.error("Los pagos reales están desactivados en la configuración de administración. No se procesarán cobros.");
+      return;
+    }
 
     if (!wompiReady) {
       toast.error("El sistema de pagos aún está cargando. Intenta de nuevo en unos segundos.");
@@ -521,10 +532,22 @@ export default function CheckoutPage() {
             </span>
           </div>
 
+          {/* Payment mode status */}
+          {realPaymentsEnabled === false && (
+            <div className="p-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 text-sm text-yellow-700 dark:text-yellow-300">
+              ⚠️ <strong>Modo de prueba activo</strong> — Los pagos reales están desactivados en el panel de administración. No se cobrará dinero real.
+            </div>
+          )}
+          {realPaymentsEnabled === true && (
+            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-sm text-emerald-700 dark:text-emerald-300">
+              ✅ Pagos reales habilitados
+            </div>
+          )}
+
           <Button 
             onClick={openWompiWidget} 
-            disabled={opening || !order || (!wompiReady && !wompiLoadFailed)}
-            className="w-full py-8 text-lg bg-green-600 hover:bg-green-700"
+            disabled={opening || !order || (!wompiReady && !wompiLoadFailed) || realPaymentsEnabled !== true}
+            className="w-full py-8 text-lg bg-green-600 hover:bg-green-700 disabled:opacity-60"
           >
             {opening 
               ? "Abriendo Wompi..." 
@@ -532,7 +555,9 @@ export default function CheckoutPage() {
                 ? "Error al cargar Wompi - Reintentar"
                 : !wompiReady 
                   ? "Cargando sistema de pagos de Wompi..." 
-                  : `Pagar con Wompi — $${finalPrice.toLocaleString('es-CO')}`}
+                  : realPaymentsEnabled === false
+                    ? "Pagos reales desactivados (configuración admin)"
+                    : `Pagar con Wompi — $${finalPrice.toLocaleString('es-CO')}`}
           </Button>
 
           {/* Wompi loading failure state */}

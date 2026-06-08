@@ -70,6 +70,9 @@ interface PlatformConfig {
   // Advanced maintenance
   maintenanceBypassIps?: string;
 
+  // Wompi real payments toggle (admin safety switch)
+  wompiRealPaymentsEnabled?: boolean;
+
   // Admin-only meta (from enhanced API)
   _meta?: {
     lastUpdated?: string;
@@ -153,6 +156,7 @@ const DEFAULTS: Partial<PlatformConfig> = {
   globalPushNotificationsEnabled: true,
   globalEmailNotificationsEnabled: true,
   maintenanceBypassIps: '',
+  wompiRealPaymentsEnabled: false,
 };
 
 export default function AdminSettings() {
@@ -205,6 +209,7 @@ export default function AdminSettings() {
     globalPushNotificationsEnabled: config.globalPushNotificationsEnabled,
     globalEmailNotificationsEnabled: config.globalEmailNotificationsEnabled,
     maintenanceBypassIps: config.maintenanceBypassIps || '',
+    wompiRealPaymentsEnabled: config.wompiRealPaymentsEnabled ?? false,
   }) !== JSON.stringify({
     commissionRate: originalConfig.commissionRate,
     referralCommissionRate: originalConfig.referralCommissionRate,
@@ -224,6 +229,7 @@ export default function AdminSettings() {
     globalPushNotificationsEnabled: originalConfig.globalPushNotificationsEnabled,
     globalEmailNotificationsEnabled: originalConfig.globalEmailNotificationsEnabled,
     maintenanceBypassIps: originalConfig.maintenanceBypassIps || '',
+    wompiRealPaymentsEnabled: originalConfig.wompiRealPaymentsEnabled ?? false,
   });
 
   const payment = config?._meta?.payment;
@@ -242,6 +248,7 @@ export default function AdminSettings() {
     globalPushNotificationsEnabled: c.globalPushNotificationsEnabled ?? true,
     globalEmailNotificationsEnabled: c.globalEmailNotificationsEnabled ?? true,
     maintenanceBypassIps: c.maintenanceBypassIps || '',
+    wompiRealPaymentsEnabled: c.wompiRealPaymentsEnabled ?? false,
   });
 
   const fetchConfig = async () => {
@@ -324,6 +331,7 @@ export default function AdminSettings() {
         globalPushNotificationsEnabled: config.globalPushNotificationsEnabled,
         globalEmailNotificationsEnabled: config.globalEmailNotificationsEnabled,
         maintenanceBypassIps: config.maintenanceBypassIps || '',
+        wompiRealPaymentsEnabled: config.wompiRealPaymentsEnabled ?? false,
       };
 
       const res = await fetch('/api/admin/config', {
@@ -564,17 +572,19 @@ export default function AdminSettings() {
         </div>
 
         {/* Strong Payment / Sandbox Warning - now data driven */}
-        {(isSandbox || (wompi && wompi.mode !== 'live')) && (
+        {(!config?.wompiRealPaymentsEnabled || isSandbox || (wompi && wompi.mode !== 'live')) && (
           <div className="mb-8 p-4 bg-yellow-900/30 border border-yellow-600/70 rounded-2xl flex items-start gap-3">
             <AlertTriangle className="w-6 h-6 text-yellow-400 mt-0.5 flex-shrink-0" />
             <div className="text-sm">
-              <p className="font-semibold text-yellow-400">⚠️ Wompi in test mode (Sandbox)</p>
+              <p className="font-semibold text-yellow-400">⚠️ Real Wompi payments are DISABLED or in test mode</p>
               <p className="text-yellow-300 mt-1">
-                Payments processed currently are test payments. Users will not be charged real money.
-                {wompi?.publicKeyPreview && <> Clave pública actual: <code className="font-mono bg-black/30 px-1 rounded">{wompi.publicKeyPreview}</code></>}
+                {config?.wompiRealPaymentsEnabled 
+                  ? "Payments processed currently are test/sandbox payments. Users will not be charged real money."
+                  : "The admin has turned off real payments (even if live keys are configured). No real charges will occur."}
+                {wompi?.publicKeyPreview && <> Public key: <code className="font-mono bg-black/30 px-1 rounded">{wompi.publicKeyPreview}</code></>}
               </p>
               <p className="text-yellow-300/80 text-xs mt-1">
-                Configure LIVE keys (pub_live_...) in environment variables to accept real payments.
+                Use the toggle inside the Wompi card below + live keys (pub_live_...) in env to accept real payments.
               </p>
             </div>
           </div>
@@ -644,6 +654,29 @@ export default function AdminSettings() {
             <span>Configura las variables en Vercel / .env para producción:</span>
             <code className="font-mono bg-muted px-1.5 py-0.5 rounded">NEXT_PUBLIC_WOMPI_PUBLIC_KEY</code>
             <code className="font-mono bg-muted px-1.5 py-0.5 rounded">WOMPI_INTEGRITY_KEY</code>
+          </div>
+
+          {/* === Real Payments Master Toggle (the key admin tool) === */}
+          <div className="mt-6 pt-6 border-t border-border">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium flex items-center gap-2">
+                  Enable Real Payments
+                  {config?.wompiRealPaymentsEnabled ? (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">LIVE ENABLED</span>
+                  ) : (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-400">TEST MODE (SAFE)</span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 max-w-md">
+                  Master switch. Even with LIVE keys configured in the environment, turning this off prevents any real charges from being processed. Use during testing or rollout.
+                </p>
+              </div>
+              <Switch 
+                checked={!!config?.wompiRealPaymentsEnabled} 
+                onCheckedChange={(v) => updateField('wompiRealPaymentsEnabled', v)} 
+              />
+            </div>
           </div>
         </div>
 

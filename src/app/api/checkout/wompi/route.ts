@@ -59,6 +59,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // Respect admin toggle for real payments
+    const platformConfig = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } });
+    const realPaymentsEnabled = (platformConfig as any)?.wompiRealPaymentsEnabled ?? false;
+
+    if (!realPaymentsEnabled) {
+      return NextResponse.json({ 
+        error: 'Los pagos reales están actualmente desactivados por el administrador. Esta orden no puede pagarse con dinero real en este momento.',
+        testMode: true 
+      }, { status: 403 });
+    }
+
     const amountInCents = Math.round(order.price * 100);
     const reference = `order_${order.id}`;
     const currency = 'COP';
