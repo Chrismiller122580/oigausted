@@ -186,6 +186,16 @@ export default function GrokBuildPage() {
 
       const data = await res.json();
 
+      if (data.error) {
+        const errMsg = data.error || 'Unknown server error during scan';
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `Error during scan: ${errMsg}. Try a smaller prompt, incremental steps (e.g. one run_check first), or use the local CLI for full power.`
+        }]);
+        setIsLoading(false);
+        return;
+      }
+
       // Handle tool calls from Grok (upgraded for richer multi-tool scans: process sequentially)
       if (data.tool_calls && data.tool_calls.length > 0) {
         for (const toolCall of data.tool_calls) {
