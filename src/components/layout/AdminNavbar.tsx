@@ -6,7 +6,8 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { 
   LogOut, Users, Package, TrendingUp, Home, Settings, BarChart3, DollarSign, 
-  MessageCircle, Tag, Menu, X, Bell 
+  MessageCircle, Tag, Menu, X, Bell,
+  type LucideIcon
 } from 'lucide-react';
 import { useState } from 'react';
 import MobileMenu from './MobileMenu';
@@ -15,7 +16,7 @@ import { NotificationsBell } from './NotificationsBell';
 interface NavItem {
   href: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: LucideIcon;
 }
 
 const navItems: NavItem[] = [
