@@ -78,7 +78,11 @@ export default function AdminGigsPage() {
   };
 
   const deleteGig = async (gig: Gig) => {
-    if (!window.confirm(`Delete "${gig.title}"? This action is permanent.`)) return;
+    if ((gig.orderCount || 0) > 0) {
+      toast.error('Cannot delete gig with existing orders. Pause it instead.');
+      return;
+    }
+    if (!window.confirm(`Delete "${gig.title}"? This action is permanent and the gig has no orders.`)) return;
 
     try {
       const res = await fetch('/api/admin/gigs', {
@@ -169,7 +173,9 @@ export default function AdminGigsPage() {
                       variant="destructive"
                       size="sm"
                       onClick={() => deleteGig(gig)}
-                      className="flex items-center gap-2"
+                      disabled={(gig.orderCount || 0) > 0}
+                      title={(gig.orderCount || 0) > 0 ? 'Cannot delete: this gig has existing orders. Use pause instead.' : 'Delete gig'}
+                      className="flex items-center gap-2 disabled:opacity-50"
                     >
                       <Trash2 size={16} /> Delete
                     </Button>

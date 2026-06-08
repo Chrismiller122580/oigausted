@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!isAdmin(session)) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ gigs: gigsWithStats });
   } catch (error) {
     console.error('Admin gigs error:', error);
-    return NextResponse.json({ error: 'Error cargando gigs' }, { status: 500 });
+    return NextResponse.json({ error: 'Error loading gigs' }, { status: 500 });
   }
 }
 
@@ -61,13 +61,13 @@ export async function PATCH(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!isAdmin(session)) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     const { gigId, isActive } = await req.json();
 
     if (!gigId) {
-      return NextResponse.json({ error: 'gigId requerido' }, { status: 400 });
+      return NextResponse.json({ error: 'gigId is required' }, { status: 400 });
     }
 
     const updated = await prisma.gig.update({
@@ -103,7 +103,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true, gig: updated });
   } catch (error) {
     console.error('Admin gig update error:', error);
-    return NextResponse.json({ error: 'Error actualizando gig' }, { status: 500 });
+    return NextResponse.json({ error: 'Error updating gig' }, { status: 500 });
   }
 }
 
@@ -112,13 +112,21 @@ export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!isAdmin(session)) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     const { gigId } = await req.json();
 
     if (!gigId) {
-      return NextResponse.json({ error: 'gigId requerido' }, { status: 400 });
+      return NextResponse.json({ error: 'gigId is required' }, { status: 400 });
+    }
+
+    // Check for existing orders to prevent FK violation
+    const orderCount = await prisma.order.count({ where: { gigId } });
+    if (orderCount > 0) {
+      return NextResponse.json({ 
+        error: 'Cannot delete gig with existing orders. Consider deactivating/pausing it instead (via the pause button).' 
+      }, { status: 400 });
     }
 
     // Fetch gig before deleting for notification
@@ -154,6 +162,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Admin gig delete error:', error);
-    return NextResponse.json({ error: 'Error eliminando gig' }, { status: 500 });
+    return NextResponse.json({ error: 'Error deleting gig' }, { status: 500 });
   }
 }
