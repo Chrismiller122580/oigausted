@@ -32,6 +32,7 @@ export function ProposalCard({
   onCopy,
   onDismiss,
   onToggleLowRisk,
+  onUndo,
 }: ProposalCardProps) {
   const hasPrecise = !!(proposal.old_string && proposal.new_string);
 
