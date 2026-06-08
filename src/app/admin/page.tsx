@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock, Tag, Shirt, BarChart3, MessageCircle } from 'lucide-react';
+import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock, Tag, BarChart3, MessageCircle } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -133,23 +133,10 @@ export default function AdminDashboard() {
           </Link>
         </div>
 
-        {/* Quick Actions - All tiles are now wired + better organized with Wardrobe/Catalog as primary for items */}
         <div className="mb-4">
           <h2 className="text-xl font-semibold mb-4 text-muted-foreground">Acciones Rápidas</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-          <Link href="/admin/wardrobe">
-            <Card className="bg-card border-border hover:border-orange-500 hover:shadow-md transition cursor-pointer h-full ring-1 ring-orange-500/20">
-              <CardContent className="p-8">
-                <Shirt className="h-10 w-10 text-orange-500 mb-4" />
-                <h3 className="text-2xl font-semibold mb-2">Wardrobe / Catálogo</h3>
-                <p className="text-4xl font-bold text-orange-500">{stats?.totalWardrobeItems ?? 0}</p>
-                <p className="text-muted-foreground -mt-1">items en el catálogo</p>
-                <p className="text-xs text-orange-500 mt-2 font-medium">→ Ver, agregar y eliminar (Shopify catalog)</p>
-              </CardContent>
-            </Card>
-          </Link>
-
           <Link href="/admin/users">
             <Card className="bg-card border-border hover:border-accent transition cursor-pointer h-full">
               <CardContent className="p-8">

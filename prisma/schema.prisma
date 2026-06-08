@@ -383,24 +383,6 @@ model ReferralEarning {
   @@index([createdAt])
 }
 
-// Wardrobe Items / Catalog (Shopify-style product management for FitMe wardrobe)
-model WardrobeItem {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  price       Float?
-  category    String?
-  imageUrl    String?
-  shopifyId   String?  @unique  // Link to Shopify product for sync
-  brand       String?
-  color       String?
-  size        String?
-  tags        String?  // comma separated or simple list
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
 model SupportTicket {
   id          String   @id @default(cuid())
   userId      String

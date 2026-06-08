@@ -21,8 +21,7 @@ export async function GET() {
       completedOrders,
       totalRevenueResult,
       pendingPayouts,
-      totalCategories,
-      totalWardrobeItems
+      totalCategories
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { role: 'seller' } }),
@@ -41,8 +40,7 @@ export async function GET() {
           // (we can enhance later with a payout model)
         }
       }),
-      prisma.category.count(),
-      prisma.wardrobeItem.count()
+      prisma.category.count()
     ]);
 
     const totalRevenue = totalRevenueResult._sum.price || 0;
@@ -85,7 +83,6 @@ export async function GET() {
       orders: totalOrders,
       completedOrders,
       totalCategories,
-      totalWardrobeItems,
       totalRevenue: aggregated.grossAmount,
       platformRevenue,
       estimatedReferralRevenue,
