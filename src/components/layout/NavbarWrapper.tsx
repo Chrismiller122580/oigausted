@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { ModeToggle } from '@/components/ui/mode-toggle';
 import MobileMenu from './MobileMenu';
 
 // Same-folder imports (all files are in layout/)
@@ -24,7 +23,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
     return <div className="min-h-[80px] bg-background border-b border-border flex items-center justify-center">Cargando...</div>;
   }
 
-  const role = String((session?.user as any)?.role || '').toLowerCase().trim();
+  const role = String((session?.user as { role?: string })?.role || '').toLowerCase().trim();
 
   if (role === 'admin') return <AdminNavbar>{children}</AdminNavbar>;
   if (role === 'seller') return <SellerNavbar>{children}</SellerNavbar>;
@@ -40,16 +39,11 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
           </Link>
 
           <div className="hidden md:flex items-center gap-4">
-            {!isAuthPage && (
-              <Link href="/gigs" className="text-foreground hover:text-orange-600 transition-colors">Explorar Gigs</Link>
-            )}
             <Link href="/login"><Button variant="outline">Iniciar Sesión</Button></Link>
             <Link href="/signup"><Button className="bg-orange-600">Registrarse</Button></Link>
-            {!isAuthPage && <ModeToggle />}
           </div>
 
           <div className="md:hidden flex items-center gap-2">
-            {!isAuthPage && <ModeToggle />}
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Toggle menu"

@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { LogOut, Users, Package, TrendingUp, Home, Settings, BarChart3, DollarSign, MessageCircle, Menu, X, Tag } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import { NotificationsBell } from './NotificationsBell';
-import { ModeToggle } from '@/components/ui/mode-toggle';
 import { useState } from 'react';
 
 export default function AdminNavbar({ children }: { children: React.ReactNode }) {
@@ -77,7 +76,6 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
                 <p className="text-xs text-muted-foreground">Administrador</p>
               </div>
               <NotificationsBell />
-              <ModeToggle />
               <Button
                 variant="ghost"
                 size="icon"
@@ -91,7 +89,6 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
 
           {/* Mobile actions */}
           <div className="md:hidden flex items-center gap-1">
-            <ModeToggle />
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-2 text-muted-foreground hover:text-foreground transition"

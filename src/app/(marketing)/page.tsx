@@ -126,8 +126,8 @@ export default async function MarketingHomePage() {
       <section className="max-w-7xl mx-auto px-6 py-16">
         <div className="flex items-end justify-between mb-10">
           <div>
-            <h2 className="text-4xl font-bold text-zinc-900 dark:text-white">Categorías populares</h2>
-            <p className="text-zinc-600 dark:text-zinc-400 mt-2">Con calificaciones reales de usuarios locales</p>
+            <h2 className="text-4xl font-bold text-zinc-900">Categorías populares</h2>
+            <p className="text-zinc-600 mt-2">Con calificaciones reales de usuarios locales</p>
           </div>
           <Link href="/gigs" className="text-orange-600 hover:underline font-medium flex items-center gap-1">
             Ver todas <span>→</span>
@@ -139,15 +139,15 @@ export default async function MarketingHomePage() {
             <Link
               key={cat.name}
               href={`/gigs?categoria=${encodeURIComponent(cat.name)}`}
-              className="group bg-card dark:bg-card border border-border rounded-3xl p-6 hover:border-orange-500 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center min-h-[220px]"
+              className="group bg-card border border-border rounded-3xl p-6 hover:border-orange-500 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center min-h-[220px]"
             >
               <div className="text-5xl mb-4 transition-transform group-hover:scale-110">
                 {cat.emoji}
               </div>
-              <h3 className="font-semibold text-lg text-zinc-900 dark:text-white group-hover:text-orange-600">
+              <h3 className="font-semibold text-lg text-zinc-900 group-hover:text-orange-600">
                 {cat.name}
               </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2 flex-1">
+              <p className="text-xs text-zinc-500 mt-1 line-clamp-2 flex-1">
                 {cat.description}
               </p>
 
@@ -164,10 +164,10 @@ export default async function MarketingHomePage() {
       </section>
 
       {/* CÓMO FUNCIONA */}
-      <section className="max-w-7xl mx-auto px-6 py-16 bg-card dark:bg-card">
+      <section className="max-w-7xl mx-auto px-6 py-16 bg-card">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-zinc-900 dark:text-white">Así de fácil es usar OigaUsted</h2>
-          <p className="text-zinc-600 dark:text-zinc-400 mt-2">En 3 pasos encuentras o publicas el servicio que necesitas</p>
+          <h2 className="text-4xl font-bold text-zinc-900">Así de fácil es usar OigaUsted</h2>
+          <p className="text-zinc-600 mt-2">En 3 pasos encuentras o publicas el servicio que necesitas</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -181,7 +181,7 @@ export default async function MarketingHomePage() {
                 {item.step}
               </div>
               <h3 className="font-semibold text-xl mb-2">{item.title}</h3>
-              <p className="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed">{item.desc}</p>
+              <p className="text-zinc-600 text-sm leading-relaxed">{item.desc}</p>
             </div>
           ))}
         </div>
@@ -191,7 +191,7 @@ export default async function MarketingHomePage() {
       <section className="max-w-7xl mx-auto px-6 py-20 text-center">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-4xl font-bold mb-4">¿Listo para empezar?</h2>
-          <p className="text-xl text-zinc-600 dark:text-zinc-400 mb-8">
+          <p className="text-xl text-zinc-600 mb-8">
             Miles de personas ya están conectando con profesionales de confianza en su ciudad.
           </p>
 
@@ -213,16 +213,16 @@ export default async function MarketingHomePage() {
       </section>
 
       {/* SIMPLE FOOTER */}
-      <footer className="border-t bg-card dark:bg-card py-10 text-sm">
+      <footer className="border-t bg-card py-10 text-sm">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between gap-6 text-zinc-500">
           <div>
-            <div className="font-semibold text-zinc-900 dark:text-white mb-1">OigaUsted</div>
+            <div className="font-semibold text-zinc-900 mb-1">OigaUsted</div>
             <div>Conectando Colombia, un servicio a la vez.</div>
           </div>
           <div className="flex gap-8">
-            <Link href="/gigs" className="hover:text-zinc-900 dark:hover:text-white">Explorar</Link>
-            <Link href="/create-gig" className="hover:text-zinc-900 dark:hover:text-white">Publicar</Link>
-            <Link href="/login" className="hover:text-zinc-900 dark:hover:text-white">Iniciar sesión</Link>
+            <Link href="/gigs" className="hover:text-zinc-900">Explorar</Link>
+            <Link href="/create-gig" className="hover:text-zinc-900">Publicar</Link>
+            <Link href="/login" className="hover:text-zinc-900">Iniciar sesión</Link>
           </div>
           <div>© {new Date().getFullYear()} OigaUsted</div>
         </div>
