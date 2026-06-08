@@ -150,8 +150,8 @@ const DEFAULTS: Partial<PlatformConfig> = {
   referralsEnabled: true,
   allowNewSignups: true,
   maxUploadSizeMB: 10,
-  siteName: 'FitMe Live',
-  siteTagline: 'Your personal style companion',
+  siteName: 'OigaUsted',
+  siteTagline: 'Conecta con profesionales locales en Colombia',
   logoUrl: null,
   globalPushNotificationsEnabled: true,
   globalEmailNotificationsEnabled: true,
@@ -242,8 +242,8 @@ export default function AdminSettings() {
     referralsEnabled: c.referralsEnabled ?? true,
     allowNewSignups: c.allowNewSignups ?? true,
     maxUploadSizeMB: c.maxUploadSizeMB ?? 10,
-    siteName: c.siteName || 'FitMe Live',
-    siteTagline: c.siteTagline || 'Your personal style companion',
+    siteName: c.siteName || 'OigaUsted',
+    siteTagline: c.siteTagline || 'Conecta con profesionales locales en Colombia',
     logoUrl: c.logoUrl || null,
     globalPushNotificationsEnabled: c.globalPushNotificationsEnabled ?? true,
     globalEmailNotificationsEnabled: c.globalEmailNotificationsEnabled ?? true,
@@ -286,22 +286,22 @@ export default function AdminSettings() {
 
       if (highCommission) {
         setPendingSaveConfirm({
-          reason: 'Comisión muy alta',
-          details: `La comisión de plataforma está en ${(config.commissionRate * 100).toFixed(0)}%. Esto es inusualmente alto para la mayoría de marketplaces. ¿Confirmas que deseas guardar?`,
+          reason: 'Very high commission',
+          details: `The platform commission is at ${(config.commissionRate * 100).toFixed(0)}%. This is unusually high for most marketplaces. Do you confirm you want to save?`,
         });
         return;
       }
       if (turningOnMaintenance) {
         setPendingSaveConfirm({
-          reason: 'Activando Modo Mantenimiento',
-          details: 'Estás a punto de activar el modo mantenimiento. Todos los usuarios no administradores verán el banner y no podrán usar funciones normales. ¿Continuar?',
+          reason: 'Enabling Maintenance Mode',
+          details: 'You are about to enable maintenance mode. All non-admin users will see the banner and will not be able to use normal functions. Continue?',
         });
         return;
       }
       if (zeroCommission) {
         setPendingSaveConfirm({
-          reason: 'Comisión en 0%',
-          details: 'La comisión de plataforma es 0%. La plataforma no generará ingresos por pedidos. ¿Estás seguro?',
+          reason: 'Commission at 0%',
+          details: 'The platform commission is 0%. The platform will not generate revenue from orders. Are you sure?',
         });
         return;
       }
@@ -510,7 +510,7 @@ export default function AdminSettings() {
   if (loading || !config) {
     return (
       <div className="min-h-screen bg-background text-foreground p-8 flex items-center justify-center">
-        <RefreshCw className="animate-spin mr-3" /> Cargando configuración...
+        <RefreshCw className="animate-spin mr-3" /> Loading configuration...
       </div>
     );
   }
@@ -986,7 +986,7 @@ export default function AdminSettings() {
                   value={config.siteName || ''}
                   onChange={(e) => updateField('siteName', e.target.value)}
                   className="mt-1.5 bg-background border-border text-lg font-semibold"
-                  placeholder="FitMe Live"
+                  placeholder="OigaUsted"
                 />
               </div>
               <div>
@@ -995,7 +995,7 @@ export default function AdminSettings() {
                   value={config.siteTagline || ''}
                   onChange={(e) => updateField('siteTagline', e.target.value)}
                   className="mt-1.5 bg-background border-border"
-                  placeholder="Your personal style companion"
+                  placeholder="Conecta con profesionales locales en Colombia"
                 />
               </div>
               <div>

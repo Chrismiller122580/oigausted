@@ -45,8 +45,12 @@ export default function AdminReports() {
     fetchReports();
   }, []);
 
-  const maxCategoryRevenue = Math.max(...(data?.categorySales.map(c => c.revenue) || [1]), 1);
-  const maxMonthly = Math.max(...(data?.monthlyRevenue.map(m => m.revenue) || [1]), 1);
+  const maxCategoryRevenue = data?.categorySales?.length 
+    ? Math.max(...data.categorySales.map(c => c.revenue)) 
+    : 1;
+  const maxMonthly = data?.monthlyRevenue?.length 
+    ? Math.max(...data.monthlyRevenue.map(m => m.revenue)) 
+    : 1;
 
   return (
     <div className="bg-background text-foreground">
@@ -120,7 +124,7 @@ export default function AdminReports() {
                     <p className="text-sm text-muted-foreground">Unique Buyers</p>
                   </div>
                   <p className="text-4xl font-bold">{data.totalBuyersWithOrders}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{data.repeatBuyers} con 2+ pedidos ({data.totalBuyersWithOrders > 0 ? Math.round((data.repeatBuyers / data.totalBuyersWithOrders) * 100) : 0}% retención)</p>
+                  <p className="text-xs text-muted-foreground mt-1">{data.repeatBuyers} with 2+ orders ({data.totalBuyersWithOrders > 0 ? Math.round((data.repeatBuyers / data.totalBuyersWithOrders) * 100) : 0}% retention)</p>
                 </CardContent>
               </Card>
 
@@ -160,7 +164,7 @@ export default function AdminReports() {
                               </div>
                             </div>
                             <div className="md:col-span-3 text-sm flex justify-between md:justify-end gap-4 text-muted-foreground">
-                              <span>{cat.orders} pedidos</span>
+                              <span>{cat.orders} orders</span>
                               <span className="font-semibold text-foreground">${cat.revenue.toLocaleString('es-CO')}</span>
                             </div>
                           </div>

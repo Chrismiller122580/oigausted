@@ -32,8 +32,8 @@ export async function GET() {
           referralsEnabled: true,
           allowNewSignups: true,
           maxUploadSizeMB: 10,
-          siteName: 'FitMe Live',
-          siteTagline: 'Your personal style companion',
+          siteName: 'OigaUsted',
+          siteTagline: 'Conecta con profesionales locales en Colombia',
           logoUrl: null,
           globalPushNotificationsEnabled: true,
           globalEmailNotificationsEnabled: true,
@@ -51,8 +51,8 @@ export async function GET() {
         maintenanceMode: config.maintenanceMode,
         maintenanceMessage: config.maintenanceMessage,
         // Public branding
-        siteName: (config as any).siteName || 'FitMe Live',
-        siteTagline: (config as any).siteTagline || 'Your personal style companion',
+        siteName: (config as any).siteName || 'OigaUsted',
+        siteTagline: (config as any).siteTagline || 'Conecta con profesionales locales en Colombia',
         logoUrl: (config as any).logoUrl || null,
         // Public gates (clients can use these to hide/disable features)
         allowNewSignups: (config as any).allowNewSignups ?? true,
@@ -109,8 +109,8 @@ export async function GET() {
       referralsEnabled: (config as any).referralsEnabled ?? true,
       allowNewSignups: (config as any).allowNewSignups ?? true,
       maxUploadSizeMB: (config as any).maxUploadSizeMB ?? 10,
-      siteName: (config as any).siteName || 'FitMe Live',
-      siteTagline: (config as any).siteTagline || 'Your personal style companion',
+      siteName: (config as any).siteName || 'OigaUsted',
+      siteTagline: (config as any).siteTagline || 'Conecta con profesionales locales en Colombia',
       logoUrl: (config as any).logoUrl || null,
       globalPushNotificationsEnabled: (config as any).globalPushNotificationsEnabled ?? true,
       globalEmailNotificationsEnabled: (config as any).globalEmailNotificationsEnabled ?? true,
@@ -128,7 +128,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Config GET error:', error);
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
 
@@ -136,7 +136,7 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if ((session?.user as any)?.role !== 'admin') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -162,8 +162,8 @@ export async function PUT(request: NextRequest) {
           allowNewSignups: body.allowNewSignups ?? existing.allowNewSignups ?? true,
           maxUploadSizeMB: body.maxUploadSizeMB ?? existing.maxUploadSizeMB ?? 10,
           // Branding
-          siteName: body.siteName ?? existing.siteName ?? 'FitMe Live',
-          siteTagline: body.siteTagline ?? existing.siteTagline ?? 'Your personal style companion',
+          siteName: body.siteName ?? existing.siteName ?? 'OigaUsted',
+          siteTagline: body.siteTagline ?? existing.siteTagline ?? 'Conecta con profesionales locales en Colombia',
           logoUrl: body.logoUrl ?? existing.logoUrl ?? null,
           // Global notifs
           globalPushNotificationsEnabled: body.globalPushNotificationsEnabled ?? existing.globalPushNotificationsEnabled ?? true,

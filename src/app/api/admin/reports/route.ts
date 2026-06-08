@@ -10,7 +10,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if ((session?.user as any)?.role !== 'admin') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     const config = await prisma.platformConfig.findFirst();
@@ -31,7 +31,7 @@ export async function GET() {
     // Category breakdown
     const categoryMap = new Map<string, { count: number; revenue: number }>();
     for (const order of completedOrders) {
-      const cat = order.gig?.category || 'Sin categoría';
+      const cat = order.gig?.category || 'No category';
       const price = Number(order.price) || 0;
       if (!categoryMap.has(cat)) {
         categoryMap.set(cat, { count: 0, revenue: 0 });

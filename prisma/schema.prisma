@@ -346,8 +346,8 @@ model PlatformConfig {
   maxUploadSizeMB         Int      @default(10)     // Max size for order/chat file uploads
 
   // Branding (editable from /admin/settings, feeds public pages + metadata)
-  siteName                String   @default("FitMe Live")
-  siteTagline             String   @default("Your personal style companion")
+  siteName                String   @default("OigaUsted")
+  siteTagline             String   @default("Conecta con profesionales locales en Colombia")
   logoUrl                 String?                     // Optional override logo (URL or /public path)
 
   // Global notification masters
