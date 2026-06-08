@@ -27,16 +27,25 @@ interface ToolCall {
   };
 }
 
-// Web Speech API types (not always included in TS lib)
+// Web Speech API types (not always included in TS lib for all targets)
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognitionResult extends Array<SpeechRecognitionAlternative> {
+  isFinal: boolean;
+  length: number;
+  item(index: number): SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionResultList extends Array<SpeechRecognitionResult> {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+}
+
 interface SpeechRecognitionEvent extends Event {
-  results: {
-    [index: number]: {
-      [index: number]: {
-        transcript: string;
-      };
-    };
-    length: number;
-  }[];
+  results: SpeechRecognitionResultList;
 }
 
 const BUILD_MODES = [
@@ -819,7 +828,7 @@ export default function GrokBuildPage() {
       setIsListening(true);
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        const transcript = event.results[0][0].transcript;
+        const transcript = (event.results[0] as any)[0]?.transcript || '';
         if (transcript.trim()) {
           setInput(transcript);
           // Auto-send after voice input for smooth experience
