@@ -14,7 +14,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const displayName = user?.businessName || user?.name || 'Vendedor';
   return {
     title: `${displayName} | OigaUsted`,
-    description: `Conoce los servicios de ${displayName} en OigaUsted. Servicios locales en Colombia.`,
+    description: `Conoce los servicios de ${displayName} en OigaUsted. Servicios locales confiables en Colombia.`,
+    openGraph: {
+      title: `${displayName} en OigaUsted`,
+      description: `Descubre gigs y servicios ofrecidos por ${displayName}. Profesionales locales en Colombia.`,
+      images: [{ url: '/logo.png' }],
+    },
   };
 }
 

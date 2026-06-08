@@ -20,7 +20,7 @@ export default function Logo({
     siteName: string;
     logoUrl: string | null;
   }>({
-    siteName: 'FitMe Live',
+    siteName: 'OigaUsted',
     logoUrl: null,
   });
   const [loaded, setLoaded] = useState(false);
@@ -32,7 +32,7 @@ export default function Logo({
       .then((data) => {
         if (mounted && (data.siteName || data.logoUrl)) {
           setBranding({
-            siteName: data.siteName || 'FitMe Live',
+            siteName: data.siteName || 'OigaUsted',
             logoUrl: data.logoUrl || null,
           });
         }

@@ -28,7 +28,7 @@ function SignUpClient() {
   const [showPassword, setShowPassword] = useState(false)
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const [signupsEnabled, setSignupsEnabled] = useState(true);
-  const [siteName, setSiteName] = useState('FitMe Live');
+  const [siteName, setSiteName] = useState('OigaUsted');
 
   // Check signup gate + Google OAuth + branding (from public admin config)
   useEffect(() => {

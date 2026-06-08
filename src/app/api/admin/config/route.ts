@@ -11,14 +11,48 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     const isAdmin = (session?.user as any)?.role === 'admin';
 
-    let config = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } });
+    let config = null;
+    try {
+      config = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } });
+    } catch (dbErr) {
+      // Defensive: DB schema may be out of sync (missing columns like supportPhone, referralsEnabled etc.)
+      // Return in-memory defaults so the site doesn't 500. Migrations must be applied to fix permanently.
+      console.error('PlatformConfig query failed (likely missing columns in DB). Using defaults until migration applied.', dbErr);
+      config = null;
+    }
 
     if (!config) {
-      // upsert for race safety (in case concurrent first creates)
-      config = await prisma.platformConfig.upsert({
-        where: { id: 'singleton' },
-        update: {},
-        create: {
+      try {
+        // upsert for race safety (in case concurrent first creates)
+        config = await prisma.platformConfig.upsert({
+          where: { id: 'singleton' },
+          update: {},
+          create: {
+            id: 'singleton',
+            commissionRate: 0.12,
+            referralCommissionRate: 0.05,
+            minPayoutAmount: 50000,
+            supportEmail: 'support@support.oigagig.com',
+            supportPhone: '',
+            enableReviews: true,
+            enableChat: true,
+            maintenanceMode: false,
+            maintenanceMessage: "Estamos realizando mejoras. Volveremos pronto.",
+            referralsEnabled: true,
+            allowNewSignups: true,
+            maxUploadSizeMB: 10,
+            siteName: 'OigaUsted',
+            siteTagline: 'Conecta con profesionales locales en Colombia',
+            logoUrl: null,
+            globalPushNotificationsEnabled: true,
+            globalEmailNotificationsEnabled: true,
+            maintenanceBypassIps: '',
+            wompiRealPaymentsEnabled: false,
+          },
+        });
+      } catch (upsertErr) {
+        console.error('PlatformConfig upsert also failed (DB columns missing). Falling back to defaults.', upsertErr);
+        config = {
           id: 'singleton',
           commissionRate: 0.12,
           referralCommissionRate: 0.05,
@@ -39,8 +73,9 @@ export async function GET() {
           globalEmailNotificationsEnabled: true,
           maintenanceBypassIps: '',
           wompiRealPaymentsEnabled: false,
-        },
-      });
+          updatedAt: new Date(),
+        } as any;
+      }
     }
 
     // For non-admins (including unauthenticated users), only expose public fields

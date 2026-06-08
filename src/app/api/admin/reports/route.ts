@@ -13,7 +13,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const config = await prisma.platformConfig.findFirst();
+    let config = null;
+    try {
+      config = await prisma.platformConfig.findFirst();
+    } catch (dbErr) {
+      console.error('PlatformConfig query failed in reports (likely missing columns like referralsEnabled). Using defaults.', dbErr);
+      config = null;
+    }
     const platformRate = config?.commissionRate ?? DEFAULT_PAYOUT_CONFIG.platformCommissionRate;
     const referralRate = config?.referralCommissionRate ?? DEFAULT_PAYOUT_CONFIG.referralCommissionRate;
 

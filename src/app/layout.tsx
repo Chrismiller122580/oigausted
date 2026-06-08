@@ -10,13 +10,13 @@ const inter = Inter({ subsets: ["latin"] });
 
 // Dynamic metadata powered by admin settings (branding)
 export async function generateMetadata(): Promise<Metadata> {
-  let siteName = "FitMe Live";
-  let siteTagline = "Your personal style companion";
+  let siteName = "OigaUsted";
+  let siteTagline = "Conecta con profesionales locales en Colombia";
   let appUrl = "https://oigagig.com";
 
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/admin/config`, {
-      next: { revalidate: 60 }, // cache for a minute
+      next: { revalidate: 300 }, // cache for 5 minutes
     });
     if (res.ok) {
       const cfg = await res.json();
@@ -26,14 +26,18 @@ export async function generateMetadata(): Promise<Metadata> {
     }
   } catch {}
 
+  const fullTitle = `${siteName} — ${siteTagline}`;
+  const baseUrl = new URL(appUrl);
+
   return {
     title: {
-      default: `${siteName} — ${siteTagline}`,
+      default: fullTitle,
       template: `%s | ${siteName}`,
     },
     description: siteTagline,
     applicationName: siteName,
     authors: [{ name: siteName }],
+    keywords: ['servicios locales', 'gigs Colombia', 'freelancers', 'profesionales Colombia', 'Bucaramanga', 'Bogotá', 'Medellín', 'marketplace servicios'],
     icons: {
       icon: [
         { url: "/icon.png", sizes: "512x512", type: "image/png" },
@@ -51,7 +55,40 @@ export async function generateMetadata(): Promise<Metadata> {
       statusBarStyle: "default",
     },
     manifest: "/manifest.webmanifest",
-    metadataBase: new URL(appUrl),
+    metadataBase: baseUrl,
+    openGraph: {
+      title: fullTitle,
+      description: siteTagline,
+      url: baseUrl,
+      siteName: siteName,
+      images: [
+        {
+          url: '/logo.png',
+          width: 1200,
+          height: 630,
+          alt: siteName,
+        },
+      ],
+      locale: 'es_CO',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: fullTitle,
+      description: siteTagline,
+      images: ['/logo.png'],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
+    },
   };
 }
 

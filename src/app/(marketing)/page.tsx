@@ -9,8 +9,21 @@ export const metadata = {
   description: 'Conecta directamente con profesionales locales en Colombia. Limpieza, reparaciones, belleza, marketing y más. ¡Oiga Usted!',
   openGraph: {
     title: 'OigaUsted - Gigs Colombia',
-    description: 'El marketplace de servicios locales más directo de Colombia.',
-    images: [{ url: '/logo.png' }],
+    description: 'El marketplace de servicios locales más directo de Colombia. Encuentra freelancers de confianza en Bucaramanga, Bogotá, Medellín y más.',
+    images: [{ 
+      url: '/logo.png', 
+      width: 1200, 
+      height: 630, 
+      alt: 'OigaUsted - Servicios locales en Colombia' 
+    }],
+    locale: 'es_CO',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'OigaUsted - Gigs Colombia',
+    description: 'Conecta directamente con profesionales locales. Servicios confiables sin intermediarios.',
+    images: ['/logo.png'],
   },
 };
 

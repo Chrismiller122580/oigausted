@@ -43,11 +43,7 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             <Link href="/notifications" onClick={onClose} className="block py-4 border-b border-border">
               Notificaciones
             </Link>
-            {!isAuthPage && (
-              <Link href="/gigs" onClick={onClose} className="block py-4 border-b border-border">
-                Explorar Gigs
-              </Link>
-            )}
+
             <Link href="/login" onClick={onClose} className="block py-4 border-b border-border">
               Iniciar Sesión
             </Link>
