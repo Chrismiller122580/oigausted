@@ -8,34 +8,52 @@ import { Toaster } from "sonner"; // 2027-grade beautiful toasts
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: {
-    default: "OigaUsted - Gigs y Servicios Locales en Colombia",
-    template: "%s | OigaUsted",
-  },
-  description: "Plataforma colombiana que conecta personas que necesitan servicios con freelancers y negocios locales confiables. Enfocado en Bucaramanga y Colombia.",
-  applicationName: "OigaUsted",
-  authors: [{ name: "OigaUsted" }],
-  keywords: ["gigs", "servicios", "freelance", "Colombia", "Bucaramanga", "trabajos locales", "plataforma de servicios"],
-  icons: {
-    icon: [
-      { url: "/icon.png", sizes: "512x512", type: "image/png" },
-      { url: "/icon.png", sizes: "192x192", type: "image/png" },
-    ],
-    apple: [
-      { url: "/apple-icon.png", sizes: "512x512", type: "image/png" },
-      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
-    ],
-    shortcut: "/icon.png",
-  },
-  appleWebApp: {
-    capable: true,
-    title: "OigaUsted",
-    statusBarStyle: "default",
-  },
-  manifest: "/manifest.webmanifest",
-  metadataBase: new URL("https://oigagig.com"),
-};
+// Dynamic metadata powered by admin settings (branding)
+export async function generateMetadata(): Promise<Metadata> {
+  let siteName = "FitMe Live";
+  let siteTagline = "Your personal style companion";
+  let appUrl = "https://oigagig.com";
+
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/admin/config`, {
+      next: { revalidate: 60 }, // cache for a minute
+    });
+    if (res.ok) {
+      const cfg = await res.json();
+      if (cfg.siteName) siteName = cfg.siteName;
+      if (cfg.siteTagline) siteTagline = cfg.siteTagline;
+      if (cfg._meta?.payment?.appUrl) appUrl = cfg._meta.payment.appUrl;
+    }
+  } catch {}
+
+  return {
+    title: {
+      default: `${siteName} — ${siteTagline}`,
+      template: `%s | ${siteName}`,
+    },
+    description: siteTagline,
+    applicationName: siteName,
+    authors: [{ name: siteName }],
+    icons: {
+      icon: [
+        { url: "/icon.png", sizes: "512x512", type: "image/png" },
+        { url: "/icon.png", sizes: "192x192", type: "image/png" },
+      ],
+      apple: [
+        { url: "/apple-icon.png", sizes: "512x512", type: "image/png" },
+        { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+      ],
+      shortcut: "/icon.png",
+    },
+    appleWebApp: {
+      capable: true,
+      title: siteName,
+      statusBarStyle: "default",
+    },
+    manifest: "/manifest.webmanifest",
+    metadataBase: new URL(appUrl),
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: [

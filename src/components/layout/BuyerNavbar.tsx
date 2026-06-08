@@ -9,6 +9,7 @@ import { NotificationsBell } from './NotificationsBell';
 import { useState } from 'react';
 import MobileMenu from './MobileMenu';
 import MobileBottomNav from './MobileBottomNav';
+import Logo from '@/components/common/Logo';
 
 export default function BuyerNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
@@ -24,10 +25,8 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
       <nav className="bg-background border-b sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-20">
-            {/* Logo - links to homepage */}
-            <Link href="/" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition">
-              <div className="w-9 h-9 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold">OU</div>
-            </Link>
+            {/* Logo - links to homepage (respects admin branding settings) */}
+            <Logo size={36} />
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8 font-medium">

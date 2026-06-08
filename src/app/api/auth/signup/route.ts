@@ -52,6 +52,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Gate new signups via admin settings (public config)
+    try {
+      const cfgRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/admin/config`);
+      if (cfgRes.ok) {
+        const cfg = await cfgRes.json();
+        if (cfg.allowNewSignups === false) {
+          return NextResponse.json({ error: "Los registros nuevos están deshabilitados temporalmente. Intenta más tarde o contacta soporte." }, { status: 403 });
+        }
+      }
+    } catch (e) {
+      // If config fetch fails we allow (fail open for UX) but log
+      console.warn('Could not check allowNewSignups gate');
+    }
+
     // Prevent public admin creation (only allow buyer/seller via signup)
     const safeRole = role === 'admin' ? 'buyer' : role
 
@@ -130,7 +144,7 @@ export async function POST(request: NextRequest) {
     // Send welcome email (now uses rich welcomeEmail template + benefits from new reliable tracking + resendEmailId)
     await notifications.sendEmail(
       newUser.id,
-      '¡Bienvenido a OigaUsted!',
+      '¡Bienvenido!',
       `Hola ${name}, gracias por registrarte. Ya puedes explorar servicios o publicar los tuyos.`,
       `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/gigs`,
       { isWelcome: true }

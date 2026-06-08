@@ -39,6 +39,22 @@ export async function sendNotification(payload: NotificationPayload) {
   const shouldSendSMS   = prefs?.smsEnabled !== false;
   const shouldSendPush  = prefs?.pushEnabled !== false;
 
+  // Global masters from PlatformConfig (set in /admin/settings)
+  let globalEmailOk = true;
+  let globalPushOk = true;
+  try {
+    const cfg = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } });
+    if (cfg) {
+      globalEmailOk = (cfg as any).globalEmailNotificationsEnabled !== false;
+      globalPushOk = (cfg as any).globalPushNotificationsEnabled !== false;
+    }
+  } catch (e) {
+    devLog('[Notifications] Failed to read global notification masters');
+  }
+
+  const effectiveShouldSendEmail = shouldSendEmail && globalEmailOk;
+  const effectiveShouldSendPush = shouldSendPush && globalPushOk;
+
   // === 2027 User Respect: Quiet Hours ===
   const isInQuietHours = checkQuietHours(prefs);
   // Quiet hours suppress *disturbing* channels (email, push, sms) for non-high priority.
@@ -50,7 +66,7 @@ export async function sendNotification(payload: NotificationPayload) {
     }
   }
 
-  const emailAllowed = shouldSendEmail && !(isInQuietHours && payload.priority !== 'high');
+  const emailAllowed = effectiveShouldSendEmail && !(isInQuietHours && payload.priority !== 'high');
 
   // === 2027 Rate Limiting + Grouping ===
   const rateLimitResult = await checkRateLimit(userId, category, prefs);
@@ -308,7 +324,7 @@ export async function sendNotification(payload: NotificationPayload) {
     devLog(`[NOTIF] SMS would be sent to user ${userId}`);
   }
 
-  if ((type === 'push' || shouldSendPush) && shouldSendPush) {
+  if ((type === 'push' || effectiveShouldSendPush) && effectiveShouldSendPush) {
     // Real Web Push will be attempted
     try {
       await sendWebPushIfEnabled(userId, title, message, link, data);

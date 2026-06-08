@@ -27,13 +27,27 @@ function SignUpClient() {
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [signupsEnabled, setSignupsEnabled] = useState(true);
+  const [siteName, setSiteName] = useState('FitMe Live');
 
-  // Check if Google OAuth is configured
+  // Check signup gate + Google OAuth + branding (from public admin config)
   useEffect(() => {
-    fetch('/api/auth/config')
+    fetch('/api/admin/config')
       .then(res => res.json())
-      .then(data => setGoogleEnabled(data.googleEnabled ?? false))
-      .catch(() => setGoogleEnabled(false));
+      .then(data => {
+        if (typeof data.allowNewSignups === 'boolean') {
+          setSignupsEnabled(data.allowNewSignups);
+        }
+        if (data.siteName) setSiteName(data.siteName);
+        // Also load Google config
+        fetch('/api/auth/config')
+          .then(r => r.json())
+          .then(g => setGoogleEnabled(g.googleEnabled ?? false))
+          .catch(() => setGoogleEnabled(false));
+      })
+      .catch(() => {
+        setSignupsEnabled(true); // fail open
+      });
   }, []);
 
   // Handle NextAuth error redirects (e.g. ?error=OAuthSignin) also on signup
@@ -130,7 +144,7 @@ function SignUpClient() {
               priority
             />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold">¡Bienvenido!</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold">¡Bienvenido a {siteName}!</h1>
           <p className="mt-2 text-white/90">Crea tu cuenta y comienza a conectar</p>
         </div>
 
@@ -141,103 +155,50 @@ function SignUpClient() {
             </p>
           )}
 
+          {!signupsEnabled && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm">
+              <div className="font-semibold text-amber-700">Registros deshabilitados</div>
+              <div className="text-amber-600 mt-1">El administrador ha cerrado temporalmente los nuevos registros en {siteName}. El formulario está deshabilitado.</div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <Label htmlFor="name" className="text-sm font-medium">Nombre Completo</Label>
-              <Input
-                id="name"
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Juan Pérez"
-                required
-                className="mt-1.5 h-12 text-base"
-              />
+              <Input id="name" type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Juan Pérez" required disabled={!signupsEnabled} className="mt-1.5 h-12 text-base" />
             </div>
-
             <div>
               <Label htmlFor="email" className="text-sm font-medium">Correo Electrónico</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="tu@email.com"
-                required
-                className="mt-1.5 h-12 text-base"
-              />
+              <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="tu@email.com" required disabled={!signupsEnabled} className="mt-1.5 h-12 text-base" />
             </div>
-
             <div>
               <Label htmlFor="password" className="text-sm font-medium">Contraseña</Label>
               <div className="relative mt-1.5">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="••••••••"
-                  required
-                  className="h-12 text-base pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
+                <Input id="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="••••••••" required disabled={!signupsEnabled} className="h-12 text-base pr-10" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" disabled={!signupsEnabled}>
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
-
             <div>
               <Label className="text-sm font-medium">Registrarme como</Label>
               <div className="flex gap-4 mt-3">
-                <Button
-                  type="button"
-                  variant={formData.role === "buyer" ? "default" : "outline"}
-                  onClick={() => setFormData({ ...formData, role: "buyer" })}
-                  className="flex-1 py-6 text-base"
-                >
-                  Comprador
-                </Button>
-                <Button
-                  type="button"
-                  variant={formData.role === "seller" ? "default" : "outline"}
-                  onClick={() => setFormData({ ...formData, role: "seller" })}
-                  className="flex-1 py-6 text-base"
-                >
-                  Vendedor
-                </Button>
+                <Button type="button" variant={formData.role === "buyer" ? "default" : "outline"} onClick={() => setFormData({ ...formData, role: "buyer" })} className="flex-1 py-6 text-base" disabled={!signupsEnabled}>Comprador</Button>
+                <Button type="button" variant={formData.role === "seller" ? "default" : "outline"} onClick={() => setFormData({ ...formData, role: "seller" })} className="flex-1 py-6 text-base" disabled={!signupsEnabled}>Vendedor</Button>
               </div>
             </div>
-
-            <Button
-              type="submit"
-              className="w-full py-6 text-lg bg-orange-600 hover:bg-orange-700 rounded-2xl font-semibold"
-              disabled={loading}
-            >
+            <Button type="submit" className="w-full py-6 text-lg bg-orange-600 hover:bg-orange-700 rounded-2xl font-semibold" disabled={loading || !signupsEnabled}>
               {loading ? "Creando cuenta..." : "Crear Cuenta"}
             </Button>
           </form>
 
-          {googleEnabled && (
+          {googleEnabled && signupsEnabled && (
             <>
               <div className="my-6 relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-card px-3 text-muted-foreground">o</span>
-                </div>
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+                <div className="relative flex justify-center text-xs"><span className="bg-card px-3 text-muted-foreground">o</span></div>
               </div>
-
-              <Button
-                onClick={handleGoogleSignIn}
-                variant="outline"
-                className="w-full py-5 text-base flex items-center justify-center gap-2"
-              >
-                {/* Inline Google "G" logo SVG — reliable on all platforms including macOS Safari / PWA / no external network dependency */}
+              <Button onClick={handleGoogleSignIn} variant="outline" className="w-full py-5 text-base flex items-center justify-center gap-2">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.51h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.34z"/>
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -250,10 +211,7 @@ function SignUpClient() {
           )}
 
           <div className="text-center text-sm text-muted-foreground pt-2">
-            ¿Ya tienes cuenta?{" "}
-            <Link href="/login" className="text-orange-600 hover:underline font-medium">
-              Inicia sesión
-            </Link>
+            ¿Ya tienes cuenta? <Link href="/login" className="text-orange-600 hover:underline font-medium">Inicia sesión</Link>
           </div>
         </div>
       </div>

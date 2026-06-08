@@ -12,6 +12,15 @@ import { devLog } from '@/lib/utils';
 export async function createReferralEarningIfApplicable(order: any) {
   if (!order.seller?.referredById || !order.price) return;
 
+  // Master gate from admin settings
+  try {
+    const { prisma: prismaClient } = await import('@/lib/prisma');
+    const cfg = await prismaClient.platformConfig.findUnique({ where: { id: 'singleton' } });
+    if (cfg && (cfg as any).referralsEnabled === false) {
+      return; // Referrals globally paused by admin
+    }
+  } catch {}
+
   try {
     const referralRate = await getEffectiveReferralRate(order.seller.referredById);
     const referralAmount = Math.round(order.price * referralRate);

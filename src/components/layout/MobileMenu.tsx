@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp, MessageCircle, Settings, Tag, Briefcase, Bell } from 'lucide-react';
+import { X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp, MessageCircle, Settings, Tag, Briefcase, Bell, Shirt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface MobileMenuProps {
@@ -147,6 +147,9 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             </Link>
             <Link href="/admin/categories" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Tag size={22} /> Categorías
+            </Link>
+            <Link href="/admin/wardrobe" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border font-medium">
+              <Shirt size={22} /> Wardrobe
             </Link>
             <Link href="/admin/earnings" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <TrendingUp size={22} /> Ganancias

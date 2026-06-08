@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Plus, Trash2, Edit2, Save, X, Tag } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, Tag, RefreshCw, AlertTriangle } from 'lucide-react';
+import { gigCategories as staticGigCategories } from '@/lib/gig-categories';
 
 interface FieldDef {
   key: string;
@@ -402,15 +403,120 @@ export default function AdminCategoriesPage() {
       {/* LIST */}
       <Card>
         <CardHeader>
-          <CardTitle>Categorías existentes ({categories.length})</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>
+              Categorías en DB: {categories.length} / Estáticas: {staticGigCategories.length}
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/admin/categories', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ seedInitial: true }),
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                      toast.success(data.message || 'Categorías sincronizadas');
+                      await loadCategories();
+                    } else {
+                      toast.error(data.error || 'Error');
+                    }
+                  } catch {
+                    toast.error('Error de red');
+                  }
+                }}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" /> Sincronizar iniciales
+              </Button>
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={async () => {
+                  if (!confirm(
+                    `¿FORZAR RESET a las ${staticGigCategories.length} categorías iniciales?\n\n` +
+                    `Esto eliminará cualquier categoría personalizada que no esté en la lista estática ` +
+                    `(solo si no tiene gigs asociados). Esta acción es destructiva.`
+                  )) return;
+
+                  try {
+                    const res = await fetch('/api/admin/categories', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ seedInitial: true, force: true }),
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                      toast.success(data.message || 'Reset completado');
+                      await loadCategories();
+                    } else {
+                      toast.error(data.error || 'Error en reset');
+                    }
+                  } catch {
+                    toast.error('Error de red en reset');
+                  }
+                }}
+              >
+                <AlertTriangle className="h-4 w-4 mr-1" /> Forzar reset a iniciales
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div>Cargando...</div>
           ) : categories.length === 0 ? (
-            <p className="text-muted-foreground">No hay categorías aún. Crea la primera arriba.</p>
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">
+                No hay categorías en la base de datos. 
+                Actualmente se usan definiciones estáticas de respaldo (20 categorías).
+              </p>
+              <Button 
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/admin/categories', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ seedInitial: true }),
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                      toast.success(data.message || 'Categorías iniciales importadas');
+                      await loadCategories();
+                    } else {
+                      toast.error(data.error || 'Error al importar');
+                    }
+                  } catch {
+                    toast.error('Error de red al importar categorías');
+                  }
+                }}
+                className="mx-auto"
+              >
+                <Plus className="h-4 w-4 mr-2" /> Importar las 20 categorías iniciales (recomendado)
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                Esto poblará la base de datos para que el admin y las páginas públicas usen las categorías gestionadas.
+                Usa el botón "Forzar reset a iniciales" (arriba) si quieres limpiar categorías personalizadas que no estén en la lista estática.
+              </p>
+            </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              {categories.length < staticGigCategories.length && (
+                <div className="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded text-sm flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 text-yellow-600 flex-shrink-0" />
+                  <div>
+                    <strong>Atención:</strong> Solo hay {categories.length} categorías en la base de datos, 
+                    pero hay {staticGigCategories.length} definiciones estáticas conocidas.
+                    <br />
+                    Haz clic en <strong>"Sincronizar iniciales"</strong> arriba para importar las que faltan 
+                    (no se eliminará nada).
+                  </div>
+                </div>
+              )}
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
@@ -453,6 +559,7 @@ export default function AdminCategoriesPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
           <p className="text-xs text-muted-foreground mt-4">
             Nota: Las categorías con gigs asociados no se pueden eliminar (usa el botón de desactivar). Los vendedores solo ven las categorías activas.

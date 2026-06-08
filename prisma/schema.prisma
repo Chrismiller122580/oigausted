@@ -332,10 +332,31 @@ model PlatformConfig {
   referralCommissionRate  Float    @default(0.05)   // Comisión por referidos (ej: 5%)
   minPayoutAmount         Float    @default(50000)
   supportEmail            String   @default("support@support.oigagig.com")
+  supportPhone            String?  // Optional public support phone / WhatsApp
   enableReviews           Boolean  @default(true)
   enableChat              Boolean  @default(true)
   maintenanceMode         Boolean  @default(false)
   maintenanceMessage      String   @default("Estamos realizando mejoras. Volveremos pronto.")
+
+  // Growth & Access controls (new in settings upgrade)
+  referralsEnabled        Boolean  @default(true)   // Master toggle for creating referral earnings
+  allowNewSignups         Boolean  @default(true)   // Gate new user registrations (enforced in auth routes if desired)
+
+  // Misc operational
+  maxUploadSizeMB         Int      @default(10)     // Max size for order/chat file uploads
+
+  // Branding (editable from /admin/settings, feeds public pages + metadata)
+  siteName                String   @default("FitMe Live")
+  siteTagline             String   @default("Your personal style companion")
+  logoUrl                 String?                     // Optional override logo (URL or /public path)
+
+  // Global notification masters
+  globalPushNotificationsEnabled  Boolean @default(true)
+  globalEmailNotificationsEnabled Boolean @default(true)
+
+  // Maintenance advanced
+  maintenanceBypassIps    String?                     // Comma-separated IPs that bypass maintenance banner + blocks
+
   updatedAt               DateTime @updatedAt
 }
 
@@ -360,6 +381,24 @@ model ReferralEarning {
   @@index([status])
   @@index([updatedAt])
   @@index([createdAt])
+}
+
+// Wardrobe Items / Catalog (Shopify-style product management for FitMe wardrobe)
+model WardrobeItem {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  price       Float?
+  category    String?
+  imageUrl    String?
+  shopifyId   String?  @unique  // Link to Shopify product for sync
+  brand       String?
+  color       String?
+  size        String?
+  tags        String?  // comma separated or simple list
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model SupportTicket {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock, Tag } from 'lucide-react';
+import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock, Tag, Shirt, BarChart3, MessageCircle } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -58,71 +58,98 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-10">
           <h1 className="text-5xl font-bold tracking-tight">Panel de Administración</h1>
-          <p className="text-muted-foreground mt-2 text-xl">Vista general de OigaUsted • Datos en tiempo real</p>
+          <p className="text-muted-foreground mt-2 text-xl">Vista general de FitMe Live • Datos en tiempo real</p>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Clickable tiles wired to data pages */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-12">
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <Users className="h-8 w-8 text-blue-400 mb-3" />
-              <p className="text-sm text-muted-foreground">Usuarios Totales</p>
-              <p className="text-4xl font-bold mt-1">{stats?.users?.toLocaleString() || 0}</p>
-              <p className="text-xs text-emerald-400 mt-1">{stats?.sellers || 0} vendedores</p>
-            </CardContent>
-          </Card>
+          <Link href="/admin/users">
+            <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
+              <CardContent className="p-6">
+                <Users className="h-8 w-8 text-blue-400 mb-3" />
+                <p className="text-sm text-muted-foreground">Usuarios Totales</p>
+                <p className="text-4xl font-bold mt-1">{stats?.users?.toLocaleString() || 0}</p>
+                <p className="text-xs text-emerald-400 mt-1">{stats?.sellers || 0} vendedores</p>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <Package className="h-8 w-8 text-orange-400 mb-3" />
-              <p className="text-sm text-muted-foreground">Gigs Publicados</p>
-              <p className="text-4xl font-bold mt-1">{stats?.gigs || 0}</p>
-              <p className="text-xs text-emerald-400 mt-1">{stats?.activeGigs || 0} activos</p>
-            </CardContent>
-          </Card>
+          <Link href="/admin/gigs">
+            <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
+              <CardContent className="p-6">
+                <Package className="h-8 w-8 text-orange-400 mb-3" />
+                <p className="text-sm text-muted-foreground">Gigs Publicados</p>
+                <p className="text-4xl font-bold mt-1">{stats?.gigs || 0}</p>
+                <p className="text-xs text-emerald-400 mt-1">{stats?.activeGigs || 0} activos</p>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <Tag className="h-8 w-8 text-indigo-400 mb-3" />
-              <p className="text-sm text-muted-foreground">Categorías</p>
-              <p className="text-4xl font-bold mt-1">{stats?.totalCategories || 0}</p>
-              <p className="text-xs text-muted-foreground mt-1">de servicios</p>
-            </CardContent>
-          </Card>
+          <Link href="/admin/categories">
+            <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
+              <CardContent className="p-6">
+                <Tag className="h-8 w-8 text-indigo-400 mb-3" />
+                <p className="text-sm text-muted-foreground">Categorías</p>
+                <p className="text-4xl font-bold mt-1">{stats?.totalCategories || 0}</p>
+                <p className="text-xs text-muted-foreground mt-1">de servicios</p>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <TrendingUp className="h-8 w-8 text-purple-400 mb-3" />
-              <p className="text-sm text-muted-foreground">Pedidos Totales</p>
-              <p className="text-4xl font-bold mt-1">{stats?.orders || 0}</p>
-              <p className="text-xs text-emerald-400 mt-1">{stats?.completedOrders || 0} completados</p>
-            </CardContent>
-          </Card>
+          <Link href="/admin/reports">
+            <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
+              <CardContent className="p-6">
+                <TrendingUp className="h-8 w-8 text-purple-400 mb-3" />
+                <p className="text-sm text-muted-foreground">Pedidos Totales</p>
+                <p className="text-4xl font-bold mt-1">{stats?.orders || 0}</p>
+                <p className="text-xs text-emerald-400 mt-1">{stats?.completedOrders || 0} completados</p>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <DollarSign className="h-8 w-8 text-green-400 mb-3" />
-              <p className="text-sm text-muted-foreground">Ingresos Brutos</p>
-              <p className="text-4xl font-bold mt-1">${(stats?.totalRevenue || 0).toLocaleString('es-CO')}</p>
-              <p className="text-xs text-emerald-400 mt-1">
-                Plataforma: ${(stats?.platformRevenue || 0).toLocaleString('es-CO')} 
-                {stats?.estimatedReferralRevenue ? ` • Referidos: $${(stats.estimatedReferralRevenue).toLocaleString('es-CO')}` : ''}
-              </p>
-            </CardContent>
-          </Card>
+          <Link href="/admin/earnings">
+            <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
+              <CardContent className="p-6">
+                <DollarSign className="h-8 w-8 text-green-400 mb-3" />
+                <p className="text-sm text-muted-foreground">Ingresos Brutos</p>
+                <p className="text-4xl font-bold mt-1">${(stats?.totalRevenue || 0).toLocaleString('es-CO')}</p>
+                <p className="text-xs text-emerald-400 mt-1">
+                  Plataforma: ${(stats?.platformRevenue || 0).toLocaleString('es-CO')} 
+                  {stats?.estimatedReferralRevenue ? ` • Referidos: $${(stats.estimatedReferralRevenue).toLocaleString('es-CO')}` : ''}
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <AlertCircle className="h-8 w-8 text-amber-400 mb-3" />
-              <p className="text-sm text-muted-foreground">Pagos Pendientes</p>
-              <p className="text-4xl font-bold mt-1">{stats?.pendingPayouts || 0}</p>
-              <p className="text-xs text-muted-foreground mt-1">Órdenes completadas</p>
-            </CardContent>
-          </Card>
+          <Link href="/admin/payouts">
+            <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
+              <CardContent className="p-6">
+                <AlertCircle className="h-8 w-8 text-amber-400 mb-3" />
+                <p className="text-sm text-muted-foreground">Pagos Pendientes</p>
+                <p className="text-4xl font-bold mt-1">{stats?.pendingPayouts || 0}</p>
+                <p className="text-xs text-muted-foreground mt-1">Órdenes completadas</p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Quick Actions - All tiles are now wired + better organized with Wardrobe/Catalog as primary for items */}
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold mb-4 text-muted-foreground">Acciones Rápidas</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <Link href="/admin/wardrobe">
+            <Card className="bg-card border-border hover:border-orange-500 hover:shadow-md transition cursor-pointer h-full ring-1 ring-orange-500/20">
+              <CardContent className="p-8">
+                <Shirt className="h-10 w-10 text-orange-500 mb-4" />
+                <h3 className="text-2xl font-semibold mb-2">Wardrobe / Catálogo</h3>
+                <p className="text-4xl font-bold text-orange-500">{stats?.totalWardrobeItems ?? 0}</p>
+                <p className="text-muted-foreground -mt-1">items en el catálogo</p>
+                <p className="text-xs text-orange-500 mt-2 font-medium">→ Ver, agregar y eliminar (Shopify catalog)</p>
+              </CardContent>
+            </Card>
+          </Link>
+
           <Link href="/admin/users">
             <Card className="bg-card border-border hover:border-accent transition cursor-pointer h-full">
               <CardContent className="p-8">
@@ -159,6 +186,42 @@ export default function AdminDashboard() {
                 <DollarSign className="h-10 w-10 text-green-400 mb-4" />
                 <h3 className="text-2xl font-semibold mb-2">Gestionar Pagos</h3>
                 <p className="text-muted-foreground">Revisar y marcar pagos a vendedores</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Link href="/admin/reports">
+            <Card className="bg-card border-border hover:border-accent transition cursor-pointer h-full">
+              <CardContent className="p-6 flex items-center gap-4">
+                <BarChart3 className="h-8 w-8 text-purple-400" />
+                <div>
+                  <div className="font-semibold">Reportes</div>
+                  <div className="text-sm text-muted-foreground">Estadísticas y exportes</div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/admin/support">
+            <Card className="bg-card border-border hover:border-accent transition cursor-pointer h-full">
+              <CardContent className="p-6 flex items-center gap-4">
+                <MessageCircle className="h-8 w-8 text-blue-400" />
+                <div>
+                  <div className="font-semibold">Soporte</div>
+                  <div className="text-sm text-muted-foreground">Tickets y respuestas</div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/admin/settings">
+            <Card className="bg-card border-border hover:border-accent transition cursor-pointer h-full">
+              <CardContent className="p-6 flex items-center gap-4">
+                <Tag className="h-8 w-8 text-amber-400" />
+                <div>
+                  <div className="font-semibold">Ajustes y Config</div>
+                  <div className="text-sm text-muted-foreground">Comisiones, mantenimiento, branding</div>
+                </div>
               </CardContent>
             </Card>
           </Link>

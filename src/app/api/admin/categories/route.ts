@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { parseJsonArrayField, toPrismaJson } from '@/lib/utils';
+import { gigCategories as staticGigCategories } from '@/lib/gig-categories';
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -56,6 +57,62 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+
+    // Special action: seed initial categories from the static source (gig-categories.ts)
+    // This populates the DB so admin UI and public pages use DB as source of truth.
+    if (body.seedInitial) {
+      const staticNames = new Set(staticGigCategories.map(c => c.name));
+      let cleaned = 0;
+      let seeded = 0;
+
+      if (body.force) {
+        // Force reset: remove categories that are in DB but NOT in the static list
+        // (only safe ones with 0 gigs)
+        const dbCategories = await prisma.category.findMany({
+          select: { name: true }
+        });
+
+        for (const dbCat of dbCategories) {
+          if (!staticNames.has(dbCat.name)) {
+            const gigCount = await prisma.gig.count({ where: { category: dbCat.name } });
+            if (gigCount === 0) {
+              await prisma.category.delete({ where: { name: dbCat.name } });
+              cleaned++;
+            }
+            // If it has gigs, we leave it (can't safely delete)
+          }
+        }
+      }
+
+      // Now upsert all static ones (adds missing + refreshes icon/fields/order/isActive)
+      for (const [index, cat] of staticGigCategories.entries()) {
+        await prisma.category.upsert({
+          where: { name: cat.name },
+          update: {
+            icon: cat.icon,
+            fields: toPrismaJson(cat.fields || []),
+            order: index,
+            isActive: true,
+          },
+          create: {
+            name: cat.name,
+            icon: cat.icon,
+            fields: toPrismaJson(cat.fields || []),
+            description: null,
+            order: index,
+            isActive: true,
+          },
+        });
+        seeded++;
+      }
+
+      const message = body.force 
+        ? `Reset completado. Se eliminaron ${cleaned} categorías extra. Se importaron/actualizaron ${seeded} categorías.`
+        : `Se importaron/actualizaron ${seeded} categorías iniciales.`;
+
+      return NextResponse.json({ success: true, seeded, cleaned, message });
+    }
+
     const { name, icon, description, fields, isActive, order } = body;
 
     if (!name || typeof name !== 'string' || name.trim().length < 3) {
