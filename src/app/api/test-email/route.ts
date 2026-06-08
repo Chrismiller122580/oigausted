@@ -75,7 +75,9 @@ export async function POST(req: NextRequest) {
       result = await notifications.sendEmail(
         userId,
         'Restablece tu contraseña en OigaUsted',
-        'Haz clic en el enlace del correo para crear una nueva contraseña. (Este es un correo de prueba)'
+        'Haz clic en el enlace del correo para crear una nueva contraseña. (Este es un correo de prueba)',
+        undefined,
+        { resetLink: 'https://oigagig.com/reset-password?token=test-123' }
       );
     } else {
       return NextResponse.json({ error: 'Invalid emailType' }, { status: 400 });

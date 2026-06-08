@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { resend } from '@/lib/notifications';
+import { toPrismaJson } from '@/lib/utils';
 
 // Vercel Cron + Digest Job for OigaUsted
 // Automatically called by Vercel Cron (see vercel.json)
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
       where: {
         digestEnabled: true,
         digestFrequency: frequency,
+        emailEnabled: true, // Respect global email toggle (digest is still a summary opt-in, but don't email if user disabled all email)
       },
       include: {
         user: {
@@ -126,13 +128,40 @@ export async function POST(req: NextRequest) {
       `;
 
       try {
-        await resend?.emails.send({
+        const emailResult = await resend?.emails.send({
           from: process.env.RESEND_FROM_EMAIL || 'OigaUsted <support@support.oigagig.com>',
           to: pref.user.email,
           subject,
           html,
         });
         sent++;
+
+        // Create a tracked Notification record for the digest email itself.
+        // This gives it visibility in user history, admin logs, and sets resendEmailId
+        // so delivery events (opened, etc.) can be correlated via the webhook.
+        const resendId = (emailResult as any)?.id || null;
+        try {
+          await prisma.notification.create({
+            data: {
+              userId: pref.user.id,
+              category: 'system',
+              type: 'email',
+              title: subject,
+              message: `Resumen ${frequency} con ${recent.length} notificaciones nuevas.`,
+              link: '/notifications',
+              data: toPrismaJson({ frequency, unreadCount: recent.length, isDigest: true }),
+              emailStatus: 'sent',
+              emailSentAt: new Date(),
+              resendEmailId: resendId,
+              deliveryLog: toPrismaJson({
+                digestSentAt: new Date().toISOString(),
+                resendId,
+              }),
+            },
+          });
+        } catch (trackErr) {
+          console.error('Failed to create digest tracking notification for', pref.user.email);
+        }
       } catch (e) {
         console.error('Digest email failed for', pref.user.email);
       }

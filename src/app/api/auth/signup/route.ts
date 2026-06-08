@@ -95,12 +95,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send welcome email
+    // Send welcome email (now uses rich welcomeEmail template + benefits from new reliable tracking + resendEmailId)
     await notifications.sendEmail(
       newUser.id,
       '¡Bienvenido a OigaUsted!',
       `Hola ${name}, gracias por registrarte. Ya puedes explorar servicios o publicar los tuyos.`,
-      `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/gigs`
+      `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/gigs`,
+      { isWelcome: true }
     )
 
     return NextResponse.json({ 

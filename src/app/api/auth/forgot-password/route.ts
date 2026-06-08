@@ -39,12 +39,13 @@ export async function POST(request: NextRequest) {
 
     const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/reset-password?token=${token}`
 
-    // Send real password reset email
+    // Send real password reset email (now uses rich passwordResetEmail template + full tracking/resendEmailId)
     await notifications.sendEmail(
       user.id,
       'Restablece tu contraseña en OigaUsted',
-      `Recibimos una solicitud para restablecer tu contraseña. Haz clic en el siguiente enlace para crear una nueva:\n\n${resetLink}\n\nEste enlace expirará en 1 hora. Si no solicitaste esto, puedes ignorar este correo.`,
-      resetLink
+      `Recibimos una solicitud para restablecer tu contraseña. El enlace expira en 1 hora.`,
+      resetLink,
+      { resetLink }
     )
 
     return NextResponse.json({ 

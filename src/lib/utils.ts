@@ -73,3 +73,20 @@ export function toPrismaJson(value: any): any {
   return isSqliteDev ? JSON.stringify(value) : value;
 }
 
+/**
+ * Safely parse deliveryLog (or similar Json/String fields) that may be stored
+ * as a JSON string (sqlite-dev shim) or native object (Postgres).
+ */
+export function parseDeliveryLog(val: any): Record<string, any> {
+  if (!val) return {};
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  return val && typeof val === 'object' && !Array.isArray(val) ? val : {};
+}
+

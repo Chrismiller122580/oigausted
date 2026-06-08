@@ -155,6 +155,10 @@ model Notification {
   pushClickedAt   DateTime?
   deliveryLog     Json?     // structured delivery attempts (resend ids, timestamps, channels)
 
+  // Direct lookup key for Resend email webhooks (set on send). Enables reliable correlation
+  // without brittle recent-N scans or findFirst-by-category hacks.
+  resendEmailId   String?   @unique
+
   createdAt DateTime @default(now())
 
   @@index([userId, read])

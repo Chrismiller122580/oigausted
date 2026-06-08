@@ -1,6 +1,6 @@
 import { prisma } from './prisma';
 import { Resend } from 'resend';
-import { devLog, toPrismaJson } from './utils';
+import { devLog, toPrismaJson, parseDeliveryLog } from './utils';
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
@@ -41,14 +41,16 @@ export async function sendNotification(payload: NotificationPayload) {
 
   // === 2027 User Respect: Quiet Hours ===
   const isInQuietHours = checkQuietHours(prefs);
-  if (isInQuietHours) {
-    if (payload.priority !== 'high') {
-      const onlyInApp = type === 'in_app';
-      if (!onlyInApp) {
-        return { success: true, skipped: 'quiet hours (user preference)' };
-      }
+  // Quiet hours suppress *disturbing* channels (email, push, sms) for non-high priority.
+  // in_app (bell) is still created so users see it when they open the app.
+  // The auto-email side-effect (the common path) is also suppressed here.
+  if (isInQuietHours && payload.priority !== 'high') {
+    if (type !== 'in_app') {
+      return { success: true, skipped: 'quiet hours (user preference)' };
     }
   }
+
+  const emailAllowed = shouldSendEmail && !(isInQuietHours && payload.priority !== 'high');
 
   // === 2027 Rate Limiting + Grouping ===
   const rateLimitResult = await checkRateLimit(userId, category, prefs);
@@ -95,9 +97,19 @@ export async function sendNotification(payload: NotificationPayload) {
     }
   }
 
+  // === Email delivery tracking record (the key fix for reliable correlation) ===
+  // We guarantee a concrete Notification row id for every email we send.
+  // - Prefer the in_app row we just created for this event (best UX, users see it in history).
+  // - If no in_app row exists for this send (user has inApp off, or explicit email type with inApp disabled),
+  //   we create a lightweight type:'email' record whose only job is to carry the delivery status + resendEmailId.
+  // This eliminates the previous racy findFirst({userId, category}) + "recent 20 scan" hacks.
+  let emailTrackingNotifId: string | null = inAppNotifId;
+
   // Email sending helper (reusable for both explicit email and triggered in-app notifications)
-  async function sendEmailIfEnabled(existingInAppId?: string | null) {
-    if (!resend || !shouldSendEmail) return;
+  // IMPORTANT: We now *always* try to pass a concrete tracking Notification id so that
+  // we can directly update the row with resendEmailId + status (no more racy findFirst).
+  async function sendEmailIfEnabled(trackingNotifId?: string | null) {
+    if (!resend || !emailAllowed) return;
 
     try {
       const user = await prisma.user.findUnique({
@@ -141,6 +153,20 @@ export async function sendNotification(payload: NotificationPayload) {
           amount: data.amount || 0,
           otherPartyName: data.reviewerName || 'Un cliente',
         });
+      } else if ((category === 'system' || category === 'email') &&
+                 (title?.toLowerCase().includes('bienvenido') || data?.isWelcome || data?.welcome)) {
+        // Support the dedicated welcome template for signup (direct sendEmail) and tests.
+        // This gives the nice branded header instead of the plain generic.
+        const { welcomeEmail } = await import('./emails/templates');
+        emailContent = welcomeEmail({ userName: user.name });
+      } else if ((category === 'system' || category === 'email') &&
+                 (title?.toLowerCase().includes('restablece') || title?.toLowerCase().includes('contraseña') || title?.toLowerCase().includes('password') || data?.resetLink)) {
+        // Rich password reset template (used by forgot-password flow + tests)
+        const { passwordResetEmail } = await import('./emails/templates');
+        emailContent = passwordResetEmail({
+          userName: user.name,
+          resetLink: data?.resetLink || link || '',
+        });
       } else if (category === 'message' && data?.gigTitle) {
         // Simple but useful message email
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
@@ -181,37 +207,35 @@ export async function sendNotification(payload: NotificationPayload) {
         html: emailContent.html,
       });
 
-      // Update delivery tracking
-      try {
-        let notifToUpdate = null;
-        if (existingInAppId) {
-          notifToUpdate = await prisma.notification.findUnique({ where: { id: existingInAppId } });
-        }
-        if (!notifToUpdate) {
-          notifToUpdate = await prisma.notification.findFirst({
-            where: { userId, category },
-            orderBy: { createdAt: 'desc' }
-          });
-        }
+      const resendId = (emailResult as any)?.id || null;
 
-        if (notifToUpdate) {
-          await prisma.notification.update({
-            where: { id: notifToUpdate.id },
-            data: {
-              emailStatus: 'sent',
-              emailSentAt: new Date(),
-              deliveryLog: toPrismaJson({
-                ...(typeof notifToUpdate.deliveryLog === 'string' ? JSON.parse(notifToUpdate.deliveryLog) : (notifToUpdate.deliveryLog || {})),
-                emailAttempt: {
-                  at: new Date().toISOString(),
-                  resendId: (emailResult as any)?.id || null,
-                }
-              })
-            }
-          });
+      // Update delivery tracking on the *known* tracking notification id (reliable, no findFirst).
+      // We also set resendEmailId (new column) for O(1) webhook correlation.
+      if (trackingNotifId && resendId) {
+        try {
+          const notif = await prisma.notification.findUnique({ where: { id: trackingNotifId } });
+          if (notif) {
+            const currentLog = parseDeliveryLog(notif.deliveryLog);
+
+            await prisma.notification.update({
+              where: { id: trackingNotifId },
+              data: {
+                emailStatus: 'sent',
+                emailSentAt: new Date(),
+                resendEmailId: resendId,
+                deliveryLog: toPrismaJson({
+                  ...currentLog,
+                  emailAttempt: {
+                    at: new Date().toISOString(),
+                    resendId,
+                  }
+                })
+              }
+            });
+          }
+        } catch (trackErr) {
+          devLog('Failed to update email tracking', trackErr);
         }
-      } catch (trackErr) {
-        devLog('Failed to update email tracking', trackErr);
       }
 
       devLog(`[Resend] Email sent to ${user.email} (${category})`);
@@ -221,9 +245,34 @@ export async function sendNotification(payload: NotificationPayload) {
   }
 
   // 2. Handle Email via Resend (explicit 'email' type OR triggered alongside in_app)
+  // Use emailAllowed (prefs + quiet hours) instead of raw shouldSendEmail.
   const shouldAlsoEmail = type === 'email' || (type === 'in_app' && shouldSendEmail);
-  if (shouldAlsoEmail) {
-    await sendEmailIfEnabled(inAppNotifId);
+  if (shouldAlsoEmail && emailAllowed) {
+    // Ensure we have a tracking row for this email (create dedicated 'email' type record if needed)
+    if (!emailTrackingNotifId) {
+      try {
+        const created = await prisma.notification.create({
+          data: {
+            userId,
+            category,
+            type: 'email', // dedicated delivery tracking record (visible in admin logs / user history)
+            title,
+            message,
+            link: link || null,
+            data: toPrismaJson(data),
+            deliveryLog: toPrismaJson({
+              emailTrackingCreatedAt: new Date().toISOString(),
+            }),
+          },
+          select: { id: true }
+        });
+        emailTrackingNotifId = created.id;
+      } catch (err) {
+        devLog('Failed to create email tracking notification:', err);
+      }
+    }
+
+    await sendEmailIfEnabled(emailTrackingNotifId);
   }
 
   // 3. SMS (future) and server-side Push (future, currently browser client-side in UI)
@@ -374,10 +423,16 @@ async function sendWebPushIfEnabled(
 
 /**
  * Simple but effective rate limiting + grouping (2027 user respect)
+ *
+ * NOTE: This is an *in-memory* cache (per Node process / server instance).
+ * On Vercel (serverless, cold starts, multiple regions/instances, scale):
+ *   - The cache frequently resets.
+ *   - It provides only best-effort protection against bursts within a single invocation.
+ * For real production abuse protection, replace with Redis/Upstash or a DB-backed
+ * sliding window (e.g. on Notification or a lightweight SentEvent table).
+ *
+ * The maxNotificationsPerHour pref is still respected as a soft client-side hint.
  */
-// In-memory rate limit cache (per server instance).
-// NOTE: On Vercel/serverless this is best-effort only (resets on cold starts / scale).
-// For production abuse protection consider Redis/Upstash or DB-backed counters.
 const recentNotificationCache = new Map<string, { count: number; lastSent: number }>();
 
 async function checkRateLimit(userId: string, category: string, prefs: any) {
@@ -388,11 +443,9 @@ async function checkRateLimit(userId: string, category: string, prefs: any) {
   const now = Date.now();
   const hourAgo = now - 60 * 60 * 1000;
 
-  const cached = recentNotificationCache.get(key) || { count: 0, lastSent: 0 };
-
-  // Clean old entries
-  if (cached.lastSent < hourAgo) {
-    cached.count = 0;
+  let cached = recentNotificationCache.get(key);
+  if (!cached || cached.lastSent < hourAgo) {
+    cached = { count: 0, lastSent: 0 };
   }
 
   if (cached.count >= maxPerHour) {
@@ -405,6 +458,7 @@ async function checkRateLimit(userId: string, category: string, prefs: any) {
   recentNotificationCache.set(key, cached);
 
   // Basic grouping: if we just sent something very similar recently, skip
+  // (this still only works within one process lifetime)
   if (now - cached.lastSent < 1000 * 90 && cached.count > 1) {
     // Allow it but note grouping happened (future: we could batch)
   }

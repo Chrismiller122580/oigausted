@@ -102,8 +102,17 @@ export function orderStatusUpdatedEmail({ userName, gigTitle, newStatus, orderId
   };
 }
 
-export function reviewReceivedEmail({ userName, gigTitle, rating, reviewerName }: OrderEmailProps & { rating: number; reviewerName: string }) {
+export function reviewReceivedEmail({ 
+  userName, 
+  gigTitle, 
+  rating, 
+  reviewerName, 
+  orderId 
+}: OrderEmailProps & { rating: number; reviewerName: string; orderId?: string }) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
+  // Prefer linking to the specific order (where the review lives) if we have the id.
+  // Fallback to seller earnings/reviews area.
+  const reviewLink = orderId ? `${appUrl}/orders/${orderId}` : `${appUrl}/seller/earnings`;
   return {
     subject: `Nueva reseña en tu servicio`,
     html: `
@@ -114,10 +123,44 @@ export function reviewReceivedEmail({ userName, gigTitle, rating, reviewerName }
         
         <p><strong>${reviewerName}</strong> dejó una reseña de <strong>${rating} estrellas</strong> en tu servicio <strong>"${gigTitle}"</strong>.</p>
 
-        <a href="${appUrl}/seller/earnings" 
+        <a href="${reviewLink}" 
            style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-          Ver mis reseñas
+          Ver reseña
         </a>
+      </div>
+    `
+  };
+}
+
+interface PasswordResetProps {
+  userName?: string | null;
+  resetLink: string;
+}
+
+export function passwordResetEmail({ userName = 'Usuario', resetLink }: PasswordResetProps) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
+  return {
+    subject: 'Restablece tu contraseña en OigaUsted',
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
+        <h2 style="color: #111;">Restablece tu contraseña</h2>
+        
+        <p>Hola <strong>${userName}</strong>,</p>
+        
+        <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en OigaUsted.</p>
+        
+        <p>Haz clic en el botón de abajo para crear una nueva contraseña. Este enlace expirará en 1 hora.</p>
+
+        <div style="margin: 32px 0; text-align: center;">
+          <a href="${resetLink}" 
+             style="background: #f97316; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+            Restablecer contraseña
+          </a>
+        </div>
+
+        <p style="font-size: 14px; color: #666;">Si no solicitaste este cambio, puedes ignorar este correo de forma segura.</p>
+
+        <p style="margin-top: 32px; font-size: 12px; color: #888;">OigaUsted • Servicios locales de confianza en Colombia</p>
       </div>
     `
   };

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
-import { devLog, toPrismaJson } from '@/lib/utils';
+import { devLog, toPrismaJson, parseDeliveryLog } from '@/lib/utils';
 
 // Resend Webhook Handler for email delivery tracking
 // Configure this webhook URL in your Resend dashboard: /api/webhooks/resend
@@ -75,20 +75,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // Find notification by resend id in deliveryLog (compatible with both Json (prod) and String (local sqlite) representations)
-    const recent = await prisma.notification.findMany({
-      take: 20,
-      orderBy: { createdAt: 'desc' },
-    });
-    const notifications = recent.filter((n: any) => {
-      const log = n.deliveryLog;
-      if (!log) return false;
-      const str = typeof log === 'string' ? log : JSON.stringify(log);
-      return str.includes(emailId);
-    });
+    const notificationsToUpdate: any[] = [];
 
-    for (const notif of notifications) {
-      const currentLog = typeof notif.deliveryLog === 'string' ? JSON.parse(notif.deliveryLog) : (notif.deliveryLog || {});
+    // 1. Fast path: direct lookup by the new resendEmailId column (set at send time).
+    // This is the reliable mechanism after the auto-emails correlation fixes.
+    try {
+      const byId = await prisma.notification.findUnique({ where: { resendEmailId: emailId } });
+      if (byId) {
+        notificationsToUpdate.push(byId);
+      }
+    } catch (e) {
+      devLog('[Resend] resendEmailId lookup failed (column may not be migrated yet):', e);
+    }
+
+    // 2. Fallback for legacy rows (pre-fix) or rows where the column wasn't populated:
+    // scan a modest number of recent notifications and match inside deliveryLog (string or object).
+    if (notificationsToUpdate.length === 0) {
+      const recent = await prisma.notification.findMany({
+        take: 50,
+        orderBy: { createdAt: 'desc' },
+      });
+      const legacyMatches = recent.filter((n: any) => {
+        // If it already has the column, we would have found it above.
+        if (n.resendEmailId === emailId) return true;
+        const log = n.deliveryLog;
+        if (!log) return false;
+        const str = typeof log === 'string' ? log : JSON.stringify(log);
+        return str.includes(emailId);
+      });
+      notificationsToUpdate.push(...legacyMatches);
+    }
+
+    for (const notif of notificationsToUpdate) {
+      const currentLog = parseDeliveryLog(notif.deliveryLog);
 
       let updateData: any = {
         deliveryLog: toPrismaJson({
@@ -100,6 +119,11 @@ export async function POST(req: NextRequest) {
           }
         })
       };
+
+      // Ensure the direct id is recorded (helps future events + admin visibility)
+      if (!notif.resendEmailId) {
+        updateData.resendEmailId = emailId;
+      }
 
       switch (event.type) {
         case 'email.delivered':
