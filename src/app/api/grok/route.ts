@@ -31,11 +31,19 @@ export async function POST(request: NextRequest) {
       return Response.json({ reply: "Grok is not configured right now. Please set up your GROK_API_KEY." });
     }
 
-    // Language handling
-    const language = body.language || 'en';
-    const languageInstruction = language === 'es' 
-      ? "Respond in Spanish (español natural y profesional)." 
-      : "Respond in English by default. Only switch to Spanish if the user explicitly asks in Spanish.";
+    // Language handling - force English for admin tools
+    let language = body.language || 'en';
+    let languageInstruction = "Respond in English at all times. This is an admin tool.";
+
+    if (mode === "admin_build") {
+      // Always force English for the admin Grok Build panel, even if language selector was used
+      language = 'en';
+      languageInstruction = "Respond in English at all times. Never respond in Spanish or any other language for this admin tool.";
+    } else if (language === 'es') {
+      languageInstruction = "Respond in Spanish (español natural y profesional).";
+    } else {
+      languageInstruction = "Respond in English by default. Only switch to Spanish if the user explicitly asks in Spanish.";
+    }
 
     // Ultra-powerful system prompt for the smartest admin experience
     let systemPrompt = `You are Grok Build, the most intelligent AI assistant integrated into OigaUsted. ${languageInstruction}`;
@@ -376,6 +384,19 @@ Current session context:
             required: ["check"]
           }
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "analyze_own_code",
+          description: "Analyze the Grok Build in-app tool's own source code (page, API, helpers) for bugs, improvements, or self-upgrades. Use during 'improve the tool' scans. Returns relevant file contents and suggestions.",
+          parameters: {
+            type: "object",
+            properties: {
+              focus: { type: "string", description: "Optional focus like 'ui', 'tools', 'safety', 'all'" }
+            }
+          }
+        }
       }
     ];
 
@@ -470,6 +491,34 @@ Current session context:
       if (functionName === "run_check" && args.check) {
         try {
           toolResult = await runSafeCheck(args.check);
+        } catch (e: any) {
+          toolResult = { error: e.message };
+        }
+      }
+
+      if (functionName === "analyze_own_code") {
+        try {
+          const focus = args.focus || 'all';
+          // Read key self files for meta analysis
+          const filesToRead = [
+            'src/app/admin/grok-build/page.tsx',
+            'src/app/api/grok/route.ts',
+            'src/lib/grok-code.ts',
+            'src/app/api/grok/apply-code-change/route.ts',
+          ];
+          const contents: Record<string, string> = {};
+          for (const f of filesToRead) {
+            try {
+              contents[f] = (await safeReadFile(f)).slice(0, 3000); // limit size
+            } catch (e: any) {
+              contents[f] = 'Error reading: ' + e.message;
+            }
+          }
+          toolResult = {
+            focus,
+            files: contents,
+            note: 'Use this to propose self-upgrades to the Grok Build tool. Look for bloat, missing features, UX, robustness.',
+          };
         } catch (e: any) {
           toolResult = { error: e.message };
         }
@@ -625,6 +674,6 @@ Current session context:
     return Response.json({ description: reply, reply });
   } catch (error) {
     console.error(error);
-    return Response.json({ reply: "Lo siento, ocurrió un error al contactar con Grok." });
+    return Response.json({ reply: "Sorry, there was an error contacting Grok." });
   }
 }

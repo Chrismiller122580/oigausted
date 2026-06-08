@@ -211,6 +211,63 @@ export async function applyCodeChange(
 }
 
 /**
+ * Undo the most recent apply for a file by restoring the latest .grok-bak
+ * (simple implementation for the in-app tool upgrade).
+ */
+export async function undoLastApply(relativePath: string, actorId?: string | null): Promise<CodeEditResult> {
+  const envAllows =
+    process.env.NODE_ENV !== 'production' || process.env.ALLOW_GROK_CODE_EDITS === '1';
+  if (!envAllows) {
+    throw new Error('Undo is only allowed in development environments.');
+  }
+
+  const check = isPathAllowed(relativePath);
+  if (!check.allowed) {
+    throw new Error(`Cannot undo for this file: ${check.reason}`);
+  }
+
+  const fullPath = resolveSafePath(relativePath);
+  const dir = path.dirname(fullPath);
+  const base = path.basename(fullPath);
+
+  const files = await fs.readdir(dir);
+  const bakFiles = files
+    .filter(f => f.startsWith(base + '.grok-bak-'))
+    .sort()
+    .reverse();
+
+  if (bakFiles.length === 0) {
+    throw new Error(`No backup found for ${relativePath}.`);
+  }
+
+  const latestBak = path.join(dir, bakFiles[0]);
+  const backupContent = await fs.readFile(latestBak, 'utf8');
+
+  // Overwrite current with backup
+  await fs.writeFile(fullPath, backupContent, 'utf8');
+
+  // Optional: remove the used bak or leave for manual
+  // await fs.unlink(latestBak); // commented to allow multiple undos if needed
+
+  try {
+    await logAuditEvent({
+      performedById: actorId ?? undefined,
+      action: 'GROK_CODE_UNDO',
+      targetType: 'SourceFile',
+      targetId: relativePath,
+      details: { restoredFrom: bakFiles[0] },
+    });
+  } catch {}
+
+  return {
+    success: true,
+    file: relativePath,
+    message: `Restored ${relativePath} from ${bakFiles[0]}.`,
+    backupPath: bakFiles[0],
+  };
+}
+
+/**
  * Simple helper to generate a minimal unified-diff style string for display (not a full patch lib).
  */
 export function generateSimpleDiff(oldStr: string, newStr: string, contextLines = 2): string {

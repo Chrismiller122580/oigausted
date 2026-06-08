@@ -1,5 +1,19 @@
 # What's New – OigaUsted
 
+## Upgrades to In-App Grok Build Tool (self-meta & UX improvements)
+Major round of self-improvement applied to the admin Grok Build experience at `/admin/grok-build`:
+
+- **A. Component Extraction**: Proposal rendering extracted into reusable `src/components/admin/ProposalCard.tsx` (with `Proposal` interface). Main page is now cleaner and easier to maintain.
+- **B. Streaming Support**: `sendMessageWithHistory` (post-tool continuations) now uses `stream: true` with a ReadableStream + TextDecoder accumulator. Live "thinking" feedback during long scans and final replies.
+- **C. Self-Meta Capabilities**: New `analyze_own_code` tool (server-side) that reads the tool's own source files for meta-analysis. Added "🧠 Improve the Tool Itself (self-meta scan)" button that triggers it + `propose_code_change` for self-upgrades.
+- **D. Undo Polish & Visibility**: Full `undoLastApply` in `grok-code.ts` + route support. Per-proposal "Undo" buttons, header "Undo Last Apply", `createdAt` timestamps on proposals, and improved audit logging (`GROK_CODE_UNDO`).
+- **E. Better Diffs + Auto-Verification**: Side-by-side OLD/NEW preview blocks (when using structured `old_string`/`new_string`). After every apply, the assistant now auto-suggests a verification `run_check`.
+- **F. Local CLI Handoff**: "📤 Handoff to Local grok CLI" button that copies a ready-to-paste continuation prompt referencing the current in-app session and proposals.
+
+These changes were driven by a self-scan of the tool and close the "improve the tool itself" loop. The tool is now more maintainable, responsive, self-aware, and safe.
+
+See `GROK_BUILD_IN_APP.md` for the full rationale and replication guide (written to be highly consumable by other Grok instances).
+
 ## In-App Grok Build: System Scans, Fixes & Upgrades (admin/grok-build)
 - **Powerful new admin tool at `/admin/grok-build`**: Full agentic Grok experience inside the app.
   - Modes now include **System Scan / Bug Hunt**.

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // @ts-ignore
 import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
-import { applyCodeChange, CodeEditParams } from '@/lib/grok-code';
+import { applyCodeChange, CodeEditParams, undoLastApply } from '@/lib/grok-code';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,6 +17,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+
+    // Support undo action (upgrade for the in-app tool)
+    if (body.action === 'undo' && body.file) {
+      const result = await undoLastApply(body.file, userId);
+      return NextResponse.json({ success: true, result });
+    }
+
     const { file, description, old_string, new_string, diff } = body as CodeEditParams & { diff?: string };
 
     if (!file || !description) {

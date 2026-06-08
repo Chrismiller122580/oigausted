@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Sparkles, Bot, User, Zap, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { ProposalCard, Proposal } from '@/components/admin/ProposalCard';
 
 interface Message {
   role: 'user' | 'assistant' | 'tool';
@@ -24,6 +25,18 @@ interface ToolCall {
     name: string;
     arguments: string;
   };
+}
+
+// Web Speech API types (not always included in TS lib)
+interface SpeechRecognitionEvent extends Event {
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+      };
+    };
+    length: number;
+  }[];
 }
 
 const BUILD_MODES = [
@@ -86,10 +99,10 @@ export default function GrokBuildPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeMode, setActiveMode] = useState<'chat' | 'analyze' | 'generate' | 'improve' | 'support' | 'scan'>('chat');
   const [customContext, setCustomContext] = useState(''); // Live context sent to Grok on every message (B)
-  const [pendingAction, setPendingAction] = useState<any>(null); // For approval flow
+  const [pendingAction, setPendingAction] = useState<SuggestedAction | null>(null); // For approval flow
   const [isListening, setIsListening] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true); // TTS enabled by default
-  const [language, setLanguage] = useState<'en' | 'es'>('en'); // Default to English
+  const [language] = useState<'en' | 'es'>('en'); // Forced to English for admin Grok Build panel
   const [selectedVoice, setSelectedVoice] = useState<string>(''); // TTS voice name
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [supportContextLoaded, setSupportContextLoaded] = useState(false);
@@ -158,43 +171,49 @@ export default function GrokBuildPage() {
           pageContext: `Admin Panel - Mode: ${activeMode}`,
           selectedData: customContext ? { description: customContext } : null,
           history: conversationHistory,
-          language: language, // Send current language preference
+          language: 'en', // Force English for admin Grok Build
         }),
       });
 
       const data = await res.json();
 
-      // Handle tool calls from Grok (this is what makes it truly agentic/smart)
+      // Handle tool calls from Grok (upgraded for richer multi-tool scans: process sequentially)
       if (data.tool_calls && data.tool_calls.length > 0) {
-        const toolCall = data.tool_calls[0];
-        const functionName = toolCall.function.name;
-        const args = JSON.parse(toolCall.function.arguments || '{}');
+        for (const toolCall of data.tool_calls) {
+          const functionName = toolCall.function.name;
+          const args = JSON.parse(toolCall.function.arguments || '{}');
 
-        // Add assistant message with tool call
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: `Grok quiere usar la herramienta: **${functionName}**`,
-          tool_call_id: toolCall.id
-        } as any]);
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: `Grok wants to use tool: **${functionName}**`,
+            tool_call_id: toolCall.id
+          } as Message]);
 
-        // Execute the tool (with safety for now)
-        const toolResult = await executeTool(functionName, args);
+          const toolResult = await executeTool(functionName, args);
 
-        // Send tool result back to Grok
-        const toolMessage: Message = {
-          role: 'tool',
-          content: JSON.stringify(toolResult),
-          tool_call_id: toolCall.id
-        } as any;
+          const toolMessage: Message = {
+            role: 'tool',
+            content: JSON.stringify(toolResult),
+            tool_call_id: toolCall.id
+          };
 
-        setMessages(prev => [...prev, toolMessage]);
+          setMessages(prev => [...prev, toolMessage]);
 
-        // Continue the conversation with tool result
-        await sendMessageWithHistory([...messages, toolMessage as any], messageText, language);
+          // For proposal-heavy scans, let UI accumulate; otherwise continue
+          if (!['propose_code_change', 'search_code', 'run_check', 'list_files', 'read_file'].includes(functionName)) {
+            await sendMessageWithHistory([...messages, toolMessage], messageText, 'en');
+          }
+        }
+        // After batch of scan tools, one final continuation if needed
+        const lastTool = data.tool_calls[data.tool_calls.length - 1].function.name;
+        if (['propose_code_change'].includes(lastTool)) {
+          return; // UI has the proposals; admin can review/apply
+        }
+        await sendMessageWithHistory(messages, messageText, 'en');
         return;
       }
 
-      const rawContent = data.reply || data.description || 'Lo siento, no pude generar una respuesta.';
+      const rawContent = data.reply || data.description || 'Sorry, I could not generate a response.';
 
       // Fallback for old action format
       const actionRegex = /```action\s*([\s\S]*?)\s*```/g;
@@ -236,6 +255,7 @@ export default function GrokBuildPage() {
   };
 
   // Helper to continue after tool execution
+  // Upgraded with basic streaming support for long replies after scans (B)
   const sendMessageWithHistory = async (historyMessages: Message[], originalPrompt: string, currentLang = language) => {
     try {
       const res = await fetch('/api/grok', {
@@ -250,21 +270,64 @@ export default function GrokBuildPage() {
             tool_call_id: (m as any).tool_call_id
           })),
           pageContext: `Admin Panel - Mode: ${activeMode}`,
-          language: currentLang,
+          language: 'en', // Force English for admin Grok Build
+          stream: true,
         }),
       });
 
-      const data = await res.json();
-      const reply = data.reply || data.description || 'Herramienta ejecutada.';
+      if (res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulated = '';
+        const streamMsgId = 'stream-' + Date.now();
 
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: reply
-      }]);
+        // Add a temporary streaming message
+        setMessages(prev => [...prev, { role: 'assistant', content: 'Thinking...', id: streamMsgId } as any]);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          accumulated += decoder.decode(value, { stream: true });
+          // Simple accumulation (raw chunks will show progress; in practice xAI deltas are inside)
+          setMessages(prev => {
+            const updated = [...prev];
+            const idx = updated.findIndex((m: any) => m.id === streamMsgId);
+            if (idx !== -1) {
+              updated[idx] = { ...updated[idx], content: accumulated || '...' };
+            }
+            return updated;
+          });
+        }
+
+        // Finalize: replace the stream msg with clean reply if possible
+        setMessages(prev => {
+          const updated = [...prev];
+          const idx = updated.findIndex((m: any) => m.id === streamMsgId);
+          if (idx !== -1) {
+            // Try to extract content if it looks like JSON stream, else use accumulated
+            let final = accumulated.trim();
+            try {
+              // naive: if last line has content
+              const lines = final.split('\n').filter(Boolean);
+              const last = lines[lines.length-1];
+              if (last.includes('"content"')) {
+                const parsed = JSON.parse(last.replace(/^data: /, ''));
+                final = parsed.choices?.[0]?.delta?.content || final;
+              }
+            } catch {}
+            updated[idx] = { role: 'assistant', content: final || 'Done.' };
+          }
+          return updated;
+        });
+      } else {
+        const data = await res.json();
+        const reply = data.reply || data.description || 'Response received.';
+        setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+      }
     } catch (e) {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Error procesando el resultado de la herramienta.'
+        content: 'Error processing the tool result.'
       }]);
     }
   };
@@ -411,6 +474,7 @@ export default function GrokBuildPage() {
         old_string: args.old_string,
         new_string: args.new_string,
         lowRisk: /low.?risk|safe|minor|improvement|upgrade|modern|best practice/i.test(args.description || ''),
+        createdAt: Date.now(),
       };
       setPendingProposals(prev => [...prev, newProposal]);
       return { 
@@ -424,18 +488,27 @@ export default function GrokBuildPage() {
 
   // State for code change proposals
   // Support multiple proposals so Grok can suggest several fixes + upgrades after a scan
-  const [pendingProposals, setPendingProposals] = useState<Array<{
-    id: string;
-    file: string;
-    description: string;
-    diff?: string;
-    old_string?: string;
-    new_string?: string;
-    lowRisk?: boolean; // user can mark for bulk "safe low-risk upgrades" apply
-  }>>([]);
+  const [pendingProposals, setPendingProposals] = useState<Proposal[]>([]);
 
   const [isApplying, setIsApplying] = useState(false);
   const [applyingIds, setApplyingIds] = useState<Set<string>>(new Set());
+
+  // Persistence for proposals across refreshes (dev convenience)
+  useEffect(() => {
+    const saved = localStorage.getItem('grok-pending-proposals');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setPendingProposals(parsed);
+        }
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('grok-pending-proposals', JSON.stringify(pendingProposals));
+  }, [pendingProposals]);
 
   const handleAction = async (action: SuggestedAction, messageIndex: number) => {
     if (action.action === 'update_referral_rate' && action.userId && typeof action.newRate === 'number') {
@@ -462,15 +535,15 @@ export default function GrokBuildPage() {
 
           setMessages(prev => [...prev, {
             role: 'assistant',
-            content: `✅ Tasa de comisión actualizada para el usuario ${action.userId} a ${(action.newRate * 100).toFixed(1)}%.`
+            content: `✅ Commission rate updated for user ${action.userId} to ${(action.newRate * 100).toFixed(1)}%.`
           }]);
         } else {
-          throw new Error('Fallo al actualizar');
+          throw new Error('Failed to update');
         }
       } catch (err) {
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: `❌ Error al aplicar la acción: ${err}`
+          content: `❌ Error applying the action: ${err}`
         }]);
       }
     } 
@@ -482,7 +555,7 @@ export default function GrokBuildPage() {
         
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: `📊 **Estadísticas del usuario ${action.userId}:**\n\n${JSON.stringify(data, null, 2)}\n\n¿Quieres que analice algo específico de este usuario o que genere un reporte más profundo?`
+          content: `📊 **Stats for user ${action.userId}:**\n\n${JSON.stringify(data, null, 2)}\n\nWant me to analyze something specific or generate a deeper report?`
         }]);
       } catch (err) {
         setMessages(prev => [...prev, {
@@ -495,13 +568,13 @@ export default function GrokBuildPage() {
       // Grok already gave the draft in the message. Just acknowledge.
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `✅ Borrador de email generado. Puedes copiarlo y enviarlo manualmente, o dime si quieres que lo refine.`
+        content: `✅ Email draft generated. You can copy and send it manually, or ask me to refine it.`
       }]);
     } 
     else {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `Acción recibida: ${action.action}. Esta acción aún no tiene ejecución directa implementada, pero puedo ayudarte a prepararla.`
+        content: `Action received: ${action.action}. This action does not have direct execution yet, but I can help prepare it.`
       }]);
     }
   };
@@ -548,6 +621,10 @@ export default function GrokBuildPage() {
           role: 'assistant',
           content: `✅ **Change applied successfully!**\n\nFile: \`${proposal.file}\`\n\n${data.result.message}\n\nNext.js should hot-reload most changes automatically.`
         }]);
+        // Upgrade E: auto-suggest verification
+        setTimeout(() => {
+          sendMessage(`Run run_check("typecheck") or "full" to verify the changes to ${proposal.file} and propose any follow-up fixes or tests.`);
+        }, 800);
         // Remove this proposal
         setPendingProposals(prev => prev.filter(p => p.id !== proposal.id));
       } else {
@@ -658,6 +735,36 @@ export default function GrokBuildPage() {
     }
   };
 
+  // Upgrade: Simple undo using the .grok-bak files created on apply
+  const undoLastApply = async (file?: string) => {
+    const targetFile = file || prompt('Enter relative path of file to restore (e.g. src/app/admin/grok-build/page.tsx):');
+    if (!targetFile) return;
+
+    if (!window.confirm(`Restore ${targetFile} from its most recent .grok-bak backup? This will overwrite the current file.`)) return;
+
+    try {
+      const res = await fetch('/api/grok/apply-code-change', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'undo',
+          file: targetFile,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `✅ Undo successful for ${targetFile}. ${data.message || 'Backup restored.'}`
+        }]);
+      } else {
+        throw new Error(data.error || 'Undo failed (backend undo not fully implemented yet — use git or manual restore for now)');
+      }
+    } catch (e: any) {
+      alert(`Undo failed: ${e.message}. For now, look for the .grok-bak file next to the original and restore manually.`);
+    }
+  };
+
   // =====================
   // TEXT-TO-SPEECH (Speaking)
   // =====================
@@ -711,7 +818,7 @@ export default function GrokBuildPage() {
     if (!isListening) {
       setIsListening(true);
 
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0][0].transcript;
         if (transcript.trim()) {
           setInput(transcript);
@@ -797,19 +904,7 @@ Prioritize changes that make the app more robust, faster, more maintainable, and
             {customContext && <span className="text-orange-500">• Context attached</span>}
           </div>
 
-          {/* Language Selector */}
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-xs text-muted-foreground">Language:</span>
-            <select 
-              value={language} 
-              onChange={(e) => setLanguage(e.target.value as 'en' | 'es')}
-              className="text-xs border rounded px-2 py-1 bg-background"
-            >
-              <option value="en">English</option>
-              <option value="es">Español</option>
-            </select>
-          </div>
-
+          {/* Language is forced to English for the admin Grok Build panel */}
           {/* Voice Selector for TTS */}
           {voiceEnabled && availableVoices.length > 0 && (
             <div className="flex items-center gap-2">
@@ -912,6 +1007,30 @@ Prioritize changes that make the app more robust, faster, more maintainable, and
                       All Categories (Full Modernization)
                     </button>
                   </div>
+
+                  {/* Self-upgrade / meta button (C) */}
+                  <button
+                    onClick={() => sendMessage(
+                      "Use the analyze_own_code tool (focus on 'all') to review the Grok Build in-app implementation. Then propose concrete self-upgrades to make the tool itself more powerful, usable, and advanced (UI, tools, robustness, self-analysis). Use propose_code_change for the best ideas."
+                    )}
+                    disabled={isLoading}
+                    className="mt-2 w-full text-[10px] px-2 py-1 rounded border border-purple-300 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/30"
+                  >
+                    🧠 Improve the Tool Itself (self-meta scan)
+                  </button>
+
+                  {/* Handoff to local CLI (F) */}
+                  <button
+                    onClick={() => {
+                      const prompt = `Continue this admin Grok Build session as the standalone CLI agent. The in-app tool has proposed several changes for fixes and upgrades in the current scan. Review the pending proposals in the UI if open, then use full tools (including shell/git) to implement deeper upgrades, run tests, or push. Focus on making the Grok Build tool and the overall app more advanced.`;
+                      navigator.clipboard.writeText(prompt);
+                      alert('Handoff prompt copied! Open terminal and run: grok -p "paste the prompt" --yolo (or without yolo for review)');
+                    }}
+                    disabled={isLoading}
+                    className="mt-1 w-full text-[10px] px-2 py-1 rounded border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/30"
+                  >
+                    📤 Handoff to Local grok CLI
+                  </button>
                 </div>
               )}
 
@@ -1066,73 +1185,38 @@ Prioritize changes that make the app more robust, faster, more maintainable, and
                       <Button size="sm" variant="ghost" onClick={clearAllProposals} disabled={isApplying}>
                         Clear All
                       </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => undoLastApply()} 
+                        disabled={isApplying}
+                        title="Restore a file from its latest .grok-bak backup (upgrade)"
+                      >
+                        Undo Last Apply
+                      </Button>
                     </div>
                   </div>
 
                   <div className="space-y-3 max-h-[420px] overflow-auto pr-1">
                     {pendingProposals.map((proposal) => {
                       const isThisApplying = applyingIds.has(proposal.id);
-                      const hasPrecise = !!(proposal.old_string && proposal.new_string);
                       return (
-                        <div key={proposal.id} className="border border-orange-200 dark:border-orange-800 bg-white/70 dark:bg-black/20 rounded-xl p-3">
-                          <div className="flex items-start gap-2 mb-1.5">
-                            <input 
-                              type="checkbox" 
-                              checked={!!proposal.lowRisk} 
-                              onChange={() => toggleLowRisk(proposal.id)}
-                              className="mt-1 accent-orange-600"
-                              title="Mark as low-risk / safe upgrade for bulk apply"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-mono text-muted-foreground mb-0.5">{proposal.file}</div>
-                              <div className="text-sm font-medium mb-1">{proposal.description}</div>
-                            </div>
-                            {proposal.lowRisk && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 self-start">low-risk</span>
-                            )}
-                          </div>
-
-                          <pre className="text-[10px] bg-muted/60 p-2 rounded overflow-auto max-h-32 mb-2 whitespace-pre-wrap">
-                            {proposal.diff || (hasPrecise 
-                              ? `old:\n${proposal.old_string!.slice(0, 400)}${proposal.old_string!.length > 400 ? '...' : ''}\n\nnew:\n${proposal.new_string!.slice(0, 400)}${proposal.new_string!.length > 400 ? '...' : ''}`
-                              : '(preview not available — will use exact strings on apply)')}
-                          </pre>
-
-                          <div className="flex gap-2 flex-wrap">
-                            <Button 
-                              size="sm"
-                              onClick={() => applyProposal(proposal)}
-                              disabled={isApplying || isThisApplying}
-                              className="bg-orange-600 hover:bg-orange-700 h-7 text-xs"
-                            >
-                              {isThisApplying ? 'Applying...' : 'Apply to Codebase'}
-                            </Button>
-
-                            <Button 
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                const text = proposal.diff || 
-                                  (hasPrecise ? `// ${proposal.file}\n// ${proposal.description}\n\nOLD:\n${proposal.old_string}\n\nNEW:\n${proposal.new_string}` : '');
-                                navigator.clipboard.writeText(text);
-                                alert(`Proposal copied.\n\n${proposal.file}`);
-                              }}
-                              className="h-7 text-xs"
-                            >
-                              Copy
-                            </Button>
-
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              onClick={() => dismissProposal(proposal.id)} 
-                              disabled={isApplying || isThisApplying}
-                              className="h-7 text-xs"
-                            >
-                              Dismiss
-                            </Button>
-                          </div>
-                        </div>
+                        <ProposalCard
+                          key={proposal.id}
+                          proposal={proposal}
+                          isApplying={isApplying}
+                          isThisApplying={isThisApplying}
+                          onApply={applyProposal}
+                          onCopy={(p) => {
+                            const text = p.diff || 
+                              (p.old_string && p.new_string ? `// ${p.file}\n// ${p.description}\n\nOLD:\n${p.old_string}\n\nNEW:\n${p.new_string}` : '');
+                            navigator.clipboard.writeText(text);
+                            alert(`Proposal copied.\n\n${p.file}`);
+                          }}
+                          onDismiss={dismissProposal}
+                          onToggleLowRisk={toggleLowRisk}
+                          onUndo={(file) => undoLastApply(file)}
+                        />
                       );
                     })}
                   </div>
