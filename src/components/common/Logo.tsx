@@ -54,9 +54,9 @@ export default function Logo({
   ) : (
     <div 
       style={{ width: iconSize, height: iconSize }} 
-      className="bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-[13px] shadow-sm"
+      className="bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-sm"
     >
-      FM
+      OU
     </div>
   );
 

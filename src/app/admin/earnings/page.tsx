@@ -10,7 +10,7 @@ export default function AdminEarnings() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-8">
+    <div className="bg-background text-foreground">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-5xl font-bold mb-8">Platform Earnings</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

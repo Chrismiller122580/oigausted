@@ -144,7 +144,7 @@ export default function AdminNotificationsDashboard() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-8 space-y-8">
+    <div className="max-w-7xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Notifications Center</h1>
         <p className="text-muted-foreground">Analytics + Manual notification sending</p>

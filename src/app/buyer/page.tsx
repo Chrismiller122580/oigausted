@@ -68,8 +68,8 @@ export default function BuyerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background py-12">
-      <div className="max-w-6xl mx-auto px-6">
+    <div className="bg-background py-8">
+      <div className="max-w-7xl mx-auto px-6">
         <div className="flex justify-between items-center mb-12">
           <div>
             <h1 className="text-5xl font-bold tracking-tight text-foreground">Hola, {userName} 👋</h1>

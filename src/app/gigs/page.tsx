@@ -179,7 +179,7 @@ function GigsClient() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
+    <div className="max-w-7xl mx-auto px-6 py-8">
       <div className="mb-8">
         <h1 className="text-5xl font-bold tracking-tight">Encuentra Servicios Locales</h1>
         <div className="flex items-center gap-3 mt-3">

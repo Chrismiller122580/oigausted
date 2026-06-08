@@ -565,7 +565,7 @@ export default function GrokBuildPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="bg-background">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8">

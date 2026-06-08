@@ -97,8 +97,8 @@ export default function GigDetailPage() {
   const gigAddons = parseJsonArrayField(gig?.addons);
 
   return (
-    <div className="min-h-screen bg-background py-12">
-      <div className="max-w-6xl mx-auto px-6">
+    <div className="bg-background py-8">
+      <div className="max-w-7xl mx-auto px-6">
         <Link href="/gigs" className="flex items-center gap-2 text-emerald-600 hover:underline mb-8 inline-block">
           <ArrowLeft size={20} /> Volver a todos los gigs
         </Link>

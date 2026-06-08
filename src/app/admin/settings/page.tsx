@@ -511,7 +511,7 @@ export default function AdminSettings() {
   const isSandbox = wompi?.mode === 'sandbox' || (!wompi?.configured && process.env.NODE_ENV === 'production');
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-8">
+    <div className="bg-background text-foreground">
       <div className="max-w-6xl mx-auto">
 
         {/* Top status bar */}

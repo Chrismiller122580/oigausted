@@ -79,7 +79,7 @@ export default async function MarketingHomePage() {
       <section className="relative bg-gradient-to-br from-orange-600 via-red-600 to-rose-600 text-white overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(#ffffff33_1px,transparent_1px)] [background-size:20px_20px]"></div>
         
-        <div className="max-w-7xl mx-auto px-6 pt-24 pb-20 relative z-10">
+        <div className="max-w-7xl mx-auto px-6 pt-20 pb-16 relative z-10">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm mb-6">
               🇨🇴 Hecho en Colombia • Conecta local

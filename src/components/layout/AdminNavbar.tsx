@@ -13,6 +13,7 @@ import { useState } from 'react';
 import MobileMenu from './MobileMenu';
 import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
+import Logo from '@/components/common/Logo';
 
 interface NavItem {
   href: string;
@@ -57,15 +58,13 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Top Header - always visible, compact */}
       <header className="bg-background border-b border-border sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {/* Logo - links to public homepage */}
-            <Link href="/" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition">
-              <div className="w-9 h-9 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
-                OU
-              </div>
-              <span className="font-semibold text-lg hidden sm:inline">Admin</span>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Logo size={36} />
+              <span className="font-semibold text-lg text-muted-foreground hidden sm:inline">Admin</span>
+            </div>
 
             {/* Desktop sidebar toggle - compact */}
             <button

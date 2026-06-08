@@ -80,7 +80,7 @@ export default function AdminPayoutsPage() {
   const totalPendingReferrals = referralPayouts.reduce((sum: number, r: any) => sum + (r.pendingPayout || 0), 0);
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-8">
+    <div className="bg-background text-foreground">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-5xl font-bold mb-2">Seller Payouts</h1>
         <div className="text-muted-foreground mb-8 space-y-1">

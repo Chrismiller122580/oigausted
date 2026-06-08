@@ -27,7 +27,7 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
   return (
     <div className="md:hidden fixed inset-0 z-[100] bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 h-20 border-b border-border">
+      <div className="flex items-center justify-between px-6 h-16 border-b border-border">
         <Link href="/" onClick={onClose} className="flex items-center gap-3">
           <div className="w-8 h-8 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">OU</div>
         </Link>

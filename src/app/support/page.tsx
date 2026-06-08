@@ -137,8 +137,8 @@ export default function SupportPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="bg-background text-foreground py-8">
+      <div className="max-w-4xl mx-auto px-6">
         <div className="mb-8">
           <h1 className="text-5xl font-bold">Soporte</h1>
           <p className="text-muted-foreground mt-2 text-xl">

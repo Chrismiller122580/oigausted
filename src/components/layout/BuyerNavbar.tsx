@@ -24,7 +24,7 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
     <>
       <nav className="bg-background border-b sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between h-20">
+          <div className="flex items-center justify-between h-16">
             {/* Logo - links to homepage (respects admin branding settings) */}
             <Logo size={36} />
 

@@ -275,7 +275,7 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-8">
+    <div className="bg-background text-foreground">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>

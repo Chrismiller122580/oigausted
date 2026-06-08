@@ -61,7 +61,7 @@ export default function AdminReferralsPage() {
   const totalGenerated = data.reduce((sum, r) => sum + (r.totalGenerated || 0), 0);
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Referrals Management</h1>
 
       {/* Quick Stats */}

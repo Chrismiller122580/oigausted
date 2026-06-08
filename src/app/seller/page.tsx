@@ -61,7 +61,7 @@ export default function SellerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background py-12">
+    <div className="bg-background py-8">
       <MapsPollutionNuke />
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex justify-between items-end mb-10">

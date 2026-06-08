@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import MobileMenu from './MobileMenu';
+import Logo from '@/components/common/Logo';
 
 // Same-folder imports (all files are in layout/)
 import AdminNavbar from './AdminNavbar';
@@ -21,7 +22,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password' || pathname?.startsWith('/login/') || false;
 
   if (status === "loading") {
-    return <div className="min-h-[80px] bg-background border-b border-border flex items-center justify-center">Cargando...</div>;
+    return <div className="min-h-[64px] bg-background border-b border-border flex items-center justify-center text-sm text-muted-foreground">Loading...</div>;
   }
 
   const role = String((session?.user as any)?.role || '').toLowerCase().trim();
@@ -34,29 +35,29 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   return (
     <>
       <nav className="bg-background border-b border-border shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition">
-            <div className="w-9 h-9 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold">OU</div>
-          </Link>
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center justify-between h-16">
+            <Logo size={36} />
 
-          <div className="hidden md:flex items-center gap-4">
-            {!isAuthPage && (
-              <Link href="/gigs" className="text-foreground hover:text-orange-600 transition-colors">Explorar Gigs</Link>
-            )}
-            <Link href="/login"><Button variant="outline">Iniciar Sesión</Button></Link>
-            <Link href="/signup"><Button className="bg-orange-600">Registrarse</Button></Link>
-            {!isAuthPage && <ModeToggle />}
-          </div>
+            <div className="hidden md:flex items-center gap-4">
+              {!isAuthPage && (
+                <Link href="/gigs" className="text-foreground hover:text-orange-600 transition-colors">Explorar Gigs</Link>
+              )}
+              <Link href="/login"><Button variant="outline">Iniciar Sesión</Button></Link>
+              <Link href="/signup"><Button className="bg-orange-600">Registrarse</Button></Link>
+              {!isAuthPage && <ModeToggle />}
+            </div>
 
-          <div className="md:hidden flex items-center gap-2">
-            {!isAuthPage && <ModeToggle />}
-            <button 
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              aria-label="Toggle menu"
-              className="p-2"
-            >
-              {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
-            </button>
+            <div className="md:hidden flex items-center gap-2">
+              {!isAuthPage && <ModeToggle />}
+              <button 
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Toggle menu"
+                className="p-2"
+              >
+                {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
+              </button>
+            </div>
           </div>
         </div>
       </nav>

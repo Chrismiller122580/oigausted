@@ -49,7 +49,7 @@ export default function AdminReports() {
   const maxMonthly = Math.max(...(data?.monthlyRevenue.map(m => m.revenue) || [1]), 1);
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-8">
+    <div className="bg-background text-foreground">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>

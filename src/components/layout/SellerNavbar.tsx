@@ -30,7 +30,8 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
   return (
     <>
       <nav className="bg-background border-b shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center justify-between h-16">
           
           {/* Logo (respects admin branding) */}
           <Logo size={36} />
@@ -119,6 +120,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
             >
               {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
             </button>
+          </div>
           </div>
         </div>
       </nav>
