@@ -297,8 +297,11 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
 
       es.onerror = () => {
         setIsConnected(false);
-        // Fallback to polling will handle it
-        console.warn('[Notifications] SSE error - falling back to polling');
+        // Fallback to polling will handle it. Only log once per connection attempt to avoid console spam.
+        if (! (globalThis as any).__sseErrorLogged) {
+          (globalThis as any).__sseErrorLogged = true;
+          console.warn('[Notifications] SSE error - falling back to polling');
+        }
         es.close();
         globalEventSource = null;
       };

@@ -61,15 +61,18 @@ export default function SellerOrdersPage() {
         body: JSON.stringify({ status: newStatus }),
       });
 
-      if (!res.ok) throw new Error('Error actualizando estado');
+      if (res.ok) {
+        // Refresh the list
+        const updatedOrders = orders.map(o =>
+          o.id === orderId ? { ...o, status: newStatus } : o
+        );
+        setOrders(updatedOrders);
 
-      // Refresh the list
-      const updatedOrders = orders.map(o =>
-        o.id === orderId ? { ...o, status: newStatus } : o
-      );
-      setOrders(updatedOrders);
-
-      toast.success(`Pedido actualizado a: ${newStatus}`);
+        toast.success(`Pedido actualizado a: ${newStatus}`);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'No se pudo actualizar el estado');
+      }
     } catch (error) {
       toast.error('No se pudo actualizar el estado');
     }
@@ -186,22 +189,13 @@ export default function SellerOrdersPage() {
 
                 <div className="flex flex-col gap-3 w-full md:w-52 pt-4">
                   {/* Quick Status Actions */}
-                  {order.status === 'Pending' && (
-                    <>
-                      <Button 
-                        onClick={() => updateOrderStatus(order.id, 'In Progress')}
-                        className="w-full bg-purple-600 hover:bg-purple-700"
-                      >
-                        Aceptar y Comenzar
-                      </Button>
-                      <Button 
-                        onClick={() => updateOrderStatus(order.id, 'Cancelled')}
-                        variant="outline"
-                        className="w-full text-red-600 border-red-200 hover:bg-red-50"
-                      >
-                        Cancelar Pedido
-                      </Button>
-                    </>
+                  {order.status === 'Paid' && (
+                    <Button 
+                      onClick={() => updateOrderStatus(order.id, 'In Progress')}
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                    >
+                      Aceptar y Comenzar
+                    </Button>
                   )}
 
                   {order.status === 'In Progress' && (

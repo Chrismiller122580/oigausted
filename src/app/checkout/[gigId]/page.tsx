@@ -191,6 +191,34 @@ export default function CheckoutPage() {
     }
 
     if (!wompiReady) {
+      // If we previously failed to load, attempt a fresh retry before giving up
+      if (wompiLoadFailed) {
+        toast.info("Reintentando cargar Wompi...");
+        setWompiLoadFailed(false);
+        setWompiReady(false);
+        // Trigger the dynamic script loader again (the effect will pick it up via state change + manual injection below)
+        const script = document.createElement('script');
+        script.src = 'https://checkout.wompi.co/widget.js';
+        script.async = true;
+        script.onload = () => {
+          const check = setInterval(() => {
+            if (window.WompiCheckout) {
+              setWompiReady(true);
+              setWompiLoadFailed(false);
+              clearInterval(check);
+              // Auto-proceed once ready
+              setTimeout(() => openWompiWidget(), 300);
+            }
+          }, 150);
+          setTimeout(() => clearInterval(check), 5000);
+        };
+        script.onerror = () => {
+          setWompiLoadFailed(true);
+          toast.error("Wompi sigue sin cargar. Prueba recargar la página o contacta soporte.");
+        };
+        document.head.appendChild(script);
+        return;
+      }
       toast.error("El sistema de pagos aún está cargando. Intenta de nuevo en unos segundos.");
       return;
     }
@@ -546,13 +574,13 @@ export default function CheckoutPage() {
 
           <Button 
             onClick={openWompiWidget} 
-            disabled={opening || !order || (!wompiReady && !wompiLoadFailed) || realPaymentsEnabled !== true}
+            disabled={opening || !order || (realPaymentsEnabled !== true && realPaymentsEnabled !== false)}
             className="w-full py-8 text-lg bg-green-600 hover:bg-green-700 disabled:opacity-60"
           >
             {opening 
               ? "Abriendo Wompi..." 
               : wompiLoadFailed
-                ? "Error al cargar Wompi - Reintentar"
+                ? "Error al cargar Wompi — Reintentar ahora"
                 : !wompiReady 
                   ? "Cargando sistema de pagos de Wompi..." 
                   : realPaymentsEnabled === false
@@ -572,7 +600,7 @@ export default function CheckoutPage() {
                 onClick={() => {
                   setWompiLoadFailed(false);
                   setWompiReady(false);
-                  // Force re-trigger dynamic load
+                  // Force re-trigger dynamic load (the openWompiWidget will also attempt retry)
                   const script = document.createElement('script');
                   script.src = 'https://checkout.wompi.co/widget.js';
                   script.async = true;
@@ -585,27 +613,33 @@ export default function CheckoutPage() {
                       }
                     }, 150);
                   };
+                  script.onerror = () => setWompiLoadFailed(true);
                   document.head.appendChild(script);
                 }}
               >
                 Reintentar cargar Wompi
               </Button>
               <p className="text-xs text-muted-foreground mt-2">
-                Si el problema persiste, intenta recargar la página o usa otro navegador.
+                Causas comunes: bloqueadores de anuncios, extensiones de privacidad, o problemas de red. Prueba recargar, modo incógnito o otro navegador.
               </p>
             </div>
           )}
 
-          {/* Wompi load failed message (no more bypass button in prod; use support or wait for real payment/webhook) */}
+          {/* Wompi load failed message */}
           {wompiLoadFailed && order && (
             <div className="mt-6 p-4 border border-dashed border-orange-500 rounded-xl bg-orange-50 dark:bg-orange-950/20 text-sm">
               <p className="font-medium text-orange-800 dark:text-orange-300">Wompi no pudo cargarse.</p>
               <p className="mt-1 text-orange-700 dark:text-orange-400">
-                El pedido quedó en estado Pendiente. El pago se confirmará automáticamente vía webhook cuando se complete (o contacta soporte).
+                El pedido quedó en estado Pendiente. Si ya intentaste pagar por fuera o tienes un comprobante, contacta soporte para que un admin confirme el pago manualmente. De lo contrario, el pago se confirmará vía webhook cuando se complete correctamente.
               </p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={() => router.push(`/orders/${order.id}`)}>
-                Ir a mi pedido
-              </Button>
+              <div className="flex gap-2 mt-3">
+                <Button variant="outline" size="sm" onClick={() => router.push(`/orders/${order.id}`)}>
+                  Ir a mi pedido
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => router.push('/support')}>
+                  Contactar soporte
+                </Button>
+              </div>
             </div>
           )}
 
