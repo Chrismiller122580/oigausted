@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Sparkles, Bot, User, Zap, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Send, Sparkles, Bot, User, Zap, Mic, MicOff, Volume2, VolumeX, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Message {
   role: 'user' | 'assistant' | 'tool';
@@ -564,19 +565,47 @@ export default function GrokBuildPage() {
     }
   };
 
+  // Update Grok: start a fresh session using the latest system prompt from the backend
+  const updateGrok = () => {
+    setMessages([
+      {
+        role: 'assistant',
+        content: 'Hello. I\'m Grok Build — the most capable AI integrated into OigaUsted.\n\nI\'m specifically designed to help you build, analyze, optimize, and scale the platform. I can reason deeply about data, users, product, and operations.\n\nWhat would you like to create, analyze, or improve today?',
+      },
+    ]);
+    setCustomContext('');
+    setPendingCodeChange(null);
+    setInput('');
+    setIsLoading(false);
+    toast.success('Grok updated — loaded latest system prompt and fresh session');
+  };
+
   return (
     <div className="bg-background">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-white" />
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold">Grok Build</h1>
+                <p className="text-muted-foreground">Your AI assistant to build and improve the platform</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-4xl font-bold">Grok Build</h1>
-              <p className="text-muted-foreground">Your AI assistant to build and improve the platform</p>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={updateGrok}
+              disabled={isLoading}
+              className="gap-2 shrink-0"
+              title="Load latest Grok Build system prompt and start a fresh session"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Update Grok
+            </Button>
           </div>
         </div>
 
@@ -693,6 +722,17 @@ export default function GrokBuildPage() {
                     {customContext && <span className="ml-2 text-orange-500">• Context attached</span>}
                   </p>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={updateGrok}
+                  disabled={isLoading}
+                  className="ml-auto h-8 px-2 text-xs gap-1.5"
+                  title="Update Grok (fresh session)"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Update
+                </Button>
               </div>
 
               {/* Messages */}
