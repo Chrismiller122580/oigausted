@@ -9,8 +9,10 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 export default function AdminPayoutsPage() {
   const [orders, setOrders] = useState<any[]>([]);
+  const [paidOrders, setPaidOrders] = useState<any[]>([]);
   const [referralPayouts, setReferralPayouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paidSearch, setPaidSearch] = useState('');
 
   const fetchCompleted = async () => {
     try {
@@ -29,7 +31,13 @@ export default function AdminPayoutsPage() {
         return { ...o, breakdown };
       });
 
-      setOrders(withBreakdown);
+      // Only unpaid seller payouts in main list (persist via sellerPayoutAt)
+      const unpaid = withBreakdown.filter((o: any) => !o.sellerPayoutAt);
+      setOrders(unpaid);
+
+      // Separate paid for history (searchable datatable)
+      const paid = withBreakdown.filter((o: any) => !!o.sellerPayoutAt);
+      setPaidOrders(paid);
 
       // Also fetch pending referral payouts for admin visibility
       const refRes = await fetch('/api/admin/referrals?limit=100');
@@ -64,9 +72,18 @@ export default function AdminPayoutsPage() {
         });
       }
 
-      // Remove from UI list (in real: would update order payout status too)
+      // Persist seller payout on the order so it doesn't come back on refresh
+      await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sellerPayoutAt: new Date().toISOString() }),
+      });
+
+      // Move from pending to paid list (for searchable history)
       setOrders(prev => prev.filter((o: any) => o.id !== orderId));
-      toast.success('Payout marked as paid. Referrals updated if applicable.');
+      const paidOrder = { ...order, sellerPayoutAt: new Date().toISOString() };
+      setPaidOrders(prev => [paidOrder, ...prev]);
+      toast.success('Payout marked as paid. Referrals updated if applicable. Moved to paid history.');
     } catch (e) {
       toast.error('Error marking payout');
     }
@@ -78,6 +95,17 @@ export default function AdminPayoutsPage() {
   const totalReferralLiability = aggregated.referralFee;
 
   const totalPendingReferrals = referralPayouts.reduce((sum: number, r: any) => sum + (r.pendingPayout || 0), 0);
+
+  // Searchable paid payouts datatable
+  const filteredPaid = paidOrders.filter((o: any) => {
+    const term = paidSearch.toLowerCase();
+    return (
+      (o.gig?.title || '').toLowerCase().includes(term) ||
+      (o.seller?.businessName || o.seller?.name || '').toLowerCase().includes(term) ||
+      (o.buyer?.name || '').toLowerCase().includes(term) ||
+      o.id.toLowerCase().includes(term)
+    );
+  });
 
   return (
     <div className="bg-background text-foreground">
@@ -136,6 +164,58 @@ export default function AdminPayoutsPage() {
             ))}
           </div>
           </ErrorBoundary>
+        )}
+
+        {/* Paid Payouts - Searchable Datatable */}
+        {paidOrders.length > 0 && (
+          <div className="mt-10">
+            <h2 className="text-2xl font-semibold mb-4">Paid Payouts History</h2>
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Search paid payouts by gig, seller, buyer, id..."
+                value={paidSearch}
+                onChange={(e) => setPaidSearch(e.target.value)}
+                className="w-full max-w-md px-4 py-2 border border-border rounded-xl bg-background text-sm"
+              />
+            </div>
+            <div className="overflow-x-auto border border-border rounded-xl">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-left p-3">Gig / Seller</th>
+                    <th className="text-left p-3">Buyer</th>
+                    <th className="text-right p-3">Net Paid</th>
+                    <th className="text-left p-3">Paid At</th>
+                    <th className="text-left p-3">ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPaid.length === 0 ? (
+                    <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No matching paid payouts.</td></tr>
+                  ) : (
+                    filteredPaid.map((order: any) => (
+                      <tr key={order.id} className="border-t hover:bg-muted/30">
+                        <td className="p-3">
+                          <div className="font-medium">{order.gig?.title || 'Servicio'}</div>
+                          <div className="text-xs text-muted-foreground">{order.seller?.businessName || order.seller?.name}</div>
+                        </td>
+                        <td className="p-3 text-muted-foreground">{order.buyer?.name}</td>
+                        <td className="p-3 text-right font-bold text-emerald-400">
+                          ${(order.breakdown?.netToSeller || order.price || 0).toLocaleString('es-CO')}
+                        </td>
+                        <td className="p-3 text-xs text-muted-foreground">
+                          {order.sellerPayoutAt ? new Date(order.sellerPayoutAt).toLocaleDateString('es-CO') : '—'}
+                        </td>
+                        <td className="p-3 text-[10px] text-muted-foreground font-mono">{order.id.slice(0, 8)}…</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Searchable list of all marked seller payouts. Total paid out: use the history above.</p>
+          </div>
         )}
 
         {/* Referral Payouts Section */}

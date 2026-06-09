@@ -131,6 +131,10 @@ export async function PATCH(
       updateData.serviceLongitude = serviceLongitude
     }
 
+    if (body.sellerPayoutAt !== undefined) {
+      updateData.sellerPayoutAt = body.sellerPayoutAt ? new Date(body.sellerPayoutAt) : null
+    }
+
     // Wrap core order status + audit + referral create + cancel earnings in tx for data integrity
     const updatedOrder = await prisma.$transaction(async (tx) => {
       const u = await tx.order.update({

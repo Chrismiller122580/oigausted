@@ -283,6 +283,9 @@ model Order {
   serviceLatitude  Float?
   serviceLongitude Float?
   serviceAddress   String?
+
+  // Seller payout tracking for admin payouts page
+  sellerPayoutAt   DateTime?
 }
 
 model OrderMessage {
