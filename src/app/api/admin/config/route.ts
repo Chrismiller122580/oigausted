@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, getPlatformConfig } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
 
 export async function GET() {
@@ -11,19 +11,15 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     const isAdmin = (session?.user as any)?.role === 'admin';
 
-    let config = null;
-    try {
-      config = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } });
-    } catch (dbErr) {
-      // Defensive: DB schema may be out of sync (missing columns like supportPhone, referralsEnabled etc.)
-      // Return in-memory defaults so the site doesn't 500. Migrations must be applied to fix permanently.
-      console.error('PlatformConfig query failed (likely missing columns in DB). Using defaults until migration applied.', dbErr);
-      config = null;
-    }
+    // Use cached getter (see lib/prisma.ts). This is the key mitigation for "too many database connections"
+    // because /api/admin/config is called extremely frequently from the bell, checkout, admin layout, etc.
+    // Each serverless invocation was previously opening a fresh connection for this singleton query.
+    let config = await getPlatformConfig();
 
-    if (!config) {
+    // Only hit the DB for upsert on cache miss or for admins (rare). The cached defaults already
+    // protect the hot path from 500s and connection exhaustion.
+    if (!config?.id) {
       try {
-        // upsert for race safety (in case concurrent first creates)
         config = await prisma.platformConfig.upsert({
           where: { id: 'singleton' },
           update: {},
@@ -51,30 +47,7 @@ export async function GET() {
           },
         });
       } catch (upsertErr) {
-        console.error('PlatformConfig upsert also failed (DB columns missing). Falling back to defaults.', upsertErr);
-        config = {
-          id: 'singleton',
-          commissionRate: 0.12,
-          referralCommissionRate: 0.05,
-          minPayoutAmount: 50000,
-          supportEmail: 'support@support.oigagig.com',
-          supportPhone: '',
-          enableReviews: true,
-          enableChat: true,
-          maintenanceMode: false,
-          maintenanceMessage: "Estamos realizando mejoras. Volveremos pronto.",
-          referralsEnabled: true,
-          allowNewSignups: true,
-          maxUploadSizeMB: 10,
-          siteName: 'OigaUsted',
-          siteTagline: 'Conecta con profesionales locales en Colombia',
-          logoUrl: null,
-          globalPushNotificationsEnabled: true,
-          globalEmailNotificationsEnabled: true,
-          maintenanceBypassIps: '',
-          wompiRealPaymentsEnabled: false,
-          updatedAt: new Date(),
-        } as any;
+        console.error('PlatformConfig upsert also failed (DB columns missing or connection issue). Using cached defaults.', upsertErr);
       }
     }
 
