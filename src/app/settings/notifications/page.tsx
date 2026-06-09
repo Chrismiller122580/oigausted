@@ -56,6 +56,7 @@ export default function NotificationPreferences() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushDeviceCount, setPushDeviceCount] = useState(0);
   const [isQuietNow, setIsQuietNow] = useState(false);
 
   // For now, preferences are stored in memory / local (we'll persist to DB in next step)
@@ -96,7 +97,7 @@ export default function NotificationPreferences() {
 
     if (session?.user) {
       fetchPreferences();
-      // Check if already subscribed to push
+      // Check if already subscribed to push + device count
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistration('/notification-sw.js').then(reg => {
           if (reg) {
@@ -106,6 +107,12 @@ export default function NotificationPreferences() {
           }
         });
       }
+
+      // Fetch server-side device count
+      fetch('/api/notifications/push/subscribe')
+        .then(r => r.ok ? r.json() : { count: 0 })
+        .then(d => setPushDeviceCount(d.count || 0))
+        .catch(() => {});
     } else {
       setLoading(false);
     }
@@ -500,6 +507,12 @@ export default function NotificationPreferences() {
                   await subscribeToPushNotifications();
                   toast.success('¡Push real activado! Recibirás notificaciones en segundo plano.');
                   setPushSubscribed(true);
+                  // Refresh device count
+                  const r = await fetch('/api/notifications/push/subscribe');
+                  if (r.ok) {
+                    const d = await r.json();
+                    setPushDeviceCount(d.count || 1);
+                  }
                 } catch (e: any) {
                   toast.error(e.message || 'No se pudo activar push');
                 }
@@ -516,6 +529,7 @@ export default function NotificationPreferences() {
                   await unsubscribeFromPushNotifications();
                   toast.success('Push real desactivado');
                   setPushSubscribed(false);
+                  setPushDeviceCount(0);
                 } catch (e) {
                   toast.error('Error al desactivar');
                 }
@@ -531,24 +545,24 @@ export default function NotificationPreferences() {
                   const res = await fetch('/api/test-email', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'push-test' }),
+                    body: JSON.stringify({ emailType: 'push-test' }),
                   });
                   if (res.ok) {
-                    toast.success('Notificación de prueba enviada');
+                    toast.success('Notificación de prueba push enviada (revisa notificaciones o app cerrada)');
                   } else {
-                    toast.error('Configura VAPID keys primero');
+                    toast.error('No se pudo enviar la prueba (revisa VAPID keys en server)');
                   }
                 } catch {
-                  toast.error('Error enviando prueba');
+                  toast.error('Error enviando prueba de push');
                 }
               }}
             >
-              Enviar notificación de prueba
+              Enviar notificación de prueba Push
             </Button>
           </div>
 
           <div className="text-xs text-muted-foreground pt-2 border-t">
-            Estado: {pushSubscribed ? 'Suscrito a push real ✓' : 'No suscrito'} 
+            Estado: {pushSubscribed ? `Suscrito a push real ✓ (${pushDeviceCount} dispositivo${pushDeviceCount === 1 ? '' : 's'})` : 'No suscrito'} 
             {typeof window !== 'undefined' && 'serviceWorker' in navigator ? ' • Service Worker soportado' : ''}
           </div>
         </CardContent>

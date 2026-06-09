@@ -133,13 +133,13 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
               <Bell size={22} /> Notificaciones
             </Link>
             <Link href="/admin" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              Overview
+              <Home size={22} /> Overview
             </Link>
             <Link href="/admin/users" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Users size={22} /> Usuarios
             </Link>
             <Link href="/admin/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              Gigs
+              <Package size={22} /> Gigs
             </Link>
             <Link href="/admin/categories" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Tag size={22} /> Categorías
@@ -151,13 +151,13 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
               <DollarSign size={22} /> Pagos
             </Link>
             <Link href="/admin/reports" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              Reportes
+              <BarChart3 size={22} /> Reportes
             </Link>
             <Link href="/admin/referrals" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Users size={22} /> Referidos
             </Link>
             <Link href="/admin/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <MessageCircle size={22} /> Notificaciones
+              <Bell size={22} /> Notif. Admin
             </Link>
             <Link href="/admin/support" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <MessageCircle size={22} /> Soporte

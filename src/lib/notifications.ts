@@ -319,15 +319,18 @@ export async function sendNotification(payload: NotificationPayload) {
     await sendEmailIfEnabled(emailTrackingNotifId);
   }
 
-  // 3. SMS (future) and server-side Push (future, currently browser client-side in UI)
+  // 3. SMS (placeholder)
   if (type === 'sms' && shouldSendSMS) {
     devLog(`[NOTIF] SMS would be sent to user ${userId}`);
   }
 
-  if ((type === 'push' || effectiveShouldSendPush) && effectiveShouldSendPush) {
-    // Real Web Push will be attempted
+  // Send real Web Push (background notifications even when app is closed)
+  // - If caller explicitly requests type: 'push'
+  // - Or as an additional delivery channel when user has pushEnabled (side-effect for in_app/email etc.)
+  const shouldAttemptPush = type === 'push' || effectiveShouldSendPush;
+  if (shouldAttemptPush && effectiveShouldSendPush) {
     try {
-      await sendWebPushIfEnabled(userId, title, message, link, data);
+      await sendWebPushIfEnabled(userId, title, message, link, data, inAppNotifId);
     } catch (e) {
       devLog('Web Push error:', e);
     }
@@ -404,7 +407,8 @@ async function sendWebPushIfEnabled(
   title: string,
   message: string,
   link?: string,
-  data?: any
+  data?: any,
+  notificationId?: string | null
 ) {
   const webpush = await import('web-push').catch(() => null);
   if (!webpush) {
@@ -437,6 +441,7 @@ async function sendWebPushIfEnabled(
     body: message,
     icon: '/logo.png',
     url: link || '/',
+    notificationId: notificationId || undefined,
     data: data || {},
   });
 
@@ -462,6 +467,18 @@ async function sendWebPushIfEnabled(
   });
 
   await Promise.allSettled(sendPromises);
+
+  // Optimistically mark as 'sent' on the server side (the SW will later report 'delivered' or 'clicked')
+  if (notificationId) {
+    await prisma.notification.updateMany({
+      where: { id: notificationId },
+      data: {
+        pushStatus: 'sent',
+        pushSentAt: new Date(),
+      },
+    }).catch(() => {});
+  }
+
   devLog(`[WebPush] Attempted push to ${subscriptions.length} device(s) for user ${userId}`);
 }
 

@@ -134,7 +134,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
 
       <MobileBottomNav role="seller" />
 
-      <main className="pb-16 md:pb-0">{children}</main>
+      <main className="pb-20 md:pb-0">{children}</main>
     </>
   );
 }

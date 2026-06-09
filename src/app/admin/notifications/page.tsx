@@ -30,6 +30,7 @@ export default function AdminNotificationsDashboard() {
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [category, setCategory] = useState('system');
+  const [deliveryType, setDeliveryType] = useState<'in_app' | 'email' | 'push'>('in_app');
   const [sending, setSending] = useState(false);
 
   // Analytics state
@@ -124,7 +125,7 @@ export default function AdminNotificationsDashboard() {
       const res = await fetch('/api/admin/send-notification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, title, message, category, type: 'in_app' }),
+        body: JSON.stringify({ userId, title, message, category, type: deliveryType }),
       });
 
       if (res.ok) {
@@ -277,6 +278,19 @@ export default function AdminNotificationsDashboard() {
           </div>
 
           <div>
+            <label className="text-sm font-medium">Delivery Type</label>
+            <select 
+              value={deliveryType} 
+              onChange={(e) => setDeliveryType(e.target.value as 'in_app' | 'email' | 'push')}
+              className="w-full border rounded-md p-2 bg-background"
+            >
+              <option value="in_app">In-App (bell + page)</option>
+              <option value="email">Email only</option>
+              <option value="push">Push (background, even closed)</option>
+            </select>
+          </div>
+
+          <div>
             <label className="text-sm font-medium">Title</label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
           </div>
@@ -408,7 +422,7 @@ export default function AdminNotificationsDashboard() {
         </div>
 
         {/* Logs Table */}
-        <div className="border rounded-2xl overflow-hidden bg-card">
+        <div className="border rounded-2xl overflow-x-auto bg-card">
           <table className="w-full text-sm">
             <thead className="bg-muted/60">
               <tr>

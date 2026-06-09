@@ -403,9 +403,24 @@ export async function subscribeToPushNotifications() {
     throw new Error('Notification permission denied');
   }
 
-  // Register service worker
+  // Register service worker (idempotent)
   const registration = await navigator.serviceWorker.register('/notification-sw.js');
   await navigator.serviceWorker.ready;
+
+  // If already subscribed, just return the existing one (avoid duplicate server entries)
+  const existing = await registration.pushManager.getSubscription();
+  if (existing) {
+    // Re-send to server in case it was lost (idempotent upsert)
+    await fetch('/api/notifications/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscription: existing.toJSON(),
+        device: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
+      }),
+    }).catch(() => {});
+    return existing;
+  }
 
   const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   if (!vapidKey) {
