@@ -96,7 +96,7 @@ export default function MiNegocioPage() {
         .then(data => setReviews(data.reviews || []))
         .catch(() => {});
 
-      // Fetch gig count
+      // Fetch gig count (defensive; the API now returns 200 even on internal error)
       fetch(`/api/seller/gigs`)
         .then(res => res.json())
         .then(data => {
@@ -360,7 +360,7 @@ export default function MiNegocioPage() {
                   <h3 className="font-semibold text-xl mb-4">Últimas reseñas</h3>
                   <div className="space-y-4 text-sm">
                     {reviews.slice(0, 3).map((r, i) => (
-                      <div key={i} className="border-l-4 border-yellow-400 pl-4">
+                      <div key={r.id || i} className="border-l-4 border-yellow-400 pl-4">
                         <div className="flex gap-1 text-yellow-500">
                           {[1,2,3,4,5].map(n => <span key={n}>{n <= r.rating ? "★" : "☆"}</span>)}
                         </div>
