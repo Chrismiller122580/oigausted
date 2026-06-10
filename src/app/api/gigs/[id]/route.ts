@@ -22,7 +22,7 @@ export async function GET(
             name: true,
             email: true,
             businessName: true,
-            slug: true,
+            // slug omitted for prod DB compatibility (add via prisma migrate deploy)
             profilePicture: true,
             rating: true,
             reviewCount: true,

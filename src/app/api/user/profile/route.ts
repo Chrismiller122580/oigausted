@@ -43,10 +43,15 @@ export async function PATCH(request: Request) {
           let candidate = slug;
           let suffix = 1;
           while (true) {
-            const exists = await prisma.user.findUnique({
-              where: { slug: candidate },
-              select: { id: true }
-            });
+            let exists = null;
+            try {
+              exists = await prisma.user.findUnique({
+                where: { slug: candidate },
+                select: { id: true }
+              });
+            } catch (e) {
+              devLog('slug check skipped (possible missing column in prod DB)');
+            }
             if (!exists || exists.id === userId) {
               slug = candidate;
               break;

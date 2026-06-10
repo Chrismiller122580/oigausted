@@ -13,6 +13,12 @@ import { parseCustomFields } from '@/lib/utils';
 import GoogleMap from '@/components/maps/GoogleMap';
 import { MapPin } from 'lucide-react';
 
+declare global {
+  interface Window {
+    WompiCheckout?: any;
+  }
+}
+
 function OrderDetailClient() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -450,6 +456,61 @@ function OrderDetailClient() {
                 )}
                 {!isSeller && !isCompleted && (
                   <p className="text-sm text-muted-foreground text-center py-2">El vendedor actualizará el progreso aquí.</p>
+                )}
+
+                {/* Buyer can pay from the order page for Pending orders — this shows the order *before* the payment step */}
+                {isBuyer && order.status === 'Pending' && (
+                  <Button 
+                    onClick={async () => {
+                      try {
+                        // Prepare Wompi config (amount, reference, signature etc. from server)
+                        const res = await fetch('/api/checkout/wompi', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ orderId: order.id })
+                        });
+                        const data = await res.json();
+                        if (data.error) throw new Error(data.error);
+
+                        const checkoutData = data.checkoutData;
+
+                        // Dynamically load Wompi widget if not present (so it works from orders page too)
+                        if (!window.WompiCheckout) {
+                          await new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = 'https://checkout.wompi.co/widget.js';
+                            script.async = true;
+                            script.onload = () => setTimeout(resolve, 300); // give it a moment
+                            script.onerror = reject;
+                            document.head.appendChild(script);
+                          });
+                        }
+
+                        if (window.WompiCheckout && checkoutData) {
+                          const widgetConfig: any = {
+                            publicKey: checkoutData.publicKey,
+                            currency: checkoutData.currency,
+                            amountInCents: checkoutData.amountInCents,
+                            reference: checkoutData.reference,
+                            redirectUrl: checkoutData.redirectUrl,
+                            customerData: checkoutData.customerData,
+                          };
+                          if (checkoutData.signature?.integrity) {
+                            widgetConfig.signature = { integrity: checkoutData.signature.integrity };
+                          }
+                          const checkout = new window.WompiCheckout(widgetConfig);
+                          checkout.open();
+                        } else {
+                          toast.error("No se pudo iniciar el pago con Wompi.");
+                        }
+                      } catch (e: any) {
+                        toast.error(e.message || "Error al iniciar el pago.");
+                      }
+                    }}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    💳 Pagar ahora con Wompi
+                  </Button>
                 )}
               </CardContent>
             </Card>

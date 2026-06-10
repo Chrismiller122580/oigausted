@@ -45,7 +45,15 @@ export async function POST(req: NextRequest) {
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: {
+      // Explicit to avoid missing DB columns like sellerPayoutAt
+      select: {
+        id: true,
+        price: true,
+        status: true,
+        buyerId: true,
+        sellerId: true,
+        gigId: true,
+        customFields: true,
         gig: true,
         buyer: true,
       },

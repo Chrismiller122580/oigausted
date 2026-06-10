@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
         email: true,
         role: true,
         businessName: true,
-        slug: true,
+        // slug: true, // omitted for prod DB compatibility until migration
         phone: true,
         whatsapp: true,
 
@@ -131,10 +131,15 @@ export async function PATCH(req: NextRequest) {
           let candidate = slug;
           let suffix = 1;
           while (true) {
-            const exists = await prisma.user.findUnique({
-              where: { slug: candidate },
-              select: { id: true }
-            });
+            let exists = null;
+            try {
+              exists = await prisma.user.findUnique({
+                where: { slug: candidate },
+                select: { id: true }
+              });
+            } catch (e) {
+              devLog('slug check skipped (possible missing column in prod DB)');
+            }
             if (!exists || exists.id === userId) {
               slug = candidate;
               break;
@@ -162,7 +167,7 @@ export async function PATCH(req: NextRequest) {
         email: true, 
         role: true, 
         businessName: true,
-        slug: true,
+        // slug: true, // omitted for prod DB compatibility until migration
         phone: true,
         whatsapp: true,
         instagram: true,

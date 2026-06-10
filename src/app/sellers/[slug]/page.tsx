@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import GigCard from '@/components/common/GigCard';
 import { Button } from '@/components/ui/button';
+import { devLog } from '@/lib/utils';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -24,34 +25,40 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 async function findSellerBySlugOrId(identifier: string) {
   if (!identifier) return null;
 
-  // Try by slug first (new friendly URLs)
-  let seller = await prisma.user.findUnique({
-    where: { slug: identifier },
-    select: {
-      id: true,
-      name: true,
-      businessName: true,
-      slug: true,
-      bio: true,
-      profilePicture: true,
-      whatsapp: true,
-      instagram: true,
-      phone: true,
+  // Fallback: try by id first if it looks like an id (uuid or cuid style)
+  // This avoids querying the 'slug' column if it's missing in prod DB
+  const looksLikeId = /^[0-9a-fA-F-]{8,}$/.test(identifier) || identifier.length > 20;
+  if (looksLikeId) {
+    try {
+      const seller = await prisma.user.findUnique({
+        where: { id: identifier },
+        select: {
+          id: true,
+          name: true,
+          businessName: true,
+          // slug omitted for prod DB compatibility
+          bio: true,
+          profilePicture: true,
+          whatsapp: true,
+          instagram: true,
+          phone: true,
+        }
+      });
+      if (seller) return seller;
+    } catch (e) {
+      devLog('Seller find by id failed (possible schema)', e);
     }
-  });
+  }
 
-  if (seller) return seller;
-
-  // Fallback: try by id (for old links / UUIDs)
-  // Only attempt if it looks like an id (uuid or cuid style)
-  if (/^[0-9a-fA-F-]{8,}$/.test(identifier) || identifier.length > 20) {
-    seller = await prisma.user.findUnique({
-      where: { id: identifier },
+  // Try by slug (new friendly URLs) - may fail if column missing
+  try {
+    const seller = await prisma.user.findUnique({
+      where: { slug: identifier },
       select: {
         id: true,
         name: true,
         businessName: true,
-        slug: true,
+        // slug omitted for prod DB compatibility
         bio: true,
         profilePicture: true,
         whatsapp: true,
@@ -59,9 +66,32 @@ async function findSellerBySlugOrId(identifier: string) {
         phone: true,
       }
     });
+    if (seller) return seller;
+  } catch (e) {
+    devLog('Seller find by slug failed (column may be missing in prod DB - run prisma migrate deploy)', e);
   }
 
-  return seller;
+  // Last attempt by id if not tried
+  if (!looksLikeId) {
+    try {
+      const seller = await prisma.user.findUnique({
+        where: { id: identifier },
+        select: {
+          id: true,
+          name: true,
+          businessName: true,
+          bio: true,
+          profilePicture: true,
+          whatsapp: true,
+          instagram: true,
+          phone: true,
+        }
+      });
+      if (seller) return seller;
+    } catch (e) {}
+  }
+
+  return null;
 }
 
 export default async function PublicSellerProfile({ params }: { params: Promise<{ slug: string }> }) {
@@ -84,7 +114,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
           name: true,
           email: true,
           businessName: true,
-          slug: true,
+          // slug omitted for prod DB compatibility
           profilePicture: true,
         }
       }

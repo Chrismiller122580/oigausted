@@ -264,6 +264,47 @@ export default function CheckoutPage() {
     }
   };
 
+  // Confirm smart config (fields + location + final price), save to the order, then redirect to the order page.
+  // This ensures the user sees the order page (in "Mis Pedidos") *before* the actual payment step.
+  const confirmAndGoToOrder = async () => {
+    if (!order || !gig) return;
+
+    // Basic validation
+    if (!gig.isRemote && !serviceAddress?.trim()) {
+      toast.error("Por favor indica la dirección donde se realizará el servicio.");
+      return;
+    }
+
+    setOpening(true);
+    try {
+      // Save details (this makes the order "smart" with custom fields etc.)
+      const updateRes = await fetch(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          price: finalPrice,
+          customFields: selectedOptions,
+          serviceAddress: serviceAddress || undefined,
+          serviceLatitude,
+          serviceLongitude,
+        }),
+      });
+
+      if (!updateRes.ok) {
+        const errData = await updateRes.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to save your selections');
+      }
+
+      toast.success('Configuración guardada. Pedido creado como pendiente de pago.');
+      router.push(`/orders/${order.id}`);
+    } catch (err: any) {
+      devLog('Confirm order error:', err);
+      toast.error(err.message || "No se pudo confirmar el pedido.");
+    } finally {
+      setOpening(false);
+    }
+  };
+
   // (Beta bypass handler removed per security review — prod users can no longer force Paid without webhook.
   // Dev simulate button below remains for local testing.)
 
@@ -541,27 +582,37 @@ export default function CheckoutPage() {
             </div>
           )}
 
+          {/* Primary action: confirm the smart config → save order details → show the order page (in Mis Pedidos) before payment.
+              This addresses the flow where users want to see the created order *before* the payment step. */}
           <Button 
-            onClick={openWompiWidget} 
-            disabled={opening || !order || (!wompiReady && !wompiLoadFailed) || realPaymentsEnabled !== true}
-            className="w-full py-8 text-lg bg-green-600 hover:bg-green-700 disabled:opacity-60"
+            onClick={confirmAndGoToOrder} 
+            disabled={opening || !order || realPaymentsEnabled !== true}
+            className="w-full py-8 text-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60"
           >
             {opening 
-              ? "Abriendo Wompi..." 
-              : wompiLoadFailed
-                ? "Error al cargar Wompi — Reintentar cargar"
-                : !wompiReady 
-                  ? "Cargando Wompi Checkout..."
-                  : realPaymentsEnabled === false
-                    ? "Pagos reales desactivados (ver Admin → Settings)"
-                    : `Pagar con Wompi — $${finalPrice.toLocaleString('es-CO')} COP`}
+              ? "Guardando configuración..." 
+              : realPaymentsEnabled === false
+                ? "Pagos reales desactivados (ver Admin → Settings)"
+                : `Confirmar pedido y ver en Mis Pedidos — $${finalPrice.toLocaleString('es-CO')} COP`}
           </Button>
 
           {realPaymentsEnabled === true && (
             <p className="text-center text-xs text-muted-foreground mt-2">
-              Se abrirá la ventana segura de Wompi. Completa el pago allí. 
-              El estado de tu pedido se actualizará automáticamente vía webhook.
+              Se guardarán los campos dinámicos y detalles. El pedido aparecerá como "Pendiente" en tus órdenes. 
+              Podrás pagar con Wompi desde allí (o usa "Pagar ahora" abajo si prefieres).
             </p>
+          )}
+
+          {/* Optional immediate pay (still available for those who want to pay right after config) */}
+          {realPaymentsEnabled === true && wompiReady && (
+            <Button 
+              onClick={openWompiWidget} 
+              disabled={opening || !order}
+              variant="outline"
+              className="w-full mt-3"
+            >
+              Pagar ahora mismo con Wompi (sin ir a la página de pedido)
+            </Button>
           )}
 
           {/* Wompi loading failure state */}

@@ -18,7 +18,22 @@ export async function GET(
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: {
+      // Explicit select + include to avoid missing DB columns like sellerPayoutAt
+      select: {
+        id: true,
+        price: true,
+        status: true,
+        progress: true,
+        trackingNumber: true,
+        createdAt: true,
+        updatedAt: true,
+        buyerId: true,
+        sellerId: true,
+        gigId: true,
+        customFields: true,
+        serviceLatitude: true,
+        serviceLongitude: true,
+        serviceAddress: true,
         gig: true,
         buyer: { select: { id: true, name: true, email: true } },
         seller: { select: { id: true, name: true, businessName: true, email: true } }
@@ -58,8 +73,18 @@ export async function PATCH(
     const body = await request.json()
     const { status, price, customFields, serviceAddress, serviceLatitude, serviceLongitude } = body
 
-    // Fetch order to enforce ownership
-    const existingOrder = await prisma.order.findUnique({ where: { id: orderId } })
+    // Fetch order to enforce ownership (explicit select to avoid missing columns like sellerPayoutAt in prod DB)
+    const existingOrder = await prisma.order.findUnique({ 
+      where: { id: orderId },
+      select: {
+        id: true,
+        status: true,
+        buyerId: true,
+        sellerId: true,
+        gigId: true,
+        price: true,
+      }
+    })
     if (!existingOrder) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }

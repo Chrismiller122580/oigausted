@@ -76,10 +76,16 @@ export async function POST(request: Request) {
         customFields: customFields ? JSON.stringify(customFields) : null,
         status: 'Pending',
       },
-      include: {
-        gig: true,
-        buyer: true,
-        seller: true
+      // Explicit select to avoid missing columns like sellerPayoutAt
+      select: {
+        id: true,
+        buyerId: true,
+        sellerId: true,
+        gigId: true,
+        price: true,
+        status: true,
+        customFields: true,
+        createdAt: true,
       }
     });
 

@@ -40,6 +40,18 @@ export async function POST(req: NextRequest) {
         price: gig.price,
         status: 'Pending',
         customFields: null
+      },
+      // Explicit select to avoid columns missing in prod DB (e.g. sellerPayoutAt)
+      select: {
+        id: true,
+        buyerId: true,
+        sellerId: true,
+        gigId: true,
+        price: true,
+        status: true,
+        customFields: true,
+        createdAt: true,
+        updatedAt: true,
       }
     });
 

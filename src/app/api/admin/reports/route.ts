@@ -26,7 +26,17 @@ export async function GET() {
     // Get all completed orders with necessary relations
     const completedOrders = await prisma.order.findMany({
       where: { status: 'Completed' },
-      include: {
+      // Explicit select to avoid missing columns (sellerPayoutAt etc) in prod DB
+      select: {
+        id: true,
+        price: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        buyerId: true,
+        sellerId: true,
+        gigId: true,
+        customFields: true,
         gig: { select: { category: true, title: true } },
         seller: { select: { id: true, name: true, email: true, referredById: true } },
         buyer: { select: { id: true } },
