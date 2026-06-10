@@ -73,6 +73,15 @@ interface PlatformConfig {
   // Wompi real payments toggle (admin safety switch)
   wompiRealPaymentsEnabled?: boolean;
 
+  // Wompi SFTP/FTPS for reports and settlements (to automate reconciliation and payouts)
+  wompiSftpEnabled?: boolean;
+  wompiSftpHost?: string;
+  wompiSftpPort?: number;
+  wompiSftpUsername?: string;
+  wompiSftpPassword?: string; // sensitive - sent only for admin edit
+  wompiSftpPrivateKey?: string; // sensitive
+  wompiSftpRemotePath?: string;
+
   // Admin-only meta (from enhanced API)
   _meta?: {
     lastUpdated?: string;
@@ -157,6 +166,9 @@ const DEFAULTS: Partial<PlatformConfig> = {
   globalEmailNotificationsEnabled: true,
   maintenanceBypassIps: '',
   wompiRealPaymentsEnabled: false,
+  wompiSftpEnabled: false,
+  wompiSftpPort: 22,
+  wompiSftpRemotePath: '/',
 };
 
 export default function AdminSettings() {
@@ -332,6 +344,14 @@ export default function AdminSettings() {
         globalEmailNotificationsEnabled: config.globalEmailNotificationsEnabled,
         maintenanceBypassIps: config.maintenanceBypassIps || '',
         wompiRealPaymentsEnabled: config.wompiRealPaymentsEnabled ?? false,
+        // SFTP
+        wompiSftpEnabled: config.wompiSftpEnabled ?? false,
+        wompiSftpHost: config.wompiSftpHost || '',
+        wompiSftpPort: config.wompiSftpPort || 22,
+        wompiSftpUsername: config.wompiSftpUsername || '',
+        wompiSftpPassword: config.wompiSftpPassword || '',
+        wompiSftpPrivateKey: config.wompiSftpPrivateKey || '',
+        wompiSftpRemotePath: config.wompiSftpRemotePath || '/',
       };
 
       const res = await fetch('/api/admin/config', {
@@ -697,6 +717,142 @@ export default function AdminSettings() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Wompi SFTP/FTPS Configuration (for reports, settlements, automatic reconciliation) */}
+        <div className="bg-card border border-border rounded-2xl p-6 mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <Globe className="w-6 h-6 text-blue-400" />
+            <h2 className="text-xl font-semibold">Wompi SFTP/FTPS (Reports &amp; Settlements)</h2>
+            <span className="text-xs px-2 py-0.5 rounded bg-blue-500/10 text-blue-400">Optional</span>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Connect to Wompi&apos;s SFTP/FTPS to automatically download settlement reports, transaction files and payout confirmations. 
+            Use this to reconcile the admin payouts page and mark seller transfers when Wompi actually settles the funds.
+            Configure the connection details you receive from Wompi dashboard (Developers → Integrations → SFTP/FTPS).
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Enabled</label>
+              <Switch 
+                checked={!!config?.wompiSftpEnabled} 
+                onCheckedChange={(v) => updateField('wompiSftpEnabled', v)} 
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Host</label>
+              <input 
+                value={config?.wompiSftpHost || ''} 
+                onChange={(e) => updateField('wompiSftpHost', e.target.value)} 
+                placeholder="sftp.wompi.co or your provided host"
+                className="w-full border rounded-xl px-3 py-2 bg-background" 
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Port</label>
+              <input 
+                type="number" 
+                value={config?.wompiSftpPort || 22} 
+                onChange={(e) => updateField('wompiSftpPort', parseInt(e.target.value) || 22)} 
+                className="w-full border rounded-xl px-3 py-2 bg-background" 
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Username</label>
+              <input 
+                value={config?.wompiSftpUsername || ''} 
+                onChange={(e) => updateField('wompiSftpUsername', e.target.value)} 
+                placeholder="your-wompi-username"
+                className="w-full border rounded-xl px-3 py-2 bg-background" 
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Password (if using password auth)</label>
+              <input 
+                type="password" 
+                value={config?.wompiSftpPassword || ''} 
+                onChange={(e) => updateField('wompiSftpPassword', e.target.value)} 
+                placeholder="Leave blank if using private key"
+                className="w-full border rounded-xl px-3 py-2 bg-background" 
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Private Key (if using key auth, paste full key)</label>
+              <textarea 
+                value={config?.wompiSftpPrivateKey || ''} 
+                onChange={(e) => updateField('wompiSftpPrivateKey', e.target.value)} 
+                placeholder="-----BEGIN RSA PRIVATE KEY-----\n..."
+                rows={3}
+                className="w-full border rounded-xl px-3 py-2 bg-background font-mono text-xs" 
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Remote Path (base directory on SFTP)</label>
+              <input 
+                value={config?.wompiSftpRemotePath || '/'} 
+                onChange={(e) => updateField('wompiSftpRemotePath', e.target.value)} 
+                placeholder="/reports or /settlements"
+                className="w-full border rounded-xl px-3 py-2 bg-background" 
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3 flex-wrap">
+            <Button 
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/admin/wompi/sftp/test', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({
+                      host: config?.wompiSftpHost,
+                      port: config?.wompiSftpPort,
+                      username: config?.wompiSftpUsername,
+                      password: config?.wompiSftpPassword,
+                      privateKey: config?.wompiSftpPrivateKey,
+                      remotePath: config?.wompiSftpRemotePath,
+                    })
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    toast.success(data.message);
+                    if (data.files?.length) toast.info(`Sample files: ${data.files.join(', ')}`);
+                  } else {
+                    toast.error(data.message || 'Test failed');
+                  }
+                } catch (e) {
+                  toast.error('Test connection failed');
+                }
+              }}
+              variant="outline"
+            >
+              Test Connection (uses current form values)
+            </Button>
+            <Button 
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/admin/wompi/sftp/sync', { method: 'POST' });
+                  const data = await res.json();
+                  if (data.success) {
+                    toast.success(data.message);
+                  } else {
+                    toast.error(data.message || 'Sync failed');
+                  }
+                } catch {
+                  toast.error('Sync failed');
+                }
+              }}
+              variant="outline"
+            >
+              Sync Latest Reports Now
+            </Button>
+          </div>
+
+          <p className="text-xs text-muted-foreground mt-3">
+            After saving, use &quot;Test Connection&quot; with the values from your Wompi SFTP setup. 
+            &quot;Sync&quot; will download recent settlement/report files and log them (extend parser in lib/wompi-sftp.ts for auto-updating payouts).
+          </p>
         </div>
 
         {/* === NEW: Integrations & Environment Status === */}

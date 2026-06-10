@@ -40,9 +40,13 @@ function OrderDetailClient() {
   const [isPollingPayment, setIsPollingPayment] = useState(false);
   const paymentPollRef = useRef<NodeJS.Timeout | null>(null);
 
+  // For the Wompi debugger panel
+  const [lastWompiPrepareDebug, setLastWompiPrepareDebug] = useState<any>(null);
+
   const uid = (session?.user as any)?.id;
   const isBuyer = order?.buyerId === uid;
   const isSeller = order?.sellerId === uid;
+  const isAdmin = (session?.user as any)?.role === 'admin';
   const isCompleted = order?.status === 'Completed';
 
   useEffect(() => {
@@ -481,6 +485,9 @@ function OrderDetailClient() {
 
                         const checkoutData = data.checkoutData;
 
+                        // Capture for the in-page debugger
+                        setLastWompiPrepareDebug(data.debug || { error: 'no debug returned' });
+
                         console.log('[Wompi][Client] Received checkoutData from server', {
                           reference: checkoutData?.reference,
                           amountInCents: checkoutData?.amountInCents,
@@ -549,6 +556,11 @@ function OrderDetailClient() {
                       <div>DB Status: <span className="font-bold">{order.status}</span></div>
                       <div>Polling: {isPollingPayment ? 'ACTIVE (every 4s)' : 'stopped'}</div>
                       <div>Last DB update: {new Date(order.updatedAt).toLocaleTimeString('es-CO')}</div>
+                      {lastWompiPrepareDebug && (
+                        <div className="mt-1 border-t border-blue-300 pt-1">
+                          Last /api/checkout/wompi debug: {JSON.stringify(lastWompiPrepareDebug)}
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2 mt-2">
                       <Button 

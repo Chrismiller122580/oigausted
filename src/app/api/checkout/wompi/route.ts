@@ -4,9 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
+import { devLog } from '@/lib/utils';
 
 const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
-const WOMPI_INTEGRITY_KEY = process.env.WOMPI_INTEGRITY_KEY;
+const WOMPI_INTEGRITY_KEY = process.env.WOMPI_INTEGRITY_KEY || process.env.WOMPI_INTEGRITY_SECRET;
 
 if (process.env.NODE_ENV === 'production' && WOMPI_PUBLIC_KEY?.includes('test')) {
   console.warn('⚠️  WARNING: Using Wompi SANDBOX keys in production! Real payments will not be processed.');
@@ -151,13 +152,18 @@ export async function POST(req: NextRequest) {
       };
     }
 
+    // Always log the exact data being sent for debugging (safe info only)
+    const stringToSignForDebug = `${reference}${amountInCents}${currency}${WOMPI_INTEGRITY_KEY ? '***' : 'MISSING'}`;
     devLog('[Wompi][Prepare] Checkout data prepared for widget', {
       orderId: order.id,
       reference,
       amountInCents,
+      currency,
       hasIntegrity: !!integritySignature,
       realPaymentsEnabled,
       redirectUrl: checkoutData.redirectUrl,
+      stringToSignPreview: stringToSignForDebug,
+      publicKeyPrefix: WOMPI_PUBLIC_KEY?.slice(0, 12),
     });
 
     return NextResponse.json({
@@ -165,7 +171,15 @@ export async function POST(req: NextRequest) {
       checkoutData,
       reference,
       hasIntegritySignature: !!integritySignature,
-      debug: process.env.NODE_ENV !== 'production' ? { amountInCents, reference, publicKeyPrefix: WOMPI_PUBLIC_KEY?.slice(0, 8) } : undefined,
+      debug: {
+        amountInCents,
+        reference,
+        currency,
+        publicKeyPrefix: WOMPI_PUBLIC_KEY?.slice(0, 12),
+        hasIntegrity: !!integritySignature,
+        // Only expose the full stringToSign in non-production for safety
+        stringToSign: process.env.NODE_ENV !== 'production' ? `${reference}${amountInCents}${currency}${WOMPI_INTEGRITY_KEY}` : undefined,
+      },
     });
 
   } catch (error: any) {

@@ -50,16 +50,36 @@ export async function GET() {
     // Use the canonical payout calculation for accuracy
     const { aggregatePayouts, calculateOrderPayout, DEFAULT_PAYOUT_CONFIG } = await import('@/lib/payout');
 
-    // For stats we need to know which sellers were referred
-    const completedOrdersWithReferral = await prisma.order.findMany({
-      where: { status: 'Completed' },
-      select: {
-        price: true,
-        seller: { select: { referredById: true } }
-      }
-    });
+    // For stats we need to know which sellers were referred.
+    // Fetch defensively to handle missing sellerPayoutAt column (prod DB drift).
+    let completedOrdersWithReferral: any[] = [];
+    try {
+      completedOrdersWithReferral = await prisma.order.findMany({
+        where: { status: 'Completed' },
+        select: {
+          price: true,
+          sellerPayoutAt: true,  // may not exist yet
+          seller: { select: { referredById: true } }
+        }
+      });
+    } catch (e) {
+      // Fallback without sellerPayoutAt
+      completedOrdersWithReferral = await prisma.order.findMany({
+        where: { status: 'Completed' },
+        select: {
+          price: true,
+          seller: { select: { referredById: true } }
+        }
+      });
+      // treat all as unpaid in fallback (until column added)
+      completedOrdersWithReferral = completedOrdersWithReferral.map((o: any) => ({ ...o, sellerPayoutAt: null }));
+    }
 
-    const breakdowns = completedOrdersWithReferral.map(o =>
+    // Only unpaid (no sellerPayoutAt) count toward pending payouts
+    const unpaidCompletedOrders = completedOrdersWithReferral.filter((o: any) => !o.sellerPayoutAt);
+
+    // All completed for historical revenue stats
+    const allBreakdowns = completedOrdersWithReferral.map(o =>
       calculateOrderPayout(
         Number(o.price) || 0,
         !!o.seller?.referredById,
@@ -69,11 +89,23 @@ export async function GET() {
         }
       )
     );
+    const allAggregated = aggregatePayouts(allBreakdowns);
 
-    const aggregated = aggregatePayouts(breakdowns);
+    // Only unpaid for pending payouts (respects sellerPayoutAt; shows 0 when none due)
+    const unpaidBreakdowns = unpaidCompletedOrders.map(o =>
+      calculateOrderPayout(
+        Number(o.price) || 0,
+        !!o.seller?.referredById,
+        {
+          platformCommissionRate: config?.commissionRate ?? DEFAULT_PAYOUT_CONFIG.platformCommissionRate,
+          referralCommissionRate: config?.referralCommissionRate ?? DEFAULT_PAYOUT_CONFIG.referralCommissionRate,
+        }
+      )
+    );
+    const unpaidAggregated = aggregatePayouts(unpaidBreakdowns);
 
-    const platformRevenue = aggregated.platformFee;
-    const estimatedReferralRevenue = aggregated.referralFee; // more accurate than old estimate
+    const platformRevenue = allAggregated.platformFee;
+    const estimatedReferralRevenue = allAggregated.referralFee;
 
     return NextResponse.json({
       users: totalUsers,
@@ -83,10 +115,10 @@ export async function GET() {
       orders: totalOrders,
       completedOrders,
       totalCategories,
-      totalRevenue: aggregated.grossAmount,
+      totalRevenue: allAggregated.grossAmount,
       platformRevenue,
       estimatedReferralRevenue,
-      pendingPayouts: aggregated.netToSeller, // now the real net amount owed to sellers
+      pendingPayouts: unpaidAggregated.netToSeller, // only the net still due to sellers (0 when none due)
       pendingReviews: 0 // can be improved later
     });
   } catch (error) {

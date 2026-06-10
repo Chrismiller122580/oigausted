@@ -368,6 +368,16 @@ model PlatformConfig {
   // Wompi payments control (admin can turn real/live payments on/off independently of env keys)
   wompiRealPaymentsEnabled Boolean @default(false)
 
+  // Wompi SFTP/FTPS for downloading settlement reports, transaction files, payouts reconciliation
+  // Configure in Admin > Settings. Credentials can alternatively be set via env vars (WOMPI_SFTP_*)
+  wompiSftpEnabled   Boolean @default(false)
+  wompiSftpHost      String?
+  wompiSftpPort      Int?    @default(22)
+  wompiSftpUsername  String?
+  wompiSftpPassword  String? // for password auth (sensitive - prefer env or secure storage in prod)
+  wompiSftpPrivateKey String? @db.Text // for key-based auth
+  wompiSftpRemotePath String? @default("/")
+
   updatedAt               DateTime @updatedAt
 }
 

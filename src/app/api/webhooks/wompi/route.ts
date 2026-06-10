@@ -5,7 +5,7 @@ import { notifications } from '@/lib/notifications'
 import { logAuditEvent } from '@/lib/audit'
 import { devLog } from '@/lib/utils'
 
-const WOMPI_EVENTS_KEY = process.env.WOMPI_EVENTS_KEY
+const WOMPI_EVENTS_KEY = process.env.WOMPI_EVENTS_KEY || process.env.WOMPI_EVENTS_SECRET;
 
 if (process.env.NODE_ENV === 'production' && WOMPI_EVENTS_KEY?.includes('test')) {
   console.warn('⚠️  WARNING: Using Wompi SANDBOX keys in production! Webhook processing is in test mode.');

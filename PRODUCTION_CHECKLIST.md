@@ -35,9 +35,9 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
 | `GOOGLE_CLIENT_ID` | From Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | From Google Cloud Console |
 | `ADMIN_EMAILS` | Optional: real Gmail(s) that should become admin automatically (comma separated) |
-| `NEXT_PUBLIC_WOMPI_PUBLIC_KEY` | Live key (or sandbox if still testing) |
-| `WOMPI_INTEGRITY_KEY` | Live key |
-| `WOMPI_EVENTS_KEY` | Live key |
+| `NEXT_PUBLIC_WOMPI_PUBLIC_KEY` | `pub_prod_...` (from Wompi Comercios dashboard) |
+| `WOMPI_INTEGRITY_KEY` | `prod_integrity_...` (Secretos para integración técnica → Integridad) |
+| `WOMPI_EVENTS_KEY` | `prod_events_...` (Secretos para integración técnica → Eventos) |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (for image uploads) |
 | `NEXT_PUBLIC_APP_URL` | `https://oigagig.com` |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps JS API key (enable Maps + Places API; restrict to your domain) |

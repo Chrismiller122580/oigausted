@@ -44,6 +44,9 @@ export async function GET() {
             globalEmailNotificationsEnabled: true,
             maintenanceBypassIps: '',
             wompiRealPaymentsEnabled: false,
+            wompiSftpEnabled: false,
+            wompiSftpPort: 22,
+            wompiSftpRemotePath: '/',
           },
         });
       } catch (upsertErr) {
@@ -70,6 +73,8 @@ export async function GET() {
         globalEmailNotificationsEnabled: (config as any).globalEmailNotificationsEnabled ?? true,
         // Wompi payments status (public so checkout UI can show "test mode" warnings)
         wompiRealPaymentsEnabled: (config as any).wompiRealPaymentsEnabled ?? false,
+        // SFTP status (public for admin UI indicators)
+        wompiSftpEnabled: (config as any).wompiSftpEnabled ?? false,
       });
     }
 
@@ -124,6 +129,15 @@ export async function GET() {
       globalEmailNotificationsEnabled: (config as any).globalEmailNotificationsEnabled ?? true,
       maintenanceBypassIps: (config as any).maintenanceBypassIps || '',
       wompiRealPaymentsEnabled: (config as any).wompiRealPaymentsEnabled ?? false,
+      // SFTP config (non-sensitive fields only in response; secrets sent back only for editing in admin UI)
+      wompiSftpEnabled: (config as any).wompiSftpEnabled ?? false,
+      wompiSftpHost: (config as any).wompiSftpHost || '',
+      wompiSftpPort: (config as any).wompiSftpPort || 22,
+      wompiSftpUsername: (config as any).wompiSftpUsername || '',
+      wompiSftpRemotePath: (config as any).wompiSftpRemotePath || '/',
+      // Secrets are returned for the edit form (they are stored in DB; in high-security setups move to env/secret manager)
+      wompiSftpPassword: (config as any).wompiSftpPassword || '',
+      wompiSftpPrivateKey: (config as any).wompiSftpPrivateKey || '',
     };
 
     return NextResponse.json({
@@ -180,6 +194,14 @@ export async function PUT(request: NextRequest) {
           maintenanceBypassIps: body.maintenanceBypassIps ?? existing.maintenanceBypassIps ?? '',
           // Wompi real payments master switch
           wompiRealPaymentsEnabled: body.wompiRealPaymentsEnabled ?? existing.wompiRealPaymentsEnabled ?? false,
+          // Wompi SFTP
+          wompiSftpEnabled: body.wompiSftpEnabled ?? existing.wompiSftpEnabled ?? false,
+          wompiSftpHost: body.wompiSftpHost ?? existing.wompiSftpHost,
+          wompiSftpPort: body.wompiSftpPort ?? existing.wompiSftpPort ?? 22,
+          wompiSftpUsername: body.wompiSftpUsername ?? existing.wompiSftpUsername,
+          wompiSftpPassword: body.wompiSftpPassword ?? existing.wompiSftpPassword,
+          wompiSftpPrivateKey: body.wompiSftpPrivateKey ?? existing.wompiSftpPrivateKey,
+          wompiSftpRemotePath: body.wompiSftpRemotePath ?? existing.wompiSftpRemotePath,
         },
       });
     } else {
