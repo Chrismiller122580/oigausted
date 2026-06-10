@@ -17,10 +17,45 @@ export async function GET() {
     let prefs = null;
     try {
       prefs = await prisma.notificationPreference.findUnique({
-        where: { userId }
+        where: { userId },
+        // Explicit select omitting marketingEmails (and any other recent columns) to avoid
+        // "column does not exist" errors on prod DBs that are behind on migrations.
+        // We add the default below.
+        select: {
+          id: true,
+          userId: true,
+          inAppEnabled: true,
+          emailEnabled: true,
+          smsEnabled: true,
+          pushEnabled: true,
+          orderUpdates: true,
+          gigUpdates: true,
+          reviewAlerts: true,
+          paymentAlerts: true,
+          messageAlerts: true,
+          systemAlerts: true,
+          // marketingEmails omitted
+          desktopNotifications: true,
+          soundEnabled: true,
+          quietHoursEnabled: true,
+          quietHoursStart: true,
+          quietHoursEnd: true,
+          digestEnabled: true,
+          digestFrequency: true,
+          maxNotificationsPerHour: true,
+          createdAt: true,
+          updatedAt: true,
+        }
       });
     } catch (dbErr) {
       console.warn('Prefs lookup failed (possible schema drift, using defaults):', dbErr);
+    }
+
+    if (prefs) {
+      // Add defaults for columns that may be missing in prod DB
+      if ((prefs as any).marketingEmails === undefined) {
+        (prefs as any).marketingEmails = true;
+      }
     }
 
     // Create default preferences if none exist (or on error)
@@ -95,6 +130,7 @@ export async function GET() {
       paymentAlerts: true,
       messageAlerts: true,
       systemAlerts: true,
+      marketingEmails: true,
       desktopNotifications: true,
       soundEnabled: true,
       quietHoursEnabled: false,

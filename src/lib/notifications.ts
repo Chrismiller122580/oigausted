@@ -25,13 +25,45 @@ export async function sendNotification(payload: NotificationPayload) {
   const { userId, category, type, title, message, link, data } = payload;
 
   // 1. Respect user preferences (defensive: default to enabled if prefs table/query fails due to schema)
+  // Use explicit select omitting newer columns (e.g. marketingEmails) that may not exist in prod DB yet.
+  // This prevents "column does not exist" prisma errors on drifted deployments.
   let prefs: any = null;
   try {
     prefs = await prisma.notificationPreference.findUnique({
-      where: { userId }
+      where: { userId },
+      select: {
+        id: true,
+        userId: true,
+        inAppEnabled: true,
+        emailEnabled: true,
+        smsEnabled: true,
+        pushEnabled: true,
+        orderUpdates: true,
+        gigUpdates: true,
+        reviewAlerts: true,
+        paymentAlerts: true,
+        messageAlerts: true,
+        systemAlerts: true,
+        // marketingEmails intentionally omitted for prod DB compatibility (added post-deploy in some envs)
+        desktopNotifications: true,
+        soundEnabled: true,
+        quietHoursEnabled: true,
+        quietHoursStart: true,
+        quietHoursEnd: true,
+        digestEnabled: true,
+        digestFrequency: true,
+        maxNotificationsPerHour: true,
+        createdAt: true,
+        updatedAt: true,
+      }
     });
   } catch (e) {
     devLog('[Notifications] Prefs lookup failed, defaulting to enabled:', e);
+  }
+
+  // Inject default for marketingEmails (and any future columns) when the row was loaded without it
+  if (prefs && (prefs as any).marketingEmails === undefined) {
+    (prefs as any).marketingEmails = true;
   }
 
   const shouldSendInApp = prefs?.inAppEnabled !== false;

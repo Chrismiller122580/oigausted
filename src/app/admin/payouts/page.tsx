@@ -14,12 +14,34 @@ export default function AdminPayoutsPage() {
   const [loading, setLoading] = useState(true);
   const [paidSearch, setPaidSearch] = useState('');
 
+  // Local persistence for marked-paid payouts (workaround while prod DB may be missing sellerPayoutAt column)
+  // Prevents "old" payouts from reappearing on refresh until migration adds the column.
+  const [manuallyMarkedPaid, setManuallyMarkedPaid] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('adminManuallyPaidPayouts');
+        return saved ? new Set(JSON.parse(saved)) : new Set();
+      } catch { return new Set(); }
+    }
+    return new Set();
+  });
+
   const fetchCompleted = async () => {
     try {
       const res = await fetch('/api/orders?view=all'); // admin view: all orders
       const data = await res.json();
       const list = Array.isArray(data) ? data : [];
       const completed = list.filter((o: any) => o.status === 'Completed');
+
+      // Always re-read the local persistence to avoid stale closure and ensure
+      // previously-marked payouts do not reappear in the "to be marked" list on refresh/re-fetch.
+      let currentMarked = manuallyMarkedPaid;
+      if (typeof window !== 'undefined') {
+        try {
+          const saved = localStorage.getItem('adminManuallyPaidPayouts');
+          if (saved) currentMarked = new Set(JSON.parse(saved));
+        } catch {}
+      }
 
       // Apply proper accounting
       const withBreakdown = completed.map((o: any) => {
@@ -32,11 +54,12 @@ export default function AdminPayoutsPage() {
       });
 
       // Only unpaid seller payouts in main list (persist via sellerPayoutAt)
-      const unpaid = withBreakdown.filter((o: any) => !o.sellerPayoutAt);
+      // Also exclude locally marked ones (for when DB column is missing in prod)
+      const unpaid = withBreakdown.filter((o: any) => !o.sellerPayoutAt && !currentMarked.has(o.id));
       setOrders(unpaid);
 
       // Separate paid for history (searchable datatable)
-      const paid = withBreakdown.filter((o: any) => !!o.sellerPayoutAt);
+      const paid = withBreakdown.filter((o: any) => !!o.sellerPayoutAt || currentMarked.has(o.id));
       setPaidOrders(paid);
 
       // Also fetch pending referral payouts for admin visibility
@@ -72,18 +95,32 @@ export default function AdminPayoutsPage() {
         });
       }
 
-      // Persist seller payout on the order so it doesn't come back on refresh
-      await fetch(`/api/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sellerPayoutAt: new Date().toISOString() }),
-      });
+      // Persist seller payout on the order (best effort - may fail if column missing in prod DB)
+      try {
+        await fetch(`/api/orders/${orderId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sellerPayoutAt: new Date().toISOString() }),
+        });
+      } catch (patchErr) {
+        // non-fatal; we use local persistence below
+        console.warn('sellerPayoutAt patch failed (expected if column missing in prod DB):', patchErr);
+      }
 
       // Move from pending to paid list (for searchable history)
       setOrders(prev => prev.filter((o: any) => o.id !== orderId));
       const paidOrder = { ...order, sellerPayoutAt: new Date().toISOString() };
       setPaidOrders(prev => [paidOrder, ...prev]);
-      toast.success('Payout marked as paid. Referrals updated if applicable. Moved to paid history.');
+
+      // Persist locally so it doesn't reappear on refresh (handles case where sellerPayoutAt column missing in prod DB)
+      const newMarked = new Set(manuallyMarkedPaid);
+      newMarked.add(orderId);
+      setManuallyMarkedPaid(newMarked);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('adminManuallyPaidPayouts', JSON.stringify([...newMarked]));
+      }
+
+      toast.success('Payout marked as paid. Referrals updated if applicable. Moved to paid history. (Note: persisted locally until DB column is added.)');
     } catch (e) {
       toast.error('Error marking payout');
     }

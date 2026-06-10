@@ -60,12 +60,14 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-    // Compute rough "email reachable" count (defensive JS filter because Prisma client may not yet reflect the new marketingEmails column)
+    // Compute rough "email reachable" count.
+    // Select ONLY stable columns (omit marketingEmails entirely) to avoid "column does not exist" on drifted prod DBs.
+    // Default: if no pref row or marketingEmails not readable, treat as allowed (matches @default(true) in schema).
     const usersForReachable = await prisma.user.findMany({
       where,
       select: {
         id: true,
-        notificationPreferences: { select: { emailEnabled: true, marketingEmails: true } as any },
+        notificationPreferences: { select: { userId: true, emailEnabled: true } },
       },
       take: 10000,
     });
@@ -74,7 +76,7 @@ export async function GET(req: NextRequest) {
       const p = u.notificationPreferences;
       if (!p) return true;
       if (p.emailEnabled === false) return false;
-      if (p.marketingEmails === false) return false;
+      // marketingEmails omitted from query for drift safety; default allow (true)
       return true;
     }).length;
 

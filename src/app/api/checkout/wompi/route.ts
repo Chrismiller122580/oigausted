@@ -54,8 +54,49 @@ export async function POST(req: NextRequest) {
         sellerId: true,
         gigId: true,
         customFields: true,
-        gig: true,
-        buyer: true,
+        gig: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            price: true,
+            category: true,
+            completionTime: true,
+            imageUrl: true,
+            fields: true,
+            addons: true,
+            isActive: true,
+            createdAt: true,
+            sellerId: true,
+            city: true,
+            latitude: true,
+            longitude: true,
+            isRemote: true,
+            seller: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                businessName: true,
+                // slug omitted to avoid missing column in prod DB
+                profilePicture: true,
+                rating: true,
+                reviewCount: true,
+                latitude: true,
+                longitude: true,
+                serviceRadiusKm: true,
+                city: true,
+              }
+            }
+          }
+        },
+        buyer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        },
       },
     });
 

@@ -171,34 +171,64 @@ export async function GET(request: Request) {
       where = { buyerId: userId };
     }
 
-    const orders = await prisma.order.findMany({
-      where,
-      // Explicit select to avoid selecting columns that may be missing in prod DB (e.g. sellerPayoutAt)
-      // until migration is applied. Include relations as before.
-      select: {
-        id: true,
-        price: true,
-        status: true,
-        progress: true,
-        trackingNumber: true,
-        createdAt: true,
-        updatedAt: true,
-        buyerId: true,
-        sellerId: true,
-        gigId: true,
-        customFields: true,
-        // sellerPayoutAt omitted (missing in current prod DB)
-        serviceLatitude: true,
-        serviceLongitude: true,
-        serviceAddress: true,
-        gig: { select: { title: true, imageUrl: true } },
-        buyer: { select: { id: true, name: true, email: true } },
-        seller: { select: { id: true, name: true, businessName: true, referredById: true } }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+    let orders;
+    try {
+      // Try with sellerPayoutAt (for payouts page to filter paid/unpaid reliably)
+      orders = await prisma.order.findMany({
+        where,
+        select: {
+          id: true,
+          price: true,
+          status: true,
+          progress: true,
+          trackingNumber: true,
+          createdAt: true,
+          updatedAt: true,
+          buyerId: true,
+          sellerId: true,
+          gigId: true,
+          customFields: true,
+          sellerPayoutAt: true,
+          serviceLatitude: true,
+          serviceLongitude: true,
+          serviceAddress: true,
+          gig: { select: { title: true, imageUrl: true } },
+          buyer: { select: { id: true, name: true, email: true } },
+          seller: { select: { id: true, name: true, businessName: true, referredById: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    } catch (e: any) {
+      // Fallback if column still missing in this DB (prod drift) - omit it, payouts page will use local persistence
+      devLog('orders GET: sellerPayoutAt column missing, falling back (see payouts page localMarked)');
+      orders = await prisma.order.findMany({
+        where,
+        select: {
+          id: true,
+          price: true,
+          status: true,
+          progress: true,
+          trackingNumber: true,
+          createdAt: true,
+          updatedAt: true,
+          buyerId: true,
+          sellerId: true,
+          gigId: true,
+          customFields: true,
+          serviceLatitude: true,
+          serviceLongitude: true,
+          serviceAddress: true,
+          gig: { select: { title: true, imageUrl: true } },
+          buyer: { select: { id: true, name: true, email: true } },
+          seller: { select: { id: true, name: true, businessName: true, referredById: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      // attach null so client filters treat as unpaid (local persistence in payouts page handles "marked" ones)
+      orders = orders.map((o: any) => ({ ...o, sellerPayoutAt: null }));
+    }
 
-    return NextResponse.json(orders);  // Note: sellerPayoutAt may be missing from objects until DB migration applied.
+    return NextResponse.json(orders);  // sellerPayoutAt included when column present in DB; nulls + client localMarked otherwise (see admin/payouts)
   } catch (error: any) {
     devLog('Orders fetch error:', error);
     // Include more detail in dev, generic in prod response
