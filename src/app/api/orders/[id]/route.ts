@@ -278,7 +278,7 @@ export async function PATCH(
     // (Full durable notif-in-tx would require refactoring the notifications lib to support tx context.)
 
     // Send notifications on important status changes
-    if (status) {
+    if (status && updatedOrder) {
       const recipientId = status === 'In Progress' || status === 'Completed' 
         ? updatedOrder.buyerId 
         : updatedOrder.sellerId

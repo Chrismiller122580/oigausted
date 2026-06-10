@@ -600,9 +600,40 @@ function OrderDetailClient() {
                       >
                         Copiar referencia
                       </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-xs h-7"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`/api/orders/${orderId}/check-wompi`, { method: 'POST' });
+                            const data = await res.json();
+                            if (res.ok && data.success) {
+                              toast.success(data.message || 'Consultado en Wompi');
+                              // Refresh the order from our DB (the route may have updated it)
+                              const freshRes = await fetch(`/api/orders/${orderId}`);
+                              if (freshRes.ok) {
+                                const fresh = await freshRes.json();
+                                const updated = fresh.order || fresh;
+                                setOrder(updated);
+                                if (updated.status !== 'Pending') {
+                                  setIsPollingPayment(false);
+                                }
+                              }
+                            } else {
+                              toast.error(data.error || data.message || 'Error consultando Wompi');
+                            }
+                          } catch (e) {
+                            toast.error('No se pudo consultar Wompi');
+                          }
+                        }}
+                      >
+                        Consultar Wompi API
+                      </Button>
                     </div>
                     <p className="mt-2 text-[9px] text-blue-600/80 dark:text-blue-400/80 leading-tight">
                       Si Wompi muestra el pago como APPROVED pero aquí sigue Pending: el webhook probablemente falló (revisa logs de Vercel con "[Wompi][Webhook]"). 
+                      Usa "Consultar Wompi API" para forzar la consulta usando la llave privada (actualiza el estado si APPROVED). 
                       El reference exacto que debe aparecer en Wompi dashboard es <span className="font-mono">order_{order.id}</span>.
                     </p>
                   </div>
