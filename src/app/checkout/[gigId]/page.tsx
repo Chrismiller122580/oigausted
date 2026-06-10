@@ -195,10 +195,12 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Require address for non-remote gigs (enforce before payment)
+    // Address is recommended for non-remote gigs but not strictly required here.
+    // Buyer/seller can always coordinate exact details via the order chat.
+    // The UI below explicitly says "Deja en blanco si prefieres coordinarlo por chat."
     if (!gig.isRemote && !serviceAddress?.trim()) {
-      toast.error("Por favor indica la dirección donde se realizará el servicio.");
-      return;
+      toast.info("Recomendamos indicar una dirección aproximada (o deja en blanco para coordinar por chat).");
+      // Do not block — proceed with save + payment
     }
 
     setOpening(true);
@@ -269,10 +271,11 @@ export default function CheckoutPage() {
   const confirmAndGoToOrder = async () => {
     if (!order || !gig) return;
 
-    // Basic validation
+    // Basic validation — address recommended for non-remote but optional
+    // (matches the "Deja en blanco si prefieres coordinarlo por chat" hint in the form)
     if (!gig.isRemote && !serviceAddress?.trim()) {
-      toast.error("Por favor indica la dirección donde se realizará el servicio.");
-      return;
+      toast.info("Recomendamos una dirección aproximada para el vendedor. Puedes dejarla en blanco y coordinar los detalles por chat.");
+      // Continue anyway — the order will be created and the seller can discuss location in chat.
     }
 
     setOpening(true);
@@ -470,7 +473,8 @@ export default function CheckoutPage() {
           {/* Service Location (only for non-remote gigs) */}
           {!gig?.isRemote && (
             <div className="bg-muted p-6 rounded-2xl">
-              <p className="font-semibold text-foreground mb-4">¿Dónde se realizará el servicio?</p>
+              <p className="font-semibold text-foreground mb-1">¿Dónde se realizará el servicio? <span className="text-xs font-normal text-muted-foreground">(recomendado)</span></p>
+              <p className="text-xs text-muted-foreground mb-4">Opcional: puedes dejarlo en blanco y coordinar la dirección exacta por chat después de confirmar el pedido.</p>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -506,7 +510,7 @@ export default function CheckoutPage() {
                 </button>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                Deja en blanco si prefieres coordinarlo por chat.
+                El vendedor podrá ver esta información. Usa el botón de ubicación o escribe una dirección aproximada.
               </p>
               {gig?.seller?.serviceRadiusKm && (
                 <p className="text-[11px] text-orange-600 mt-1 font-medium">
