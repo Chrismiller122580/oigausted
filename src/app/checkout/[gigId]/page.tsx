@@ -237,7 +237,10 @@ export default function CheckoutPage() {
       const checkoutData = data.checkoutData;
 
       // 3. Open Wompi using server-provided config (amount comes from DB after we saved final price + extras)
-      if (window.WompiCheckout && checkoutData) {
+      // Aligned with official Wompi Colombia Widget docs (quick start + widget-checkout-web)
+      const WidgetCheckoutClass = (window as any).WidgetCheckout || (window as any).WompiCheckout;
+
+      if (WidgetCheckoutClass && checkoutData) {
         const widgetConfig: any = {
           publicKey: checkoutData.publicKey,
           currency: checkoutData.currency,
@@ -251,8 +254,20 @@ export default function CheckoutPage() {
           widgetConfig.signature = { integrity: checkoutData.signature.integrity };
         }
 
-        const checkout = new window.WompiCheckout(widgetConfig);
-        checkout.open();
+        const checkout = new WidgetCheckoutClass(widgetConfig);
+
+        // Official pattern: pass a callback to receive transaction result immediately after the user completes the widget.
+        // We still treat the webhook as the source of truth for final status (and use polling + the debugger panel).
+        checkout.open((result: any) => {
+          console.log('[Wompi] Widget result (callback):', result);
+          if (result?.transaction) {
+            console.log('[Wompi] Transaction from callback:', {
+              id: result.transaction.id,
+              status: result.transaction.status,
+              reference: result.transaction.reference,
+            });
+          }
+        });
       } else if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       } else {

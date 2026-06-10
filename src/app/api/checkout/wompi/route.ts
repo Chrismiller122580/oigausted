@@ -21,7 +21,10 @@ function generateIntegritySignature(
     return null;
   }
 
-  const stringToSign = `${amountInCents}${currency}${WOMPI_PUBLIC_KEY}${reference}`;
+  // Official Wompi Colombia order (as per docs):
+  // <reference><amountInCents><currency><integritySecret>
+  // Never include the public key in the hash for the widget integrity signature.
+  const stringToSign = `${reference}${amountInCents}${currency}${WOMPI_INTEGRITY_KEY}`;
 
   return crypto
     .createHmac('sha256', WOMPI_INTEGRITY_KEY)

@@ -500,7 +500,9 @@ function OrderDetailClient() {
                           });
                         }
 
-                        if (window.WompiCheckout && checkoutData) {
+                        const WidgetCheckoutClass = (window as any).WidgetCheckout || (window as any).WompiCheckout;
+
+                        if (WidgetCheckoutClass && checkoutData) {
                           const widgetConfig: any = {
                             publicKey: checkoutData.publicKey,
                             currency: checkoutData.currency,
@@ -513,8 +515,12 @@ function OrderDetailClient() {
                             widgetConfig.signature = { integrity: checkoutData.signature.integrity };
                           }
                           console.log('[Wompi][Client] Opening Wompi widget', { reference: checkoutData.reference });
-                          const checkout = new window.WompiCheckout(widgetConfig);
-                          checkout.open();
+                          const checkout = new WidgetCheckoutClass(widgetConfig);
+
+                          // Use the callback as recommended in Wompi docs for immediate feedback
+                          checkout.open((result: any) => {
+                            console.log('[Wompi][Client] Widget closed with result:', result);
+                          });
                         } else {
                           toast.error("No se pudo iniciar el pago con Wompi.");
                         }
