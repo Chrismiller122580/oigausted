@@ -8,6 +8,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save, Users } from "lucide-react";
 import GrokAssistant from "@/components/common/GrokAssistant";
 import { toast } from 'sonner';
+import { slugify } from '@/lib/utils';
+
+function slugifyForPreview(name?: string) {
+  return slugify(name || '');
+}
 
 export default function MiNegocioPage() {
   const { data: session, update } = useSession();
@@ -169,7 +174,7 @@ export default function MiNegocioPage() {
         <div className="flex flex-col md:flex-row justify-between md:items-center mb-10 gap-4">
           <h1 className="text-4xl font-bold text-foreground">Mi Negocio</h1>
           <div className="flex gap-3">
-            <Link href={`/sellers/${(session?.user as any)?.id}`} target="_blank">
+            <Link href={`/sellers/${slugifyForPreview(formData.businessName) || (session?.user as any)?.id}`} target="_blank">
               <Button variant="outline">
                 👀 Ver perfil público
               </Button>
@@ -371,7 +376,7 @@ export default function MiNegocioPage() {
                       </div>
                     ))}
                   </div>
-                  <Link href={`/sellers/${(session?.user as any)?.id}`} className="text-xs text-orange-600 hover:underline mt-4 inline-block">
+                  <Link href={`/sellers/${slugifyForPreview(formData.businessName) || (session?.user as any)?.id}`} className="text-xs text-orange-600 hover:underline mt-4 inline-block">
                     Ver todas en mi perfil público →
                   </Link>
                 </CardContent>

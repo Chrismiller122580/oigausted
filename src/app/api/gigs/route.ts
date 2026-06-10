@@ -20,7 +20,7 @@ export async function GET() {
     const sellers = await prisma.user.findMany({
       where: { id: { in: sellerIds } },
       select: { 
-        id: true, name: true, email: true, businessName: true, 
+        id: true, name: true, email: true, businessName: true, slug: true,
         profilePicture: true, rating: true, reviewCount: true,
         latitude: true, longitude: true, serviceRadiusKm: true, city: true
       }

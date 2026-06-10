@@ -185,7 +185,7 @@ export default function GigDetailPage() {
               {gig.seller?.id && reviews.length > 0 && (
                 <div className="mt-4 text-right">
                   <Link
-                    href={`/sellers/${gig.seller.id}`}
+                    href={`/sellers/${gig.seller.slug || gig.seller.id}`}
                     className="inline-flex items-center gap-1 text-sm text-emerald-600 hover:underline font-medium"
                   >
                     Ver todas las reseñas del vendedor →
@@ -242,7 +242,7 @@ export default function GigDetailPage() {
 
               <div className="border-t pt-8">
                 <p className="text-sm text-muted-foreground mb-3">Vendido por</p>
-                <Link href={`/sellers/${gig.seller?.id}`} className="group block">
+                <Link href={`/sellers/${gig.seller?.slug || gig.seller?.id}`} className="group block">
                   <div className="flex items-center gap-4 hover:bg-muted -mx-2 px-2 py-2 rounded-2xl transition">
                     <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0">
                       👤

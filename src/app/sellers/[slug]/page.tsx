@@ -4,12 +4,9 @@ import { prisma } from '@/lib/prisma';
 import GigCard from '@/components/common/GigCard';
 import { Button } from '@/components/ui/button';
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const user = await prisma.user.findUnique({
-    where: { id },
-    select: { name: true, businessName: true }
-  });
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const user = await findSellerBySlugOrId(slug);
 
   const displayName = user?.businessName || user?.name || 'Vendedor';
   return {
@@ -23,15 +20,18 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   };
 }
 
-export default async function PublicSellerProfile({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+// Helper to support both slug (preferred, company name based) and legacy UUID id
+async function findSellerBySlugOrId(identifier: string) {
+  if (!identifier) return null;
 
-  const seller = await prisma.user.findUnique({
-    where: { id },
+  // Try by slug first (new friendly URLs)
+  let seller = await prisma.user.findUnique({
+    where: { slug: identifier },
     select: {
       id: true,
       name: true,
       businessName: true,
+      slug: true,
       bio: true,
       profilePicture: true,
       whatsapp: true,
@@ -40,12 +40,43 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
     }
   });
 
+  if (seller) return seller;
+
+  // Fallback: try by id (for old links / UUIDs)
+  // Only attempt if it looks like an id (uuid or cuid style)
+  if (/^[0-9a-fA-F-]{8,}$/.test(identifier) || identifier.length > 20) {
+    seller = await prisma.user.findUnique({
+      where: { id: identifier },
+      select: {
+        id: true,
+        name: true,
+        businessName: true,
+        slug: true,
+        bio: true,
+        profilePicture: true,
+        whatsapp: true,
+        instagram: true,
+        phone: true,
+      }
+    });
+  }
+
+  return seller;
+}
+
+export default async function PublicSellerProfile({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug: identifier } = await params;
+
+  const seller = await findSellerBySlugOrId(identifier);
+
   if (!seller) {
     notFound();
   }
 
+  const sellerId = seller!.id;
+
   const gigs = await prisma.gig.findMany({
-    where: { sellerId: id },
+    where: { sellerId },
     include: {
       seller: {
         select: {
@@ -53,6 +84,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
           name: true,
           email: true,
           businessName: true,
+          slug: true,
           profilePicture: true,
         }
       }
@@ -62,7 +94,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
   });
 
   const reviews = await prisma.review.findMany({
-    where: { sellerId: id },
+    where: { sellerId },
     include: {
       reviewer: { select: { name: true, profilePicture: true } },
       order: { select: { gig: { select: { title: true } } } }
@@ -77,6 +109,9 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
 
   const displayName = seller.businessName || seller.name || 'Vendedor Local';
   const hasContact = seller.whatsapp || seller.instagram;
+
+  // Use slug for URLs if available, fallback to id for backward compat
+  const sellerSlugOrId = seller.slug || seller.id;
 
   return (
     <div className="min-h-screen bg-background">

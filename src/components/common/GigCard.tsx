@@ -20,6 +20,7 @@ interface Gig {
     name?: string
     email?: string
     businessName?: string
+    slug?: string
     profilePicture?: string
     rating?: number
     reviewCount?: number
@@ -98,7 +99,7 @@ export default function GigCard({
               <span className="truncate text-muted-foreground text-xs">{sellerName}</span>
             ) : (
               <Link 
-                href={`/sellers/${gig.seller?.id}`} 
+                href={`/sellers/${gig.seller?.slug || gig.seller?.id}`} 
                 className="truncate text-xs text-muted-foreground hover:text-orange-600 hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >

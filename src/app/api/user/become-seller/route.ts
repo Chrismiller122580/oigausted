@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logAuditEvent } from '@/lib/audit'
+import { slugify } from '@/lib/utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,11 +38,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const trimmedBusinessName = businessName.trim();
+    let slug = slugify(trimmedBusinessName);
+
+    // Ensure unique slug
+    if (slug) {
+      let candidate = slug;
+      let suffix = 1;
+      while (true) {
+        const exists = await prisma.user.findUnique({
+          where: { slug: candidate },
+          select: { id: true }
+        });
+        if (!exists || exists.id === userId) {
+          slug = candidate;
+          break;
+        }
+        candidate = `${slug}-${suffix++}`;
+        if (suffix > 50) {
+          candidate = `${slug}-${Date.now().toString(36)}`;
+          break;
+        }
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
         role: "seller",
-        businessName: businessName.trim(),
+        businessName: trimmedBusinessName,
+        slug: slug || undefined,
         nit: nit ? nit.trim() : null,
         bio: bio ? bio.trim() : null,
         updatedAt: new Date()

@@ -52,6 +52,7 @@ model User {
   facebook      String?
   whatsapp      String?
   businessName  String?
+  slug          String?   @unique
   nit           String?
   bio           String?
   profilePicture String?

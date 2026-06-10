@@ -22,6 +22,7 @@ export async function GET(
             name: true,
             email: true,
             businessName: true,
+            slug: true,
             profilePicture: true,
             rating: true,
             reviewCount: true,

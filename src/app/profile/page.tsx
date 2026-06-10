@@ -149,7 +149,7 @@ export default function ProfilePage() {
   const copyProfileLink = () => {
     const user = session?.user as any;
     const link = user?.role === 'seller' 
-      ? `${window.location.origin}/sellers/${user.id}`
+      ? `${window.location.origin}/sellers/${user.slug || user.id}`
       : `${window.location.origin}/profile`;
     
     navigator.clipboard.writeText(link);
@@ -349,7 +349,7 @@ export default function ProfilePage() {
                     Mi Negocio <ExternalLink size={16} />
                   </Button>
                 </Link>
-                <Link href={`/sellers/${user?.id}`} target="_blank">
+                <Link href={`/sellers/${user?.slug || user?.id}`} target="_blank">
                   <Button variant="outline" className="flex items-center gap-2">
                     Ver perfil público <ExternalLink size={16} />
                   </Button>
@@ -558,7 +558,7 @@ export default function ProfilePage() {
                         </p>
                       </div>
 
-                      <Link href={`/sellers/${(session?.user as any)?.id}`} target="_blank">
+                      <Link href={`/sellers/${(session?.user as any)?.slug || (session?.user as any)?.id}`} target="_blank">
                         <Button variant="outline" className="flex items-center gap-2">
                           Ver perfil público <ExternalLink size={16} />
                         </Button>

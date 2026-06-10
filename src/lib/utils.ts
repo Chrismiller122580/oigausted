@@ -6,6 +6,20 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Convert a string (e.g. businessName) into a URL-friendly slug.
+ */
+export function slugify(text: string): string {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '') // remove non-word chars except spaces and -
+    .replace(/[\s_-]+/g, '-') // collapse spaces, _, - into single -
+    .replace(/^-+|-+$/g, ''); // trim leading/trailing -
+}
+
+/**
  * Safely parse a field that may be stored as a JSON string (e.g. gig.fields, gig.addons).
  * Returns an array, or empty array on failure / missing value.
  */

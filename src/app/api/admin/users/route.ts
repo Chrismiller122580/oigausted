@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { devLog } from '@/lib/utils';
+import { devLog, slugify } from '@/lib/utils';
 import { logAuditEvent } from '@/lib/audit';
 import { notifications } from '@/lib/notifications';
 
@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
         email: true,
         role: true,
         businessName: true,
+        slug: true,
         phone: true,
         whatsapp: true,
 
@@ -101,27 +102,59 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
+    const updateData: any = {
+      ...(role && { role }),
+      ...(name !== undefined && { name }),
+      ...(tagline !== undefined && { tagline }),
+      ...(phone !== undefined && { phone }),
+      ...(whatsapp !== undefined && { whatsapp }),
+      ...(instagram !== undefined && { instagram }),
+      ...(facebook !== undefined && { facebook }),
+
+      ...(bio !== undefined && { bio }),
+      ...(nit !== undefined && { nit }),
+      ...(city !== undefined && { city }),
+      ...(latitude !== undefined && { latitude }),
+      ...(longitude !== undefined && { longitude }),
+      ...(serviceRadiusKm !== undefined && { serviceRadiusKm }),
+      ...(isActive !== undefined && { isActive }),
+      ...(customReferralRate !== undefined && { customReferralRate: customReferralRate === '' || customReferralRate == null ? null : parseFloat(customReferralRate) }),
+    };
+
+    if (businessName !== undefined) {
+      const trimmed = (businessName || '').trim();
+      updateData.businessName = trimmed || null;
+
+      if (trimmed) {
+        let slug = slugify(trimmed);
+        if (slug) {
+          let candidate = slug;
+          let suffix = 1;
+          while (true) {
+            const exists = await prisma.user.findUnique({
+              where: { slug: candidate },
+              select: { id: true }
+            });
+            if (!exists || exists.id === userId) {
+              slug = candidate;
+              break;
+            }
+            candidate = `${slug}-${suffix++}`;
+            if (suffix > 50) {
+              candidate = `${slug}-${Date.now().toString(36)}`;
+              break;
+            }
+          }
+        }
+        updateData.slug = slug || null;
+      } else {
+        updateData.slug = null;
+      }
+    }
+
     const updated = await prisma.user.update({
       where: { id: userId },
-      data: {
-        ...(role && { role }),
-        ...(name !== undefined && { name }),
-        ...(tagline !== undefined && { tagline }),
-        ...(businessName !== undefined && { businessName }),
-        ...(phone !== undefined && { phone }),
-        ...(whatsapp !== undefined && { whatsapp }),
-        ...(instagram !== undefined && { instagram }),
-        ...(facebook !== undefined && { facebook }),
-
-        ...(bio !== undefined && { bio }),
-        ...(nit !== undefined && { nit }),
-        ...(city !== undefined && { city }),
-        ...(latitude !== undefined && { latitude }),
-        ...(longitude !== undefined && { longitude }),
-        ...(serviceRadiusKm !== undefined && { serviceRadiusKm }),
-        ...(isActive !== undefined && { isActive }),
-        ...(customReferralRate !== undefined && { customReferralRate: customReferralRate === '' || customReferralRate == null ? null : parseFloat(customReferralRate) }),
-      },
+      data: updateData,
       select: { 
         id: true, 
         name: true, 
@@ -129,6 +162,7 @@ export async function PATCH(req: NextRequest) {
         email: true, 
         role: true, 
         businessName: true,
+        slug: true,
         phone: true,
         whatsapp: true,
         instagram: true,
