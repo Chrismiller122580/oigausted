@@ -146,11 +146,14 @@ export default function SellerGigsManagement() {
             <h1 className="text-5xl font-bold tracking-tight text-foreground">Mis Servicios</h1>
             <p className="text-xl text-muted-foreground mt-2">Gestiona, pausa o edita tus gigs</p>
           </div>
-          <Link href="/create-gig">
-            <Button className="bg-orange-600 hover:bg-orange-700 text-lg px-8 py-6 rounded-2xl flex items-center gap-3">
-              <Plus size={22} /> Crear Nuevo Servicio
-            </Button>
-          </Link>
+          {/* Center the CTA on mobile so it aligns nicely with the gig tiles below */}
+          <div className="flex justify-center md:justify-end">
+            <Link href="/create-gig">
+              <Button className="bg-orange-600 hover:bg-orange-700 text-lg px-8 py-6 rounded-2xl flex items-center gap-3">
+                <Plus size={22} /> Crear Nuevo Servicio
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Summary Stats */}

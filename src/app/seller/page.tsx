@@ -64,7 +64,7 @@ export default function SellerDashboard() {
     <div className="bg-background py-8">
       <MapsPollutionNuke />
       <div className="max-w-7xl mx-auto px-6">
-        <div className="flex justify-between items-end mb-10">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8 md:mb-10">
           <div>
             <h1 className="text-5xl font-bold text-foreground">Mi Dashboard</h1>
             <p className="text-xl text-muted-foreground mt-2">Hola, {session?.user?.name?.split(" ")[0] || 'Vendedor'}</p>
@@ -72,11 +72,14 @@ export default function SellerDashboard() {
               Editar Mi Negocio →
             </Link>
           </div>
-          <Link href="/create-gig">
-            <Button className="bg-orange-600 hover:bg-orange-700 text-lg px-8 py-6 rounded-2xl flex items-center gap-3">
-              <Plus size={24} /> Crear Nuevo Gig
-            </Button>
-          </Link>
+          {/* Center the CTA on mobile so it aligns with the stacked stat tiles */}
+          <div className="flex justify-center md:justify-end">
+            <Link href="/create-gig">
+              <Button className="bg-orange-600 hover:bg-orange-700 text-lg px-8 py-6 rounded-2xl flex items-center gap-3">
+                <Plus size={24} /> Crear Nuevo Gig
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Stats */}
