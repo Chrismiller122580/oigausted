@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock, Tag, BarChart3, MessageCircle } from 'lucide-react';
+import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock, Tag, BarChart3, MessageCircle, Megaphone } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -208,6 +208,17 @@ export default function AdminDashboard() {
                 <div>
                   <div className="font-semibold">Settings & Config</div>
                   <div className="text-sm text-muted-foreground">Commissions, maintenance, branding</div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/admin/marketing">
+            <Card className="bg-card border-border hover:border-accent transition cursor-pointer h-full">
+              <CardContent className="p-6 flex items-center gap-4">
+                <Megaphone className="h-8 w-8 text-orange-400" />
+                <div>
+                  <div className="font-semibold">Marketing</div>
+                  <div className="text-sm text-muted-foreground">Broadcasts, promos, system updates</div>
                 </div>
               </CardContent>
             </Card>

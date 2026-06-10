@@ -39,6 +39,7 @@ export async function GET() {
             paymentAlerts: true,
             messageAlerts: true,
             systemAlerts: true,
+            marketingEmails: true,
             desktopNotifications: true,
             soundEnabled: true,
             quietHoursEnabled: false,
@@ -47,7 +48,7 @@ export async function GET() {
             digestEnabled: false,
             digestFrequency: "daily",
             maxNotificationsPerHour: 8,
-          }
+          } as any
         });
       } catch (createErr) {
         console.warn('Prefs create failed (schema?), returning safe defaults:', createErr);
@@ -64,6 +65,7 @@ export async function GET() {
           paymentAlerts: true,
           messageAlerts: true,
           systemAlerts: true,
+          marketingEmails: true,
           desktopNotifications: true,
           soundEnabled: true,
           quietHoursEnabled: false,
@@ -120,6 +122,7 @@ export async function PUT(req: NextRequest) {
     try {
       updated = await prisma.notificationPreference.upsert({
         where: { userId },
+        // @ts-ignore - marketingEmails column is new in this change
         update: {
           inAppEnabled: body.inAppEnabled ?? undefined,
           emailEnabled: body.emailEnabled ?? undefined,
@@ -131,6 +134,8 @@ export async function PUT(req: NextRequest) {
           paymentAlerts: body.paymentAlerts ?? undefined,
           messageAlerts: body.messageAlerts ?? undefined,
           systemAlerts: body.systemAlerts ?? undefined,
+          // @ts-ignore new field
+          marketingEmails: body.marketingEmails ?? undefined,
           desktopNotifications: body.desktopNotifications ?? undefined,
           soundEnabled: body.soundEnabled ?? undefined,
           quietHoursEnabled: body.quietHoursEnabled ?? undefined,
@@ -140,6 +145,7 @@ export async function PUT(req: NextRequest) {
           digestFrequency: body.digestFrequency ?? undefined,
           maxNotificationsPerHour: body.maxNotificationsPerHour ?? undefined,
         },
+        // @ts-ignore - marketingEmails new field
         create: {
           userId,
           inAppEnabled: body.inAppEnabled ?? true,
@@ -152,6 +158,8 @@ export async function PUT(req: NextRequest) {
           paymentAlerts: body.paymentAlerts ?? true,
           messageAlerts: body.messageAlerts ?? true,
           systemAlerts: body.systemAlerts ?? true,
+          // @ts-ignore new field
+          marketingEmails: body.marketingEmails ?? true,
           desktopNotifications: body.desktopNotifications ?? true,
           soundEnabled: body.soundEnabled ?? true,
           quietHoursEnabled: body.quietHoursEnabled ?? false,
@@ -177,6 +185,7 @@ export async function PUT(req: NextRequest) {
         paymentAlerts: body.paymentAlerts ?? true,
         messageAlerts: body.messageAlerts ?? true,
         systemAlerts: body.systemAlerts ?? true,
+        marketingEmails: body.marketingEmails ?? true,
         desktopNotifications: body.desktopNotifications ?? true,
         soundEnabled: body.soundEnabled ?? true,
         quietHoursEnabled: body.quietHoursEnabled ?? false,
@@ -204,6 +213,7 @@ export async function PUT(req: NextRequest) {
       emailEnabled: body.emailEnabled ?? true,
       smsEnabled: body.smsEnabled ?? false,
       pushEnabled: body.pushEnabled ?? true,
+      marketingEmails: body.marketingEmails ?? true,
     });
   }
 }

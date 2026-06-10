@@ -21,6 +21,7 @@ interface Preferences {
   paymentAlerts: boolean;
   messageAlerts: boolean;
   systemAlerts: boolean;
+  marketingEmails: boolean;
   desktopNotifications: boolean;
   soundEnabled: boolean;
 
@@ -45,6 +46,7 @@ export default function NotificationPreferences() {
     paymentAlerts: true,
     messageAlerts: true,
     systemAlerts: true,
+    marketingEmails: true,
     desktopNotifications: true,
     soundEnabled: true,
     quietHoursEnabled: false,
@@ -78,6 +80,7 @@ export default function NotificationPreferences() {
             paymentAlerts: data.paymentAlerts ?? true,
             messageAlerts: data.messageAlerts ?? true,
             systemAlerts: data.systemAlerts ?? true,
+            marketingEmails: data.marketingEmails ?? true,
             desktopNotifications: data.desktopNotifications ?? true,
             soundEnabled: data.soundEnabled ?? true,
             quietHoursEnabled: data.quietHoursEnabled ?? false,
@@ -307,6 +310,18 @@ export default function NotificationPreferences() {
               type="checkbox" 
               checked={prefs.systemAlerts} 
               onChange={() => handleToggle('systemAlerts')}
+              className="w-5 h-5 accent-orange-600"
+            />
+          </div>
+          <div className="flex items-center justify-between pt-1 border-t border-border/60">
+            <div>
+              <div>Correos de marketing y actualizaciones</div>
+              <div className="text-[11px] text-muted-foreground -mt-0.5">Promociones, novedades de la plataforma y anuncios importantes</div>
+            </div>
+            <input 
+              type="checkbox" 
+              checked={prefs.marketingEmails} 
+              onChange={() => handleToggle('marketingEmails')}
               className="w-5 h-5 accent-orange-600"
             />
           </div>

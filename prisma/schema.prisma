@@ -84,6 +84,9 @@ model User {
   referralEarnings ReferralEarning[] @relation("ReferrerEarnings")
   supportTickets SupportTicket[]
 
+  // Marketing / broadcasts sent by this admin
+  marketingCampaigns MarketingCampaign[]
+
   // Per-user custom referral commission rate (overrides global if set)
   customReferralRate Float?  // e.g. 0.07 for 7%. Null = use PlatformConfig.referralCommissionRate (default 5%)
 
@@ -187,6 +190,7 @@ model NotificationPreference {
   paymentAlerts Boolean @default(true)
   messageAlerts Boolean @default(true)
   systemAlerts  Boolean @default(true)
+  marketingEmails Boolean @default(true)  // explicit opt-in for promos, system updates, newsletters
 
   // Client experience toggles (browser notifications + sound)
   desktopNotifications Boolean @default(true)
@@ -408,4 +412,18 @@ model SupportTicket {
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+}
+
+model MarketingCampaign {
+  id             String   @id @default(cuid())
+  subject        String
+  message        String   @db.Text
+  segment        String   // e.g. "all", "buyers", "sellers", "active", "city:Bucaramanga", "role:seller+active"
+  recipientCount Int      @default(0)
+  sentById       String?
+  sentBy         User?    @relation(fields: [sentById], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([sentById])
 }

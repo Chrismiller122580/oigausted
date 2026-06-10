@@ -77,12 +77,13 @@ export async function sendNotification(payload: NotificationPayload) {
 
   // Granular checks per category
   const categoryEnabled = 
-    category === 'order'   ? (prefs?.orderUpdates  !== false) :
-    category === 'gig'     ? (prefs?.gigUpdates    !== false) :
-    category === 'review'  ? (prefs?.reviewAlerts  !== false) :
-    category === 'payment' ? (prefs?.paymentAlerts !== false) :
-    category === 'message' ? (prefs?.messageAlerts !== false) :
-    category === 'system'  ? (prefs?.systemAlerts  !== false) : true;
+    category === 'order'     ? (prefs?.orderUpdates  !== false) :
+    category === 'gig'       ? (prefs?.gigUpdates    !== false) :
+    category === 'review'    ? (prefs?.reviewAlerts  !== false) :
+    category === 'payment'   ? (prefs?.paymentAlerts !== false) :
+    category === 'message'   ? (prefs?.messageAlerts !== false) :
+    category === 'system'    ? (prefs?.systemAlerts  !== false) :
+    category === 'marketing' ? (prefs?.marketingEmails !== false) : true;
 
   if (!categoryEnabled) {
     return { success: true, skipped: 'disabled by user preference' };
@@ -342,8 +343,13 @@ export const notifications = {
     return sendNotification({ userId, category, type: 'in_app', title, message, link, data });
   },
 
-  async sendEmail(userId: string, title: string, message: string, link?: string, data?: any) {
-    return sendNotification({ userId, category: 'system', type: 'email', title, message, link, data });
+  async sendEmail(userId: string, title: string, message: string, link?: string, dataOrOptions?: any) {
+    // Support legacy data + new { category, priority, data } style from marketing broadcasts
+    const opts = dataOrOptions || {};
+    const category = opts.category || (opts.data ? 'system' : 'system');
+    const priority = opts.priority || undefined;
+    const data = opts.data || (opts.category || opts.priority ? undefined : opts);
+    return sendNotification({ userId, category, type: 'email', title, message, link, data, priority });
   },
 
   async sendSMS(userId: string, message: string) {
