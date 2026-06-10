@@ -163,8 +163,11 @@ export async function PATCH(
     // Exclude sellerPayoutAt from main updateData for defensive update (column may be missing in prod DB)
     if (updateData.sellerPayoutAt !== undefined) delete updateData.sellerPayoutAt;
 
-    // Wrap core order status + audit + referral create + cancel earnings in tx for data integrity
-    const updatedOrder = await prisma.$transaction(async (tx) => {
+    let updatedOrder;
+
+    if (Object.keys(updateData).length > 0 || status !== undefined || price !== undefined || customFields !== undefined || serviceAddress !== undefined || serviceLatitude !== undefined || serviceLongitude !== undefined) {
+      // Wrap core order status + audit + referral create + cancel earnings in tx for data integrity
+      updatedOrder = await prisma.$transaction(async (tx) => {
       const u = await tx.order.update({
         where: { id: orderId },
         data: updateData,
@@ -238,6 +241,25 @@ export async function PATCH(
 
       return u;
     })
+    } else {
+      // No main update fields (e.g. only sellerPayoutAt from admin payouts page) - fetch current for response
+      updatedOrder = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+          gig: true,
+          buyer: { select: { id: true, name: true, email: true } },
+          seller: { 
+            select: { 
+              id: true, 
+              name: true,
+              businessName: true,
+              email: true,
+              referredById: true 
+            } 
+          }
+        }
+      });
+    }
 
     // Best-effort update for sellerPayoutAt (separate to avoid breaking the tx if column missing in prod DB)
     if (sellerPayoutAtUpdate !== undefined) {
