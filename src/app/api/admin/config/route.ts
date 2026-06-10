@@ -112,6 +112,12 @@ export async function GET() {
         publicKeyPreview: wompiPublicPreview,
         hasIntegrityKey: !!wompiIntegrity,
         hasEventsKey: !!wompiEvents,
+        hasPrivateKey: !!process.env.WOMPI_PRIVATE_KEY, // for full API / third-party payouts if used
+      },
+      sftp: {
+        enabled: (config as any).wompiSftpEnabled ?? false,
+        configured: !!(config as any).wompiSftpHost && !!(config as any).wompiSftpUsername,
+        host: (config as any).wompiSftpHost || null,
       },
       appUrl: process.env.NEXT_PUBLIC_APP_URL || null,
     };

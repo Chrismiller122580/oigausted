@@ -670,10 +670,35 @@ export default function AdminSettings() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
+            <div className="rounded-2xl border border-border bg-background p-4">
+              <div className="text-muted-foreground text-xs mb-1">Private Key (API)</div>
+              <div className={payment?.wompi?.hasPrivateKey ? 'text-emerald-400' : 'text-amber-400'}>
+                {payment?.wompi?.hasPrivateKey ? '✓ Presente (WOMPI_PRIVATE_KEY)' : 'Opcional (para API de pagos a terceros)'}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-border bg-background p-4">
+              <div className="text-muted-foreground text-xs mb-1">SFTP Reports</div>
+              <div className={payment?.sftp?.configured ? 'text-emerald-400' : payment?.sftp?.enabled ? 'text-yellow-400' : 'text-muted-foreground'}>
+                {payment?.sftp?.configured ? '✓ Configurado' : payment?.sftp?.enabled ? 'Activado (credenciales incompletas)' : 'Desactivado'}
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-1">{payment?.sftp?.host || 'No host'}</div>
+            </div>
+            <div className="rounded-2xl border border-border bg-background p-4">
+              <div className="text-muted-foreground text-xs mb-1">Support Tools</div>
+              <div className="text-[10px] space-y-1">
+                <a href="/admin/payouts" className="text-orange-400 hover:underline block">→ Payouts Debugger (local marks + force check)</a>
+                <a href="/admin/audit?search=PAYMENT" className="text-orange-400 hover:underline block">→ Recent Payment Audit Logs</a>
+                <span className="text-muted-foreground">Webhook: https://oigagig.com/api/webhooks/wompi</span>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-4 text-xs text-muted-foreground flex items-center gap-2">
             <span>Configura las variables en Vercel / .env para producción:</span>
             <code className="font-mono bg-muted px-1.5 py-0.5 rounded">NEXT_PUBLIC_WOMPI_PUBLIC_KEY</code>
             <code className="font-mono bg-muted px-1.5 py-0.5 rounded">WOMPI_INTEGRITY_KEY</code>
+            <code className="font-mono bg-muted px-1.5 py-0.5 rounded">WOMPI_EVENTS_KEY</code>
           </div>
 
           {/* === Smart Wompi Setup Checklist (no-bypass real flow) === */}
@@ -689,6 +714,7 @@ export default function AdminSettings() {
               <li>El checkout en /checkout/[gigId] guardará campos dinámicos + ubicación antes de abrir Wompi</li>
               <li>La confirmación real llega solo por webhook (no por redirect del cliente)</li>
               <li>En producción: desactiva el botón de simulación (solo visible en dev)</li>
+              <li>(Opcional para reconciliación) Configura SFTP en la sección de abajo y usa Sync para reports de settlement/payouts</li>
             </ol>
             <p className="text-[10px] text-emerald-400 mt-2">
               Con todo esto activado, el flujo completo (campos inteligentes + precio final + Wompi widget + webhook) funciona sin bypass.
