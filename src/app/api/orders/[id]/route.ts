@@ -273,12 +273,16 @@ export async function PATCH(
       }
     }
 
+    if (!updatedOrder) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
     // Note: sendNotification / notif calls (prefs, quiet, rate, email via Resend) are intentionally outside tx (side effects).
     // Core domain (order + referral) is protected in tx. In-app notif creation is best-effort after for now.
     // (Full durable notif-in-tx would require refactoring the notifications lib to support tx context.)
 
     // Send notifications on important status changes
-    if (status && updatedOrder) {
+    if (status) {
       const recipientId = status === 'In Progress' || status === 'Completed' 
         ? updatedOrder.buyerId 
         : updatedOrder.sellerId
