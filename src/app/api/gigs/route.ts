@@ -16,11 +16,12 @@ export async function GET() {
     });
 
     // Attach seller info defensively (some old rows may have dangling sellerId)
-    const sellerIds = [...new Set(gigs.map(g => g.sellerId))];
+    const sellerIds = [...new Set(gigs.map(g => g.sellerId).filter((id): id is string => !!id))];
     const sellers = await prisma.user.findMany({
       where: { id: { in: sellerIds } },
       select: { 
-        id: true, name: true, email: true, businessName: true, slug: true,
+        id: true, name: true, email: true, businessName: true, 
+        // slug omitted temporarily due to prod DB schema drift (add via migration)
         profilePicture: true, rating: true, reviewCount: true,
         latitude: true, longitude: true, serviceRadiusKm: true, city: true
       }

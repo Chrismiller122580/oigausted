@@ -163,7 +163,24 @@ export async function GET(request: Request) {
 
     const orders = await prisma.order.findMany({
       where,
-      include: {
+      // Explicit select to avoid selecting columns that may be missing in prod DB (e.g. sellerPayoutAt)
+      // until migration is applied. Include relations as before.
+      select: {
+        id: true,
+        price: true,
+        status: true,
+        progress: true,
+        trackingNumber: true,
+        createdAt: true,
+        updatedAt: true,
+        buyerId: true,
+        sellerId: true,
+        gigId: true,
+        customFields: true,
+        // sellerPayoutAt omitted (missing in current prod DB)
+        serviceLatitude: true,
+        serviceLongitude: true,
+        serviceAddress: true,
         gig: { select: { title: true, imageUrl: true } },
         buyer: { select: { id: true, name: true, email: true } },
         seller: { select: { id: true, name: true, businessName: true, referredById: true } }
@@ -171,9 +188,13 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' }
     });
 
-    return NextResponse.json(orders);
+    return NextResponse.json(orders);  // Note: sellerPayoutAt may be missing from objects until DB migration applied.
   } catch (error: any) {
     devLog('Orders fetch error:', error);
-    return NextResponse.json({ error: 'Error cargando órdenes' }, { status: 500 });
+    // Include more detail in dev, generic in prod response
+    return NextResponse.json({ 
+      error: 'Error cargando órdenes',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    }, { status: 500 });
   }
 }

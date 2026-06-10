@@ -7,17 +7,26 @@ import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { NotificationsBell } from './NotificationsBell';
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import MobileMenu from './MobileMenu';
 import MobileBottomNav from './MobileBottomNav';
 import Logo from '@/components/common/Logo';
 
 export default function BuyerNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
+  const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     setIsMobileMenuOpen(false);
     await signOut({ callbackUrl: '/' });
+  };
+
+  const isActive = (path: string) => {
+    if (path === '/buyer') {
+      return pathname === '/buyer' || pathname.startsWith('/buyer/');
+    }
+    return pathname === path || pathname.startsWith(path + '/');
   };
 
   return (
@@ -30,13 +39,22 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8 font-medium">
-              <Link href="/gigs" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
+              <Link 
+                href="/gigs" 
+                className={`flex items-center gap-2 transition ${isActive('/gigs') ? 'text-foreground font-semibold border-b-2 border-orange-600 pb-1' : 'text-muted-foreground hover:text-foreground'}`}
+              >
                 <Search size={18} /> Explorar Gigs
               </Link>
-              <Link href="/buyer" className="flex items-center gap-2 text-orange-600 font-semibold border-b-2 border-orange-600 pb-1">
+              <Link 
+                href="/buyer" 
+                className={`flex items-center gap-2 transition ${isActive('/buyer') ? 'text-foreground font-semibold border-b-2 border-orange-600 pb-1' : 'text-muted-foreground hover:text-foreground'}`}
+              >
                 <Home size={18} /> Dashboard
               </Link>
-              <Link href="/orders" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
+              <Link 
+                href="/orders" 
+                className={`flex items-center gap-2 transition ${isActive('/orders') ? 'text-foreground font-semibold border-b-2 border-orange-600 pb-1' : 'text-muted-foreground hover:text-foreground'}`}
+              >
                 <Package size={18} /> Mis Pedidos
               </Link>
             </div>
