@@ -43,15 +43,27 @@ export function NotificationsBell() {
   const seenIdsRef = useRef<Set<string>>(new Set());
   const prevUnreadRef = useRef(0);
 
-  // Sync with realtime hook
+  // Sync with realtime hook (count + merge recent without clobbering read status from fetches)
   useEffect(() => {
     if (realtimeNotifs.length > 0) {
-      const mapped = realtimeNotifs.map(n => ({
-        ...n,
-        read: false,
-      })) as AppNotification[];
-      setNotifications(mapped);
       setUnreadCount(realtimeUnread);
+
+      // Merge: prefer existing list's read status for known ids; treat pure realtime arrivals as unread
+      setNotifications(prev => {
+        const byId = new Map(prev.map(n => [n.id, n]));
+        const merged = realtimeNotifs.map((n: any) => {
+          const existing = byId.get(n.id);
+          return {
+            ...n,
+            read: existing ? existing.read : (n.read ?? false),
+          } as AppNotification;
+        });
+        // Keep some older fetched items if realtime only has the very newest
+        const realtimeIds = new Set(realtimeNotifs.map((n: any) => n.id));
+        const older = prev.filter(p => !realtimeIds.has(p.id)).slice(0, 5);
+        return [...merged, ...older].slice(0, 10);
+      });
+
       setLoading(false);
     }
   }, [realtimeNotifs, realtimeUnread]);
@@ -173,15 +185,28 @@ export function NotificationsBell() {
 
   const markAsRead = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
+
+    // Optimistic update for instant badge/list feedback
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+
     try {
       await fetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
+      // Refresh both local authoritative fetch and the realtime hook state
       fetchNotifications();
+      refresh?.();
     } catch (err) {
-      // ignore
+      // Revert optimistic on failure (simple: re-fetch)
+      fetchNotifications();
+      refresh?.();
     }
   };
 
   const markAllAsRead = async () => {
+    // Optimistic
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setUnreadCount(0);
+
     try {
       await fetch('/api/notifications', {
         method: 'PATCH',
@@ -189,8 +214,10 @@ export function NotificationsBell() {
         body: JSON.stringify({ markAllAsRead: true }),
       });
       fetchNotifications();
+      refresh?.();
     } catch (err) {
-      // ignore
+      fetchNotifications();
+      refresh?.();
     }
   };
 

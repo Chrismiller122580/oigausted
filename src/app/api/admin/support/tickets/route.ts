@@ -112,6 +112,32 @@ export async function PATCH(request: NextRequest) {
         '/support',
         { ticketId: updated.id, status: updated.status }
       );
+
+      // When resolving/closing, mark the user's older support-related notifications as read.
+      // This stops the bell from continuing to show unread for the original "ticket received" notif(s).
+      // The fresh "resuelto" notification above remains the actionable unread item.
+      if (status === 'resolved' || status === 'closed') {
+        await prisma.notification.updateMany({
+          where: {
+            userId: updated.userId,
+            read: false,
+            NOT: {
+              OR: [
+                { title: { contains: 'resuelto' } },
+                { title: { contains: 'resolv' } },
+              ],
+            },
+            OR: [
+              { link: { contains: ticketId } },
+              { link: { contains: '/support' } },
+            ],
+          },
+          data: {
+            read: true,
+            readAt: new Date(),
+          },
+        }).catch(() => {});
+      }
     } catch (notifErr) {
       console.error('Failed to notify user of ticket update:', notifErr);
     }

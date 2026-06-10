@@ -63,6 +63,33 @@ function OrderDetailClient() {
       }
 
       setLoading(false);
+
+      // Auto-mark any unread notifications related to this order (message / order updates)
+      // so the bell stops ringing for conversations the user has now opened/read.
+      // Runs once per order load (best-effort, non-blocking).
+      (async () => {
+        try {
+          const notifRes = await fetch('/api/notifications?limit=30');
+          if (!notifRes.ok) return;
+          const notifData = await notifRes.json();
+          const related = (notifData.notifications || []).filter((n: any) =>
+            !n.read &&
+            (n.link?.includes(orderId) || n.link?.includes(`/orders/${orderId}`))
+          );
+          if (related.length > 0) {
+            const ids = related.map((n: any) => n.id);
+            await fetch('/api/notifications', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ids }),
+            }).catch(() => {});
+            // Nudge bell
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('notifications:read-updated'));
+            }
+          }
+        } catch {}
+      })();
     }).catch(() => setLoading(false));
   }, [orderId, searchParams]);
 

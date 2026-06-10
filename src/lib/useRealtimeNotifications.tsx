@@ -368,7 +368,7 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
     };
   }, [connectSSE, startPollingFallback, isAuthed]);
 
-  // Manual refresh
+  // Manual refresh (authoritative from DB)
   const refresh = useCallback(async () => {
     try {
       const res = await fetch('/api/notifications?limit=20');
@@ -380,6 +380,23 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
       }
     } catch {}
   }, []);
+
+  // Listen for external "notifications were marked read" events (from full /notifications page or other contexts)
+  // This lets marks done outside the bell immediately correct the bell badge / hook state.
+  useEffect(() => {
+    const handler = () => {
+      // Pull fresh count + recent list without waiting for the 30s poll
+      refresh();
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('notifications:read-updated', handler);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('notifications:read-updated', handler);
+      }
+    };
+  }, [refresh]);
 
   return {
     notifications,

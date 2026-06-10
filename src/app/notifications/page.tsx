@@ -45,15 +45,27 @@ export default function NotificationsPage() {
   }, [session]);
 
   const markAsRead = async (id: string) => {
+    // Optimistic for this page
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+
     try {
       await fetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
       fetchNotifications();
+      // Nudge any bell/realtime listeners (they have their own polls + will correct on next open)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('notifications:read-updated'));
+      }
     } catch (e) {
       toast.error('Error marking as read');
+      fetchNotifications(); // revert on error
     }
   };
 
   const markAllAsRead = async () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setUnreadCount(0);
+
     try {
       await fetch('/api/notifications', {
         method: 'PATCH',
@@ -62,8 +74,12 @@ export default function NotificationsPage() {
       });
       fetchNotifications();
       toast.success('Todas marcadas como leídas');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('notifications:read-updated'));
+      }
     } catch (e) {
       toast.error('Error');
+      fetchNotifications();
     }
   };
 
