@@ -148,11 +148,21 @@ export async function POST(req: NextRequest) {
       };
     }
 
+    devLog('[Wompi][Prepare] Checkout data prepared for widget', {
+      orderId: order.id,
+      reference,
+      amountInCents,
+      hasIntegrity: !!integritySignature,
+      realPaymentsEnabled,
+      redirectUrl: checkoutData.redirectUrl,
+    });
+
     return NextResponse.json({
       success: true,
       checkoutData,
       reference,
       hasIntegritySignature: !!integritySignature,
+      debug: process.env.NODE_ENV !== 'production' ? { amountInCents, reference, publicKeyPrefix: WOMPI_PUBLIC_KEY?.slice(0, 8) } : undefined,
     });
 
   } catch (error: any) {

@@ -323,12 +323,17 @@ function OrderDetailClient() {
       </div>
 
       {/* Payment in progress banner - smart UX for real Wompi flow (no bypass) */}
-      {order.status === 'Pending' && isPollingPayment && (
-        <div className="mb-6 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-sm flex items-center gap-3">
-          <div className="animate-pulse w-2 h-2 bg-blue-500 rounded-full" />
-          <div>
-            <strong>Esperando confirmación de Wompi...</strong> 
-            <span className="text-muted-foreground"> (el webhook actualizará el estado automáticamente en unos segundos)</span>
+      {order.status === 'Pending' && (
+        <div className="mb-6 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-sm">
+          <div className="flex items-center gap-3">
+            {isPollingPayment && <div className="animate-pulse w-2 h-2 bg-blue-500 rounded-full" />}
+            <div>
+              <strong>Esperando confirmación de pago de Wompi</strong>
+              <span className="text-muted-foreground"> — el webhook de Wompi + polling cada 4s actualizan el estado.</span>
+            </div>
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-1">
+            Reference en Wompi: <span className="font-mono font-medium">order_{order.id}</span>. Revisa el panel de debugger abajo para más detalles y forzar chequeo.
           </div>
         </div>
       )}
@@ -464,6 +469,8 @@ function OrderDetailClient() {
                     onClick={async () => {
                       try {
                         // Prepare Wompi config (amount, reference, signature etc. from server)
+                        console.log('[Wompi][Client] Preparing payment for order', { orderId: order.id, currentStatus: order.status });
+
                         const res = await fetch('/api/checkout/wompi', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
@@ -473,6 +480,13 @@ function OrderDetailClient() {
                         if (data.error) throw new Error(data.error);
 
                         const checkoutData = data.checkoutData;
+
+                        console.log('[Wompi][Client] Received checkoutData from server', {
+                          reference: checkoutData?.reference,
+                          amountInCents: checkoutData?.amountInCents,
+                          hasSignature: !!checkoutData?.signature?.integrity,
+                          debug: data.debug,
+                        });
 
                         // Dynamically load Wompi widget if not present (so it works from orders page too)
                         if (!window.WompiCheckout) {
@@ -498,6 +512,7 @@ function OrderDetailClient() {
                           if (checkoutData.signature?.integrity) {
                             widgetConfig.signature = { integrity: checkoutData.signature.integrity };
                           }
+                          console.log('[Wompi][Client] Opening Wompi widget', { reference: checkoutData.reference });
                           const checkout = new window.WompiCheckout(widgetConfig);
                           checkout.open();
                         } else {
@@ -511,6 +526,68 @@ function OrderDetailClient() {
                   >
                     💳 Pagar ahora con Wompi
                   </Button>
+                )}
+
+                {/* === Wompi Transaction Debugger ===
+                    Helps see exactly what reference is being sent and forces a status refresh.
+                    Visible to the buyer when payment is still pending (and always to admins).
+                    This is the main tool for "what is happening to the transaction?"
+                */}
+                {(isBuyer || isAdmin) && order.status === 'Pending' && (
+                  <div className="mt-4 p-3 border border-blue-300 bg-blue-50 dark:bg-blue-950/30 rounded-xl text-xs">
+                    <div className="font-semibold text-blue-800 dark:text-blue-300 mb-1 flex items-center gap-1">
+                      🔧 Wompi Debugger
+                    </div>
+                    <div className="font-mono space-y-0.5 text-[10px] text-blue-700 dark:text-blue-400">
+                      <div>Reference: <span className="font-bold">order_{order.id}</span></div>
+                      <div>DB Status: <span className="font-bold">{order.status}</span></div>
+                      <div>Polling: {isPollingPayment ? 'ACTIVE (every 4s)' : 'stopped'}</div>
+                      <div>Last DB update: {new Date(order.updatedAt).toLocaleTimeString('es-CO')}</div>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-xs h-7"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`/api/orders/${orderId}`);
+                            if (res.ok) {
+                              const fresh = await res.json();
+                              const updated = fresh.order || fresh;
+                              setOrder(updated);
+                              if (updated.status === 'Pending') {
+                                startPaymentPolling();
+                              } else {
+                                setIsPollingPayment(false);
+                              }
+                              toast.info('Estado refrescado desde servidor + polling reiniciado');
+                            }
+                          } catch {
+                            toast.error('No se pudo refrescar');
+                          }
+                        }}
+                      >
+                        Forzar chequeo ahora
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="text-xs h-7"
+                        onClick={() => {
+                          const ref = `order_${order.id}`;
+                          navigator.clipboard?.writeText(ref);
+                          toast.success('Referencia copiada: ' + ref);
+                        }}
+                      >
+                        Copiar referencia
+                      </Button>
+                    </div>
+                    <p className="mt-2 text-[9px] text-blue-600/80 dark:text-blue-400/80 leading-tight">
+                      Si Wompi muestra el pago como APPROVED pero aquí sigue Pending: el webhook probablemente falló (revisa logs de Vercel con "[Wompi][Webhook]"). 
+                      El reference exacto que debe aparecer en Wompi dashboard es <span className="font-mono">order_{order.id}</span>.
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </Card>

@@ -75,7 +75,18 @@ export async function POST(request: Request) {
     const event = body.event
     const transaction = body.data.transaction
 
-    devLog(`[Wompi] Valid webhook received: ${event} - Status: ${transaction.status} | Reference: ${transaction.reference} | Amount: ${transaction.amount_in_cents}`)
+    devLog(`[Wompi][Webhook] Valid event received`, {
+      event,
+      status: transaction.status,
+      reference: transaction.reference,
+      wompiTransactionId: transaction.id,
+      amount_in_cents: transaction.amount_in_cents,
+      currency: transaction.currency,
+      customer_email: transaction.customer_email,
+      created_at: transaction.created_at,
+      finalized_at: transaction.finalized_at,
+      fullTransactionKeys: Object.keys(transaction || {}),
+    })
 
     // Handle different transaction statuses
     if (event === 'transaction.updated') {
