@@ -15,7 +15,8 @@ export async function createReferralEarningIfApplicable(order: any) {
   // Master gate from admin settings
   try {
     const { prisma: prismaClient } = await import('@/lib/prisma');
-    const cfg = await prismaClient.platformConfig.findUnique({ where: { id: 'singleton' } });
+    const { getPlatformConfig } = await import('@/lib/prisma');
+    const cfg = await getPlatformConfig();
     if (cfg && (cfg as any).referralsEnabled === false) {
       return; // Referrals globally paused by admin
     }

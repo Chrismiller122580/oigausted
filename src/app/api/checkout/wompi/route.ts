@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, getPlatformConfig } from '@/lib/prisma';
 import crypto from 'crypto';
 import { devLog } from '@/lib/utils';
 
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Respect admin toggle for real payments
-    const platformConfig = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } });
+    const platformConfig = await getPlatformConfig();
     const realPaymentsEnabled = (platformConfig as any)?.wompiRealPaymentsEnabled ?? false;
 
     if (!realPaymentsEnabled) {

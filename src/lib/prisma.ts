@@ -35,7 +35,34 @@ export async function getPlatformConfig() {
   }
 
   try {
-    const config = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } })
+    // Explicit select omitting new columns (wompiSftp*) to avoid "column does not exist" on prod DBs behind on migrations.
+    const config = await prisma.platformConfig.findUnique({
+      where: { id: 'singleton' },
+      select: {
+        id: true,
+        commissionRate: true,
+        referralCommissionRate: true,
+        minPayoutAmount: true,
+        supportEmail: true,
+        supportPhone: true,
+        enableReviews: true,
+        enableChat: true,
+        maintenanceMode: true,
+        maintenanceMessage: true,
+        referralsEnabled: true,
+        allowNewSignups: true,
+        maxUploadSizeMB: true,
+        siteName: true,
+        siteTagline: true,
+        logoUrl: true,
+        globalPushNotificationsEnabled: true,
+        globalEmailNotificationsEnabled: true,
+        maintenanceBypassIps: true,
+        wompiRealPaymentsEnabled: true,
+        // wompiSftp* fields intentionally omitted for prod DB compatibility
+        updatedAt: true,
+      }
+    })
     if (config) {
       cachedPlatformConfig = config
       cacheTimestamp = now
@@ -43,6 +70,7 @@ export async function getPlatformConfig() {
     }
   } catch (e) {
     // fall through to defaults
+    devLog('PlatformConfig findUnique failed (possible missing columns like wompiSftpEnabled), using defaults')
   }
 
   // Defensive defaults (same as in the config route)
@@ -67,6 +95,14 @@ export async function getPlatformConfig() {
     globalEmailNotificationsEnabled: true,
     maintenanceBypassIps: '',
     wompiRealPaymentsEnabled: false,
+    // SFTP fields default to disabled/empty until column exists and configured
+    wompiSftpEnabled: false,
+    wompiSftpHost: null,
+    wompiSftpPort: 22,
+    wompiSftpUsername: null,
+    wompiSftpPassword: null,
+    wompiSftpPrivateKey: null,
+    wompiSftpRemotePath: '/',
     updatedAt: new Date(),
     createdAt: new Date(),
   } as any

@@ -115,7 +115,8 @@ export async function GET(request: Request) {
       select: { id: true, name: true, email: true, customReferralRate: true }
     })
 
-    const config = await prisma.platformConfig.findFirst()
+    const { getPlatformConfig } = await import('@/lib/prisma');
+    const config = await getPlatformConfig()
     const globalRate = config?.referralCommissionRate ?? 0.05
 
     // Count referred users per referrer (only for current page ids)

@@ -104,6 +104,7 @@ export async function getEffectiveReferralRate(referrerId: string): Promise<numb
   }
 
   // Fallback to global config
-  const config = await prisma.platformConfig.findFirst();
+  const { getPlatformConfig } = await import('@/lib/prisma');
+  const config = await getPlatformConfig();
   return config?.referralCommissionRate ?? 0.05;
 }

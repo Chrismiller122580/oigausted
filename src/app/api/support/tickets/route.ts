@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
 
       // Email blast to supportEmail + all admin emails (deduped)
       const { resend } = await import('@/lib/notifications');
-      const config = await prisma.platformConfig.findFirst();
+      const { getPlatformConfig } = await import('@/lib/prisma');
+      const config = await getPlatformConfig();
       const supportEmail = config?.supportEmail || 'support@support.oigagig.com';
       const adminEmails = admins.map(a => a.email).filter(Boolean) as string[];
       const toList = Array.from(new Set([supportEmail, ...adminEmails]));

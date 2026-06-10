@@ -22,19 +22,10 @@ export interface WompiSftpConfig {
 }
 
 export async function getWompiSftpConfig(): Promise<WompiSftpConfig> {
-  // Prefer DB config, fallback to env vars for security in prod
-  const config = await prisma.platformConfig.findUnique({
-    where: { id: 'singleton' },
-    select: {
-      wompiSftpEnabled: true,
-      wompiSftpHost: true,
-      wompiSftpPort: true,
-      wompiSftpUsername: true,
-      wompiSftpPassword: true,
-      wompiSftpPrivateKey: true,
-      wompiSftpRemotePath: true,
-    },
-  }).catch(() => null);
+  // Use the safe getPlatformConfig (which uses explicit select omitting sftp fields if necessary)
+  // then fallback to env. This avoids prisma errors on missing columns.
+  const { getPlatformConfig } = await import('@/lib/prisma');
+  const config = await getPlatformConfig().catch(() => null);
 
   const enabled = config?.wompiSftpEnabled ?? (process.env.WOMPI_SFTP_ENABLED === 'true');
   const host = config?.wompiSftpHost || process.env.WOMPI_SFTP_HOST;

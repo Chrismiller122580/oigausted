@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { devLog } from '@/lib/utils';
 
 export async function GET() {
   try {
@@ -45,7 +46,19 @@ export async function GET() {
 
     const totalRevenue = totalRevenueResult._sum.price || 0;
 
-    const config = await prisma.platformConfig.findFirst();
+    let config: any = null;
+    try {
+      config = await prisma.platformConfig.findFirst({
+        select: {
+          commissionRate: true,
+          referralCommissionRate: true,
+          // other fields if needed; omitting new wompiSftp* to avoid column errors
+        }
+      });
+    } catch (e) {
+      devLog('PlatformConfig find in stats failed (possible missing columns), using defaults');
+      config = { commissionRate: 0.12, referralCommissionRate: 0.05 };
+    }
 
     // Use the canonical payout calculation for accuracy
     const { aggregatePayouts, calculateOrderPayout, DEFAULT_PAYOUT_CONFIG } = await import('@/lib/payout');

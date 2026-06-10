@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma, getPlatformConfig } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
+import { devLog } from '@/lib/utils';
 
 export async function GET() {
   try {
@@ -167,6 +168,7 @@ export async function PUT(request: NextRequest) {
 
     let updated;
     if (existing) {
+      // Base update with stable columns only
       updated = await prisma.platformConfig.update({
         where: { id: existing.id },
         data: {
@@ -194,16 +196,28 @@ export async function PUT(request: NextRequest) {
           maintenanceBypassIps: body.maintenanceBypassIps ?? existing.maintenanceBypassIps ?? '',
           // Wompi real payments master switch
           wompiRealPaymentsEnabled: body.wompiRealPaymentsEnabled ?? existing.wompiRealPaymentsEnabled ?? false,
-          // Wompi SFTP
-          wompiSftpEnabled: body.wompiSftpEnabled ?? existing.wompiSftpEnabled ?? false,
-          wompiSftpHost: body.wompiSftpHost ?? existing.wompiSftpHost,
-          wompiSftpPort: body.wompiSftpPort ?? existing.wompiSftpPort ?? 22,
-          wompiSftpUsername: body.wompiSftpUsername ?? existing.wompiSftpUsername,
-          wompiSftpPassword: body.wompiSftpPassword ?? existing.wompiSftpPassword,
-          wompiSftpPrivateKey: body.wompiSftpPrivateKey ?? existing.wompiSftpPrivateKey,
-          wompiSftpRemotePath: body.wompiSftpRemotePath ?? existing.wompiSftpRemotePath,
         },
       });
+
+      // SFTP fields in separate best-effort update (may fail if columns missing in prod DB)
+      if (body.wompiSftpEnabled !== undefined || body.wompiSftpHost !== undefined || body.wompiSftpUsername !== undefined || body.wompiSftpPassword !== undefined || body.wompiSftpPrivateKey !== undefined || body.wompiSftpRemotePath !== undefined) {
+        try {
+          updated = await prisma.platformConfig.update({
+            where: { id: existing.id },
+            data: {
+              wompiSftpEnabled: body.wompiSftpEnabled ?? existing.wompiSftpEnabled ?? false,
+              wompiSftpHost: body.wompiSftpHost ?? existing.wompiSftpHost,
+              wompiSftpPort: body.wompiSftpPort ?? existing.wompiSftpPort ?? 22,
+              wompiSftpUsername: body.wompiSftpUsername ?? existing.wompiSftpUsername,
+              wompiSftpPassword: body.wompiSftpPassword ?? existing.wompiSftpPassword,
+              wompiSftpPrivateKey: body.wompiSftpPrivateKey ?? existing.wompiSftpPrivateKey,
+              wompiSftpRemotePath: body.wompiSftpRemotePath ?? existing.wompiSftpRemotePath,
+            },
+          });
+        } catch (sftpErr) {
+          devLog('PlatformConfig SFTP fields update skipped (column may be missing in prod DB)', sftpErr);
+        }
+      }
     } else {
       updated = await prisma.platformConfig.create({ data: body });
     }

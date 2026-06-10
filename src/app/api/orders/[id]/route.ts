@@ -156,9 +156,12 @@ export async function PATCH(
       updateData.serviceLongitude = serviceLongitude
     }
 
-    if (body.sellerPayoutAt !== undefined) {
-      updateData.sellerPayoutAt = body.sellerPayoutAt ? new Date(body.sellerPayoutAt) : null
-    }
+    const sellerPayoutAtUpdate = body.sellerPayoutAt !== undefined 
+      ? (body.sellerPayoutAt ? new Date(body.sellerPayoutAt) : null) 
+      : undefined;
+
+    // Exclude sellerPayoutAt from main updateData for defensive update (column may be missing in prod DB)
+    if (updateData.sellerPayoutAt !== undefined) delete updateData.sellerPayoutAt;
 
     // Wrap core order status + audit + referral create + cancel earnings in tx for data integrity
     const updatedOrder = await prisma.$transaction(async (tx) => {
@@ -235,6 +238,18 @@ export async function PATCH(
 
       return u;
     })
+
+    // Best-effort update for sellerPayoutAt (separate to avoid breaking the tx if column missing in prod DB)
+    if (sellerPayoutAtUpdate !== undefined) {
+      try {
+        await prisma.order.update({
+          where: { id: orderId },
+          data: { sellerPayoutAt: sellerPayoutAtUpdate },
+        });
+      } catch (payoutErr) {
+        devLog('sellerPayoutAt update skipped (column may be missing in prod DB)', payoutErr);
+      }
+    }
 
     // Note: sendNotification / notif calls (prefs, quiet, rate, email via Resend) are intentionally outside tx (side effects).
     // Core domain (order + referral) is protected in tx. In-app notif creation is best-effort after for now.

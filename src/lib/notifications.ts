@@ -75,7 +75,8 @@ export async function sendNotification(payload: NotificationPayload) {
   let globalEmailOk = true;
   let globalPushOk = true;
   try {
-    const cfg = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } });
+    const { getPlatformConfig } = await import('@/lib/prisma');
+    const cfg = await getPlatformConfig();
     if (cfg) {
       globalEmailOk = (cfg as any).globalEmailNotificationsEnabled !== false;
       globalPushOk = (cfg as any).globalPushNotificationsEnabled !== false;

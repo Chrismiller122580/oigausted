@@ -15,7 +15,8 @@ export async function GET() {
 
     let config = null;
     try {
-      config = await prisma.platformConfig.findFirst();
+      const { getPlatformConfig } = await import('@/lib/prisma');
+      config = await getPlatformConfig();
     } catch (dbErr) {
       console.error('PlatformConfig query failed in reports (likely missing columns like referralsEnabled). Using defaults.', dbErr);
       config = null;

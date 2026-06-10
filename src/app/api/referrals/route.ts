@@ -65,7 +65,8 @@ export async function GET() {
     })
 
     // Get PlatformConfig for the current rate
-    const config = await prisma.platformConfig.findFirst()
+    const { getPlatformConfig } = await import('@/lib/prisma');
+    const config = await getPlatformConfig()
     const referralRate = config?.referralCommissionRate ?? 0.05
 
     // Basic earnings calculation (placeholder - can be improved later)

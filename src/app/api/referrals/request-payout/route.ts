@@ -25,7 +25,8 @@ export async function POST() {
       return NextResponse.json({ error: 'No hay comisiones pendientes' }, { status: 400 })
     }
 
-    const config = await prisma.platformConfig.findFirst()
+    const { getPlatformConfig } = await import('@/lib/prisma');
+    const config = await getPlatformConfig()
     const minPayout = config?.minPayoutAmount || 50000
 
     if (totalPending < minPayout) {
