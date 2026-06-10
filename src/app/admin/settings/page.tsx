@@ -37,6 +37,12 @@ interface PaymentStatus {
     publicKeyPreview: string | null;
     hasIntegrityKey: boolean;
     hasEventsKey: boolean;
+    hasPrivateKey?: boolean;
+  };
+  sftp?: {
+    enabled?: boolean;
+    configured?: boolean;
+    host?: string | null;
   };
   appUrl: string | null;
 }
@@ -673,8 +679,8 @@ export default function AdminSettings() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
             <div className="rounded-2xl border border-border bg-background p-4">
               <div className="text-muted-foreground text-xs mb-1">Private Key (API)</div>
-              <div className={payment?.wompi?.hasPrivateKey ? 'text-emerald-400' : 'text-amber-400'}>
-                {payment?.wompi?.hasPrivateKey ? '✓ Presente (WOMPI_PRIVATE_KEY)' : 'Opcional (para API de pagos a terceros)'}
+              <div className={(payment?.wompi as any)?.hasPrivateKey ? 'text-emerald-400' : 'text-amber-400'}>
+                {(payment?.wompi as any)?.hasPrivateKey ? '✓ Presente (WOMPI_PRIVATE_KEY)' : 'Opcional (para API de pagos a terceros)'}
               </div>
             </div>
             <div className="rounded-2xl border border-border bg-background p-4">
