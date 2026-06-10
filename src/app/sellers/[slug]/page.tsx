@@ -25,9 +25,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 async function findSellerBySlugOrId(identifier: string) {
   if (!identifier) return null;
 
-  // Fallback: try by id first if it looks like an id (uuid or cuid style)
-  // This avoids querying the 'slug' column if it's missing in prod DB
+  // Detect legacy ID-style access so we can completely avoid touching the 'slug' column
+  // on prod DBs that are behind on migrations. This prevents "column User.slug does not exist"
+  // prisma errors from appearing in Vercel logs for /sellers/<uuid> links.
   const looksLikeId = /^[0-9a-fA-F-]{8,}$/.test(identifier) || identifier.length > 20;
+
+  // Always prefer ID lookup first when it looks like one (guaranteed column).
+  // Use a select that deliberately omits 'slug'.
   if (looksLikeId) {
     try {
       const seller = await prisma.user.findUnique({
@@ -36,7 +40,8 @@ async function findSellerBySlugOrId(identifier: string) {
           id: true,
           name: true,
           businessName: true,
-          slug: true,  // include even if prod DB may be missing it; caught by try/catch
+          // slug omitted here and in all ID paths to avoid referencing the column
+          // when it doesn't exist in the current production database.
           bio: true,
           profilePicture: true,
           whatsapp: true,
@@ -50,28 +55,32 @@ async function findSellerBySlugOrId(identifier: string) {
     }
   }
 
-  // Try by slug (new friendly URLs) - may fail if column missing
-  try {
-    const seller = await prisma.user.findUnique({
-      where: { slug: identifier },
-      select: {
-        id: true,
-        name: true,
-        businessName: true,
-        slug: true,  // include even if prod DB may be missing it; caught by try/catch
-        bio: true,
-        profilePicture: true,
-        whatsapp: true,
-        instagram: true,
-        phone: true,
-      }
-    });
-    if (seller) return seller;
-  } catch (e) {
-    devLog('Seller find by slug failed (column may be missing in prod DB - run prisma migrate deploy)', e);
+  // Only attempt slug lookup for values that do not look like IDs.
+  // Real slugs are human-friendly (e.g. "mi-tienda-local"). Querying WHERE slug = '<uuid>'
+  // or selecting the column on a drifted DB produces the prisma error we see in logs.
+  if (!looksLikeId) {
+    try {
+      const seller = await prisma.user.findUnique({
+        where: { slug: identifier },
+        select: {
+          id: true,
+          name: true,
+          businessName: true,
+          slug: true,
+          bio: true,
+          profilePicture: true,
+          whatsapp: true,
+          instagram: true,
+          phone: true,
+        }
+      });
+      if (seller) return seller;
+    } catch (e) {
+      devLog('Seller find by slug failed (column may be missing in prod DB - run prisma migrate deploy)', e);
+    }
   }
 
-  // Last attempt by id if not tried
+  // Last attempt by id (for the case where the param did not look like an ID but ID lookup might still work)
   if (!looksLikeId) {
     try {
       const seller = await prisma.user.findUnique({
@@ -80,7 +89,7 @@ async function findSellerBySlugOrId(identifier: string) {
           id: true,
           name: true,
           businessName: true,
-          slug: true,  // include even if prod DB may be missing it; caught by try/catch
+          // slug omitted for prod DB compatibility
           bio: true,
           profilePicture: true,
           whatsapp: true,
@@ -141,8 +150,10 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
   const displayName = seller.businessName || seller.name || 'Vendedor Local';
   const hasContact = seller.whatsapp || seller.instagram;
 
-  // Use slug for URLs if available, fallback to id for backward compat
-  const sellerSlugOrId = seller.slug || seller.id;
+  // Use slug for URLs if available, fallback to id for backward compat.
+  // Cast because ID-based lookup paths deliberately omit 'slug' from the Prisma select
+  // (to avoid "column does not exist" errors on drifted prod DBs). Slug path includes it.
+  const sellerSlugOrId = (seller as any).slug || seller.id;
 
   return (
     <div className="min-h-screen bg-background">
