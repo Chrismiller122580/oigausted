@@ -142,7 +142,8 @@ function OrderDetailClient() {
         const updatedOrder = await fetch(`/api/orders/${orderId}`).then(r => r.json());
         setOrder(updatedOrder.order || updatedOrder);
       } else {
-        toast.error('Error actualizando estado');
+        const errData = await res.json().catch(() => ({}));
+        toast.error(errData.error || 'Error actualizando estado');
       }
     } catch {
       toast.error('Error actualizando');
@@ -337,16 +338,19 @@ function OrderDetailClient() {
               <CardContent className="space-y-3">
                 {isSeller && (
                   <>
-                    {order.status === 'Pending' && (
+                    {order.status === 'Paid' && (
                       <Button onClick={() => updateStatus('In Progress')} className="w-full bg-blue-600 hover:bg-blue-700">🚀 Aceptar e Iniciar</Button>
                     )}
-                    {['Pending', 'In Progress'].includes(order.status) && (
+                    {['Paid', 'In Progress'].includes(order.status) && (
                       <Button onClick={() => updateStatus('Completed')} className="w-full">✅ Marcar como Completado</Button>
                     )}
-                    {order.status !== 'Completed' && order.status !== 'Cancelled' && (
-                      <Button onClick={() => updateStatus('Cancelled')} variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">Cancelar Pedido</Button>
+                    {order.status !== 'Paid' && order.status !== 'In Progress' && order.status !== 'Completed' && (
+                      <p className="text-sm text-muted-foreground text-center py-2">Esperando pago del comprador para poder iniciar.</p>
                     )}
                   </>
+                )}
+                {isBuyer && order.status !== 'Completed' && order.status !== 'Cancelled' && (
+                  <Button onClick={() => updateStatus('Cancelled')} variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">Cancelar Pedido</Button>
                 )}
                 {!isSeller && !isCompleted && (
                   <p className="text-sm text-muted-foreground text-center py-2">El vendedor actualizará el progreso aquí.</p>
@@ -451,15 +455,17 @@ function OrderDetailClient() {
 
             {isSeller && (
               <div className="mt-12 flex flex-wrap gap-3">
-                {order.status !== 'In Progress' && order.status !== 'Completed' && (
+                {order.status === 'Paid' && (
                   <Button onClick={() => updateStatus('In Progress')} size="lg">🚀 Iniciar Trabajo</Button>
                 )}
-                {order.status !== 'Completed' && (
+                {['Paid', 'In Progress'].includes(order.status) && (
                   <Button onClick={() => updateStatus('Completed')} size="lg">✅ Marcar Completado</Button>
                 )}
-                {order.status !== 'Cancelled' && order.status !== 'Completed' && (
-                  <Button onClick={() => updateStatus('Cancelled')} size="lg" variant="outline" className="text-red-600">Cancelar</Button>
-                )}
+              </div>
+            )}
+            {isBuyer && order.status !== 'Cancelled' && order.status !== 'Completed' && (
+              <div className="mt-12">
+                <Button onClick={() => updateStatus('Cancelled')} size="lg" variant="outline" className="text-red-600">Cancelar Pedido</Button>
               </div>
             )}
           </CardContent>
