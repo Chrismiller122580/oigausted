@@ -656,6 +656,25 @@ export default function AdminSettings() {
             <code className="font-mono bg-muted px-1.5 py-0.5 rounded">WOMPI_INTEGRITY_KEY</code>
           </div>
 
+          {/* === Smart Wompi Setup Checklist (no-bypass real flow) === */}
+          <div className="mt-6 border-t pt-5">
+            <div className="font-semibold text-sm mb-2 flex items-center gap-2">
+              ✅ Checklist para flujo real de Wompi (Smart Checkout)
+            </div>
+            <ol className="text-xs space-y-1.5 text-muted-foreground list-decimal list-inside">
+              <li>Usa llaves <strong>LIVE</strong> (pub_live_...) en <code>NEXT_PUBLIC_WOMPI_PUBLIC_KEY</code> (no test_)</li>
+              <li>Agrega <code>WOMPI_INTEGRITY_KEY</code> (para firmar el widget de forma segura)</li>
+              <li>Agrega <code>WOMPI_EVENTS_KEY</code> y registra el webhook en el dashboard de Wompi: <code>https://oigagig.com/api/webhooks/wompi</code></li>
+              <li>En esta página, activa el toggle <strong>"Pagos reales con Wompi"</strong> de arriba</li>
+              <li>El checkout en /checkout/[gigId] guardará campos dinámicos + ubicación antes de abrir Wompi</li>
+              <li>La confirmación real llega solo por webhook (no por redirect del cliente)</li>
+              <li>En producción: desactiva el botón de simulación (solo visible en dev)</li>
+            </ol>
+            <p className="text-[10px] text-emerald-400 mt-2">
+              Con todo esto activado, el flujo completo (campos inteligentes + precio final + Wompi widget + webhook) funciona sin bypass.
+            </p>
+          </div>
+
           {/* === Real Payments Master Toggle (the key admin tool) === */}
           <div className="mt-6 pt-6 border-t border-border">
             <div className="flex items-center justify-between">

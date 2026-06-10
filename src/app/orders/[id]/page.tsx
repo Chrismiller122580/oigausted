@@ -30,6 +30,10 @@ function OrderDetailClient() {
   const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'progress' | 'review'>('overview');
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  // Polling for Wompi payment confirmation (smart non-bypass UX)
+  const [isPollingPayment, setIsPollingPayment] = useState(false);
+  const paymentPollRef = useRef<NodeJS.Timeout | null>(null);
+
   const uid = (session?.user as any)?.id;
   const isBuyer = order?.buyerId === uid;
   const isSeller = order?.sellerId === uid;
@@ -64,6 +68,17 @@ function OrderDetailClient() {
 
       setLoading(false);
 
+      // === Smart Wompi payment polling (non-bypass UX) ===
+      // If the order is still Pending shortly after creation/redirect from checkout,
+      // start polling the order status so the user sees the update without manual refresh.
+      const currentOrder = orderData.order || orderData;
+      if (currentOrder?.status === 'Pending') {
+        const createdRecently = currentOrder.createdAt && (Date.now() - new Date(currentOrder.createdAt).getTime() < 1000 * 60 * 10);
+        if (createdRecently || searchParams.get('from') === 'wompi' || searchParams.get('tab') === 'overview') {
+          startPaymentPolling();
+        }
+      }
+
       // Auto-mark any unread notifications related to this order (message / order updates)
       // so the bell stops ringing for conversations the user has now opened/read.
       // Runs once per order load (best-effort, non-blocking).
@@ -92,6 +107,53 @@ function OrderDetailClient() {
       })();
     }).catch(() => setLoading(false));
   }, [orderId, searchParams]);
+
+  // Polling helper for pending Wompi payments
+  const startPaymentPolling = () => {
+    if (paymentPollRef.current) return;
+    setIsPollingPayment(true);
+
+    paymentPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const fresh = data.order || data;
+
+        if (fresh.status !== 'Pending') {
+          setOrder(fresh);
+          setIsPollingPayment(false);
+          if (paymentPollRef.current) {
+            clearInterval(paymentPollRef.current);
+            paymentPollRef.current = null;
+          }
+          toast.success(`Pago confirmado: ${fresh.status}`);
+          // Refresh other data like messages if needed
+        }
+      } catch (e) {
+        // ignore transient fetch errors
+      }
+    }, 4000); // every 4s
+
+    // Auto-stop after ~2 minutes
+    setTimeout(() => {
+      if (paymentPollRef.current) {
+        clearInterval(paymentPollRef.current);
+        paymentPollRef.current = null;
+        setIsPollingPayment(false);
+      }
+    }, 1000 * 120);
+  };
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (paymentPollRef.current) {
+        clearInterval(paymentPollRef.current);
+        paymentPollRef.current = null;
+      }
+    };
+  }, []);
 
   // Auto-scroll chat to bottom when messages update
   useEffect(() => {
@@ -253,6 +315,17 @@ function OrderDetailClient() {
           </div>
         </div>
       </div>
+
+      {/* Payment in progress banner - smart UX for real Wompi flow (no bypass) */}
+      {order.status === 'Pending' && isPollingPayment && (
+        <div className="mb-6 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-sm flex items-center gap-3">
+          <div className="animate-pulse w-2 h-2 bg-blue-500 rounded-full" />
+          <div>
+            <strong>Esperando confirmación de Wompi...</strong> 
+            <span className="text-muted-foreground"> (el webhook actualizará el estado automáticamente en unos segundos)</span>
+          </div>
+        </div>
+      )}
 
       {/* DEV TESTING - Force Order Status */}
       {process.env.NODE_ENV === 'development' && (

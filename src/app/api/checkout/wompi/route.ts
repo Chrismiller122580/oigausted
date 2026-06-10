@@ -65,9 +65,13 @@ export async function POST(req: NextRequest) {
 
     if (!realPaymentsEnabled) {
       return NextResponse.json({ 
-        error: 'Los pagos reales están actualmente desactivados por el administrador. Esta orden no puede pagarse con dinero real en este momento.',
+        error: 'Pagos reales desactivados en Admin → Settings (wompiRealPaymentsEnabled).',
         testMode: true 
       }, { status: 403 });
+    }
+
+    if (!WOMPI_PUBLIC_KEY) {
+      return NextResponse.json({ error: 'Wompi no está configurado (falta NEXT_PUBLIC_WOMPI_PUBLIC_KEY).' }, { status: 500 });
     }
 
     const amountInCents = Math.round(order.price * 100);

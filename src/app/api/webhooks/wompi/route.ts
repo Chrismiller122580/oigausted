@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     const event = body.event
     const transaction = body.data.transaction
 
-    devLog(`[Wompi] Valid webhook received: ${event} - Status: ${transaction.status}`)
+    devLog(`[Wompi] Valid webhook received: ${event} - Status: ${transaction.status} | Reference: ${transaction.reference} | Amount: ${transaction.amount_in_cents}`)
 
     // Handle different transaction statuses
     if (event === 'transaction.updated') {
@@ -172,6 +172,7 @@ export async function POST(request: Request) {
         if (currentStatus === 'Paid' || currentStatus === 'Completed') {
           devLog(`[Wompi] Order ${orderId} already ${currentStatus}, skipping re-trigger`);
         } else {
+          devLog(`[Wompi] ✅ APPROVED - Processing order ${orderId} (webhook confirmed real payment)`);
           // Payment confirmation now triggers both in-app + email automatically
           await notifications.sendInApp(
             updatedOrder.buyer.id,

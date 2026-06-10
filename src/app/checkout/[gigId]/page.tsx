@@ -234,22 +234,19 @@ export default function CheckoutPage() {
 
       const checkoutData = data.checkoutData;
 
-      // 3. Open Wompi with the final amount (include integrity signature if available)
+      // 3. Open Wompi using server-provided config (amount comes from DB after we saved final price + extras)
       if (window.WompiCheckout && checkoutData) {
         const widgetConfig: any = {
           publicKey: checkoutData.publicKey,
           currency: checkoutData.currency,
-          amountInCents: finalPrice * 100,
+          amountInCents: checkoutData.amountInCents || Math.round(finalPrice * 100),
           reference: checkoutData.reference,
           redirectUrl: checkoutData.redirectUrl,
           customerData: checkoutData.customerData,
         };
 
-        // Pass integrity signature for better security (when backend provides it)
         if (checkoutData.signature?.integrity) {
-          widgetConfig.signature = {
-            integrity: checkoutData.signature.integrity,
-          };
+          widgetConfig.signature = { integrity: checkoutData.signature.integrity };
         }
 
         const checkout = new window.WompiCheckout(widgetConfig);
@@ -257,7 +254,7 @@ export default function CheckoutPage() {
       } else if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       } else {
-        toast.error("No se pudo abrir Wompi. ¿Tienes las llaves de sandbox configuradas?");
+        toast.error("No se pudo abrir Wompi. Verifica las llaves y que los pagos reales estén habilitados.");
       }
     } catch (err: any) {
       devLog('Wompi widget error:', err);
@@ -552,13 +549,20 @@ export default function CheckoutPage() {
             {opening 
               ? "Abriendo Wompi..." 
               : wompiLoadFailed
-                ? "Error al cargar Wompi - Reintentar"
+                ? "Error al cargar Wompi — Reintentar cargar"
                 : !wompiReady 
-                  ? "Cargando sistema de pagos de Wompi..." 
+                  ? "Cargando Wompi Checkout..."
                   : realPaymentsEnabled === false
-                    ? "Pagos reales desactivados (configuración admin)"
-                    : `Pagar con Wompi — $${finalPrice.toLocaleString('es-CO')}`}
+                    ? "Pagos reales desactivados (ver Admin → Settings)"
+                    : `Pagar con Wompi — $${finalPrice.toLocaleString('es-CO')} COP`}
           </Button>
+
+          {realPaymentsEnabled === true && (
+            <p className="text-center text-xs text-muted-foreground mt-2">
+              Se abrirá la ventana segura de Wompi. Completa el pago allí. 
+              El estado de tu pedido se actualizará automáticamente vía webhook.
+            </p>
+          )}
 
           {/* Wompi loading failure state */}
           {wompiLoadFailed && (
@@ -609,53 +613,50 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {/* DEV BYPASS - Simulate successful Wompi payment (only in development) */}
-          {process.env.NODE_ENV === 'development' && (!wompiReady || wompiLoadFailed) && order && (
-            <div className="mt-4 p-4 border border-dashed border-orange-500 rounded-xl bg-orange-50 dark:bg-orange-950/30">
-              <p className="text-sm font-medium text-orange-700 dark:text-orange-400 mb-2">
-                DEV TESTING ONLY
+          {/* DEV ONLY: Simulate Wompi payment (strictly for local development when widget fails to load) */}
+          {process.env.NODE_ENV === 'development' && order && (
+            <div className="mt-4 p-4 border border-dashed border-gray-400 rounded-xl bg-gray-50 dark:bg-gray-950/30 text-sm">
+              <p className="font-medium text-gray-700 dark:text-gray-400 mb-2">
+                DEV TESTING ONLY — Do not use in production
               </p>
               <Button
                 variant="outline"
+                size="sm"
                 onClick={async () => {
                   try {
                     setOpening(true);
-                    // Save selections + price (dev simulate; server allows Paid transition only in NODE_ENV=development)
                     await fetch(`/api/orders/${order.id}`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        price: finalPrice,
-                        customFields: selectedOptions,
-                      }),
+                      body: JSON.stringify({ price: finalPrice, customFields: selectedOptions }),
                     });
-                    // Then mark Paid
                     await fetch(`/api/orders/${order.id}`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ status: 'Paid' }),
                     });
-                    toast.success('Payment simulated (order marked as Paid + fields saved)');
+                    toast.success('Dev simulate: order marked Paid (use only for testing flow)');
                     router.push(`/orders/${order.id}`);
                   } catch (e) {
-                    toast.error('Failed to simulate payment');
+                    toast.error('Failed to simulate');
                   } finally {
                     setOpening(false);
                   }
                 }}
-                className="w-full border-orange-500 hover:bg-orange-100 dark:hover:bg-orange-950"
+                className="border-gray-400"
               >
-                Simulate Successful Wompi Payment (Dev Only)
+                Simulate Wompi Payment (Dev)
               </Button>
-              <p className="text-xs text-muted-foreground mt-2 text-center">
-                Bypasses the real Wompi widget so you can test the rest of the flow. Now correctly saves custom fields.
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Only visible in development. Real flow uses Wompi widget + webhook.
               </p>
             </div>
           )}
 
           <p className="text-center text-xs text-muted-foreground">
-            Serás redirigido a Wompi para completar el pago de forma segura. 
-            Una vez pagado, volverás automáticamente a tus pedidos.
+            Se abrirá Wompi Checkout en una ventana segura. 
+            Completa el pago allí → serás redirigido de vuelta. 
+            El estado se actualiza vía webhook (no confíes solo en la redirección).
           </p>
 
           {isWompiSandbox && (
