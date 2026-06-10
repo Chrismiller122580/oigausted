@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logAuditEvent } from '@/lib/audit'
-import { slugify } from '@/lib/utils'
+import { slugify, devLog } from '@/lib/utils'
 
 export async function POST(request: NextRequest) {
   try {

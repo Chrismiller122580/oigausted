@@ -36,7 +36,7 @@ async function findSellerBySlugOrId(identifier: string) {
           id: true,
           name: true,
           businessName: true,
-          // slug omitted for prod DB compatibility
+          slug: true,  // include even if prod DB may be missing it; caught by try/catch
           bio: true,
           profilePicture: true,
           whatsapp: true,
@@ -58,7 +58,7 @@ async function findSellerBySlugOrId(identifier: string) {
         id: true,
         name: true,
         businessName: true,
-        // slug omitted for prod DB compatibility
+        slug: true,  // include even if prod DB may be missing it; caught by try/catch
         bio: true,
         profilePicture: true,
         whatsapp: true,
@@ -80,6 +80,7 @@ async function findSellerBySlugOrId(identifier: string) {
           id: true,
           name: true,
           businessName: true,
+          slug: true,  // include even if prod DB may be missing it; caught by try/catch
           bio: true,
           profilePicture: true,
           whatsapp: true,
