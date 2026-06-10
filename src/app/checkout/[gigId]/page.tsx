@@ -590,22 +590,19 @@ export default function CheckoutPage() {
               This addresses the flow where users want to see the created order *before* the payment step. */}
           <Button 
             onClick={confirmAndGoToOrder} 
-            disabled={opening || !order || realPaymentsEnabled !== true}
+            disabled={opening || !order}
             className="w-full py-8 text-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60"
           >
             {opening 
               ? "Guardando configuración..." 
-              : realPaymentsEnabled === false
-                ? "Pagos reales desactivados (ver Admin → Settings)"
-                : `Confirmar pedido y ver en Mis Pedidos — $${finalPrice.toLocaleString('es-CO')} COP`}
+              : `Confirmar pedido y ver en Mis Pedidos — $${finalPrice.toLocaleString('es-CO')} COP`}
           </Button>
 
-          {realPaymentsEnabled === true && (
-            <p className="text-center text-xs text-muted-foreground mt-2">
-              Se guardarán los campos dinámicos y detalles. El pedido aparecerá como "Pendiente" en tus órdenes. 
-              Podrás pagar con Wompi desde allí (o usa "Pagar ahora" abajo si prefieres).
-            </p>
-          )}
+          <p className="text-center text-xs text-muted-foreground mt-2">
+            Se guardarán los campos dinámicos, precio final y dirección (si aplica). 
+            El pedido quedará como "Pendiente". Podrás pagar con Wompi desde la página de tu pedido.
+            {realPaymentsEnabled === false && " (Los pagos reales están desactivados por el administrador por ahora.)"}
+          </p>
 
           {/* Optional immediate pay (still available for those who want to pay right after config) */}
           {realPaymentsEnabled === true && wompiReady && (
