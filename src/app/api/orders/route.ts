@@ -86,8 +86,12 @@ export async function POST(request: Request) {
         status: true,
         customFields: true,
         createdAt: true,
+        buyer: { select: { name: true } },
       }
     });
+
+    // Note: 'order' here has limited shape due to explicit select (to avoid prod DB column issues).
+    // Relations like buyer are included only as needed for notifications.
 
     // Audit log for system change (buyer action)
     await logAuditEvent({
