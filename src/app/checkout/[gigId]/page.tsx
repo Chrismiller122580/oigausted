@@ -801,6 +801,17 @@ export default function CheckoutPage() {
                 >
                   Copy Debug Info
                 </Button>
+                {lastWompiPrepare && lastWompiPrepare.success && (
+                  <Button 
+                    size="sm" 
+                    variant="default" 
+                    className="text-xs h-7 bg-emerald-600 hover:bg-emerald-700"
+                    onClick={openWompiWidget}
+                    disabled={opening || !realPaymentsEnabled}
+                  >
+                    Launch Wompi to Enter Payment
+                  </Button>
+                )}
               </div>
               <p className="mt-2 text-[9px] text-blue-600/80 dark:text-blue-400/80 leading-tight">
                 Use "Prepare Wompi Config" to see what will be sent to the widget (amount, signature, reference). 
