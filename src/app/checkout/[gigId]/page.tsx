@@ -32,6 +32,14 @@ export default function CheckoutPage() {
 
   const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '';
 
+  // Set globals early so Wompi's widget script and internal bundles (including $wompi and merchant lookups)
+  // can find the public key even if their init runs on script load or in payment form sub-flows.
+  // This helps avoid "merchants/undefined" and init 422 errors.
+  if (typeof window !== 'undefined' && WOMPI_PUBLIC_KEY) {
+    (window as any).WOMPI_PUBLIC_KEY = WOMPI_PUBLIC_KEY;
+    (window as any).$wompi = { publicKey: WOMPI_PUBLIC_KEY };
+  }
+
   // Dynamic fields selections
   const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
 
@@ -628,9 +636,64 @@ export default function CheckoutPage() {
                 <span>${(gig?.price || 0).toLocaleString('es-CO')}</span>
               </div>
 
-              {Object.keys(selectedOptions).length > 0 && (
-                <div className="pl-2 border-l-2 border-border">
-                  {Object.entries(selectedOptions).map(([key, value], idx) => {
+              {Object.keys(selectedOptions).length > 0 && (() => {
+                const breakdownExtrasTotal = Object.entries(selectedOptions).reduce((sum, [key, value]) => {
+                  const fieldDef = fields.find((f: any) => f.key === key);
+                  let extra = 0;
+                  if (fieldDef) {
+                    if (fieldDef.type === 'number' && typeof value === 'number') {
+                      extra = value * (fieldDef.extraPrice || 0);
+                    } else if (fieldDef.type === 'checkbox' && value === true) {
+                      extra = fieldDef.extraPrice || 0;
+                    } else if (fieldDef.type === 'select' && fieldDef.options) {
+                      const chosen = fieldDef.options.find((o: any) => (typeof o === 'string' ? o === value : o.label === value));
+                      if (chosen && typeof chosen === 'object' && chosen.extraPrice) {
+                        extra = chosen.extraPrice;
+                      }
+                    }
+                  }
+                  return sum + extra;
+                }, 0);
+                const breakdownTotal = (gig?.price || 0) + breakdownExtrasTotal;
+                return (
+                  <>
+                    <div className="pl-2 border-l-2 border-border">
+                      {Object.entries(selectedOptions).map(([key, value], idx) => {
+                        // Find the field definition to show the extra price
+                        const fieldDef = fields.find((f: any) => f.key === key);
+                        let extra = 0;
+                        if (fieldDef) {
+                          if (fieldDef.type === 'number' && typeof value === 'number') {
+                            extra = value * (fieldDef.extraPrice || 0);
+                          } else if (fieldDef.type === 'checkbox' && value === true) {
+                            extra = fieldDef.extraPrice || 0;
+                          } else if (fieldDef.type === 'select' && fieldDef.options) {
+                            const chosen = fieldDef.options.find((o: any) => (typeof o === 'string' ? o === value : o.label === value));
+                            if (chosen && typeof chosen === 'object' && chosen.extraPrice) {
+                              extra = chosen.extraPrice;
+                            }
+                          }
+                        }
+                        return (
+                          <div key={idx} className="flex justify-between text-muted-foreground">
+                            <span>
+                              {fieldDef?.label || key}
+                              {value !== true && value != null && value !== false ? ` (${value})` : ''}
+                            </span>
+                            <span>+${extra.toLocaleString('es-CO')}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="border-t mt-3 pt-3 flex justify-between font-semibold text-base">
+                      <span>Total a pagar</span>
+                      <span className="text-orange-600">${breakdownTotal.toLocaleString('es-CO')} COP</span>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
                     // Find the field definition to show the extra price
                     const fieldDef = fields.find((f: any) => f.key === key);
                     let extra = 0;
