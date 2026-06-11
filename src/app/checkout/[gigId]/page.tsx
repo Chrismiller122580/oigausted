@@ -295,8 +295,13 @@ export default function CheckoutPage() {
       const WidgetCheckoutClass = (window as any).WidgetCheckout || (window as any).WompiCheckout;
 
       if (WidgetCheckoutClass && checkoutData) {
+        const pubKey = checkoutData.publicKey || WOMPI_PUBLIC_KEY;
+
+        // Help Wompi's internal initialization (some code paths in their bundle read from window)
+        (window as any).WOMPI_PUBLIC_KEY = pubKey;
+
         const widgetConfig: any = {
-          publicKey: checkoutData.publicKey,
+          publicKey: pubKey,
           currency: checkoutData.currency,
           amountInCents: checkoutData.amountInCents || Math.round(finalPrice * 100),
           reference: checkoutData.reference,
@@ -645,7 +650,10 @@ export default function CheckoutPage() {
 
                     return (
                       <div key={idx} className="flex justify-between text-muted-foreground">
-                        <span>{key} {value && `(${value})`}</span>
+                        <span>
+                          {fieldDef?.label || key}
+                          {value !== true && value != null && value !== false ? ` (${value})` : ''}
+                        </span>
                         <span>+${extra.toLocaleString('es-CO')}</span>
                       </div>
                     );
