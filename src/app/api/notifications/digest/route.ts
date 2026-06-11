@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
 
             <!-- Notifications List -->
             <div style="background: #fafafa; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px;">
-              ${recent.map(n => `
+              ${recent.map((n: any) => `
                 <div style="padding: 10px 0; border-bottom: 1px solid #eee;">
                   <div style="font-weight: 600; color: #111; font-size: 14.5px;">${n.title}</div>
                   <div style="color: #555; font-size: 13.5px; margin-top: 2px; line-height: 1.35;">${n.message}</div>

@@ -19,7 +19,7 @@ export async function POST() {
       where: { referrerId: userId, status: 'Pending' }
     })
 
-    const totalPending = pendingEarnings.reduce((sum, e) => sum + e.amount, 0)
+    const totalPending = pendingEarnings.reduce((sum: any, e: any) => sum + e.amount, 0)
 
     if (totalPending <= 0) {
       return NextResponse.json({ error: 'No hay comisiones pendientes' }, { status: 400 })
@@ -76,7 +76,7 @@ export async function POST() {
     try {
       const { resend } = await import('@/lib/notifications')
       if (resend) {
-        const adminEmails = admins.map(a => a.email).filter(Boolean) as string[]
+        const adminEmails = admins.map((a: any) => a.email).filter(Boolean) as string[]
         const toList = Array.from(new Set([config?.supportEmail || 'soporte@oigagig.com', ...adminEmails]))
         if (toList.length) {
           await resend.emails.send({

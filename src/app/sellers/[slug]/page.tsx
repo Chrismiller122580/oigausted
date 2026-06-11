@@ -144,7 +144,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
   });
 
   const avgRating = reviews.length > 0 
-    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length 
+    ? reviews.reduce((sum: any, r: any) => sum + r.rating, 0) / reviews.length 
     : 0;
 
   const displayName = seller.businessName || seller.name || 'Vendedor Local';
@@ -250,7 +250,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
 
         {gigs.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {gigs.map((gig) => (
+            {gigs.map((gig: any) => (
               <GigCard key={gig.id} gig={gig as any} />
             ))}
           </div>
@@ -267,7 +267,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
               Reseñas de clientes <span className="text-base font-normal text-muted-foreground">({reviews.length} recientes)</span>
             </h3>
             <div className="grid md:grid-cols-2 gap-6">
-              {reviews.map((review) => (
+              {reviews.map((review: any) => (
                 <div key={review.id} className="bg-card border rounded-3xl p-6 hover:shadow-sm transition">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex gap-0.5 text-xl">

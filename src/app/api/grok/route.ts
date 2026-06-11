@@ -386,7 +386,7 @@ Current session context:
           orderBy: { createdAt: 'desc' },
           take: 20
         });
-        toolResult = { tickets: tickets.map(t => ({
+        toolResult = { tickets: tickets.map((t: any) => ({
           id: t.id,
           subject: t.subject,
           user: t.user.email,

@@ -20,7 +20,7 @@ export async function getGigCategories(): Promise<GigCategory[]> {
       orderBy: [{ order: 'asc' }, { name: 'asc' }],
     });
     if (dbCats.length > 0) {
-      return dbCats.map((c) => ({
+      return dbCats.map((c: any) => ({
         name: c.name,
         icon: c.icon || '🛠️',
         description: c.description || undefined,

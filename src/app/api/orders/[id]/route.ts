@@ -195,7 +195,7 @@ export async function PATCH(
 
     if (Object.keys(updateData).length > 0 || status !== undefined || price !== undefined || customFields !== undefined || serviceAddress !== undefined || serviceLatitude !== undefined || serviceLongitude !== undefined) {
       // Wrap core order status + audit + referral create + cancel earnings in tx for data integrity
-      updatedOrder = await prisma.$transaction(async (tx) => {
+      updatedOrder = await prisma.$transaction(async (tx: any) => {
       const u = await tx.order.update({
         where: { id: orderId },
         data: updateData,

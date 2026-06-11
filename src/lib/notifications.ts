@@ -479,7 +479,7 @@ async function sendWebPushIfEnabled(
     data: data || {},
   });
 
-  const sendPromises = subscriptions.map(async (sub) => {
+  const sendPromises = subscriptions.map(async (sub: any) => {
     try {
       await webpush.sendNotification(
         {

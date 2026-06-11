@@ -39,7 +39,7 @@ export async function GET() {
     });
 
     // Compute performance stats per gig (orders + revenue)
-    const gigIds = gigs.map(g => g.id);
+    const gigIds = gigs.map((g: any) => g.id);
 
     const orderAggregates = await prisma.order.groupBy({
       by: ['gigId'],
@@ -81,7 +81,7 @@ export async function GET() {
       });
     }
 
-    const gigsWithStats = gigs.map(gig => ({
+    const gigsWithStats = gigs.map((gig: any) => ({
       ...gig,
       stats: statsMap.get(gig.id) || {
         orderCount: 0,

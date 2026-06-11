@@ -69,7 +69,7 @@ export async function GET(request: Request) {
         genMap.set(sid, cur)
       })
 
-      const result = sellers.map(s => ({
+      const result = sellers.map((s: any) => ({
         seller: {
           id: s.id,
           name: s.name || s.email || 'Vendedor',
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
       }))
 
       // Sort sellers with pending first, then by total generated
-      result.sort((a, b) => (b.pendingReferral - a.pendingReferral) || (b.totalReferralGenerated - a.totalReferralGenerated))
+      result.sort((a: any, b: any) => (b.pendingReferral - a.pendingReferral) || (b.totalReferralGenerated - a.totalReferralGenerated))
 
       const totalPages = Math.ceil(total / limit) || 1
       return NextResponse.json({
@@ -203,7 +203,7 @@ export async function PATCH(request: Request) {
     }
 
     // tx for payout mark + audit
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       const upd = await tx.referralEarning.updateMany({
         where: { referrerId, status: { in: ['Pending', 'Requested'] } },
         data: { status: 'Paid' }

@@ -57,7 +57,7 @@ export async function GET() {
       include: { order: { select: { sellerId: true } } }
     })
 
-    referralEarnings.forEach(earning => {
+    referralEarnings.forEach((earning: any) => {
       const sellerId = earning.order?.sellerId
       if (sellerId) {
         earningsBySeller[sellerId] = (earningsBySeller[sellerId] || 0) + earning.amount
@@ -71,7 +71,7 @@ export async function GET() {
 
     // Basic earnings calculation (placeholder - can be improved later)
     // For now we just count referred sellers and estimate
-    const activeSellers = referredUsers.filter(u => u.role === 'seller').length
+    const activeSellers = referredUsers.filter((u: any) => u.role === 'seller').length
     const totalReferred = referredUsers.length
 
     // Real earnings from ReferralEarning records
@@ -80,12 +80,12 @@ export async function GET() {
     })
 
     const totalEarned = earnings
-      .filter(e => e.status === 'Paid' || e.status === 'Pending' || e.status === 'Requested')
-      .reduce((sum, e) => sum + e.amount, 0)
+      .filter((e: any) => e.status === 'Paid' || e.status === 'Pending' || e.status === 'Requested')
+      .reduce((sum: any, e: any) => sum + e.amount, 0)
 
     const pendingEarnings = earnings
-      .filter(e => e.status === 'Pending' || e.status === 'Requested')
-      .reduce((sum, e) => sum + e.amount, 0)
+      .filter((e: any) => e.status === 'Pending' || e.status === 'Requested')
+      .reduce((sum: any, e: any) => sum + e.amount, 0)
 
     const referralLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/signup?ref=${referralCode}`
 
@@ -99,13 +99,13 @@ export async function GET() {
         pendingEarnings,
         referralRate,
       },
-      referredUsers: referredUsers.map(u => ({
+      referredUsers: referredUsers.map((u: any) => ({
         id: u.id,
         name: u.name || u.email,
         businessName: u.businessName,
         joined: u.createdAt,
         status: u.role === 'seller' ? 'Active Seller' : 'Buyer',
-        earnings: earningsBySeller[u.id] || 0,
+        earnings: earningsBySeller[(u as any).id] || 0,
       }))
     })
   } catch (error) {

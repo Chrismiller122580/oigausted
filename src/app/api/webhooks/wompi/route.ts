@@ -84,8 +84,9 @@ function verifyWompiSignature(body: any, receivedSignature: string): boolean {
 }
 
 export async function POST(request: Request) {
+  let body: any;
   try {
-    const body = await request.json()
+    body = await request.json()
     // Wompi uses X-Event-Checksum for the events/webhook signature (see official docs).
     // Support common variants + legacy.
     const receivedSignature = 
@@ -193,7 +194,7 @@ export async function POST(request: Request) {
 
       // Wrap status update + referralEarning create in tx for atomicity (prevents orphan earnings on crash/partial)
       // Use explicit select (not include) to avoid prod DB drift on columns like sellerPayoutAt
-      const updatedOrder = await prisma.$transaction(async (tx) => {
+      const updatedOrder = await prisma.$transaction(async (tx: any) => {
         const u = await tx.order.update({
           where: { id: orderId },
           data: updateData,
