@@ -163,7 +163,7 @@ export async function PATCH(
     // Exclude sellerPayoutAt from main updateData for defensive update (column may be missing in prod DB)
     if (updateData.sellerPayoutAt !== undefined) delete updateData.sellerPayoutAt;
 
-    let updatedOrder;
+    let updatedOrder: any;
 
     if (Object.keys(updateData).length > 0 || status !== undefined || price !== undefined || customFields !== undefined || serviceAddress !== undefined || serviceLatitude !== undefined || serviceLongitude !== undefined) {
       // Wrap core order status + audit + referral create + cancel earnings in tx for data integrity
@@ -282,7 +282,7 @@ export async function PATCH(
     // (Full durable notif-in-tx would require refactoring the notifications lib to support tx context.)
 
     // Send notifications on important status changes
-    if (status) {
+    if (status && updatedOrder) {
       const recipientId = status === 'In Progress' || status === 'Completed' 
         ? updatedOrder.buyerId 
         : updatedOrder.sellerId
