@@ -735,6 +735,26 @@ export default function AdminSettings() {
             <code className="font-mono bg-muted px-1.5 py-0.5 rounded">WOMPI_EVENTS_KEY</code>
           </div>
 
+          <div className="mt-3 p-3 bg-muted/50 rounded-xl text-xs">
+            <div className="font-medium mb-1">Cómo ver transacciones en Wompi</div>
+            <div>
+              La integración usa el <strong>Widget embebido</strong> (no "Links de Pago" – los links son otro flujo para crear URLs de pago).
+              Las transacciones del widget aparecen en:
+              <ul className="list-disc ml-4 mt-1">
+                <li>Dashboard Wompi → <strong>Transacciones</strong> (o el buscador)</li>
+                <li>Directamente en el <a href="https://comercios.wompi.co/debugger" target="_blank" className="text-orange-600 hover:underline">Debugger de Wompi</a> (el link que pegaste). Busca por el <code>reference</code> exacto que muestra el debugger de la app (ej: <code>order_1021bb6a-...</code> o <code>order_0b4bb7de-...</code>).</li>
+              </ul>
+              <strong>Por qué no ves nada aún:</strong>
+              <ul className="list-disc ml-4 mt-1">
+                <li>El "prepare" (el JSON del debugger) solo genera la config firmada. La transacción real se crea cuando el usuario completa el pago en el modal de Wompi.</li>
+                <li>Si ves el toast "El sistema de pagos aún está cargando", el widget.js no cargó todavía (el botón "Launch Wompi to Enter Payment" ahora intenta cargarlo on-demand).</li>
+                <li>Asegúrate de usar llaves PROD + toggle "Enable Real Payments" ON en esta página, y de mirar el ambiente correcto en Wompi (test vs prod).</li>
+                <li>Las 500s de los logs son por drift de DB (columna sellerPayoutAt faltante en payouts marking) – no afectan las transacciones de Wompi. Se manejan con fallback local.</li>
+              </ul>
+              Usa el reference del debugger de la app + el link de Wompi Debugger para verificar.
+            </div>
+          </div>
+
           {/* === Smart Wompi Setup Checklist (no-bypass real flow) === */}
           <div className="mt-6 border-t pt-5">
             <div className="font-semibold text-sm mb-2 flex items-center gap-2">

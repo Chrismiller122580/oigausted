@@ -631,6 +631,14 @@ function OrderDetailClient() {
                       >
                         Consultar Wompi API
                       </Button>
+                      <a 
+                        href="https://comercios.wompi.co/debugger" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs h-7 px-3 py-1 border border-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 inline-flex items-center"
+                      >
+                        Ver en Wompi Debugger →
+                      </a>
                     </div>
                     <p className="mt-2 text-[9px] text-blue-600/80 dark:text-blue-400/80 leading-tight">
                       Si Wompi muestra el pago como APPROVED pero aquí sigue Pending: el webhook probablemente falló (revisa logs de Vercel con "[Wompi][Webhook]"). 
