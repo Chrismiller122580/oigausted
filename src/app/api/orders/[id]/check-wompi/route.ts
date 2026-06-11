@@ -106,7 +106,20 @@ export async function POST(
       success: true,
       message,
       transaction,
+      wompiTransactionId: transaction.id,
       wompiError: isErrorStatus || wompiError ? wompiError : undefined,
+      // Include key fields for easy display in debugger
+      wompiSummary: {
+        id: transaction.id,
+        status: transaction.status,
+        reference: transaction.reference,
+        amount_in_cents: transaction.amount_in_cents,
+        currency: transaction.currency,
+        created_at: transaction.created_at,
+        finalized_at: transaction.finalized_at,
+        payment_method_type: transaction.payment_method_type,
+        error: wompiError,
+      },
     });
   } catch (e: any) {
     devLog('[Wompi][check-wompi] Unexpected error', e);

@@ -665,6 +665,18 @@ function OrderDetailClient() {
                           Último error de Wompi: {lastWompiPrepareDebug.lastCheckWompi.wompiError}
                         </div>
                       )}
+                      {lastWompiPrepareDebug?.lastCheckWompi?.wompiSummary && (
+                        <div className="mt-1 p-1 bg-blue-100 dark:bg-blue-900/50 rounded text-[9px]">
+                          <div className="font-semibold">Wompi Tx (from Consultar):</div>
+                          <div>ID: {lastWompiPrepareDebug.lastCheckWompi.wompiSummary.id}</div>
+                          <div>Status: <span className="font-bold">{lastWompiPrepareDebug.lastCheckWompi.wompiSummary.status}</span></div>
+                          <div>Amount: {lastWompiPrepareDebug.lastCheckWompi.wompiSummary.amount_in_cents} {lastWompiPrepareDebug.lastCheckWompi.wompiSummary.currency}</div>
+                          {lastWompiPrepareDebug.lastCheckWompi.wompiSummary.error && (
+                            <div className="text-red-600">Error: {lastWompiPrepareDebug.lastCheckWompi.wompiSummary.error}</div>
+                          )}
+                          <div className="text-[8px] mt-0.5">Ref: {lastWompiPrepareDebug.lastCheckWompi.wompiSummary.reference}</div>
+                        </div>
+                      )}
                       {lastWompiPrepareDebug?.lastWidgetResultError && (
                         <div className="mt-1 text-red-600 font-semibold">
                           Widget error: {lastWompiPrepareDebug.lastWidgetResultError}
@@ -731,8 +743,10 @@ function OrderDetailClient() {
                                   status: data.transaction?.status,
                                   wompiError: data.wompiError,
                                   message: data.message,
-                                  transactionId: data.transaction?.id,
+                                  transactionId: data.wompiTransactionId || data.transaction?.id,
                                   amount: data.transaction?.amount_in_cents,
+                                  wompiSummary: data.wompiSummary,
+                                  fullTransaction: data.transaction,
                                 }
                               }));
                               // Refresh the order from our DB (the route may have updated it)
