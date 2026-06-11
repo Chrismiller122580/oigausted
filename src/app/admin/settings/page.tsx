@@ -197,6 +197,9 @@ export default function AdminSettings() {
     details: string;
   } | null>(null);
 
+  // Recent Wompi-related audit logs for debugging
+  const [recentWompiLogs, setRecentWompiLogs] = useState<any[]>([]);
+
   // Admin password change state
   const [adminPasswordForm, setAdminPasswordForm] = useState({
     currentPassword: '',
@@ -267,6 +270,13 @@ export default function AdminSettings() {
     globalEmailNotificationsEnabled: c.globalEmailNotificationsEnabled ?? true,
     maintenanceBypassIps: c.maintenanceBypassIps || '',
     wompiRealPaymentsEnabled: c.wompiRealPaymentsEnabled ?? false,
+    wompiSftpEnabled: c.wompiSftpEnabled ?? false,
+    wompiSftpHost: c.wompiSftpHost || '',
+    wompiSftpPort: c.wompiSftpPort || 22,
+    wompiSftpUsername: c.wompiSftpUsername || '',
+    wompiSftpPassword: c.wompiSftpPassword || '',
+    wompiSftpPrivateKey: c.wompiSftpPrivateKey || '',
+    wompiSftpRemotePath: c.wompiSftpRemotePath || '/',
   });
 
   const fetchConfig = async () => {
@@ -277,6 +287,8 @@ export default function AdminSettings() {
         const normalized = normalizeConfig(data);
         setConfig(normalized);
         setOriginalConfig(JSON.parse(JSON.stringify(normalized))); // deep clone
+        // Auto load Wompi logs when config loads
+        loadWompiLogs();
       } else {
         toast.error('Could not load configuration');
       }
@@ -284,6 +296,22 @@ export default function AdminSettings() {
       toast.error('Error loading configuration');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadWompiLogs = async () => {
+    try {
+      const res = await fetch('/api/admin/audit?limit=30');
+      if (res.ok) {
+        const data = await res.json();
+        const logs = (data.logs || []).filter((l: any) => 
+          (l.action && (l.action.includes('PAYMENT') || l.action.includes('WOMPI') || l.action.includes('ORDER') || l.action.includes('PLATFORM_CONFIG'))) ||
+          l.targetType === 'Order' || l.targetType === 'PlatformConfig'
+        ).slice(0, 15);
+        setRecentWompiLogs(logs);
+      }
+    } catch (e) {
+      // silent, button can retry
     }
   };
 
@@ -885,6 +913,40 @@ export default function AdminSettings() {
             After saving, use &quot;Test Connection&quot; with the values from your Wompi SFTP setup. 
             &quot;Sync&quot; will download recent settlement/report files and log them (extend parser in lib/wompi-sftp.ts for auto-updating payouts).
           </p>
+        </div>
+
+        {/* Wompi Logs / Recent Events for debugging on settings page */}
+        <div className="mb-6 bg-card border border-border rounded-3xl p-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <History className="w-5 h-5" /> Wompi Recent Logs &amp; Events
+              </h2>
+              <p className="text-sm text-muted-foreground">Audit logs for payments, config changes, orders (last 15 matching)</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={loadWompiLogs}>
+              Refresh Logs
+            </Button>
+          </div>
+          {recentWompiLogs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No recent Wompi-related logs yet. Perform a payment or config save to see entries.</p>
+          ) : (
+            <div className="divide-y divide-border text-xs max-h-64 overflow-auto">
+              {recentWompiLogs.map((log: any, idx: number) => (
+                <div key={idx} className="py-2 flex justify-between gap-4">
+                  <div className="flex-1">
+                    <span className="font-medium">{log.action}</span>
+                    <span className="text-muted-foreground"> • {log.targetType} {log.targetId ? log.targetId.slice(0,8) : ''}</span>
+                    {log.details && <div className="text-muted-foreground truncate">{JSON.stringify(log.details).slice(0,100)}</div>}
+                  </div>
+                  <div className="text-muted-foreground whitespace-nowrap">
+                    {new Date(log.createdAt).toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'})}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-[10px] text-muted-foreground mt-2">See full history in <a href="/admin/audit" className="text-orange-400 hover:underline">/admin/audit</a></p>
         </div>
 
         {/* === NEW: Integrations & Environment Status === */}

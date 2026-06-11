@@ -40,6 +40,9 @@ export default function CheckoutPage() {
   const [serviceLatitude, setServiceLatitude] = useState<number | null>(null);
   const [serviceLongitude, setServiceLongitude] = useState<number | null>(null);
 
+  // Wompi debug info for real feedback
+  const [lastWompiPrepare, setLastWompiPrepare] = useState<any>(null);
+
   // Robust Wompi script loader (improved for production reliability)
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -234,6 +237,7 @@ export default function CheckoutPage() {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
+      setLastWompiPrepare(data);
       const checkoutData = data.checkoutData;
 
       // 3. Open Wompi using server-provided config (amount comes from DB after we saved final price + extras)
@@ -730,6 +734,78 @@ export default function CheckoutPage() {
             <div className="mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-500 rounded-xl text-sm text-yellow-800 dark:text-yellow-200">
               ⚠️ <strong>Modo Beta / Pruebas activado</strong><br />
               Estás usando llaves de sandbox de Wompi. Los pagos no son reales.
+            </div>
+          )}
+
+          {/* Wompi Debugger for real feedback on checkout page */}
+          {order && (
+            <div className="mt-6 p-4 border border-blue-300 bg-blue-50 dark:bg-blue-950/30 rounded-xl text-xs">
+              <div className="font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-1">
+                🔧 Wompi Debugger (for real feedback)
+              </div>
+              <div className="font-mono space-y-0.5 text-[10px] text-blue-700 dark:text-blue-400">
+                <div>Order ID: {order.id}</div>
+                <div>Reference: order_{order.id}</div>
+                <div>Final Price: ${finalPrice.toLocaleString('es-CO')}</div>
+                {lastWompiPrepare && (
+                  <div className="mt-1 border-t border-blue-300 pt-1">
+                    Last prepare debug: {JSON.stringify(lastWompiPrepare)}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2 mt-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="text-xs h-7"
+                  onClick={async () => {
+                    if (!order) return;
+                    try {
+                      const res = await fetch('/api/checkout/wompi', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderId: order.id })
+                      });
+                      const data = await res.json();
+                      setLastWompiPrepare(data);
+                      if (data.error) {
+                        toast.error(data.error);
+                      } else {
+                        toast.success('Wompi config prepared');
+                      }
+                    } catch {
+                      toast.error('Failed to prepare');
+                    }
+                  }}
+                >
+                  Prepare Wompi Config (debug)
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="text-xs h-7"
+                  onClick={() => {
+                    const debugInfo = {
+                      orderId: order.id,
+                      reference: `order_${order.id}`,
+                      finalPrice,
+                      selectedOptions,
+                      serviceAddress,
+                      serviceLatitude,
+                      serviceLongitude,
+                      lastWompiPrepare,
+                    };
+                    navigator.clipboard?.writeText(JSON.stringify(debugInfo, null, 2));
+                    toast.success('Debug info copied to clipboard');
+                  }}
+                >
+                  Copy Debug Info
+                </Button>
+              </div>
+              <p className="mt-2 text-[9px] text-blue-600/80 dark:text-blue-400/80 leading-tight">
+                Use "Prepare Wompi Config" to see what will be sent to the widget (amount, signature, reference). 
+                Copy this and send as feedback. The reference must match exactly in Wompi dashboard.
+              </p>
             </div>
           )}
         </CardContent>
