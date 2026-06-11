@@ -18,9 +18,7 @@ export async function PATCH(request: Request) {
 
     const updateData: any = {
       name: data.name || undefined,
-      // tagline temporarily omitted until the migration adding the column is deployed
-      // (see prisma/migrations/20260607153000_add_missing_tagline_column)
-      // tagline: data.tagline || undefined,
+      tagline: data.tagline !== undefined ? (data.tagline || null) : undefined,
       profilePicture: data.imageUrl || undefined,
       bio: data.bio || null,
       phone: data.phone || null,
@@ -33,6 +31,10 @@ export async function PATCH(request: Request) {
       serviceRadiusKm: data.serviceRadiusKm ?? undefined,
     };
 
+    // Business name + slug handling.
+    // Slug column may be missing on some prod DBs (no migration ever added it; see sellers/[slug] defensive code).
+    // We only write slug if the pre-check SELECT succeeded without error.
+    let slugSafe = false;
     if (data.businessName !== undefined) {
       const trimmed = (data.businessName || '').trim();
       updateData.businessName = trimmed || null;
@@ -49,8 +51,10 @@ export async function PATCH(request: Request) {
                 where: { slug: candidate },
                 select: { id: true }
               });
+              slugSafe = true; // check passed => column exists and we can use it for update
             } catch (e) {
               devLog('slug check skipped (possible missing column in prod DB)');
+              slugSafe = false;
             }
             if (!exists || exists.id === userId) {
               slug = candidate;
@@ -63,16 +67,37 @@ export async function PATCH(request: Request) {
             }
           }
         }
-        updateData.slug = slug || null;
+        if (slugSafe) {
+          updateData.slug = slug || null;
+        }
+        // If !slugSafe we intentionally omit slug from the update to avoid Prisma column error on drifted prod DBs.
       } else {
-        updateData.slug = null;
+        if (slugSafe) {
+          updateData.slug = null;
+        }
       }
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-    });
+    let updatedUser;
+    try {
+      updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+      });
+    } catch (updateErr: any) {
+      // If the failure was due to the slug column (prod drift), retry once without it.
+      const msg = String(updateErr?.message || updateErr);
+      if (msg.includes('slug') && updateData.slug !== undefined) {
+        devLog('Retrying profile update without slug field (prod DB missing column)');
+        delete updateData.slug;
+        updatedUser = await prisma.user.update({
+          where: { id: userId },
+          data: updateData,
+        });
+      } else {
+        throw updateErr;
+      }
+    }
 
     return NextResponse.json({ 
       success: true, 
@@ -81,6 +106,10 @@ export async function PATCH(request: Request) {
 
   } catch (error: any) {
     console.error('Profile update error:', error);
-    return NextResponse.json({ error: 'Error al actualizar perfil' }, { status: 500 });
+    // Surface a bit more detail for the client (seller UI will now display it)
+    const message = error?.message?.includes('column') || error?.message?.includes('slug')
+      ? 'Error al guardar: la base de datos no tiene todas las columnas de perfil (contacta soporte o ejecuta migraciones).'
+      : 'Error al actualizar perfil';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

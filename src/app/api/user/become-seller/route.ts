@@ -40,8 +40,10 @@ export async function POST(request: NextRequest) {
 
     const trimmedBusinessName = businessName.trim();
     let slug = slugify(trimmedBusinessName);
+    let slugSafe = false;
 
-    // Ensure unique slug
+    // Ensure unique slug. Guard against missing column on drifted prod DBs
+    // (identical problem that broke /seller/profile saves).
     if (slug) {
       let candidate = slug;
       let suffix = 1;
@@ -52,8 +54,10 @@ export async function POST(request: NextRequest) {
             where: { slug: candidate },
             select: { id: true }
           });
+          slugSafe = true;
         } catch (e) {
           devLog('slug unique check failed (column may be missing in prod DB)');
+          slugSafe = false;
         }
         if (!exists || exists.id === userId) {
           slug = candidate;
@@ -67,17 +71,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        role: "seller",
-        businessName: trimmedBusinessName,
-        slug: slug || undefined,
-        nit: nit ? nit.trim() : null,
-        bio: bio ? bio.trim() : null,
-        updatedAt: new Date()
+    const updateData: any = {
+      role: "seller",
+      businessName: trimmedBusinessName,
+      nit: nit ? nit.trim() : null,
+      bio: bio ? bio.trim() : null,
+      updatedAt: new Date()
+    };
+    if (slugSafe) {
+      updateData.slug = slug || undefined;
+    }
+
+    let updatedUser;
+    try {
+      updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: updateData
+      });
+    } catch (updateErr: any) {
+      const msg = String(updateErr?.message || updateErr);
+      if (msg.includes('slug') && 'slug' in updateData) {
+        devLog('Retrying become-seller update without slug (prod DB missing column)');
+        delete updateData.slug;
+        updatedUser = await prisma.user.update({
+          where: { id: userId },
+          data: updateData
+        });
+      } else {
+        throw updateErr;
       }
-    })
+    }
 
     // Audit log (user self-service or admin action)
     await logAuditEvent({

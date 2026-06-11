@@ -121,6 +121,7 @@ export async function PATCH(req: NextRequest) {
       ...(customReferralRate !== undefined && { customReferralRate: customReferralRate === '' || customReferralRate == null ? null : parseFloat(customReferralRate) }),
     };
 
+    let slugSafe = false;
     if (businessName !== undefined) {
       const trimmed = (businessName || '').trim();
       updateData.businessName = trimmed || null;
@@ -137,8 +138,10 @@ export async function PATCH(req: NextRequest) {
                 where: { slug: candidate },
                 select: { id: true }
               });
+              slugSafe = true;
             } catch (e) {
               devLog('slug check skipped (possible missing column in prod DB)');
+              slugSafe = false;
             }
             if (!exists || exists.id === userId) {
               slug = candidate;
@@ -151,37 +154,62 @@ export async function PATCH(req: NextRequest) {
             }
           }
         }
-        updateData.slug = slug || null;
+        if (slugSafe) {
+          updateData.slug = slug || null;
+        }
       } else {
-        updateData.slug = null;
+        if (slugSafe) {
+          updateData.slug = null;
+        }
       }
     }
 
-    const updated = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-      select: { 
-        id: true, 
-        name: true, 
-        tagline: true,
-        email: true, 
-        role: true, 
-        businessName: true,
-        // slug: true, // omitted for prod DB compatibility until migration
-        phone: true,
-        whatsapp: true,
-        instagram: true,
-        facebook: true,
+    let updated;
+    try {
+      updated = await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        select: { 
+          id: true, 
+          name: true, 
+          tagline: true,
+          email: true, 
+          role: true, 
+          businessName: true,
+          // slug: true, // omitted for prod DB compatibility until migration
+          phone: true,
+          whatsapp: true,
+          instagram: true,
+          facebook: true,
 
-        bio: true,
-        nit: true,
-        city: true,
-        latitude: true,
-        longitude: true,
-        serviceRadiusKm: true,
-        customReferralRate: true
+          bio: true,
+          nit: true,
+          city: true,
+          latitude: true,
+          longitude: true,
+          serviceRadiusKm: true,
+          customReferralRate: true
+        }
+      });
+    } catch (updateErr: any) {
+      const msg = String(updateErr?.message || updateErr);
+      if (msg.includes('slug') && updateData.slug !== undefined) {
+        devLog('Retrying admin user update without slug field (prod DB missing column)');
+        delete updateData.slug;
+        updated = await prisma.user.update({
+          where: { id: userId },
+          data: updateData,
+          select: { 
+            id: true, name: true, tagline: true, email: true, role: true, businessName: true,
+            phone: true, whatsapp: true, instagram: true, facebook: true,
+            bio: true, nit: true, city: true, latitude: true, longitude: true,
+            serviceRadiusKm: true, customReferralRate: true
+          }
+        });
+      } else {
+        throw updateErr;
       }
-    });
+    }
 
     // Log the action (with request metadata + smarter action type)
     const adminId = (session.user as any).id;

@@ -145,11 +145,12 @@ export default function MiNegocioPage() {
         toast.success("Información del negocio guardada correctamente");
         setIsEditing(false);
       } else {
+        const err = await res.json().catch(() => ({}));
         if (res.status === 401) {
           toast.error("Tu sesión expiró. Por favor inicia sesión de nuevo.");
           window.location.href = `/login?callbackUrl=${encodeURIComponent('/seller/profile')}`;
         } else {
-          toast.error("Error al guardar");
+          toast.error(err.error || "Error al guardar");
         }
       }
     } catch (err) {
@@ -254,9 +255,14 @@ export default function MiNegocioPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Teléfono / WhatsApp</label>
+                    <label className="block text-sm font-medium mb-2">Teléfono</label>
                     <input name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing}
                       className="w-full px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">WhatsApp</label>
+                    <input name="whatsapp" value={formData.whatsapp} onChange={handleChange} disabled={!isEditing}
+                      className="w-full px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" placeholder="+57 ..." />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Ubicación principal</label>
