@@ -185,6 +185,8 @@ export async function POST(req: NextRequest) {
       signedStringPreview: `${reference}${amountInCents}${currency}***`,
       integritySignaturePrefix: integritySignature ? integritySignature.slice(0, 10) + '...' + integritySignature.slice(-6) : null,
       keyEnvironmentCheck: keyMismatchWarning || 'keys appear consistent (prod/pub vs integrity)',
+      // Always remind: the INTEGRITY_KEY secret must be the one from Wompi dashboard "Llave de integridad" for the exact public key above.
+      note: 'If you see "La firma es inválida" in Wompi, copy the prod "Llave de integridad" (not events or private) for this pub key and set as WOMPI_INTEGRITY_KEY in Vercel, then redeploy.',
     };
     if (process.env.NODE_ENV !== 'production') {
       debugInfo.stringToSign = `${reference}${amountInCents}${currency}${WOMPI_INTEGRITY_KEY}`;
