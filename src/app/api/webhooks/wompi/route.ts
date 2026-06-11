@@ -110,6 +110,7 @@ export async function POST(request: Request) {
         hasBodyTimestamp: !!body?.timestamp,
         event: body?.event,
         reference: body?.data?.transaction?.reference,
+        wompiTransactionId: body?.data?.transaction?.id,
       })
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
@@ -125,6 +126,11 @@ export async function POST(request: Request) {
     }
 
     if (!body?.event || !body?.data?.transaction) {
+      devLog('[Wompi][Webhook] Invalid payload (missing event or data.transaction)', {
+        hasEvent: !!body?.event,
+        hasTransaction: !!body?.data?.transaction,
+        wompiTransactionId: body?.data?.transaction?.id || null,
+      })
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
     }
 
@@ -142,6 +148,7 @@ export async function POST(request: Request) {
       created_at: transaction.created_at,
       finalized_at: transaction.finalized_at,
       fullTransactionKeys: Object.keys(transaction || {}),
+      hasRedirectUrl: !!transaction.redirect_url,
     })
 
     // Handle different transaction statuses
@@ -150,7 +157,11 @@ export async function POST(request: Request) {
       const orderId = reference?.replace('order_', '')
 
       if (!orderId) {
-        devLog('[Wompi] Could not extract orderId from reference:', reference)
+        devLog('[Wompi][Webhook] Could not extract orderId from reference (transaction may not have been created via this app checkout)', {
+          wompiTransactionId: transaction.id,
+          reference,
+          status: transaction.status,
+        })
         return NextResponse.json({ received: true })
       }
 
@@ -269,7 +280,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ received: true, event })
   } catch (error) {
-    devLog('[Wompi] Webhook processing error:', error)
+    const txId = body?.data?.transaction?.id || body?.data?.transaction?.reference || 'unknown'
+    devLog('[Wompi] Webhook processing error:', { wompiTransactionId: txId, error })
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
   }
 }
