@@ -8,6 +8,12 @@ const globalForPrisma = globalThis as unknown as {
 
 function createPrismaClient() {
   const dbUrl = process.env.DATABASE_URL || ''
+  const scheme = dbUrl.split(':')[0] || 'unknown'
+  const isAccelerateUrl = dbUrl.startsWith('prisma+postgres://')
+  const isDirectPostgres = dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('file:')
+
+  // Startup diagnostic (visible in Vercel logs / function cold starts)
+  console.log(`[Prisma] Initializing client | scheme=${scheme} | accelerate=${isAccelerateUrl} | directPostgres=${isDirectPostgres} | hasDirectEnv=${!!process.env.DIRECT_DATABASE_URL}`)
 
   const baseClient = new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
@@ -18,8 +24,7 @@ function createPrismaClient() {
   // - Regular `postgresql://` can also benefit on Prisma Data Platform if using their pooled endpoint.
   // - Skip for local SQLite (`file:`) or other providers during dev (the with-local-sqlite.sh wrapper + schema patch).
   // This prevents extension errors when running against SQLite in development.
-  const useAccelerate = dbUrl.startsWith('prisma+postgres://') ||
-                        (dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('file:'))
+  const useAccelerate = isAccelerateUrl || isDirectPostgres
 
   if (useAccelerate) {
     return baseClient.$extends(withAccelerate())

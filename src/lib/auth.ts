@@ -101,42 +101,50 @@ export const authOptions = {
       // Handle Google users: ensure they exist in our Prisma DB with a real UUID + role
       if (account?.provider === "google" && user?.email) {
         const email = user.email.toLowerCase()
-        const existing = await prisma.user.findUnique({
-          where: { email },
-          select: { id: true, role: true }
-        })
 
-        // Support promoting specific real Gmail accounts to admin automatically
-        const adminEmails = (process.env.ADMIN_EMAILS || '')
-          .split(',')
-          .map((e) => e.trim().toLowerCase())
-          .filter(Boolean)
-
-        const shouldBeAdmin = adminEmails.includes(email)
-
-        if (!existing) {
-          const newUser = await prisma.user.create({
-            data: {
-              name: user.name || profile?.name || "Google User",
-              email,
-              role: shouldBeAdmin ? 'admin' : 'buyer',
-            },
+        try {
+          const existing = await prisma.user.findUnique({
+            where: { email },
+            select: { id: true, role: true }
           })
-          user.id = newUser.id
-          user.role = newUser.role
-        } else {
-          // If this Gmail is listed as admin, upgrade the role on login
-          const finalRole = shouldBeAdmin ? 'admin' : existing.role
-          if (finalRole !== existing.role) {
-            const updated = await prisma.user.update({
-              where: { email },
-              data: { role: finalRole },
+
+          // Support promoting specific real Gmail accounts to admin automatically
+          const adminEmails = (process.env.ADMIN_EMAILS || '')
+            .split(',')
+            .map((e) => e.trim().toLowerCase())
+            .filter(Boolean)
+
+          const shouldBeAdmin = adminEmails.includes(email)
+
+          if (!existing) {
+            const newUser = await prisma.user.create({
+              data: {
+                name: user.name || profile?.name || "Google User",
+                email,
+                role: shouldBeAdmin ? 'admin' : 'buyer',
+              },
             })
-            user.role = updated.role
+            user.id = newUser.id
+            user.role = newUser.role
           } else {
-            user.role = existing.role
+            // If this Gmail is listed as admin, upgrade the role on login
+            const finalRole = shouldBeAdmin ? 'admin' : existing.role
+            if (finalRole !== existing.role) {
+              const updated = await prisma.user.update({
+                where: { email },
+                data: { role: finalRole },
+              })
+              user.role = updated.role
+            } else {
+              user.role = existing.role
+            }
+            user.id = existing.id
           }
-          user.id = existing.id
+        } catch (err) {
+          // DB unreachable or other transient error — still allow the OAuth sign-in
+          // (the provider already authenticated the user). Session will be minimal until DB recovers.
+          devLog('[auth] signIn Google DB operation failed (non-fatal, allowing sign-in):', err)
+          // user.id etc. may be missing, but NextAuth will still create a session from the provider user
         }
       }
       return true
@@ -148,44 +156,49 @@ export const authOptions = {
         token.role = (user as any).role || "buyer"
         // Populate profile fields at signin time only (avoids per-request DB in session)
         // If profile edited later, client can refresh session or re-login for instant reflect
-        const dbUser = await prisma.user.findUnique({
-          where: { id: user.id as string },
-          select: {
-            name: true,
-            tagline: true,
-            profilePicture: true,
-            businessName: true,
-            bio: true,
-            phone: true,
-            whatsapp: true,
-            instagram: true,
-            facebook: true,
-            city: true,
-            latitude: true,
-            longitude: true,
-            serviceRadiusKm: true,
-            rating: true,
-            reviewCount: true,
-            referredById: true,
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id as string },
+            select: {
+              name: true,
+              tagline: true,
+              profilePicture: true,
+              businessName: true,
+              bio: true,
+              phone: true,
+              whatsapp: true,
+              instagram: true,
+              facebook: true,
+              city: true,
+              latitude: true,
+              longitude: true,
+              serviceRadiusKm: true,
+              rating: true,
+              reviewCount: true,
+              referredById: true,
+            }
+          })
+          if (dbUser) {
+            const t = token as any
+            t.name = dbUser.name
+            t.profilePicture = dbUser.profilePicture
+            t.businessName = dbUser.businessName
+            t.bio = dbUser.bio
+            t.phone = dbUser.phone
+            t.whatsapp = dbUser.whatsapp
+            t.instagram = dbUser.instagram
+            t.facebook = dbUser.facebook
+            t.city = dbUser.city
+            t.latitude = dbUser.latitude
+            t.longitude = dbUser.longitude
+            t.serviceRadiusKm = dbUser.serviceRadiusKm
+            t.rating = dbUser.rating
+            t.reviewCount = dbUser.reviewCount
+            t.referredById = dbUser.referredById
           }
-        })
-        if (dbUser) {
-          const t = token as any
-          t.name = dbUser.name
-          t.profilePicture = dbUser.profilePicture
-          t.businessName = dbUser.businessName
-          t.bio = dbUser.bio
-          t.phone = dbUser.phone
-          t.whatsapp = dbUser.whatsapp
-          t.instagram = dbUser.instagram
-          t.facebook = dbUser.facebook
-          t.city = dbUser.city
-          t.latitude = dbUser.latitude
-          t.longitude = dbUser.longitude
-          t.serviceRadiusKm = dbUser.serviceRadiusKm
-          t.rating = dbUser.rating
-          t.reviewCount = dbUser.reviewCount
-          t.referredById = dbUser.referredById
+        } catch (err) {
+          // Non-fatal: allow basic session from the provider user object
+          devLog('[auth] jwt DB enrichment failed (non-fatal):', err)
         }
       }
 
