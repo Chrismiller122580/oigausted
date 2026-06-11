@@ -17,8 +17,10 @@ function verifyWompiSignature(body: any, receivedSignature: string): boolean {
     return false
   }
 
-  // Wompi recommends signing: timestamp + JSON.stringify(event)
-  // This prevents replay attacks when combined with timestamp validation.
+  // Official Wompi (Colombia) webhook/events signature uses X-Event-Checksum header.
+  // Common construction (widely used in integrations + matches older Wompi guidance):
+  // HMAC-SHA256( events_secret , timestamp + JSON.stringify(full_event_body) )
+  // The received value may come with "sha256=" prefix or be the raw hex.
   const timestamp = (body?.timestamp || '').toString()
   const signedPayload = `${timestamp}${JSON.stringify(body)}`
 
@@ -27,7 +29,9 @@ function verifyWompiSignature(body: any, receivedSignature: string): boolean {
     .update(signedPayload)
     .digest('hex')
 
-  const normalizedReceived = receivedSignature.replace('sha256=', '').trim()
+  const normalizedReceived = (receivedSignature || '').replace('sha256=', '').trim().toLowerCase()
+
+  if (!normalizedReceived || !expectedSignature) return false
 
   // Use timing-safe comparison to prevent timing attacks
   try {
@@ -44,8 +48,17 @@ function verifyWompiSignature(body: any, receivedSignature: string): boolean {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const receivedSignature = request.headers.get('x-wompi-signature') || ''
-    const headerTimestamp = request.headers.get('x-wompi-timestamp')
+    // Wompi uses X-Event-Checksum for the events/webhook signature (see official docs).
+    // Support common variants + legacy.
+    const receivedSignature = 
+      request.headers.get('x-event-checksum') ||
+      request.headers.get('X-Event-Checksum') ||
+      request.headers.get('x-wompi-signature') ||
+      (body?.signature?.checksum || '') 
+    const headerTimestamp = 
+      request.headers.get('x-wompi-timestamp') ||
+      request.headers.get('X-Wompi-Timestamp') ||
+      request.headers.get('x-event-timestamp')
 
     // Prefer timestamp from header if present (more reliable), fallback to body
     const receivedTimestamp = headerTimestamp 
@@ -54,7 +67,12 @@ export async function POST(request: Request) {
 
     // 1. Verify signature first (critical security check)
     if (!verifyWompiSignature(body, receivedSignature)) {
-      devLog('[Wompi] Invalid webhook signature received')
+      devLog('[Wompi][Webhook] Invalid signature received', {
+        receivedHeader: receivedSignature ? receivedSignature.slice(0, 20) + '...' : 'none',
+        hasBodyTimestamp: !!body?.timestamp,
+        event: body?.event,
+        reference: body?.data?.transaction?.reference,
+      })
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
 
