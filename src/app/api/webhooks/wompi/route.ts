@@ -125,32 +125,39 @@ export async function POST(request: Request) {
       }
 
       // Wrap status update + referralEarning create in tx for atomicity (prevents orphan earnings on crash/partial)
+      // Use explicit select (not include) to avoid prod DB drift on columns like sellerPayoutAt
       const updatedOrder = await prisma.$transaction(async (tx) => {
         const u = await tx.order.update({
           where: { id: orderId },
           data: updateData,
-          include: {
+          select: {
+            id: true,
+            price: true,
+            status: true,
+            buyerId: true,
+            sellerId: true,
+            gigId: true,
             buyer: { select: { id: true, name: true } },
             gig: { select: { title: true } },
             seller: { select: { id: true, referredById: true } }
           }
         })
 
-        if (transaction.status === 'APPROVED' && u.seller?.referredById) {
+        if (transaction.status === 'APPROVED' && (u as any).seller?.referredById) {
           // Idempotency inside tx too (best effort)
-          const currentStatus = existingOrder?.status || u.status
+          const currentStatus = existingOrder?.status || (u as any).status
           if (currentStatus !== 'Paid' && currentStatus !== 'Completed') {
             const { getEffectiveReferralRate } = await import('@/lib/payout')
-            const rate = await getEffectiveReferralRate(u.seller.referredById)
-            const amount = Math.round((u.price || 0) * rate)
+            const rate = await getEffectiveReferralRate((u as any).seller.referredById)
+            const amount = Math.round(((u as any).price || 0) * rate)
             if (amount > 0) {
               try {
                 await tx.referralEarning.create({
                   data: {
                     amount,
                     rateUsed: rate,
-                    referrerId: u.seller.referredById,
-                    orderId: u.id,
+                    referrerId: (u as any).seller.referredById,
+                    orderId: (u as any).id,
                     status: 'Pending',
                   }
                 })

@@ -321,6 +321,22 @@ export default function CheckoutPage() {
               reference: result.transaction.reference,
             });
           }
+          // After widget closes, auto-query Wompi + refresh so user sees progress without manual Consultar
+          setTimeout(async () => {
+            try {
+              await fetch(`/api/orders/${order.id}/check-wompi`, { method: 'POST' }).catch(() => {});
+              const fresh = await fetch(`/api/orders/${order.id}`).then(r => r.json());
+              if (fresh?.order?.status && fresh.order.status !== 'Pending') {
+                toast.success(`Pago detectado: ${fresh.order.status}. Redirigiendo...`);
+                router.push(`/orders/${order.id}?from=wompi`);
+              } else {
+                // keep polling on the order page
+                router.push(`/orders/${order.id}?from=wompi`);
+              }
+            } catch {
+              router.push(`/orders/${order.id}?from=wompi`);
+            }
+          }, 1200);
         });
       } else if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;

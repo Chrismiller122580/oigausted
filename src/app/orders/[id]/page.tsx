@@ -43,6 +43,52 @@ function OrderDetailClient() {
   // For the Wompi debugger panel
   const [lastWompiPrepareDebug, setLastWompiPrepareDebug] = useState<any>(null);
 
+  // Robust Wompi script readiness (mirrors checkout page to avoid "cargando" / silent fail to open payment UI)
+  const [wompiReady, setWompiReady] = useState(false);
+  const [wompiLoadFailed, setWompiLoadFailed] = useState(false);
+
+  const ensureWompiReady = async (): Promise<boolean> => {
+    if (wompiReady) return true;
+    if (typeof window === 'undefined') return false;
+
+    const hasGlobal = () => !!(window as any).WompiCheckout || !!(window as any).WidgetCheckout;
+
+    if (hasGlobal()) {
+      setWompiReady(true);
+      setWompiLoadFailed(false);
+      return true;
+    }
+
+    // Inject script if missing
+    if (!document.querySelector('script[src*="checkout.wompi.co"]')) {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.wompi.co/widget.js';
+      script.async = true;
+      script.onload = () => {
+        setTimeout(() => {
+          if (hasGlobal()) {
+            setWompiReady(true);
+            setWompiLoadFailed(false);
+          }
+        }, 250);
+      };
+      script.onerror = () => setWompiLoadFailed(true);
+      document.head.appendChild(script);
+    }
+
+    // Poll up to ~5s
+    for (let i = 0; i < 25; i++) {
+      if (hasGlobal()) {
+        setWompiReady(true);
+        setWompiLoadFailed(false);
+        return true;
+      }
+      await new Promise(r => setTimeout(r, 200));
+    }
+    setWompiLoadFailed(true);
+    return false;
+  };
+
   const uid = (session?.user as any)?.id;
   const isBuyer = order?.buyerId === uid;
   const isSeller = order?.sellerId === uid;
@@ -472,6 +518,15 @@ function OrderDetailClient() {
                   <Button 
                     onClick={async () => {
                       try {
+                        // Robust ensure (prevents "El sistema de pagos aún está cargando" / nowhere to enter payment)
+                        if (!wompiReady) {
+                          const ready = await ensureWompiReady();
+                          if (!ready) {
+                            toast.error("El sistema de pagos aún está cargando. Intenta de nuevo en unos segundos.");
+                            return;
+                          }
+                        }
+
                         // Prepare Wompi config (amount, reference, signature etc. from server)
                         console.log('[Wompi][Client] Preparing payment for order', { orderId: order.id, currentStatus: order.status });
 
@@ -495,19 +550,6 @@ function OrderDetailClient() {
                           debug: data.debug,
                         });
 
-                        // Dynamically load Wompi widget if not present (so it works from orders page too)
-                        // Use on-demand loading for reliability
-                        if (!window.WompiCheckout && !(window as any).WidgetCheckout) {
-                          await new Promise((resolve, reject) => {
-                            const script = document.createElement('script');
-                            script.src = 'https://checkout.wompi.co/widget.js';
-                            script.async = true;
-                            script.onload = () => setTimeout(resolve, 300); // give it a moment
-                            script.onerror = reject;
-                            document.head.appendChild(script);
-                          });
-                        }
-
                         const WidgetCheckoutClass = (window as any).WidgetCheckout || (window as any).WompiCheckout;
 
                         if (WidgetCheckoutClass && checkoutData) {
@@ -525,12 +567,30 @@ function OrderDetailClient() {
                           console.log('[Wompi][Client] Opening Wompi widget', { reference: checkoutData.reference });
                           const checkout = new WidgetCheckoutClass(widgetConfig);
 
+                          toast.info('Abriendo Wompi Checkout seguro. Ingresa los datos de pago allí.');
+
                           // Use the callback as recommended in Wompi docs for immediate feedback
                           checkout.open((result: any) => {
                             console.log('[Wompi][Client] Widget closed with result:', result);
+                            // Auto nudge refresh / check after user closes the widget (payment may be PENDING/APPROVED)
+                            setTimeout(async () => {
+                              try {
+                                const fresh = await fetch(`/api/orders/${orderId}`).then(r => r.json());
+                                const upd = fresh.order || fresh;
+                                setOrder(upd);
+                                if (upd.status === 'Pending') {
+                                  // Force a server-side Wompi query (bypasses webhook if needed)
+                                  fetch(`/api/orders/${orderId}/check-wompi`, { method: 'POST' }).catch(() => {});
+                                  startPaymentPolling();
+                                } else {
+                                  setIsPollingPayment(false);
+                                  toast.success(`Estado actualizado: ${upd.status}`);
+                                }
+                              } catch {}
+                            }, 1500);
                           });
                         } else {
-                          toast.error("No se pudo iniciar el pago con Wompi.");
+                          toast.error("No se pudo iniciar el pago con Wompi. Verifica la conexión e intenta de nuevo.");
                         }
                       } catch (e: any) {
                         toast.error(e.message || "Error al iniciar el pago.");

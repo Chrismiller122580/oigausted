@@ -160,10 +160,38 @@ export async function PATCH(
       ? (body.sellerPayoutAt ? new Date(body.sellerPayoutAt) : null) 
       : undefined;
 
-    // Exclude sellerPayoutAt from main updateData for defensive update (column may be missing in prod DB)
-    if (updateData.sellerPayoutAt !== undefined) delete updateData.sellerPayoutAt;
+    // sellerPayoutAt is intentionally never put into updateData (handled in best-effort block below)
 
     let updatedOrder: any;
+
+    // Safe select for Order + needed relations (avoids selecting columns like sellerPayoutAt that may be missing in prod DB)
+    const safeOrderSelect = {
+      id: true,
+      price: true,
+      status: true,
+      progress: true,
+      trackingNumber: true,
+      createdAt: true,
+      updatedAt: true,
+      buyerId: true,
+      sellerId: true,
+      gigId: true,
+      customFields: true,
+      serviceAddress: true,
+      serviceLatitude: true,
+      serviceLongitude: true,
+      gig: { select: { id: true, title: true, description: true, price: true, category: true } },
+      buyer: { select: { id: true, name: true, email: true } },
+      seller: { 
+        select: { 
+          id: true, 
+          name: true, 
+          businessName: true, 
+          email: true,
+          referredById: true 
+        } 
+      }
+    } as const;
 
     if (Object.keys(updateData).length > 0 || status !== undefined || price !== undefined || customFields !== undefined || serviceAddress !== undefined || serviceLatitude !== undefined || serviceLongitude !== undefined) {
       // Wrap core order status + audit + referral create + cancel earnings in tx for data integrity
@@ -171,19 +199,7 @@ export async function PATCH(
       const u = await tx.order.update({
         where: { id: orderId },
         data: updateData,
-        include: {
-          gig: true,
-          buyer: { select: { id: true, name: true, email: true } },
-          seller: { 
-            select: { 
-              id: true, 
-              name: true, 
-              businessName: true, 
-              email: true,
-              referredById: true 
-            } 
-          }
-        }
+        select: safeOrderSelect
       })
 
       // Audit inside tx (critical change)
@@ -206,18 +222,18 @@ export async function PATCH(
       }
 
       // Referral earning create inside tx (atomic with status)
-      if ((status === 'Paid' || status === 'Completed') && u.seller?.referredById) {
+      if ((status === 'Paid' || status === 'Completed') && (u as any).seller?.referredById) {
         const { getEffectiveReferralRate } = await import('@/lib/payout');
-        const rate = await getEffectiveReferralRate(u.seller.referredById);
-        const amount = Math.round((u.price || 0) * rate);
+        const rate = await getEffectiveReferralRate((u as any).seller.referredById);
+        const amount = Math.round(((u as any).price || 0) * rate);
         if (amount > 0) {
           try {
             await tx.referralEarning.create({
               data: {
                 amount,
                 rateUsed: rate,
-                referrerId: u.seller.referredById,
-                orderId: u.id,
+                referrerId: (u as any).seller.referredById,
+                orderId: (u as any).id,
                 status: 'Pending',
               }
             });
@@ -231,7 +247,7 @@ export async function PATCH(
       if (status === 'Cancelled') {
         try {
           await tx.referralEarning.updateMany({
-            where: { orderId: u.id, status: { in: ['Pending', 'Requested'] } },
+            where: { orderId: (u as any).id, status: { in: ['Pending', 'Requested'] } },
             data: { status: 'Cancelled' }
           });
         } catch (e) {
@@ -242,22 +258,10 @@ export async function PATCH(
       return u;
     })
     } else {
-      // No main update fields (e.g. only sellerPayoutAt from admin payouts page) - fetch current for response
+      // No main update fields (e.g. only sellerPayoutAt from admin payouts page) - fetch current safely (no sellerPayoutAt col)
       updatedOrder = await prisma.order.findUnique({
         where: { id: orderId },
-        include: {
-          gig: true,
-          buyer: { select: { id: true, name: true, email: true } },
-          seller: { 
-            select: { 
-              id: true, 
-              name: true,
-              businessName: true,
-              email: true,
-              referredById: true 
-            } 
-          }
-        }
+        select: safeOrderSelect
       });
     }
 
@@ -266,7 +270,7 @@ export async function PATCH(
       try {
         await prisma.order.update({
           where: { id: orderId },
-          data: { sellerPayoutAt: sellerPayoutAtUpdate },
+          data: { sellerPayoutAt: sellerPayoutAtUpdate } as any,
         });
       } catch (payoutErr) {
         devLog('sellerPayoutAt update skipped (column may be missing in prod DB)', payoutErr);
