@@ -28,20 +28,43 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const privateKey = process.env.WOMPI_PRIVATE_KEY;
-  if (!privateKey) {
-    return NextResponse.json({ error: 'Wompi private key not configured on server' }, { status: 500 });
+  const privateKey = process.env.WOMPI_PRIVATE_KEY || '';
+  const pubKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '';
+
+  // Prefer public key for read-only status queries (officially supported by Wompi for verifying transaction status).
+  // Private key is optional / used for privileged actions (voids, payouts, etc.). This endpoint no longer requires it.
+  const authToken = privateKey || pubKey;
+  if (!authToken) {
+    return NextResponse.json({
+      error: 'Wompi is not configured (missing NEXT_PUBLIC_WOMPI_PUBLIC_KEY).',
+      details: 'At least the public key is required to query transaction status.'
+    }, { status: 500 });
   }
 
   const reference = `order_${orderId}`;
 
+  // Choose the correct Wompi API base: sandbox vs production, matching the public key in use.
+  // This ensures "Consultar Wompi API" finds sandbox transactions when using test keys.
+  const isSandbox = /test|sandbox|_test_/i.test(pubKey);
+  const wompiBase = isSandbox ? 'https://sandbox.wompi.co' : 'https://production.wompi.co';
+
+  // Support direct lookup by Wompi transaction ID (preferred/official way: GET /v1/transactions/{id})
+  // or fallback to list filtered by our merchant reference.
+  // The client can pass { transactionId } in the POST body when known from widget result.
+  let txIdFromBody: string | null = null;
   try {
-    // Query Wompi Transactions API by reference.
-    // Works with both sandbox (test keys) and production (live keys).
-    const wompiUrl = `https://production.wompi.co/v1/transactions?reference=${encodeURIComponent(reference)}`;
+    const body = await req.json().catch(() => ({}));
+    txIdFromBody = body?.transactionId ? String(body.transactionId) : null;
+  } catch {}
+
+  try {
+    const wompiUrl = txIdFromBody
+      ? `${wompiBase}/v1/transactions/${encodeURIComponent(txIdFromBody)}`
+      : `${wompiBase}/v1/transactions?reference=${encodeURIComponent(reference)}`;
+
     const res = await fetch(wompiUrl, {
       headers: {
-        Authorization: `Bearer ${privateKey}`,
+        Authorization: `Bearer ${authToken}`,
       },
     });
 
@@ -59,6 +82,9 @@ export async function POST(
         success: true,
         message: 'No transaction found in Wompi for this reference yet.',
         transaction: null,
+        wompiBase,
+        queriedBy: txIdFromBody ? 'id' : 'reference',
+        authType: privateKey ? 'private' : 'public',
       });
     }
 
@@ -68,6 +94,9 @@ export async function POST(
       reference: transaction.reference,
       amount_in_cents: transaction.amount_in_cents,
       error: transaction.error || transaction.status_message,
+      queriedBase: wompiBase,
+      byId: !!txIdFromBody,
+      authPrefix: authToken.slice(0, 8),
     });
 
     // Extract any Wompi error details (signature errors, etc. often appear here)
@@ -91,6 +120,9 @@ export async function POST(
         message: 'Order status updated to Paid based on Wompi transaction.',
         transaction,
         wompiError,
+        wompiBase,
+        queriedBy: txIdFromBody ? 'id' : 'reference',
+        authType: privateKey ? 'private' : 'public',
       });
     }
 
@@ -108,6 +140,9 @@ export async function POST(
       transaction,
       wompiTransactionId: transaction.id,
       wompiError: isErrorStatus || wompiError ? wompiError : undefined,
+      wompiBase, // sandbox or production that was queried (useful for debugger)
+      queriedBy: txIdFromBody ? 'id' : 'reference',
+      authType: privateKey ? 'private' : 'public',
       // Include key fields for easy display in debugger
       wompiSummary: {
         id: transaction.id,

@@ -675,6 +675,20 @@ function OrderDetailClient() {
                             <div className="text-red-600">Error: {lastWompiPrepareDebug.lastCheckWompi.wompiSummary.error}</div>
                           )}
                           <div className="text-[8px] mt-0.5">Ref: {lastWompiPrepareDebug.lastCheckWompi.wompiSummary.reference}</div>
+                          {lastWompiPrepareDebug.lastCheckWompi.wompiBase && (
+                            <div className="text-[8px] opacity-70">Queried: {lastWompiPrepareDebug.lastCheckWompi.wompiBase}</div>
+                          )}
+                          {(lastWompiPrepareDebug.lastCheckWompi.queriedBy || lastWompiPrepareDebug.lastCheckWompi.authType) && (
+                            <div className="text-[8px] opacity-70">
+                              Via: {lastWompiPrepareDebug.lastCheckWompi.queriedBy || 'reference'} (auth: {lastWompiPrepareDebug.lastCheckWompi.authType || 'unknown'})
+                            </div>
+                          )}
+                          {lastWompiPrepareDebug.lastCheckWompi.details && (
+                            <div className="text-red-600 mt-0.5">Details: {typeof lastWompiPrepareDebug.lastCheckWompi.details === 'string' ? lastWompiPrepareDebug.lastCheckWompi.details : JSON.stringify(lastWompiPrepareDebug.lastCheckWompi.details)}</div>
+                          )}
+                          {lastWompiPrepareDebug.lastCheckWompi.error && !lastWompiPrepareDebug.lastCheckWompi.wompiSummary && (
+                            <div className="text-red-600 mt-0.5">Query error: {lastWompiPrepareDebug.lastCheckWompi.error}</div>
+                          )}
                         </div>
                       )}
                       {lastWompiPrepareDebug?.lastWidgetResultError && (
@@ -727,7 +741,23 @@ function OrderDetailClient() {
                         className="text-xs h-7"
                         onClick={async () => {
                           try {
-                            const res = await fetch(`/api/orders/${orderId}/check-wompi`, { method: 'POST' });
+                            // Prefer direct transaction ID lookup (official + reliable) if we captured one from a prior widget result or previous check.
+                            const prev = lastWompiPrepareDebug || {};
+                            const candidateTxId =
+                              prev.lastWidgetResult?.transaction?.id ||
+                              prev.lastWidgetResult?.id ||
+                              prev.lastWidgetResult?.transactionId ||
+                              prev.lastCheckWompi?.transactionId ||
+                              prev.lastCheckWompi?.wompiTransactionId ||
+                              null;
+
+                            const fetchOpts: RequestInit = { method: 'POST' };
+                            if (candidateTxId) {
+                              fetchOpts.headers = { 'Content-Type': 'application/json' };
+                              fetchOpts.body = JSON.stringify({ transactionId: candidateTxId });
+                            }
+
+                            const res = await fetch(`/api/orders/${orderId}/check-wompi`, fetchOpts);
                             const data = await res.json();
                             if (res.ok && data.success) {
                               // Surface detailed Wompi error (e.g. invalid signature) if present
@@ -747,6 +777,10 @@ function OrderDetailClient() {
                                   amount: data.transaction?.amount_in_cents,
                                   wompiSummary: data.wompiSummary,
                                   fullTransaction: data.transaction,
+                                  wompiBase: data.wompiBase,
+                                  queriedBy: data.queriedBy,
+                                  authType: data.authType,
+                                  details: data.details,
                                 }
                               }));
                               // Refresh the order from our DB (the route may have updated it)
@@ -761,6 +795,18 @@ function OrderDetailClient() {
                               }
                             } else {
                               toast.error(data.error || data.message || 'Error consultando Wompi');
+                              // Still capture the failure + Wompi details (e.g. 401 INVALID_ACCESS_TOKEN + reason) for the debugger panel
+                              setLastWompiPrepareDebug((p: any) => ({
+                                ...(p || {}),
+                                lastCheckWompi: {
+                                  ...(data || {}),
+                                  error: data?.error,
+                                  details: data?.details,
+                                  wompiBase: data?.wompiBase,
+                                  queriedBy: data?.queriedBy,
+                                  authType: data?.authType,
+                                }
+                              }));
                             }
                           } catch (e) {
                             toast.error('No se pudo consultar Wompi');
