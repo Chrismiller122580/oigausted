@@ -826,6 +826,9 @@ function OrderDetailClient() {
                       Usa "Consultar Wompi API" para forzar la consulta usando la llave privada (actualiza el estado si APPROVED). 
                       El reference exacto que debe aparecer en Wompi dashboard es <span className="font-mono">order_{order.id}</span>.
                     </p>
+                    <p className="mt-1 text-[9px] text-blue-600/80 dark:text-blue-400/80 leading-tight">
+                      La "Fecha de vencimiento 00/00" o datos de tarjeta incompletos en los detalles de Wompi es normal en transacciones que fallan con "firma inválida" (el rechazo ocurre a nivel de la config del checkout antes de procesar completamente los datos de tarjeta). No es la causa del error.
+                    </p>
                   </div>
                 )}
               </CardContent>
