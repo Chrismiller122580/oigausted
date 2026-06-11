@@ -545,6 +545,7 @@ function OrderDetailClient() {
                           ...(data.debug || {}),
                           signature: data.checkoutData?.signature?.integrity,
                           checkoutData: data.checkoutData ? { reference: data.checkoutData.reference, amountInCents: data.checkoutData.amountInCents, signature: data.checkoutData.signature } : undefined,
+                          keyMismatchWarning: data.keyMismatchWarning,
                         });
 
                         console.log('[Wompi][Client] Received checkoutData from server', {
@@ -652,6 +653,11 @@ function OrderDetailClient() {
                               Recompute: matches previous = {String(lastWompiPrepareDebug.lastRecompute.matchesPrevious)} — {lastWompiPrepareDebug.lastRecompute.note}
                             </div>
                           )}
+                        </div>
+                      )}
+                      {lastWompiPrepareDebug?.keyMismatchWarning && (
+                        <div className="mt-1 p-1 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded text-[9px] font-semibold">
+                          ⚠️ KEY MISMATCH: {lastWompiPrepareDebug.keyMismatchWarning}
                         </div>
                       )}
                       {lastWompiPrepareDebug?.lastCheckWompi?.wompiError && (

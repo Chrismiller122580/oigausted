@@ -846,6 +846,9 @@ export default function CheckoutPage() {
                         toast.error(data.error);
                       } else {
                         toast.success('Wompi config prepared');
+                        if (data.keyMismatchWarning) {
+                          toast.error('KEY MISMATCH detected in prepare: ' + data.keyMismatchWarning, { duration: 10000 });
+                        }
                       }
                     } catch {
                       toast.error('Failed to prepare');

@@ -133,6 +133,13 @@ export async function POST(req: NextRequest) {
 
     const integritySignature = generateIntegritySignature(amountInCents, currency, reference);
 
+    // Key environment consistency check (helps debug "firma inválida" when pub key and integrity secret don't match)
+    const pubPrefix = (WOMPI_PUBLIC_KEY || '').slice(0, 8);
+    const isProdPub = pubPrefix.includes('prod');
+    const integKey = WOMPI_INTEGRITY_KEY || '';
+    const integLooksTest = integKey.includes('test') || !integKey.includes('prod');
+    const keyMismatchWarning = isProdPub && integLooksTest ? 'MISMATCH: publicKey is prod but INTEGRITY_KEY looks like test/sandbox or missing "prod". Use the prod_integrity_... secret from Wompi dashboard for this pub_prod_ key.' : null;
+
     const checkoutData: any = {
       publicKey: WOMPI_PUBLIC_KEY,
       currency,
@@ -177,19 +184,28 @@ export async function POST(req: NextRequest) {
       // Safe preview of exactly what was fed into the HMAC (secret redacted)
       signedStringPreview: `${reference}${amountInCents}${currency}***`,
       integritySignaturePrefix: integritySignature ? integritySignature.slice(0, 10) + '...' + integritySignature.slice(-6) : null,
+      keyEnvironmentCheck: keyMismatchWarning || 'keys appear consistent (prod/pub vs integrity)',
     };
     if (process.env.NODE_ENV !== 'production') {
       debugInfo.stringToSign = `${reference}${amountInCents}${currency}${WOMPI_INTEGRITY_KEY}`;
       debugInfo.fullIntegrity = integritySignature;
     }
+    if (keyMismatchWarning) {
+      debugInfo.keyMismatch = keyMismatchWarning;
+      console.warn('[Wompi][Prepare] ' + keyMismatchWarning);
+    }
 
-    return NextResponse.json({
+    const response: any = {
       success: true,
       checkoutData,
       reference,
       hasIntegritySignature: !!integritySignature,
       debug: debugInfo,
-    });
+    };
+    if (keyMismatchWarning) {
+      response.keyMismatchWarning = keyMismatchWarning;
+    }
+    return NextResponse.json(response);
 
   } catch (error: any) {
     console.error('Wompi checkout error:', error);
