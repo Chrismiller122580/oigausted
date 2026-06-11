@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     // Create user + default notification prefs atomically so welcome email (and future notifs)
     // see a real prefs row instead of defensive defaults. This reduces the large fallback
     // objects in the prefs API and ensures consistent behavior from signup.
-    const newUser = await prisma.$transaction(async (tx) => {
+    const newUser = await prisma.$transaction(async (tx: any) => {
       const createdUser = await tx.user.create({
         data: {
           name,

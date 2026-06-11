@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       total,
       reachable,
-      sample: sample.map(u => ({
+      sample: sample.map((u: any) => ({
         id: u.id,
         name: u.name,
         email: u.email,

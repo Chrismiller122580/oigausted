@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
       take: 100
     });
 
-    const gigsWithStats = gigs.map(g => ({
+    const gigsWithStats = gigs.map((g: any) => ({
       ...g,
       orderCount: g._count.orders
     }));

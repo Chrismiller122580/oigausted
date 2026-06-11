@@ -129,7 +129,7 @@ export async function GET() {
     const totalBuyersWithOrders = buyerOrderCounts.size;
 
     // Platform revenue calc using payout lib for accuracy (like stats)
-    const breakdowns = completedOrders.map(o =>
+    const breakdowns = completedOrders.map((o: any) =>
       calculateOrderPayout(
         Number(o.price) || 0,
         !!o.seller?.referredById,

@@ -16,7 +16,7 @@ export async function GET() {
     });
 
     // Attach seller info defensively (some old rows may have dangling sellerId)
-    const sellerIds = [...new Set(gigs.map(g => g.sellerId).filter((id): id is string => !!id))];
+    const sellerIds = [...new Set(gigs.map((g: any) => g.sellerId).filter((id: any): id is string => !!id))];
     const sellers = await prisma.user.findMany({
       where: { id: { in: sellerIds } },
       select: { 
@@ -27,9 +27,9 @@ export async function GET() {
       }
     });
 
-    const sellerMap = Object.fromEntries(sellers.map(s => [s.id, s]));
+    const sellerMap = Object.fromEntries(sellers.map((s: any) => [s.id, s]));
 
-    const gigsWithSeller = gigs.map(gig => ({
+    const gigsWithSeller = gigs.map((gig: any) => ({
       ...gig,
       seller: sellerMap[gig.sellerId] || null
     }));

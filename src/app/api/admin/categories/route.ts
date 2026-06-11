@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { parseJsonArrayField, toPrismaJson } from '@/lib/utils';
 import { gigCategories as staticGigCategories } from '@/lib/gig-categories';
+import type { Category } from '@prisma/client';
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -27,16 +28,16 @@ export async function GET() {
       orderBy: [{ order: 'asc' }, { name: 'asc' }],
     });
 
-    const names = categories.map(c => c.name);
+    const names = categories.map((c: Category) => c.name);
     const gigUsage = await prisma.gig.groupBy({
       by: ['category'],
       where: { category: { in: names } },
       _count: { _all: true },
     });
-    const usageMap = Object.fromEntries(gigUsage.map(g => [g.category, g._count._all]));
+    const usageMap = Object.fromEntries(gigUsage.map((g: any) => [g.category, g._count._all]));
 
     // Normalize fields for response (handle sqlite string vs json)
-    const normalized = categories.map((c) => ({
+    const normalized = categories.map((c: Category) => ({
       ...c,
       fields: parseJsonArrayField(c.fields),
       gigCount: usageMap[c.name] || 0,

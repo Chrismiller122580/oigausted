@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       // Filter further by email + marketing preference (defensive: missing pref row = allowed)
       // IMPORTANT: select only columns guaranteed to exist (omit marketingEmails) to survive prod DB drift.
       // We default-allow marketing (as per schema @default(true)) when we cannot read the flag.
-      const userIds = baseUsers.map(u => u.id);
+      const userIds = baseUsers.map((u: any) => u.id);
 
       const prefs = await prisma.notificationPreference.findMany({
         where: { userId: { in: userIds } },
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
 
       const prefMap = new Map<string, any>(prefs.map((p: any) => [p.userId, p]));
 
-      recipients = baseUsers.filter(u => {
+      recipients = baseUsers.filter((u: any) => {
         if (!u.email) return false;
         const p = prefMap.get(u.id);
         if (!p) return true; // no prefs row yet → default allow

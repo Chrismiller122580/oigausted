@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     return NextResponse.json({
-      logs: logs.map((n) => ({
+      logs: logs.map((n: any) => ({
         id: n.id,
         userId: n.userId,
         userName: n.user?.name || n.user?.email || 'Unknown',

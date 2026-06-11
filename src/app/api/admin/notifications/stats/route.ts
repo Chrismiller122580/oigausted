@@ -42,7 +42,7 @@ export async function GET() {
       })
     ]);
 
-    const categoryStats = byCategory.map(c => ({
+    const categoryStats = byCategory.map((c: any) => ({
       category: c.category,
       count: c._count.id
     }));
@@ -53,7 +53,7 @@ export async function GET() {
       last24h,
       last7d,
       byCategory: categoryStats,
-      recent: recent.map(n => ({
+      recent: recent.map((n: any) => ({
         id: n.id,
         user: n.user?.name || n.user?.email || 'Unknown',
         title: n.title,
