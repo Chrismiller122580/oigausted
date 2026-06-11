@@ -321,6 +321,14 @@ export default function CheckoutPage() {
               reference: result.transaction.reference,
             });
           }
+          // Capture signature / payment errors so they appear in the on-page Wompi Debugger
+          const err = result?.error || result?.transaction?.error || result?.transaction?.status_message;
+          if (err) {
+            const errText = typeof err === 'string' ? err : JSON.stringify(err);
+            toast.error(`Error Wompi en widget: ${errText}`);
+            // lastWompiPrepare will be shown in the debugger card below
+            setLastWompiPrepare((prev: any) => ({ ...(prev || {}), lastWidgetError: errText, lastWidgetResult: result }));
+          }
           // After widget closes, auto-query Wompi + refresh so user sees progress without manual Consultar
           setTimeout(async () => {
             try {

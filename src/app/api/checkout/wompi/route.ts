@@ -166,20 +166,29 @@ export async function POST(req: NextRequest) {
       publicKeyPrefix: WOMPI_PUBLIC_KEY?.slice(0, 12),
     });
 
+    // Rich debug for the in-app Wompi Debugger so users can send exact data when signature errors happen.
+    // We never expose the raw secret in production responses.
+    const debugInfo: any = {
+      amountInCents,
+      reference,
+      currency,
+      publicKeyPrefix: WOMPI_PUBLIC_KEY?.slice(0, 12),
+      hasIntegrity: !!integritySignature,
+      // Safe preview of exactly what was fed into the HMAC (secret redacted)
+      signedStringPreview: `${reference}${amountInCents}${currency}***`,
+      integritySignaturePrefix: integritySignature ? integritySignature.slice(0, 10) + '...' + integritySignature.slice(-6) : null,
+    };
+    if (process.env.NODE_ENV !== 'production') {
+      debugInfo.stringToSign = `${reference}${amountInCents}${currency}${WOMPI_INTEGRITY_KEY}`;
+      debugInfo.fullIntegrity = integritySignature;
+    }
+
     return NextResponse.json({
       success: true,
       checkoutData,
       reference,
       hasIntegritySignature: !!integritySignature,
-      debug: {
-        amountInCents,
-        reference,
-        currency,
-        publicKeyPrefix: WOMPI_PUBLIC_KEY?.slice(0, 12),
-        hasIntegrity: !!integritySignature,
-        // Only expose the full stringToSign in non-production for safety
-        stringToSign: process.env.NODE_ENV !== 'production' ? `${reference}${amountInCents}${currency}${WOMPI_INTEGRITY_KEY}` : undefined,
-      },
+      debug: debugInfo,
     });
 
   } catch (error: any) {

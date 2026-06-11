@@ -540,8 +540,12 @@ function OrderDetailClient() {
 
                         const checkoutData = data.checkoutData;
 
-                        // Capture for the in-page debugger
-                        setLastWompiPrepareDebug(data.debug || { error: 'no debug returned' });
+                        // Capture for the in-page debugger (include the actual sig sent + the rich debug)
+                        setLastWompiPrepareDebug({
+                          ...(data.debug || {}),
+                          signature: data.checkoutData?.signature?.integrity,
+                          checkoutData: data.checkoutData ? { reference: data.checkoutData.reference, amountInCents: data.checkoutData.amountInCents, signature: data.checkoutData.signature } : undefined,
+                        });
 
                         console.log('[Wompi][Client] Received checkoutData from server', {
                           reference: checkoutData?.reference,
@@ -572,6 +576,22 @@ function OrderDetailClient() {
                           // Use the callback as recommended in Wompi docs for immediate feedback
                           checkout.open((result: any) => {
                             console.log('[Wompi][Client] Widget closed with result:', result);
+                            // Capture errors (including "La firma es inválida") into the debugger panel
+                            const possibleSigError = result?.error || result?.transaction?.error || result?.transaction?.status_message;
+                            if (possibleSigError) {
+                              const errText = typeof possibleSigError === 'string' ? possibleSigError : JSON.stringify(possibleSigError);
+                              toast.error(`Error Wompi: ${errText}`);
+                              setLastWompiPrepareDebug((prev: any) => ({
+                                ...(prev || {}),
+                                lastWidgetResultError: errText,
+                                lastWidgetResult: result,
+                              }));
+                            } else if (result?.transaction?.status === 'ERROR') {
+                              setLastWompiPrepareDebug((prev: any) => ({
+                                ...(prev || {}),
+                                lastWidgetResult: result,
+                              }));
+                            }
                             // Auto nudge refresh / check after user closes the widget (payment may be PENDING/APPROVED)
                             setTimeout(async () => {
                               try {
@@ -619,7 +639,12 @@ function OrderDetailClient() {
                       <div>Last DB update: {new Date(order.updatedAt).toLocaleTimeString('es-CO')}</div>
                       {lastWompiPrepareDebug && (
                         <div className="mt-1 border-t border-blue-300 pt-1">
-                          Last /api/checkout/wompi debug: {JSON.stringify(lastWompiPrepareDebug)}
+                          Last prepare/check: {JSON.stringify(lastWompiPrepareDebug)}
+                        </div>
+                      )}
+                      {lastWompiPrepareDebug?.lastCheckWompi?.wompiError && (
+                        <div className="mt-1 text-red-600 font-semibold">
+                          Último error de Wompi: {lastWompiPrepareDebug.lastCheckWompi.wompiError}
                         </div>
                       )}
                     </div>
@@ -670,7 +695,23 @@ function OrderDetailClient() {
                             const res = await fetch(`/api/orders/${orderId}/check-wompi`, { method: 'POST' });
                             const data = await res.json();
                             if (res.ok && data.success) {
-                              toast.success(data.message || 'Consultado en Wompi');
+                              // Surface detailed Wompi error (e.g. invalid signature) if present
+                              if (data.wompiError) {
+                                toast.error(`Wompi: ${data.wompiError}`);
+                              } else {
+                                toast.success(data.message || 'Consultado en Wompi');
+                              }
+                              // Store full check result in debugger for easy copy/feedback
+                              setLastWompiPrepareDebug((prev: any) => ({
+                                ...(prev || {}),
+                                lastCheckWompi: {
+                                  status: data.transaction?.status,
+                                  wompiError: data.wompiError,
+                                  message: data.message,
+                                  transactionId: data.transaction?.id,
+                                  amount: data.transaction?.amount_in_cents,
+                                }
+                              }));
                               // Refresh the order from our DB (the route may have updated it)
                               const freshRes = await fetch(`/api/orders/${orderId}`);
                               if (freshRes.ok) {
@@ -690,6 +731,40 @@ function OrderDetailClient() {
                         }}
                       >
                         Consultar Wompi API
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="text-xs h-7"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch('/api/checkout/wompi', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ orderId: order.id })
+                            });
+                            const freshPrepare = await res.json();
+                            const previousSig = (lastWompiPrepareDebug?.integrity || lastWompiPrepareDebug?.checkoutData?.signature?.integrity || lastWompiPrepareDebug?.signature);
+                            const newSig = freshPrepare?.checkoutData?.signature?.integrity;
+                            const match = previousSig && newSig && previousSig === newSig;
+                            const info = {
+                              previousSigPrefix: previousSig ? String(previousSig).slice(0,10)+'...' : 'none',
+                              newSigPrefix: newSig ? String(newSig).slice(0,10)+'...' : null,
+                              matchesPrevious: match,
+                              note: match ? 'Misma llave de integridad usada' : 'La firma recomputada difiere (¿llave de integridad cambió en Vercel?)',
+                            };
+                            setLastWompiPrepareDebug((prev: any) => ({ ...(prev || {}), lastRecompute: info }));
+                            if (newSig) {
+                              toast.info(match ? 'Firma recomputada coincide con la anterior' : 'Firma recomputada DIFERENTE — revisa la llave de integridad en Vercel');
+                            } else {
+                              toast.error('No se pudo recomputar firma (revisa realPaymentsEnabled y keys)');
+                            }
+                          } catch {
+                            toast.error('No se pudo recomputar firma');
+                          }
+                        }}
+                      >
+                        Recomputar firma
                       </Button>
                       <a 
                         href="https://comercios.wompi.co/debugger" 

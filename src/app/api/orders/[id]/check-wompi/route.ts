@@ -67,7 +67,16 @@ export async function POST(
       status: transaction.status,
       reference: transaction.reference,
       amount_in_cents: transaction.amount_in_cents,
+      error: transaction.error || transaction.status_message,
     });
+
+    // Extract any Wompi error details (signature errors, etc. often appear here)
+    const wompiError = transaction.error
+      || transaction.status_message
+      || (transaction.payment_method && transaction.payment_method.extra_params && transaction.payment_method.extra_params.error_message)
+      || null;
+
+    const isErrorStatus = ['ERROR', 'DECLINED', 'VOIDED'].includes(transaction.status);
 
     // If Wompi says APPROVED but our DB is still Pending, update it (bypass webhook issues)
     if (transaction.status === 'APPROVED' && order.status === 'Pending') {
@@ -81,14 +90,23 @@ export async function POST(
         success: true,
         message: 'Order status updated to Paid based on Wompi transaction.',
         transaction,
+        wompiError,
       });
     }
 
-    // For other statuses or if already updated, just report back
+    // For other statuses or if already updated, just report back — surface error prominently if present
+    let message = `Wompi status: ${transaction.status}`;
+    if (isErrorStatus && wompiError) {
+      message = `Wompi ${transaction.status}: ${wompiError}`;
+    } else if (wompiError) {
+      message = `Wompi: ${wompiError} (status ${transaction.status})`;
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Wompi status: ${transaction.status}`,
+      message,
       transaction,
+      wompiError: isErrorStatus || wompiError ? wompiError : undefined,
     });
   } catch (e: any) {
     devLog('[Wompi][check-wompi] Unexpected error', e);
