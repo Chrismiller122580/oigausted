@@ -43,6 +43,53 @@ export default function CheckoutPage() {
   // Wompi debug info for real feedback
   const [lastWompiPrepare, setLastWompiPrepare] = useState<any>(null);
 
+  // Function to ensure Wompi script is loaded (for reliable payment entry)
+  const ensureWompiReady = async (): Promise<boolean> => {
+    if (wompiReady) return true;
+
+    // Try to load dynamically if not already
+    const loadScriptDynamically = () => {
+      if (document.querySelector('script[src*="checkout.wompi.co"]')) return;
+
+      devLog('[Wompi] Attempting dynamic script load on demand...');
+
+      const script = document.createElement('script');
+      script.src = 'https://checkout.wompi.co/widget.js';
+      script.async = true;
+
+      script.onload = () => {
+        setTimeout(() => {
+          if (window.WompiCheckout || (window as any).WidgetCheckout) {
+            setWompiReady(true);
+            setWompiLoadFailed(false);
+          }
+        }, 300);
+      };
+
+      script.onerror = () => {
+        devLog('[Wompi] Failed to load widget script on demand');
+        setWompiLoadFailed(true);
+      };
+
+      document.head.appendChild(script);
+    };
+
+    loadScriptDynamically();
+
+    // Wait up to 5 seconds for it to be ready
+    for (let i = 0; i < 25; i++) {
+      if (window.WompiCheckout || (window as any).WidgetCheckout) {
+        setWompiReady(true);
+        setWompiLoadFailed(false);
+        return true;
+      }
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
+    setWompiLoadFailed(true);
+    return false;
+  };
+
   // Robust Wompi script loader (improved for production reliability)
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -194,8 +241,11 @@ export default function CheckoutPage() {
     }
 
     if (!wompiReady) {
-      toast.error("El sistema de pagos aún está cargando. Intenta de nuevo en unos segundos.");
-      return;
+      const ready = await ensureWompiReady();
+      if (!ready) {
+        toast.error("El sistema de pagos aún está cargando. Intenta de nuevo en unos segundos.");
+        return;
+      }
     }
 
     // Address is recommended for non-remote gigs but not strictly required here.

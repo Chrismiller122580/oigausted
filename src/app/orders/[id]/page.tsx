@@ -496,7 +496,8 @@ function OrderDetailClient() {
                         });
 
                         // Dynamically load Wompi widget if not present (so it works from orders page too)
-                        if (!window.WompiCheckout) {
+                        // Use on-demand loading for reliability
+                        if (!window.WompiCheckout && !(window as any).WidgetCheckout) {
                           await new Promise((resolve, reject) => {
                             const script = document.createElement('script');
                             script.src = 'https://checkout.wompi.co/widget.js';
