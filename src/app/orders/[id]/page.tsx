@@ -638,13 +638,30 @@ function OrderDetailClient() {
                       <div>Polling: {isPollingPayment ? 'ACTIVE (every 4s)' : 'stopped'}</div>
                       <div>Last DB update: {new Date(order.updatedAt).toLocaleTimeString('es-CO')}</div>
                       {lastWompiPrepareDebug && (
-                        <div className="mt-1 border-t border-blue-300 pt-1">
-                          Last prepare/check: {JSON.stringify(lastWompiPrepareDebug)}
+                        <div className="mt-1 border-t border-blue-300 pt-1 overflow-auto max-h-24 text-[9px]">
+                          Last prepare/check: {JSON.stringify(lastWompiPrepareDebug, null, 2)}
+                        </div>
+                      )}
+                      {(lastWompiPrepareDebug?.signedStringPreview || lastWompiPrepareDebug?.lastRecompute) && (
+                        <div className="mt-1 p-1 bg-blue-100 dark:bg-blue-900/50 rounded text-[9px]">
+                          {lastWompiPrepareDebug?.signedStringPreview && (
+                            <div>Signed string preview: <span className="font-mono">{lastWompiPrepareDebug.signedStringPreview}</span></div>
+                          )}
+                          {lastWompiPrepareDebug?.lastRecompute && (
+                            <div className="mt-0.5">
+                              Recompute: matches previous = {String(lastWompiPrepareDebug.lastRecompute.matchesPrevious)} — {lastWompiPrepareDebug.lastRecompute.note}
+                            </div>
+                          )}
                         </div>
                       )}
                       {lastWompiPrepareDebug?.lastCheckWompi?.wompiError && (
                         <div className="mt-1 text-red-600 font-semibold">
                           Último error de Wompi: {lastWompiPrepareDebug.lastCheckWompi.wompiError}
+                        </div>
+                      )}
+                      {lastWompiPrepareDebug?.lastWidgetResultError && (
+                        <div className="mt-1 text-red-600 font-semibold">
+                          Widget error: {lastWompiPrepareDebug.lastWidgetResultError}
                         </div>
                       )}
                     </div>
@@ -744,20 +761,29 @@ function OrderDetailClient() {
                               body: JSON.stringify({ orderId: order.id })
                             });
                             const freshPrepare = await res.json();
-                            const previousSig = (lastWompiPrepareDebug?.integrity || lastWompiPrepareDebug?.checkoutData?.signature?.integrity || lastWompiPrepareDebug?.signature);
+                            const previousSig = (lastWompiPrepareDebug?.signature || lastWompiPrepareDebug?.checkoutData?.signature?.integrity || lastWompiPrepareDebug?.integrity);
                             const newSig = freshPrepare?.checkoutData?.signature?.integrity;
-                            const match = previousSig && newSig && previousSig === newSig;
+                            const match = !!previousSig && !!newSig && previousSig === newSig;
+                            const freshDebug = freshPrepare?.debug || {};
                             const info = {
                               previousSigPrefix: previousSig ? String(previousSig).slice(0,10)+'...' : 'none',
                               newSigPrefix: newSig ? String(newSig).slice(0,10)+'...' : null,
                               matchesPrevious: match,
-                              note: match ? 'Misma llave de integridad usada' : 'La firma recomputada difiere (¿llave de integridad cambió en Vercel?)',
+                              signedStringPreview: freshDebug.signedStringPreview,
+                              note: match 
+                                ? 'Misma llave de integridad (el secreto actual produce la misma firma)' 
+                                : 'La firma recomputada DIFERENTE — la llave de integridad en Vercel probablemente no coincide con la de Wompi para esta publicKey',
                             };
-                            setLastWompiPrepareDebug((prev: any) => ({ ...(prev || {}), lastRecompute: info }));
+                            setLastWompiPrepareDebug((prev: any) => ({ 
+                              ...(prev || {}), 
+                              ...freshDebug, 
+                              signature: newSig, 
+                              lastRecompute: info 
+                            }));
                             if (newSig) {
-                              toast.info(match ? 'Firma recomputada coincide con la anterior' : 'Firma recomputada DIFERENTE — revisa la llave de integridad en Vercel');
+                              toast.info(match ? 'Firma recomputada coincide con la anterior' : 'Firma recomputada DIFERENTE — revisa Wompi INTEGRITY_KEY en Vercel envs');
                             } else {
-                              toast.error('No se pudo recomputar firma (revisa realPaymentsEnabled y keys)');
+                              toast.error('No se pudo recomputar firma');
                             }
                           } catch {
                             toast.error('No se pudo recomputar firma');
