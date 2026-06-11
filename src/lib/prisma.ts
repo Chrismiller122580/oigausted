@@ -1,22 +1,45 @@
 import { PrismaClient } from '@prisma/client'
+import { withAccelerate } from '@prisma/extension-accelerate'
 import { devLog } from './utils'
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
+  prisma: ReturnType<typeof createPrismaClient> | undefined
 }
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-})
+function createPrismaClient() {
+  const dbUrl = process.env.DATABASE_URL || ''
+
+  const baseClient = new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  })
+
+  // Use Prisma Accelerate extension **only** for Prisma Postgres / Accelerate URLs.
+  // - `prisma+postgres://` is the Accelerate connection string (required for db.prisma.io in serverless).
+  // - Regular `postgresql://` can also benefit on Prisma Data Platform if using their pooled endpoint.
+  // - Skip for local SQLite (`file:`) or other providers during dev (the with-local-sqlite.sh wrapper + schema patch).
+  // This prevents extension errors when running against SQLite in development.
+  const useAccelerate = dbUrl.startsWith('prisma+postgres://') ||
+                        (dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('file:'))
+
+  if (useAccelerate) {
+    return baseClient.$extends(withAccelerate())
+  }
+
+  return baseClient
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient()
 
 // Runtime guard against the most common cause of "too many connections for role \"prisma_migration\"":
 // Someone accidentally set DATABASE_URL to the direct migration connection string in Vercel.
 // The migration role usually has a tiny connection limit.
 const dbUrl = process.env.DATABASE_URL || ''
-if (dbUrl.includes('prisma_migration') || (dbUrl.includes('direct') && !dbUrl.includes('pooler'))) {
+if (dbUrl.includes('prisma_migration') || (dbUrl.includes('direct') && !dbUrl.includes('pooler') && !dbUrl.startsWith('prisma+postgres'))) {
   console.warn(
     '[Prisma] WARNING: DATABASE_URL appears to be a direct / migration connection string (contains "prisma_migration" or "direct" without pooler). ' +
-    'This will cause "too many database connections" errors in serverless. Use the *pooled* connection string as DATABASE_URL and put the direct one in DIRECT_DATABASE_URL only.'
+    'This will cause "too many database connections" errors in serverless. ' +
+    'For Prisma Data Platform (db.prisma.io): use the Accelerate connection string (prisma+postgres://...) as DATABASE_URL. ' +
+    'Put the direct migration URL in DIRECT_DATABASE_URL only.'
   )
 }
 

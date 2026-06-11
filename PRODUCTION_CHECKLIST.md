@@ -28,8 +28,8 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
 
 | Variable | Example / Notes |
 |----------|-----------------|
-| `DATABASE_URL` | Your production Postgres connection string (pooled if using PgBouncer/Accelerate) |
-| `DIRECT_DATABASE_URL` | Direct (non-pooled) Postgres connection string - **required for `prisma migrate deploy` during Vercel builds** (Prisma Postgres provides separate direct URL) |
+| `DATABASE_URL` | **Accelerate connection string** from Prisma Data Platform: `prisma+postgres://accelerate.prisma-data.net/...` (this is the one that works from Vercel serverless). Do **not** use the raw postgresql:// direct URL here — it produces "Can't reach database server at `db.prisma.io:5432`". |
+| `DIRECT_DATABASE_URL` | The **Direct connection** string from Prisma (for `prisma migrate deploy` only during builds). The safe-migrate script uses this. |
 | `NEXTAUTH_URL` | `https://oigagig.com` |
 | `NEXTAUTH_SECRET` | Strong random string (32+ chars) |
 | `GOOGLE_CLIENT_ID` | From Google Cloud Console |
