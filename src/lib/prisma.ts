@@ -57,6 +57,48 @@ let cachedPlatformConfig: any = null
 let cacheTimestamp = 0
 const CACHE_TTL_MS = 30_000 // 30 seconds
 
+/**
+ * Idempotent ensure for the PlatformConfig singleton row.
+ * Creates the row with safe defaults if it does not exist.
+ * Safe to call frequently — the upsert is a no-op (update:{}) once the row is present.
+ * This is the "one-off on first use / app boot" guarantee so that admin saves
+ * (especially maintenanceMode) can never hit the old "update on missing row" failure mode.
+ */
+export async function ensurePlatformConfig(): Promise<void> {
+  try {
+    await prisma.platformConfig.upsert({
+      where: { id: 'singleton' },
+      update: {},
+      create: {
+        id: 'singleton',
+        commissionRate: 0.12,
+        referralCommissionRate: 0.05,
+        minPayoutAmount: 50000,
+        supportEmail: 'support@support.oigagig.com',
+        supportPhone: '',
+        enableReviews: true,
+        enableChat: true,
+        maintenanceMode: false,
+        maintenanceMessage: "Estamos realizando mejoras. Volveremos pronto.",
+        referralsEnabled: true,
+        allowNewSignups: true,
+        maxUploadSizeMB: 10,
+        siteName: 'OigaUsted',
+        siteTagline: 'Conecta con profesionales locales en Colombia',
+        logoUrl: null,
+        globalPushNotificationsEnabled: true,
+        globalEmailNotificationsEnabled: true,
+        maintenanceBypassIps: '',
+        wompiRealPaymentsEnabled: false,
+        // SFTP fields use their own @default / best-effort handling
+      },
+    })
+  } catch (e) {
+    // Non-fatal: the caller will fall back to in-memory defaults.
+    devLog('ensurePlatformConfig failed (non-fatal, will use in-memory defaults this time)', e)
+  }
+}
+
 export async function getPlatformConfig(force = false) {
   const now = Date.now()
   if (cachedPlatformConfig && !force && (now - cacheTimestamp) < CACHE_TTL_MS) {
@@ -97,12 +139,49 @@ export async function getPlatformConfig(force = false) {
       cacheTimestamp = now
       return config
     }
+
+    // Row missing — lazily create it (one-off on first use / cold start / after DB reset).
+    // This + the upsert in the config API makes saves for maintenanceMode etc. reliable.
+    await ensurePlatformConfig()
+
+    // Re-query to get the freshly created row (and let it be cached).
+    const created = await prisma.platformConfig.findUnique({
+      where: { id: 'singleton' },
+      select: {
+        id: true,
+        commissionRate: true,
+        referralCommissionRate: true,
+        minPayoutAmount: true,
+        supportEmail: true,
+        supportPhone: true,
+        enableReviews: true,
+        enableChat: true,
+        maintenanceMode: true,
+        maintenanceMessage: true,
+        referralsEnabled: true,
+        allowNewSignups: true,
+        maxUploadSizeMB: true,
+        siteName: true,
+        siteTagline: true,
+        logoUrl: true,
+        globalPushNotificationsEnabled: true,
+        globalEmailNotificationsEnabled: true,
+        maintenanceBypassIps: true,
+        wompiRealPaymentsEnabled: true,
+        updatedAt: true,
+      }
+    })
+    if (created) {
+      cachedPlatformConfig = created
+      cacheTimestamp = now
+      return created
+    }
   } catch (e) {
     // fall through to defaults
     devLog('PlatformConfig findUnique failed (possible missing columns like wompiSftpEnabled), using defaults')
   }
 
-  // Defensive defaults (same as in the config route)
+  // Defensive defaults (same as in the config route and ensurePlatformConfig)
   const defaults = {
     id: 'singleton',
     commissionRate: 0.12,

@@ -5,6 +5,7 @@ import NavbarWrapper from "@/components/layout/NavbarWrapper";
 import SessionProviderWrapper from "@/components/providers/SessionProviderWrapper";
 import MaintenanceBanner from "@/components/layout/MaintenanceBanner";
 import { Toaster } from "sonner"; // 2027-grade beautiful toasts
+import { ensurePlatformConfig } from "@/lib/prisma"; // one-off ensure of PlatformConfig singleton (maintenanceMode etc.) on first boot/request
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -13,6 +14,12 @@ export async function generateMetadata(): Promise<Metadata> {
   let siteName = "OigaUsted";
   let siteTagline = "Conecta con profesionales locales en Colombia";
   let appUrl = "https://oigagig.com";
+
+  // Proactively ensure the PlatformConfig singleton exists on the very first
+  // request that needs metadata (covers "app boot" / first hit after deploy or DB reset).
+  // This + the lazy ensure inside getPlatformConfig() + the seed makes maintenanceMode
+  // (and other toggles) reliably persist from the first admin save.
+  ensurePlatformConfig().catch(() => { /* non-fatal */ });
 
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/admin/config`, {

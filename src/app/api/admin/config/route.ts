@@ -20,41 +20,12 @@ export async function GET(req: NextRequest) {
     // Each serverless invocation was previously opening a fresh connection for this singleton query.
     let config = await getPlatformConfig(forceFresh);
 
-    // Only hit the DB for upsert on cache miss or for admins (rare). The cached defaults already
-    // protect the hot path from 500s and connection exhaustion.
-    if (!config?.id) {
-      try {
-        config = await prisma.platformConfig.upsert({
-          where: { id: 'singleton' },
-          update: {},
-          create: {
-            id: 'singleton',
-            commissionRate: 0.12,
-            referralCommissionRate: 0.05,
-            minPayoutAmount: 50000,
-            supportEmail: 'support@support.oigagig.com',
-            supportPhone: '',
-            enableReviews: true,
-            enableChat: true,
-            maintenanceMode: false,
-            maintenanceMessage: "Estamos realizando mejoras. Volveremos pronto.",
-            referralsEnabled: true,
-            allowNewSignups: true,
-            maxUploadSizeMB: 10,
-            siteName: 'OigaUsted',
-            siteTagline: 'Conecta con profesionales locales en Colombia',
-            logoUrl: null,
-            globalPushNotificationsEnabled: true,
-            globalEmailNotificationsEnabled: true,
-            maintenanceBypassIps: '',
-            wompiRealPaymentsEnabled: false,
-            // Omit SFTP fields here; they will be added in best-effort update after migration
-          },
-        });
-      } catch (upsertErr) {
-        console.error('PlatformConfig upsert also failed (DB columns missing or connection issue). Using cached defaults.', upsertErr);
-      }
-    }
+    // getPlatformConfig() (see src/lib/prisma.ts) now centrally does a lazy
+    // ensurePlatformConfig() (idempotent upsert) the first time the row is absent.
+    // This provides "one-off on first use / app boot / after DB reset" for the
+    // entire app (public banners, middleware, checkout, admin settings, etc.).
+    // No per-route duplication needed anymore. The old broken `if (!config?.id)`
+    // guard has been removed.
 
     // For non-admins (including unauthenticated users), only expose public fields
     // so the MaintenanceBanner doesn't spam 403 errors in the console during normal testing.
@@ -185,111 +156,100 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
 
-    let existing = await getPlatformConfig();
-    if (!existing?.id) {
-      // Fallback direct query with explicit minimal select to avoid column errors
-      try {
-        existing = await prisma.platformConfig.findFirst({
-          select: {
-            id: true,
-            commissionRate: true,
-            referralCommissionRate: true,
-            minPayoutAmount: true,
-            supportEmail: true,
-            supportPhone: true,
-            enableReviews: true,
-            enableChat: true,
-            maintenanceMode: true,
-            maintenanceMessage: true,
-            referralsEnabled: true,
-            allowNewSignups: true,
-            maxUploadSizeMB: true,
-            siteName: true,
-            siteTagline: true,
-            logoUrl: true,
-            globalPushNotificationsEnabled: true,
-            globalEmailNotificationsEnabled: true,
-            maintenanceBypassIps: true,
-            wompiRealPaymentsEnabled: true,
-            updatedAt: true,
-          }
-        });
-      } catch (e) {
-        devLog('PlatformConfig findFirst in PUT failed (drift), using defaults');
-        existing = null;
-      }
+    // Use upsert for the core (stable) fields. This guarantees the singleton row is
+    // created if it is missing (the previous getPlatformConfig + update path would
+    // silently swallow "record not found", set updated= stale defaults, return 200,
+    // and the change — e.g. maintenanceMode — would be lost). SFTP fields are still
+    // handled best-effort afterward for DBs that are behind on the sftp columns.
+    let updated;
+    try {
+      updated = await prisma.platformConfig.upsert({
+        where: { id: 'singleton' },
+        create: {
+          id: 'singleton',
+          commissionRate: body.commissionRate ?? 0.12,
+          referralCommissionRate: body.referralCommissionRate ?? 0.05,
+          minPayoutAmount: body.minPayoutAmount ?? 50000,
+          supportEmail: body.supportEmail ?? 'support@support.oigagig.com',
+          supportPhone: body.supportPhone ?? '',
+          enableReviews: body.enableReviews ?? true,
+          enableChat: body.enableChat ?? true,
+          maintenanceMode: body.maintenanceMode ?? false,
+          maintenanceMessage: body.maintenanceMessage ?? "Estamos realizando mejoras. Volveremos pronto.",
+          referralsEnabled: body.referralsEnabled ?? true,
+          allowNewSignups: body.allowNewSignups ?? true,
+          maxUploadSizeMB: body.maxUploadSizeMB ?? 10,
+          siteName: body.siteName ?? 'OigaUsted',
+          siteTagline: body.siteTagline ?? 'Conecta con profesionales locales en Colombia',
+          logoUrl: body.logoUrl ?? null,
+          globalPushNotificationsEnabled: body.globalPushNotificationsEnabled ?? true,
+          globalEmailNotificationsEnabled: body.globalEmailNotificationsEnabled ?? true,
+          maintenanceBypassIps: body.maintenanceBypassIps ?? '',
+          wompiRealPaymentsEnabled: body.wompiRealPaymentsEnabled ?? false,
+          // SFTP defaults are supplied in the best-effort block below (or left to schema @default)
+        },
+        update: {
+          commissionRate: body.commissionRate,
+          referralCommissionRate: body.referralCommissionRate,
+          minPayoutAmount: body.minPayoutAmount,
+          supportEmail: body.supportEmail,
+          supportPhone: body.supportPhone ?? '',
+          enableReviews: body.enableReviews,
+          enableChat: body.enableChat,
+          maintenanceMode: body.maintenanceMode,
+          maintenanceMessage: body.maintenanceMessage,
+          // Growth / access
+          referralsEnabled: body.referralsEnabled,
+          allowNewSignups: body.allowNewSignups,
+          maxUploadSizeMB: body.maxUploadSizeMB,
+          // Branding
+          siteName: body.siteName,
+          siteTagline: body.siteTagline,
+          logoUrl: body.logoUrl ?? null,
+          // Global notifs
+          globalPushNotificationsEnabled: body.globalPushNotificationsEnabled,
+          globalEmailNotificationsEnabled: body.globalEmailNotificationsEnabled,
+          // Maintenance advanced
+          maintenanceBypassIps: body.maintenanceBypassIps ?? '',
+          // Wompi real payments master switch
+          wompiRealPaymentsEnabled: body.wompiRealPaymentsEnabled ?? false,
+        },
+      });
+    } catch (coreErr) {
+      devLog('PlatformConfig upsert (core fields) failed', coreErr);
+      return NextResponse.json({ error: 'Error al guardar configuración (core)' }, { status: 500 });
     }
 
-    let updated;
-    if (existing) {
-      // Base update with stable columns only -- this should always succeed
+    // SFTP fields in separate best-effort update (may fail if columns missing in prod DB).
+    // The row now exists thanks to the upsert above, so the update will target a real record.
+    const hasAnySftpField =
+      body.wompiSftpEnabled !== undefined ||
+      body.wompiSftpHost !== undefined ||
+      body.wompiSftpUsername !== undefined ||
+      body.wompiSftpPassword !== undefined ||
+      body.wompiSftpPrivateKey !== undefined ||
+      body.wompiSftpRemotePath !== undefined;
+
+    if (hasAnySftpField) {
       try {
-        updated = await prisma.platformConfig.update({
-          where: { id: existing.id },
+        const sftpUpdated = await prisma.platformConfig.update({
+          where: { id: 'singleton' },
           data: {
-            commissionRate: body.commissionRate ?? existing.commissionRate,
-            referralCommissionRate: body.referralCommissionRate ?? existing.referralCommissionRate,
-            minPayoutAmount: body.minPayoutAmount ?? existing.minPayoutAmount,
-            supportEmail: body.supportEmail ?? existing.supportEmail,
-            supportPhone: body.supportPhone ?? existing.supportPhone ?? '',
-            enableReviews: body.enableReviews ?? existing.enableReviews,
-            enableChat: body.enableChat ?? existing.enableChat,
-            maintenanceMode: body.maintenanceMode ?? existing.maintenanceMode,
-            maintenanceMessage: body.maintenanceMessage ?? existing.maintenanceMessage,
-            // Growth / access
-            referralsEnabled: body.referralsEnabled ?? existing.referralsEnabled ?? true,
-            allowNewSignups: body.allowNewSignups ?? existing.allowNewSignups ?? true,
-            maxUploadSizeMB: body.maxUploadSizeMB ?? existing.maxUploadSizeMB ?? 10,
-            // Branding
-            siteName: body.siteName ?? existing.siteName ?? 'OigaUsted',
-            siteTagline: body.siteTagline ?? existing.siteTagline ?? 'Conecta con profesionales locales en Colombia',
-            logoUrl: body.logoUrl ?? existing.logoUrl ?? null,
-            // Global notifs
-            globalPushNotificationsEnabled: body.globalPushNotificationsEnabled ?? existing.globalPushNotificationsEnabled ?? true,
-            globalEmailNotificationsEnabled: body.globalEmailNotificationsEnabled ?? existing.globalEmailNotificationsEnabled ?? true,
-            // Maintenance advanced
-            maintenanceBypassIps: body.maintenanceBypassIps ?? existing.maintenanceBypassIps ?? '',
-            // Wompi real payments master switch
-            wompiRealPaymentsEnabled: body.wompiRealPaymentsEnabled ?? existing.wompiRealPaymentsEnabled ?? false,
+            wompiSftpEnabled: body.wompiSftpEnabled ?? false,
+            wompiSftpHost: body.wompiSftpHost || '',
+            wompiSftpPort: body.wompiSftpPort || 22,
+            wompiSftpUsername: body.wompiSftpUsername || '',
+            wompiSftpPassword: body.wompiSftpPassword || '',
+            wompiSftpPrivateKey: body.wompiSftpPrivateKey || '',
+            wompiSftpRemotePath: body.wompiSftpRemotePath || '/',
           },
         });
-      } catch (baseErr) {
-        devLog('PlatformConfig base update failed', baseErr);
-        // Still try to return the existing for client
-        updated = existing;
-      }
-
-      // SFTP fields in separate best-effort update (may fail if columns missing in prod DB)
-      if (body.wompiSftpEnabled !== undefined || body.wompiSftpHost !== undefined || body.wompiSftpUsername !== undefined || body.wompiSftpPassword !== undefined || body.wompiSftpPrivateKey !== undefined || body.wompiSftpRemotePath !== undefined) {
-        try {
-          const sftpUpdated = await prisma.platformConfig.update({
-            where: { id: existing.id },
-            data: {
-              wompiSftpEnabled: body.wompiSftpEnabled ?? existing.wompiSftpEnabled ?? false,
-              wompiSftpHost: body.wompiSftpHost ?? existing.wompiSftpHost,
-              wompiSftpPort: body.wompiSftpPort ?? existing.wompiSftpPort ?? 22,
-              wompiSftpUsername: body.wompiSftpUsername ?? existing.wompiSftpUsername,
-              wompiSftpPassword: body.wompiSftpPassword ?? existing.wompiSftpPassword,
-              wompiSftpPrivateKey: body.wompiSftpPrivateKey ?? existing.wompiSftpPrivateKey,
-              wompiSftpRemotePath: body.wompiSftpRemotePath ?? existing.wompiSftpRemotePath,
-            },
-          });
-          if (sftpUpdated) updated = sftpUpdated;
-        } catch (sftpErr: any) {
-          // Expected in prod DBs that lag on the wompiSftp* migration columns (see the prisma:error in logs).
-          // The main config update succeeds; only log the error in dev or for unexpected cases.
-          if (process.env.NODE_ENV !== 'production' || !String(sftpErr?.message || '').includes('does not exist')) {
-            devLog('PlatformConfig SFTP fields update skipped (column may be missing in prod DB)', sftpErr);
-          }
+        if (sftpUpdated) updated = sftpUpdated;
+      } catch (sftpErr: any) {
+        // Expected in prod DBs that lag on the wompiSftp* migration columns.
+        if (process.env.NODE_ENV !== 'production' || !String(sftpErr?.message || '').includes('does not exist')) {
+          devLog('PlatformConfig SFTP fields update skipped (column may be missing in prod DB)', sftpErr);
         }
-      }
-    } else {
-      try {
-        updated = await prisma.platformConfig.create({ data: body });
-      } catch (createErr) {
-        devLog('PlatformConfig create failed (likely drift on new columns)', createErr);
-        // Return a constructed one
-        updated = { id: 'singleton', ...body };
       }
     }
 
