@@ -84,57 +84,57 @@ export default function AdminReports() {
         {!loading && data && (
           <>
             {/* KPI Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
               <Card className="bg-card border-border">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center gap-3 mb-2">
                     <BarChart3 className="h-5 w-5 text-blue-400" />
                     <p className="text-sm text-muted-foreground">Completed Orders</p>
                   </div>
-                  <p className="text-4xl font-bold">{data.totalCompleted.toLocaleString('es-CO')}</p>
+                  <p className="text-3xl sm:text-4xl font-bold tabular-nums">{data.totalCompleted.toLocaleString('es-CO')}</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-card border-border">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center gap-3 mb-2">
                     <DollarSign className="h-5 w-5 text-green-400" />
                     <p className="text-sm text-muted-foreground">Gross Revenue</p>
                   </div>
-                  <p className="text-4xl font-bold">${data.grossRevenue.toLocaleString('es-CO')}</p>
+                  <p className="text-3xl sm:text-4xl font-bold tabular-nums">${data.grossRevenue.toLocaleString('es-CO')}</p>
                   <p className="text-xs text-muted-foreground mt-1">Promedio: ${data.avgOrderValue.toLocaleString('es-CO')}</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-card border-border">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center gap-3 mb-2">
                     <TrendingUp className="h-5 w-5 text-emerald-400" />
                     <p className="text-sm text-muted-foreground">Platform Revenue</p>
                   </div>
-                  <p className="text-4xl font-bold text-emerald-400">${data.platformRevenue.toLocaleString('es-CO')}</p>
+                  <p className="text-3xl sm:text-4xl font-bold text-emerald-400 tabular-nums">${data.platformRevenue.toLocaleString('es-CO')}</p>
                   <p className="text-xs text-amber-400 mt-1">+ Referidos: ${data.referralRevenue.toLocaleString('es-CO')}</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-card border-border">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center gap-3 mb-2">
                     <Users className="h-5 w-5 text-purple-400" />
                     <p className="text-sm text-muted-foreground">Unique Buyers</p>
                   </div>
-                  <p className="text-4xl font-bold">{data.totalBuyersWithOrders}</p>
+                  <p className="text-3xl sm:text-4xl font-bold tabular-nums">{data.totalBuyersWithOrders}</p>
                   <p className="text-xs text-muted-foreground mt-1">{data.repeatBuyers} with 2+ orders ({data.totalBuyersWithOrders > 0 ? Math.round((data.repeatBuyers / data.totalBuyersWithOrders) * 100) : 0}% retention)</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-card border-border">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center gap-3 mb-2">
                     <DollarSign className="h-5 w-5 text-amber-400" />
                     <p className="text-sm text-muted-foreground">Net to Sellers</p>
                   </div>
-                  <p className="text-4xl font-bold">${data.netToSellers.toLocaleString('es-CO')}</p>
+                  <p className="text-3xl sm:text-4xl font-bold tabular-nums">${data.netToSellers.toLocaleString('es-CO')}</p>
                 </CardContent>
               </Card>
             </div>
@@ -145,7 +145,7 @@ export default function AdminReports() {
                 <BarChart3 className="h-6 w-6" /> Sales by Category
               </h2>
               <Card className="bg-card border-border">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   {data.categorySales.length === 0 ? (
                     <p className="text-muted-foreground">No category data yet.</p>
                   ) : (
@@ -180,7 +180,7 @@ export default function AdminReports() {
             <div className="mb-8">
               <h2 className="text-2xl font-semibold mb-4">Monthly Revenue (last 6 months)</h2>
               <Card className="bg-card border-border">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     {data.monthlyRevenue.map((m, i) => {
                       const pct = Math.round((m.revenue / maxMonthly) * 100);
@@ -205,7 +205,7 @@ export default function AdminReports() {
             {/* Top Gigs y Top Sellers */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <Card className="bg-card border-border">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <h3 className="font-semibold mb-4 text-lg">Top Selling Services</h3>
                   {data.topGigs.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No data.</p>
@@ -225,7 +225,7 @@ export default function AdminReports() {
               </Card>
 
               <Card className="bg-card border-border">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <h3 className="font-semibold mb-4 text-lg">Top Sellers</h3>
                   {data.topSellers.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No data.</p>

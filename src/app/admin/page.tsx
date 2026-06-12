@@ -62,13 +62,13 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Grid - Clickable tiles wired to data pages */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-12">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-6 mb-12">
           <Link href="/admin/users">
             <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <Users className="h-8 w-8 text-blue-400 mb-3" />
                 <p className="text-sm text-muted-foreground">Total Users</p>
-                <p className="text-4xl font-bold mt-1">{stats?.users?.toLocaleString() || 0}</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-1 tabular-nums">{stats?.users?.toLocaleString() || 0}</p>
                 <p className="text-xs text-emerald-400 mt-1">{stats?.sellers || 0} sellers</p>
               </CardContent>
             </Card>
@@ -76,10 +76,10 @@ export default function AdminDashboard() {
 
           <Link href="/admin/gigs">
             <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <Package className="h-8 w-8 text-orange-400 mb-3" />
                 <p className="text-sm text-muted-foreground">Published Gigs</p>
-                <p className="text-4xl font-bold mt-1">{stats?.gigs || 0}</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-1 tabular-nums">{stats?.gigs || 0}</p>
                 <p className="text-xs text-emerald-400 mt-1">{stats?.activeGigs || 0} active</p>
               </CardContent>
             </Card>
@@ -87,10 +87,10 @@ export default function AdminDashboard() {
 
           <Link href="/admin/categories">
             <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <Tag className="h-8 w-8 text-indigo-400 mb-3" />
                 <p className="text-sm text-muted-foreground">Categories</p>
-                <p className="text-4xl font-bold mt-1">{stats?.totalCategories || 0}</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-1 tabular-nums">{stats?.totalCategories || 0}</p>
                 <p className="text-xs text-muted-foreground mt-1">service categories</p>
               </CardContent>
             </Card>
@@ -98,10 +98,10 @@ export default function AdminDashboard() {
 
           <Link href="/admin/reports">
             <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <TrendingUp className="h-8 w-8 text-purple-400 mb-3" />
                 <p className="text-sm text-muted-foreground">Total Orders</p>
-                <p className="text-4xl font-bold mt-1">{stats?.orders || 0}</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-1 tabular-nums">{stats?.orders || 0}</p>
                 <p className="text-xs text-emerald-400 mt-1">{stats?.completedOrders || 0} completed</p>
               </CardContent>
             </Card>
@@ -109,10 +109,10 @@ export default function AdminDashboard() {
 
           <Link href="/admin/earnings">
             <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <DollarSign className="h-8 w-8 text-green-400 mb-3" />
                 <p className="text-sm text-muted-foreground">Gross Revenue</p>
-                <p className="text-4xl font-bold mt-1">${(stats?.totalRevenue || 0).toLocaleString('es-CO')}</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-1 tabular-nums">${(stats?.totalRevenue || 0).toLocaleString('es-CO')}</p>
                 <p className="text-xs text-emerald-400 mt-1">
                   Platform: ${(stats?.platformRevenue || 0).toLocaleString('es-CO')} 
                   {stats?.estimatedReferralRevenue ? ` • Referrals: $${(stats.estimatedReferralRevenue).toLocaleString('es-CO')}` : ''}
@@ -123,10 +123,10 @@ export default function AdminDashboard() {
 
           <Link href="/admin/payouts">
             <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <AlertCircle className="h-8 w-8 text-amber-400 mb-3" />
                 <p className="text-sm text-muted-foreground">Pending Payouts</p>
-                <p className="text-4xl font-bold mt-1">{stats?.pendingPayouts || 0}</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-1 tabular-nums">{stats?.pendingPayouts || 0}</p>
                 <p className="text-xs text-muted-foreground mt-1">Completed orders</p>
               </CardContent>
             </Card>
