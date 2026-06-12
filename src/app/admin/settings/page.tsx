@@ -279,9 +279,10 @@ export default function AdminSettings() {
     wompiSftpRemotePath: c.wompiSftpRemotePath || '/',
   });
 
-  const fetchConfig = async () => {
+  const fetchConfig = async (fresh = false) => {
     try {
-      const res = await fetch('/api/admin/config');
+      const url = fresh ? '/api/admin/config?fresh=1' : '/api/admin/config';
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         const normalized = normalizeConfig(data);
@@ -398,8 +399,8 @@ export default function AdminSettings() {
         const updated = await res.json();
         toast.success('Configuration saved successfully');
         setLastSaved(new Date());
-        // Refresh to get fresh _meta + server values (normalize inside fetchConfig)
-        await fetchConfig();
+        // Use fresh fetch to bypass cache so saved value (maintenanceMode etc.) sticks immediately in the UI.
+        await fetchConfig(true);
       } else {
         const err = await res.json().catch(() => ({}));
         toast.error(err?.error || 'Error saving');

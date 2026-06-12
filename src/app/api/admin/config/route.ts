@@ -7,15 +7,18 @@ import { prisma, getPlatformConfig } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     const isAdmin = (session?.user as any)?.role === 'admin';
 
+    const { searchParams } = new URL(req.url);
+    const forceFresh = searchParams.has('fresh') || searchParams.has('bust');
+
     // Use cached getter (see lib/prisma.ts). This is the key mitigation for "too many database connections"
     // because /api/admin/config is called extremely frequently from the bell, checkout, admin layout, etc.
     // Each serverless invocation was previously opening a fresh connection for this singleton query.
-    let config = await getPlatformConfig();
+    let config = await getPlatformConfig(forceFresh);
 
     // Only hit the DB for upsert on cache miss or for admins (rare). The cached defaults already
     // protect the hot path from 500s and connection exhaustion.

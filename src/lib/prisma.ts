@@ -57,9 +57,9 @@ let cachedPlatformConfig: any = null
 let cacheTimestamp = 0
 const CACHE_TTL_MS = 30_000 // 30 seconds
 
-export async function getPlatformConfig() {
+export async function getPlatformConfig(force = false) {
   const now = Date.now()
-  if (cachedPlatformConfig && (now - cacheTimestamp) < CACHE_TTL_MS) {
+  if (cachedPlatformConfig && !force && (now - cacheTimestamp) < CACHE_TTL_MS) {
     return cachedPlatformConfig
   }
 
