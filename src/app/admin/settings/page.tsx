@@ -1550,7 +1550,7 @@ export default function AdminSettings() {
             La comisión actual se usa para todos los cálculos de ganancias y pagos.
           </div>
 
-          <button onClick={fetchConfig} disabled={loading} className="flex items-center gap-1 hover:text-foreground transition">
+          <button onClick={() => fetchConfig()} disabled={loading} className="flex items-center gap-1 hover:text-foreground transition">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Recargar valores del servidor
           </button>
         </div>
