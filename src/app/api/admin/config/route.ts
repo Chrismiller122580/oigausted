@@ -272,8 +272,12 @@ export async function PUT(request: NextRequest) {
             },
           });
           if (sftpUpdated) updated = sftpUpdated;
-        } catch (sftpErr) {
-          devLog('PlatformConfig SFTP fields update skipped (column may be missing in prod DB)', sftpErr);
+        } catch (sftpErr: any) {
+          // Expected in prod DBs that lag on the wompiSftp* migration columns (see the prisma:error in logs).
+          // The main config update succeeds; only log the error in dev or for unexpected cases.
+          if (process.env.NODE_ENV !== 'production' || !String(sftpErr?.message || '').includes('does not exist')) {
+            devLog('PlatformConfig SFTP fields update skipped (column may be missing in prod DB)', sftpErr);
+          }
         }
       }
     } else {

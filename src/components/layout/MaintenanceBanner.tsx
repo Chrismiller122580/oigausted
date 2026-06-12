@@ -30,7 +30,8 @@ export default function MaintenanceBanner() {
     };
 
     fetchConfig();
-    const interval = setInterval(fetchConfig, 30000);
+    // Poll less aggressively in prod to reduce load on /api/admin/config (which is called from banner, middleware, and pages)
+    const interval = setInterval(fetchConfig, process.env.NODE_ENV === 'production' ? 120000 : 30000);
     return () => clearInterval(interval);
   }, []);
 
