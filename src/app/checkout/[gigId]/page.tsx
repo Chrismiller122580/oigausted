@@ -311,6 +311,14 @@ export default function CheckoutPage() {
 
         // Help Wompi's internal initialization (some code paths in their bundle read from window)
         (window as any).WOMPI_PUBLIC_KEY = pubKey;
+        if ((window as any).$wompi && typeof (window as any).$wompi.initialize === 'function') {
+          try {
+            (window as any).$wompi.initialize({ publicKey: pubKey });
+            console.log('[Wompi][Client] Explicit $wompi.initialize called');
+          } catch (e) {
+            console.warn('[Wompi][Client] $wompi.initialize call failed (non-fatal):', e);
+          }
+        }
 
         const widgetConfig: any = {
           publicKey: pubKey,
