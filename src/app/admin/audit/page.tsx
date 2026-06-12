@@ -123,6 +123,25 @@ export default function AdminAuditPage() {
           )}
         </div>
 
+        {/* Quick debug filters - useful for the recent config/maintenance/Wompi noise */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Button size="sm" variant="secondary" onClick={() => { setActionFilter('PLATFORM_CONFIG_UPDATED'); setTargetTypeFilter(''); setActorFilter(''); }}>
+            Recent Config Changes
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => { setActionFilter(''); setTargetTypeFilter('PlatformConfig'); setActorFilter(''); }}>
+            All PlatformConfig
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => { setActionFilter('MAINTENANCE'); setTargetTypeFilter(''); setActorFilter(''); }}>
+            Maintenance Events
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => { setActionFilter('WOMPI'); setTargetTypeFilter(''); setActorFilter(''); }}>
+            Wompi Events
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => { setActionFilter(''); setTargetTypeFilter(''); setActorFilter(''); }}>
+            All
+          </Button>
+        </div>
+
         <Card>
           <CardContent className="p-0">
             {loading ? (
@@ -178,23 +197,41 @@ export default function AdminAuditPage() {
                         </td>
                         <td className="p-4">
                           {log.details && (
-                            <pre 
-                              className="text-xs bg-muted p-2 rounded max-w-xs max-h-24 overflow-auto cursor-pointer hover:bg-muted/80"
-                              title="Click to copy full details"
-                              onClick={() => {
-                                const text = typeof log.details === 'string' ? log.details : JSON.stringify(log.details, null, 2);
-                                navigator.clipboard.writeText(text);
-                                // simple feedback
-                                const el = document.createElement('span');
-                                el.textContent = ' ✓ Copied';
-                                el.style.fontSize = '10px';
-                                // could use toast but keep simple
-                              }}
-                            >
-                              {typeof log.details === 'string' 
-                                ? log.details.slice(0, 200) + (log.details.length > 200 ? '...' : '')
-                                : JSON.stringify(log.details, null, 2).slice(0, 200) + '...'}
-                            </pre>
+                            <details className="group">
+                              <summary 
+                                className="cursor-pointer text-xs bg-muted px-2 py-1 rounded hover:bg-muted/80 list-none flex items-center gap-1"
+                                title="Click to expand full details. Click details text to copy."
+                                onClick={(e) => {
+                                  // Prevent default expand if clicking the summary area for copy? No, let details handle.
+                                  // We'll add copy on the pre instead.
+                                }}
+                              >
+                                <span>📋 Details</span>
+                                <span className="text-[10px] opacity-60 group-open:hidden">(click to expand)</span>
+                                <span className="text-[10px] opacity-60 hidden group-open:inline">(click again to collapse)</span>
+                              </summary>
+                              <div className="mt-1">
+                                {log.action === 'PLATFORM_CONFIG_UPDATED' && log.details?.changedFields && (
+                                  <div className="mb-1 text-[10px]">
+                                    <span className="font-semibold">Changed:</span> {(log.details.changedFields as string[]).join(', ')}
+                                  </div>
+                                )}
+                                <pre 
+                                  className="text-[10px] bg-muted p-2 rounded max-w-xs max-h-48 overflow-auto cursor-pointer hover:bg-muted/80 border border-muted-foreground/20"
+                                  title="Click to copy full JSON"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const text = typeof log.details === 'string' ? log.details : JSON.stringify(log.details, null, 2);
+                                    navigator.clipboard.writeText(text);
+                                    toast.success('Full details copied to clipboard');
+                                  }}
+                                >
+                                  {typeof log.details === 'string' 
+                                    ? log.details 
+                                    : JSON.stringify(log.details, null, 2)}
+                                </pre>
+                              </div>
+                            </details>
                           )}
                         </td>
                         <td className="p-4 text-xs text-muted-foreground font-mono">
