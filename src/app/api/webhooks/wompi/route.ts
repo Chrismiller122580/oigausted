@@ -8,6 +8,10 @@ import { devLog } from '@/lib/utils'
 const WOMPI_EVENTS_KEY = process.env.WOMPI_EVENTS_KEY || process.env.WOMPI_EVENTS_SECRET;
 
 console.log('[Wompi] Events key loaded?', !!WOMPI_EVENTS_KEY, 'prefix:', (WOMPI_EVENTS_KEY || '').slice(0, 12) + '...');
+if (WOMPI_EVENTS_KEY) {
+  const eProd = /prod/i.test(WOMPI_EVENTS_KEY);
+  console.log('[Wompi] Events key environment hint:', eProd ? 'prod' : 'test/sandbox');
+}
 
 if (process.env.NODE_ENV === 'production' && WOMPI_EVENTS_KEY?.includes('test')) {
   console.warn('⚠️  WARNING: Using Wompi SANDBOX keys in production! Webhook processing is in test mode.');

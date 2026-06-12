@@ -9,8 +9,15 @@ import { devLog } from '@/lib/utils';
 const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
 const WOMPI_INTEGRITY_KEY = process.env.WOMPI_INTEGRITY_KEY || process.env.WOMPI_INTEGRITY_SECRET;
 
-// Helpful startup log (appears in Vercel function logs)
-console.log('[Wompi] Integrity key loaded?', !!WOMPI_INTEGRITY_KEY, 'prefix:', (WOMPI_INTEGRITY_KEY || '').slice(0, 12) + '...');
+// Helpful startup log (appears in Vercel function logs). Critical for diagnosing signature errors.
+const pubLooks = (WOMPI_PUBLIC_KEY || '').match(/pub_(test|prod)/i)?.[1] || 'unknown';
+const integLooks = (WOMPI_INTEGRITY_KEY || '').match(/(test|prod)_integrity/i)?.[1] || 'unknown/missing';
+console.log('[Wompi] Keys loaded — PUBLIC:', pubLooks, 'INTEGRITY:', integLooks, 'hasKey?', !!WOMPI_INTEGRITY_KEY, 'prefix:', (WOMPI_INTEGRITY_KEY || '').slice(0, 12) + '...');
+if (WOMPI_INTEGRITY_KEY && WOMPI_PUBLIC_KEY) {
+  const pProd = /prod/i.test(WOMPI_PUBLIC_KEY);
+  const iProd = /prod/i.test(WOMPI_INTEGRITY_KEY);
+  if (pProd !== iProd) console.warn('[Wompi] ⚠️  KEY ENVIRONMENT MISMATCH at startup (pub vs integrity). This will cause "La firma es inválida".');
+}
 
 if (process.env.NODE_ENV === 'production' && WOMPI_PUBLIC_KEY?.includes('test')) {
   console.warn('⚠️  WARNING: Using Wompi SANDBOX keys in production! Real payments will not be processed.');
@@ -25,9 +32,12 @@ function generateIntegritySignature(
     return null;
   }
 
-  // Official Wompi Colombia order (as per docs):
-  // <reference><amountInCents><currency><integritySecret>
-  // Never include the public key in the hash for the widget integrity signature.
+  // Official Wompi Colombia (docs.wompi.co widget-checkout-web):
+  // Concat exactly (no separators, no public key): <reference><amountInCents><currency><integritySecret>
+  // Then HMAC-SHA256( integritySecret , thatString ).hex
+  // IMPORTANT: amountInCents must be integer (cents), reference exact, currency "COP".
+  // The secret used here must be the one associated with the *exact same* public key in the Wompi dashboard.
+  // User's physical location, IP, or browser has zero impact on this hash.
   const stringToSign = `${reference}${amountInCents}${currency}${WOMPI_INTEGRITY_KEY}`;
 
   return crypto
@@ -130,18 +140,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Wompi no está configurado (falta NEXT_PUBLIC_WOMPI_PUBLIC_KEY).' }, { status: 500 });
     }
 
-    const amountInCents = Math.round(order.price * 100);
+    let amountInCents = Math.round((order.price || 0) * 100);
+    if (!Number.isFinite(amountInCents) || amountInCents <= 0) {
+      amountInCents = 0; // Will surface clearly in debug + Wompi will reject; prevents "NaN" in signed string (which breaks signature)
+    }
     const reference = `order_${order.id}`;
     const currency = 'COP';
 
     const integritySignature = generateIntegritySignature(amountInCents, currency, reference);
 
     // Key environment consistency check (helps debug "firma inválida" when pub key and integrity secret don't match)
-    const pubPrefix = (WOMPI_PUBLIC_KEY || '').slice(0, 8);
-    const isProdPub = pubPrefix.includes('prod');
+    // Most common cause of "La firma es inválida" in the Wompi widget.
+    const pubKey = WOMPI_PUBLIC_KEY || '';
     const integKey = WOMPI_INTEGRITY_KEY || '';
-    const integLooksTest = integKey.includes('test') || !integKey.includes('prod');
-    const keyMismatchWarning = isProdPub && integLooksTest ? 'MISMATCH: publicKey is prod but INTEGRITY_KEY looks like test/sandbox or missing "prod". Use the prod_integrity_... secret from Wompi dashboard for this pub_prod_ key.' : null;
+    const pubLooksProd = /prod/i.test(pubKey);
+    const integLooksProd = /prod/i.test(integKey);
+    const keyMismatchWarning = integKey && (pubLooksProd !== integLooksProd)
+      ? `MISMATCH: NEXT_PUBLIC_WOMPI_PUBLIC_KEY looks ${pubLooksProd ? 'PROD' : 'TEST/sandbox'} but WOMPI_INTEGRITY_KEY looks ${integLooksProd ? 'PROD' : 'TEST/sandbox'}. The integrity secret MUST match the environment of the public key exactly (get the right "Llave de integridad" from https://comercios.wompi.co for this specific public key).`
+      : null;
 
     const checkoutData: any = {
       publicKey: WOMPI_PUBLIC_KEY,
@@ -189,7 +205,7 @@ export async function POST(req: NextRequest) {
       integritySignaturePrefix: integritySignature ? integritySignature.slice(0, 10) + '...' + integritySignature.slice(-6) : null,
       keyEnvironmentCheck: keyMismatchWarning || 'keys appear consistent (prod/pub vs integrity)',
       // Always remind: the INTEGRITY_KEY secret must be the one from Wompi dashboard "Llave de integridad" for the exact public key above.
-      note: 'If you see "La firma es inválida" in Wompi, copy the prod "Llave de integridad" (not events or private) for this pub key and set as WOMPI_INTEGRITY_KEY in Vercel, then redeploy.',
+      note: 'If you see "La firma es inválida" in Wompi: this is a cryptographic mismatch. 1) Confirm wompiRealPaymentsEnabled=true in Admin Settings. 2) In comercios.wompi.co get the EXACT "Llave de integridad" (not Events, not Private) that belongs to your current public key (pub_test_ vs pub_prod_). 3) Set it as WOMPI_INTEGRITY_KEY and redeploy. User location/IP or browser country has NO effect on the signature hash (it is computed server-side from ref + amountCents + COP + secret only).',
     };
     if (process.env.NODE_ENV !== 'production') {
       debugInfo.stringToSign = `${reference}${amountInCents}${currency}${WOMPI_INTEGRITY_KEY}`;

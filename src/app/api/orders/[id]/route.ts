@@ -139,7 +139,8 @@ export async function PATCH(
     }
 
     if (price !== undefined) {
-      updateData.price = Number(price)
+      const n = Number(price);
+      updateData.price = Number.isFinite(n) ? n : existingOrder.price;
     }
 
     if (customFields !== undefined) {

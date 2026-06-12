@@ -75,7 +75,12 @@ export async function POST(
     }
 
     const data = await res.json();
-    const transaction = data?.data?.[0];
+    // Wompi response shape differs:
+    // - ?reference=... list endpoint: { data: Transaction[] }
+    // - /transactions/{id} direct: { data: Transaction }
+    let transaction = txIdFromBody
+      ? (data?.data || null)
+      : (Array.isArray(data?.data) ? data.data[0] : null);
 
     if (!transaction) {
       return NextResponse.json({

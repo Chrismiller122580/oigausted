@@ -62,6 +62,12 @@ export default function CheckoutPage() {
 
       devLog('[Wompi] Attempting dynamic script load on demand...');
 
+      // Set globals before loading the script so Wompi's bundle can see the public key during its own initialization
+      (window as any).WOMPI_PUBLIC_KEY = WOMPI_PUBLIC_KEY;
+      if ((window as any).$wompi && typeof (window as any).$wompi.initialize === 'function') {
+        try { (window as any).$wompi.initialize({ publicKey: WOMPI_PUBLIC_KEY }); } catch {}
+      }
+
       const script = document.createElement('script');
       script.src = 'https://checkout.wompi.co/widget.js';
       script.async = true;
@@ -302,6 +308,17 @@ export default function CheckoutPage() {
       setLastWompiPrepare(data);
       const checkoutData = data.checkoutData;
 
+      // Loud client-side guard for the most common prod signature failure
+      const pubIsProd = /prod/i.test(WOMPI_PUBLIC_KEY);
+      if (pubIsProd && !data.hasIntegritySignature) {
+        toast.error(
+          "⚠️ Using PRODUCTION Wompi key (pub_prod_) but the server did not return an integrity signature. " +
+          "WOMPI_INTEGRITY_KEY (prod_integrity_...) is probably missing or scoped only to Production/Preview in Vercel. " +
+          "Add it for Development too (or to .env.local) and redeploy. This is the #1 cause of 'La firma es inválida'.",
+          { duration: 15000 }
+        );
+      }
+
       // 3. Open Wompi using server-provided config (amount comes from DB after we saved final price + extras)
       // Aligned with official Wompi Colombia Widget docs (quick start + widget-checkout-web)
       const WidgetCheckoutClass = (window as any).WidgetCheckout || (window as any).WompiCheckout;
@@ -432,6 +449,11 @@ export default function CheckoutPage() {
   const fields = parseJsonArrayField(gig?.fields);
 
   // Calculate extra cost from selections
+  // Coerce to finite numbers defensively (bad JSON data in fields can produce NaN -> bad amountInCents -> signature/amount errors at Wompi)
+  const toNum = (v: any) => {
+    const n = typeof v === 'number' ? v : parseFloat(v);
+    return Number.isFinite(n) ? n : 0;
+  };
   const calculateExtra = () => {
     let extra = 0;
     fields.forEach((field: any) => {
@@ -439,13 +461,13 @@ export default function CheckoutPage() {
       if (!value) return;
 
       if (field.type === 'number' && typeof value === 'number') {
-        extra += value * (field.extraPrice || 0);
+        extra += value * toNum(field.extraPrice);
       } else if (field.type === 'checkbox' && value === true) {
-        extra += field.extraPrice || 0;
+        extra += toNum(field.extraPrice);
       } else if (field.type === 'select' && field.options) {
         const chosen = field.options.find((o: any) => (typeof o === 'string' ? o === value : o.label === value));
-        if (chosen && typeof chosen === 'object' && chosen.extraPrice) {
-          extra += chosen.extraPrice;
+        if (chosen && typeof chosen === 'object' && chosen.extraPrice != null) {
+          extra += toNum(chosen.extraPrice);
         }
       }
     });
@@ -918,6 +940,7 @@ export default function CheckoutPage() {
               <p className="mt-2 text-[9px] text-blue-600/80 dark:text-blue-400/80 leading-tight">
                 Use "Prepare Wompi Config" to see what will be sent to the widget (amount, signature, reference). 
                 Copy this and send as feedback. The reference must match exactly in Wompi dashboard.
+                "firma inválida" = the INTEGRITY_KEY (server env) does not match the secret registered for your public key in Wompi dashboard. Location of the buyer does not affect the signature.
               </p>
             </div>
           )}

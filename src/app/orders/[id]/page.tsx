@@ -62,6 +62,15 @@ function OrderDetailClient() {
 
     // Inject script if missing
     if (!document.querySelector('script[src*="checkout.wompi.co"]')) {
+      // Set globals before loading the script so Wompi's bundle can see the public key during its own initialization
+      const pk = (window as any).WOMPI_PUBLIC_KEY || '';
+      if (pk) {
+        (window as any).WOMPI_PUBLIC_KEY = pk;
+        if ((window as any).$wompi && typeof (window as any).$wompi.initialize === 'function') {
+          try { (window as any).$wompi.initialize({ publicKey: pk }); } catch {}
+        }
+      }
+
       const script = document.createElement('script');
       script.src = 'https://checkout.wompi.co/widget.js';
       script.async = true;
@@ -549,6 +558,17 @@ function OrderDetailClient() {
 
                         const checkoutData = data.checkoutData;
 
+                        // Loud client-side guard for the most common prod signature failure
+                        const pubIsProd = /prod/i.test((window as any).WOMPI_PUBLIC_KEY || '');
+                        if (pubIsProd && !data.hasIntegritySignature) {
+                          toast.error(
+                            "⚠️ Using PRODUCTION Wompi key (pub_prod_) but the server did not return an integrity signature. " +
+                            "WOMPI_INTEGRITY_KEY (prod_integrity_...) is probably missing or scoped only to Production/Preview in Vercel. " +
+                            "Add it for Development too (or to .env.local) and redeploy. This is the #1 cause of 'La firma es inválida'.",
+                            { duration: 15000 }
+                          );
+                        }
+
                         // Capture for the in-page debugger (include the actual sig sent + the rich debug)
                         setLastWompiPrepareDebug({
                           ...(data.debug || {}),
@@ -895,7 +915,7 @@ function OrderDetailClient() {
                       El reference exacto que debe aparecer en Wompi dashboard es <span className="font-mono">order_{order.id}</span>.
                     </p>
                     <p className="mt-1 text-[9px] text-blue-600/80 dark:text-blue-400/80 leading-tight">
-                      La "Fecha de vencimiento 00/00" o datos de tarjeta incompletos en los detalles de Wompi es normal en transacciones que fallan con "firma inválida" (el rechazo ocurre a nivel de la config del checkout antes de procesar completamente los datos de tarjeta). No es la causa del error.
+                      La "Fecha de vencimiento 00/00" o datos de tarjeta incompletos en los detalles de Wompi es normal en transacciones que fallan con "firma inválida" (el rechazo ocurre a nivel de la config del checkout antes de procesar completamente los datos de tarjeta). No es la causa del error. La firma se valida con la llave de integridad del servidor; tu ubicación geográfica o IP del comprador NO afecta el cálculo de la firma (ref + amount + COP + secret).
                     </p>
                   </div>
                 )}
