@@ -68,6 +68,7 @@ export default function MiNegocioPage() {
     reviewCount: 0,
     gigCount: 0,
   });
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   // Load existing data + real stats + reviews
   useEffect(() => {
@@ -107,6 +108,12 @@ export default function MiNegocioPage() {
         .then(data => {
           setRealStats(prev => ({ ...prev, gigCount: data.count || 0 }));
         })
+        .catch(() => {});
+
+      // Fetch maintenance mode to gate debug tools (only show during maintenance)
+      fetch('/api/admin/config')
+        .then(r => r.json())
+        .then(data => setMaintenanceMode(!!data.maintenanceMode))
         .catch(() => {});
     }
   }, [session]);
@@ -190,10 +197,10 @@ export default function MiNegocioPage() {
           </div>
         </div>
 
-        {/* DEV TESTING TOOLS - only in development */}
-        {process.env.NODE_ENV === 'development' && (
+        {/* DEBUG TOOLS - only visible when Modo Mantenimiento is active */}
+        {maintenanceMode && (
           <div className="mb-8 p-4 border-2 border-dashed border-orange-500 rounded-2xl bg-orange-50 dark:bg-orange-950/40">
-            <div className="font-semibold text-orange-700 dark:text-orange-400 mb-3">🧪 DEV TESTING — Simulate Stats</div>
+            <div className="font-semibold text-orange-700 dark:text-orange-400 mb-3">🧪 DEBUG TOOLS — Simulate Stats (maintenance mode)</div>
             <div className="flex flex-wrap gap-2 text-sm">
               <Button size="sm" variant="outline" onClick={() => {
                 setRealStats({ rating: 4.9, reviewCount: 87, gigCount: 24 });

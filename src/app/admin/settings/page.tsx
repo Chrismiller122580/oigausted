@@ -718,14 +718,16 @@ export default function AdminSettings() {
               </div>
               <div className="text-[10px] text-muted-foreground mt-1">{payment?.sftp?.host || 'No host'}</div>
             </div>
-            <div className="rounded-2xl border border-border bg-background p-4">
-              <div className="text-muted-foreground text-xs mb-1">Support Tools</div>
-              <div className="text-[10px] space-y-1">
-                <a href="/admin/payouts" className="text-orange-400 hover:underline block">→ Payouts Debugger (local marks + force check)</a>
-                <a href="/admin/audit?search=PAYMENT" className="text-orange-400 hover:underline block">→ Recent Payment Audit Logs</a>
-                <span className="text-muted-foreground">Webhook: https://oigagig.com/api/webhooks/wompi</span>
+            {config.maintenanceMode && (
+              <div className="rounded-2xl border border-border bg-background p-4">
+                <div className="text-muted-foreground text-xs mb-1">Support Tools (Maintenance Mode only)</div>
+                <div className="text-[10px] space-y-1">
+                  <a href="/admin/payouts" className="text-orange-400 hover:underline block">→ Payouts Debugger (local marks + force check)</a>
+                  <a href="/admin/audit?search=PAYMENT" className="text-orange-400 hover:underline block">→ Recent Payment Audit Logs</a>
+                  <span className="text-muted-foreground">Webhook: https://oigagig.com/api/webhooks/wompi</span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="mt-4 text-xs text-muted-foreground flex items-center gap-2">
@@ -935,7 +937,8 @@ export default function AdminSettings() {
           </p>
         </div>
 
-        {/* Wompi Logs / Recent Events for debugging on settings page */}
+        {/* Wompi Logs / Recent Events for debugging on settings page - only in maintenance mode */}
+        {config.maintenanceMode && (
         <div className="mb-6 bg-card border border-border rounded-3xl p-8">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -968,6 +971,7 @@ export default function AdminSettings() {
           )}
           <p className="text-[10px] text-muted-foreground mt-2">See full history in <a href="/admin/audit" className="text-orange-400 hover:underline">/admin/audit</a></p>
         </div>
+        )}
 
         {/* === NEW: Integrations & Environment Status === */}
         <div className="mb-6 bg-card border border-border rounded-3xl p-8">

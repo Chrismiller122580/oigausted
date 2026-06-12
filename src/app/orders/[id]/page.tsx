@@ -46,6 +46,7 @@ function OrderDetailClient() {
   // Robust Wompi script readiness (mirrors checkout page to avoid "cargando" / silent fail to open payment UI)
   const [wompiReady, setWompiReady] = useState(false);
   const [wompiLoadFailed, setWompiLoadFailed] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   const ensureWompiReady = async (): Promise<boolean> => {
     if (wompiReady) return true;
@@ -105,6 +106,12 @@ function OrderDetailClient() {
       setOrder(orderData.order || orderData);
       setMessages(msgData.messages || []);
       setExistingReview(reviewData.review || null);
+
+      // Fetch maintenance mode to gate debug tools
+      fetch('/api/admin/config')
+        .then(r => r.json())
+        .then(data => setMaintenanceMode(!!data.maintenanceMode))
+        .catch(() => {});
       if (reviewData.review) {
         setReviewRating(reviewData.review.rating);
         setReviewText(reviewData.review.comment || '');
@@ -382,17 +389,19 @@ function OrderDetailClient() {
               <span className="text-muted-foreground"> — el webhook de Wompi + polling cada 4s actualizan el estado.</span>
             </div>
           </div>
-          <div className="text-[10px] text-muted-foreground mt-1">
-            Reference en Wompi: <span className="font-mono font-medium">order_{order.id}</span>. Revisa el panel de debugger abajo para más detalles y forzar chequeo.
-          </div>
+          {maintenanceMode && (
+            <div className="text-[10px] text-muted-foreground mt-1">
+              Reference en Wompi: <span className="font-mono font-medium">order_{order.id}</span>. Revisa el panel de debugger abajo para más detalles y forzar chequeo.
+            </div>
+          )}
         </div>
       )}
 
-      {/* DEV TESTING - Force Order Status */}
-      {process.env.NODE_ENV === 'development' && (
+      {/* DEBUG TOOLS - Force Order Status (only in maintenance mode) */}
+      {maintenanceMode && (
         <div className="mb-6 p-4 border-2 border-dashed border-orange-500 rounded-2xl bg-orange-50 dark:bg-orange-950/40">
           <div className="font-semibold text-orange-700 dark:text-orange-400 mb-3 flex items-center gap-2">
-            🧪 DEV TESTING — Force Order Status
+            🧪 DEBUG TOOLS — Force Order Status (maintenance mode)
           </div>
           <div className="flex flex-wrap gap-2">
             {['Pending', 'Paid', 'In Progress', 'Completed', 'Cancelled'].map((s) => (
@@ -628,7 +637,7 @@ function OrderDetailClient() {
                     Visible to the buyer when payment is still pending (and always to admins).
                     This is the main tool for "what is happening to the transaction?"
                 */}
-                {(isBuyer || isAdmin) && order.status === 'Pending' && (
+                {maintenanceMode && (isBuyer || isAdmin) && order.status === 'Pending' && (
                   <div className="mt-4 p-3 border border-blue-300 bg-blue-50 dark:bg-blue-950/30 rounded-xl text-xs">
                     <div className="font-semibold text-blue-800 dark:text-blue-300 mb-1 flex items-center gap-1">
                       🔧 Wompi Debugger

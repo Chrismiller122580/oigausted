@@ -29,6 +29,7 @@ export default function CheckoutPage() {
   const [wompiReady, setWompiReady] = useState(false);
   const [wompiLoadFailed, setWompiLoadFailed] = useState(false);
   const [realPaymentsEnabled, setRealPaymentsEnabled] = useState<boolean | null>(null);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '';
 
@@ -203,10 +204,13 @@ export default function CheckoutPage() {
 
     // User is authenticated → proceed to create order
     loadGigAndCreateOrder();
-    // Also fetch public payment gate status
+    // Also fetch public payment gate status and maintenance mode (for gating debug tools)
     fetch('/api/admin/config')
       .then(r => r.json())
-      .then(data => setRealPaymentsEnabled(!!data.wompiRealPaymentsEnabled))
+      .then(data => {
+        setRealPaymentsEnabled(!!data.wompiRealPaymentsEnabled);
+        setMaintenanceMode(!!data.maintenanceMode);
+      })
       .catch(() => setRealPaymentsEnabled(false));
   }, [gigId, sessionStatus, session?.user, router]);
 
@@ -771,11 +775,11 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {/* DEV ONLY: Simulate Wompi payment (strictly for local development when widget fails to load) */}
-          {process.env.NODE_ENV === 'development' && order && (
+          {/* DEBUG TOOLS: Simulate Wompi payment (shown when maintenance mode active, or in local dev) */}
+          {(maintenanceMode || process.env.NODE_ENV === 'development') && order && (
             <div className="mt-4 p-4 border border-dashed border-gray-400 rounded-xl bg-gray-50 dark:bg-gray-950/30 text-sm">
               <p className="font-medium text-gray-700 dark:text-gray-400 mb-2">
-                DEV TESTING ONLY — Do not use in production
+                DEBUG / DEV TESTING — Only in maintenance mode or local dev
               </p>
               <Button
                 variant="outline"
@@ -825,7 +829,7 @@ export default function CheckoutPage() {
           )}
 
           {/* Wompi Debugger for real feedback on checkout page */}
-          {order && (
+          {maintenanceMode && order && (
             <div className="mt-6 p-4 border border-blue-300 bg-blue-50 dark:bg-blue-950/30 rounded-xl text-xs">
               <div className="font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-1">
                 🔧 Wompi Debugger (for real feedback)
