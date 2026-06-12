@@ -1417,7 +1417,7 @@ export default function AdminSettings() {
                   />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Activa un banner persistente y restringe el acceso a usuarios normales (solo admins pueden navegar).
+                  Activa un banner rojo + página de mantenimiento 503 para usuarios normales (no en la lista de bypass IPs). Login y /admin permanecen accesibles para que puedas desactivarlo.
                 </p>
                 {config.maintenanceMode && (
                   <div className="mt-3 text-xs px-3 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl">
@@ -1457,7 +1457,7 @@ export default function AdminSettings() {
                 className="mt-1.5 font-mono text-xs bg-background border-border"
                 placeholder="203.0.113.5, 198.51.100.10"
               />
-              <p className="text-[10px] text-muted-foreground mt-1">These IPs will not see the maintenance banner (basic support; full server enforcement can be added in middleware).</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Estas IPs no verán la página de mantenimiento ni el banner (acceso completo). Separa por comas. En producción usa la IP real del cliente (x-forwarded-for).</p>
             </div>
           </div>
         </div>

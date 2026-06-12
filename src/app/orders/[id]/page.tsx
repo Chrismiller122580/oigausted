@@ -79,6 +79,18 @@ function OrderDetailClient() {
           if (hasGlobal()) {
             setWompiReady(true);
             setWompiLoadFailed(false);
+
+            // Force globals + initialize as soon as the class appears.
+            // Catches Wompi internal auto merchant fetches that happen right after script load.
+            const earlyKey = (window as any).WOMPI_PUBLIC_KEY || '';
+            if (earlyKey) {
+              (window as any).WOMPI_PUBLIC_KEY = earlyKey;
+              (window as any).$wompi = (window as any).$wompi || {};
+              (window as any).$wompi.publicKey = earlyKey;
+              if (typeof (window as any).$wompi.initialize === 'function') {
+                try { (window as any).$wompi.initialize({ publicKey: earlyKey }); } catch {}
+              }
+            }
           }
         }, 250);
       };
@@ -584,17 +596,38 @@ function OrderDetailClient() {
                           debug: data.debug,
                         });
 
+                        const pubKeyFromServer = checkoutData.publicKey || (window as any).WOMPI_PUBLIC_KEY || '';
+
+                        // Extra defensive set right here with the exact value from the server prepare response.
+                        // Some Wompi internal paths seem to snapshot the key at unexpected times.
+                        (window as any).WOMPI_PUBLIC_KEY = pubKeyFromServer;
+                        (window as any).$wompi = (window as any).$wompi || {};
+                        (window as any).$wompi.publicKey = pubKeyFromServer;
+                        console.log('[Wompi][Client] Forcing globals from server response', {
+                          pubKey: pubKeyFromServer?.slice(0, 12) + '...',
+                          $wompiPublic: (window as any).$wompi?.publicKey?.slice(0, 12) + '...',
+                        });
+
+                        if (typeof (window as any).$wompi.initialize === 'function') {
+                          try { (window as any).$wompi.initialize({ publicKey: pubKeyFromServer }); } catch {}
+                        }
+
                         const WidgetCheckoutClass = (window as any).WidgetCheckout || (window as any).WompiCheckout;
 
                         if (WidgetCheckoutClass && checkoutData) {
                           const pubKey = checkoutData.publicKey || (window as any).WOMPI_PUBLIC_KEY || '';
 
-                          // Help Wompi internal init to avoid merchants/undefined and init errors
+                          // Aggressively set globals from the *server* response (runtime truth).
+                          // Prevents "merchants/undefined" and init 422 even across deploys with stale client bundles.
                           (window as any).WOMPI_PUBLIC_KEY = pubKey;
-                          if ((window as any).$wompi && typeof (window as any).$wompi.initialize === 'function') {
+                          (window as any).$wompi = (window as any).$wompi || {};
+                          (window as any).$wompi.publicKey = pubKey;
+
+                          // Help Wompi internal init to avoid merchants/undefined and init errors
+                          if (typeof (window as any).$wompi.initialize === 'function') {
                             try {
                               (window as any).$wompi.initialize({ publicKey: pubKey });
-                              console.log('[Wompi][Client] Explicit $wompi.initialize called');
+                              console.log('[Wompi][Client] Explicit $wompi.initialize called with', pubKey?.slice(0,12)+'...');
                             } catch (e) {
                               console.warn('[Wompi][Client] $wompi.initialize call failed (non-fatal):', e);
                             }
@@ -612,46 +645,52 @@ function OrderDetailClient() {
                             widgetConfig.signature = { integrity: checkoutData.signature.integrity };
                           }
                           console.log('[Wompi][Client] Opening Wompi widget', { reference: checkoutData.reference });
-                          const checkout = new WidgetCheckoutClass(widgetConfig);
 
-                          toast.info('Abriendo Wompi Checkout seguro. Ingresa los datos de pago allí.');
+                          // Small delay after forcing globals lets Wompi sub-bundles settle.
+                          setTimeout(() => {
+                            try {
+                              const checkout = new WidgetCheckoutClass(widgetConfig);
 
-                          // Use the callback as recommended in Wompi docs for immediate feedback
-                          checkout.open((result: any) => {
-                            console.log('[Wompi][Client] Widget closed with result:', result);
-                            // Capture errors (including "La firma es inválida") into the debugger panel
-                            const possibleSigError = result?.error || result?.transaction?.error || result?.transaction?.status_message;
-                            if (possibleSigError) {
-                              const errText = typeof possibleSigError === 'string' ? possibleSigError : JSON.stringify(possibleSigError);
-                              toast.error(`Error Wompi: ${errText}`);
-                              setLastWompiPrepareDebug((prev: any) => ({
-                                ...(prev || {}),
-                                lastWidgetResultError: errText,
-                                lastWidgetResult: result,
-                              }));
-                            } else if (result?.transaction?.status === 'ERROR') {
-                              setLastWompiPrepareDebug((prev: any) => ({
-                                ...(prev || {}),
-                                lastWidgetResult: result,
-                              }));
-                            }
-                            // Auto nudge refresh / check after user closes the widget (payment may be PENDING/APPROVED)
-                            setTimeout(async () => {
-                              try {
-                                const fresh = await fetch(`/api/orders/${orderId}`).then(r => r.json());
-                                const upd = fresh.order || fresh;
-                                setOrder(upd);
-                                if (upd.status === 'Pending') {
-                                  // Force a server-side Wompi query (bypasses webhook if needed)
-                                  fetch(`/api/orders/${orderId}/check-wompi`, { method: 'POST' }).catch(() => {});
-                                  startPaymentPolling();
-                                } else {
-                                  setIsPollingPayment(false);
-                                  toast.success(`Estado actualizado: ${upd.status}`);
+                              toast.info('Abriendo Wompi Checkout seguro. Ingresa los datos de pago allí.');
+
+                              checkout.open((result: any) => {
+                                console.log('[Wompi][Client] Widget closed with result:', result);
+                                const possibleSigError = result?.error || result?.transaction?.error || result?.transaction?.status_message;
+                                if (possibleSigError) {
+                                  const errText = typeof possibleSigError === 'string' ? possibleSigError : JSON.stringify(possibleSigError);
+                                  toast.error(`Error Wompi: ${errText}`);
+                                  setLastWompiPrepareDebug((prev: any) => ({
+                                    ...(prev || {}),
+                                    lastWidgetResultError: errText,
+                                    lastWidgetResult: result,
+                                  }));
+                                } else if (result?.transaction?.status === 'ERROR') {
+                                  setLastWompiPrepareDebug((prev: any) => ({
+                                    ...(prev || {}),
+                                    lastWidgetResult: result,
+                                  }));
                                 }
-                              } catch {}
-                            }, 1500);
-                          });
+                                setTimeout(async () => {
+                                  try {
+                                    const fresh = await fetch(`/api/orders/${orderId}`).then(r => r.json());
+                                    const upd = fresh.order || fresh;
+                                    setOrder(upd);
+                                    if (upd.status === 'Pending') {
+                                      fetch(`/api/orders/${orderId}/check-wompi`, { method: 'POST' }).catch(() => {});
+                                      startPaymentPolling();
+                                    } else {
+                                      setIsPollingPayment(false);
+                                      toast.success(`Estado actualizado: ${upd.status}`);
+                                    }
+                                  } catch {}
+                                }, 1500);
+                              });
+                            } catch (e: any) {
+                              console.error('[Wompi][Client] Failed to instantiate WidgetCheckout', e);
+                              toast.error('No se pudo inicializar el widget de Wompi. Revisa el Debugger.');
+                              setLastWompiPrepareDebug((prev: any) => ({ ...(prev || {}), lastWidgetResultError: 'Instantiation failed: ' + (e?.message || e) }));
+                            }
+                          }, 120);
                         } else {
                           toast.error("No se pudo iniciar el pago con Wompi. Verifica la conexión e intenta de nuevo.");
                         }
