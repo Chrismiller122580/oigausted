@@ -12,21 +12,25 @@ import {
   CreditCard, Mail, Shield, Clock, RotateCcw, Check, ExternalLink, History, UserPlus, Upload, Globe, Key, Users
 } from 'lucide-react';
 
-// Enhanced accessible Switch - mobile friendly with larger tap target
+// Enhanced accessible Switch using native input for reliable tap/keyboard behavior on all devices (incl. Android)
 function Switch({ checked, onCheckedChange, disabled }: { checked: boolean; onCheckedChange: (v: boolean) => void; disabled?: boolean }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => onCheckedChange(!checked)}
-      className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-background touch-manipulation active:scale-95 ${checked ? 'bg-orange-600' : 'bg-muted'} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+    <label
+      className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus-within:ring-2 focus-within:ring-orange-500 focus-within:ring-offset-2 focus-within:ring-offset-background touch-manipulation ${checked ? 'bg-orange-600' : 'bg-muted'} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
     >
+      <input
+        type="checkbox"
+        role="switch"
+        aria-checked={checked}
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onCheckedChange(e.target.checked)}
+        className="sr-only"
+      />
       <span
         className={`inline-block h-6 w-6 transform rounded-full bg-background shadow transition-transform ${checked ? 'translate-x-7' : 'translate-x-1'}`}
       />
-    </button>
+    </label>
   );
 }
 
