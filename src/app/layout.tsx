@@ -194,6 +194,23 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: mapsGuardScript }} />
+        {/* Set Wompi public key as early as possible in <head> so that the Wompi widget script (and its internal bundles like v1.js) can see it during their own initialization, preventing merchants/undefined and init 422 errors. */}
+        {process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function() {
+                  try {
+                    window.WOMPI_PUBLIC_KEY = '${process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY}';
+                    if (window.$wompi) {
+                      window.$wompi.publicKey = '${process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY}';
+                    }
+                  } catch(e) {}
+                })();
+              `
+            }}
+          />
+        )}
       </head>
       <body className={`${inter.className} pb-safe-area-inset-bottom`}>
         <SessionProviderWrapper>
