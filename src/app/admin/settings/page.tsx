@@ -12,7 +12,7 @@ import {
   CreditCard, Mail, Shield, Clock, RotateCcw, Check, ExternalLink, History, UserPlus, Upload, Globe, Key, Users
 } from 'lucide-react';
 
-// Enhanced accessible Switch
+// Enhanced accessible Switch - mobile friendly with larger tap target
 function Switch({ checked, onCheckedChange, disabled }: { checked: boolean; onCheckedChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <button
@@ -21,10 +21,10 @@ function Switch({ checked, onCheckedChange, disabled }: { checked: boolean; onCh
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-background ${checked ? 'bg-orange-600' : 'bg-muted'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-background touch-manipulation active:scale-95 ${checked ? 'bg-orange-600' : 'bg-muted'} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
     >
       <span
-        className={`inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform ${checked ? 'translate-x-5' : 'translate-x-1'}`}
+        className={`inline-block h-6 w-6 transform rounded-full bg-background shadow transition-transform ${checked ? 'translate-x-7' : 'translate-x-1'}`}
       />
     </button>
   );
@@ -577,14 +577,14 @@ export default function AdminSettings() {
     <div className="bg-background text-foreground">
       <div className="max-w-6xl mx-auto">
 
-        {/* Top status bar */}
-        <div className="flex items-center justify-between mb-6">
+        {/* Top status bar - mobile friendly */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight">System Settings</h1>
-            <p className="text-muted-foreground mt-1">Central platform control • Changes apply immediately after saving</p>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">System Settings</h1>
+            <p className="text-muted-foreground mt-1 text-sm md:text-base">Central platform control • Changes apply immediately after saving</p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3">
             {isDirty && (
               <div className="flex items-center gap-2 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3 py-1 text-xs font-medium">
                 <AlertTriangle className="w-3.5 h-3.5" /> Unsaved changes
@@ -603,8 +603,8 @@ export default function AdminSettings() {
             )}
 
             {isDirty && (
-              <Button variant="outline" onClick={discardChanges} disabled={saving}>
-                <RotateCcw className="mr-2 h-4 w-4" /> Discard
+              <Button variant="outline" onClick={discardChanges} disabled={saving} size="sm" className="min-h-[36px]">
+                <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Discard
               </Button>
             )}
             <Button 
@@ -612,15 +612,18 @@ export default function AdminSettings() {
               onClick={resetAllToDefaults}
               disabled={saving}
               title="Restaurar todos los valores por defecto (requiere guardar)"
+              size="sm"
+              className="min-h-[36px]"
             >
-              <RotateCcw className="mr-2 h-4 w-4" /> Reset defaults
+              <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Reset defaults
             </Button>
             <Button 
               onClick={() => handleSave()} 
               disabled={saving || !isDirty} 
-              className="bg-orange-600 hover:bg-orange-700 disabled:opacity-60"
+              className="bg-orange-600 hover:bg-orange-700 disabled:opacity-60 min-h-[36px]"
+              size="sm"
             >
-              <Save className="mr-2 h-4 w-4" />
+              <Save className="mr-1.5 h-3.5 w-3.5" />
               {saving ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
@@ -1030,7 +1033,7 @@ export default function AdminSettings() {
               </div>
               <button
                 onClick={() => resetSection('fees')}
-                className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition"
+                className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition min-h-[28px] px-1.5 -mx-1.5 touch-manipulation"
                 title="Restore default commissions and min payout"
               >
                 <RotateCcw className="w-3 h-3" /> reset
@@ -1056,7 +1059,7 @@ export default function AdminSettings() {
                   />
                   <div className="flex gap-1.5">
                     {[0.08, 0.10, 0.12, 0.15, 0.20].map(r => (
-                      <button key={r} onClick={() => setCommissionPreset(r)} className="text-[10px] px-2 py-0.5 rounded bg-muted hover:bg-muted/70 transition">{(r*100)}%</button>
+                      <button key={r} onClick={() => setCommissionPreset(r)} className="text-[10px] px-2 py-1 min-h-[28px] rounded bg-muted hover:bg-muted/70 transition touch-manipulation">{(r*100)}%</button>
                     ))}
                   </div>
                 </div>
@@ -1084,7 +1087,7 @@ export default function AdminSettings() {
                   />
                   <div className="flex gap-1.5">
                     {[0.03, 0.05, 0.07, 0.10].map(r => (
-                      <button key={r} onClick={() => setReferralPreset(r)} className="text-[10px] px-2 py-0.5 rounded bg-muted hover:bg-muted/70 transition">{(r*100)}%</button>
+                      <button key={r} onClick={() => setReferralPreset(r)} className="text-[10px] px-2 py-1 min-h-[28px] rounded bg-muted hover:bg-muted/70 transition touch-manipulation">{(r*100)}%</button>
                     ))}
                   </div>
                 </div>
@@ -1123,7 +1126,7 @@ export default function AdminSettings() {
               </div>
               <button
                 onClick={() => resetSection('support')}
-                className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition"
+                className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition min-h-[28px] px-1.5 -mx-1.5 touch-manipulation"
                 title="Restore default emails and phone"
               >
                 <RotateCcw className="w-3 h-3" /> reset
@@ -1228,7 +1231,7 @@ export default function AdminSettings() {
               </div>
               <button
                 onClick={() => resetSection('features')}
-                className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition"
+                className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition min-h-[28px] px-1.5 -mx-1.5 touch-manipulation"
                 title="Restore review and chat toggles"
               >
                 <RotateCcw className="w-3 h-3" /> reset
@@ -1267,7 +1270,7 @@ export default function AdminSettings() {
               </div>
               <button
                 onClick={() => resetSection('branding')}
-                className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition"
+                className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition min-h-[28px] px-1.5 -mx-1.5 touch-manipulation"
               >
                 <RotateCcw className="w-3 h-3" /> reset
               </button>
@@ -1314,7 +1317,7 @@ export default function AdminSettings() {
               </div>
               <button
                 onClick={() => resetSection('growth')}
-                className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition"
+                className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition min-h-[28px] px-1.5 -mx-1.5 touch-manipulation"
                 title="Restore referral and signup toggles"
               >
                 <RotateCcw className="w-3 h-3" /> reset
@@ -1368,7 +1371,7 @@ export default function AdminSettings() {
               </div>
               <button
                 onClick={() => resetSection('notifications')}
-                className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition"
+                className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition min-h-[28px] px-1.5 -mx-1.5 touch-manipulation"
               >
                 <RotateCcw className="w-3 h-3" /> reset
               </button>
@@ -1402,7 +1405,7 @@ export default function AdminSettings() {
               </div>
               <button
                 onClick={() => resetSection('maintenance')}
-                className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition"
+                className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition min-h-[32px] px-2 -mx-2 touch-manipulation"
               >
                 <RotateCcw className="w-3 h-3" /> reset
               </button>
@@ -1455,10 +1458,12 @@ export default function AdminSettings() {
               <Input
                 value={config.maintenanceBypassIps || ''}
                 onChange={(e) => updateField('maintenanceBypassIps', e.target.value)}
-                className="mt-1.5 font-mono text-xs bg-background border-border"
+                className="mt-1.5 font-mono text-sm sm:text-xs bg-background border-border"
                 placeholder="203.0.113.5, 198.51.100.10"
+                autoComplete="off"
+                spellCheck={false}
               />
-              <p className="text-[10px] text-muted-foreground mt-1">Estas IPs no verán la página de mantenimiento ni el banner (acceso completo). Separa por comas. En producción usa la IP real del cliente (x-forwarded-for).</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Estas IPs no verán la página de mantenimiento ni el banner (acceso completo). Separa por comas. En producción usa la IP real del cliente (x-forwarded-for). La página de mantenimiento te mostrará tu IP detectada.</p>
             </div>
           </div>
         </div>
@@ -1487,8 +1492,13 @@ export default function AdminSettings() {
                     placeholder="Actual"
                     className="bg-background border-border pr-9"
                   />
-                  <button type="button" onClick={() => setShowAdminCurrent(!showAdminCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    {showAdminCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+                  <button 
+                    type="button" 
+                    onClick={() => setShowAdminCurrent(!showAdminCurrent)} 
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground touch-manipulation p-1 -m-1"
+                    aria-label={showAdminCurrent ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showAdminCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
@@ -1503,8 +1513,13 @@ export default function AdminSettings() {
                     required minLength={8}
                     className="bg-background border-border pr-9"
                   />
-                  <button type="button" onClick={() => setShowAdminNew(!showAdminNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    {showAdminNew ? <EyeOff size={16} /> : <Eye size={16} />}
+                  <button 
+                    type="button" 
+                    onClick={() => setShowAdminNew(!showAdminNew)} 
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground touch-manipulation p-1 -m-1"
+                    aria-label={showAdminNew ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showAdminNew ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
@@ -1519,8 +1534,13 @@ export default function AdminSettings() {
                     required
                     className="bg-background border-border pr-9"
                   />
-                  <button type="button" onClick={() => setShowAdminConfirm(!showAdminConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    {showAdminConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                  <button 
+                    type="button" 
+                    onClick={() => setShowAdminConfirm(!showAdminConfirm)} 
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground touch-manipulation p-1 -m-1"
+                    aria-label={showAdminConfirm ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showAdminConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
@@ -1567,9 +1587,18 @@ export default function AdminSettings() {
                 </div>
               </div>
 
-              <div className="mt-6 flex gap-3 justify-end">
-                <Button variant="outline" onClick={() => setPendingSaveConfirm(null)}>Cancelar</Button>
-                <Button onClick={() => handleSave(true)} className="bg-orange-600 hover:bg-orange-700">
+              <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:justify-end">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setPendingSaveConfirm(null)}
+                  className="min-h-[44px] touch-manipulation w-full sm:w-auto"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={() => handleSave(true)} 
+                  className="bg-orange-600 hover:bg-orange-700 min-h-[44px] touch-manipulation w-full sm:w-auto"
+                >
                   Sí, guardar de todas formas
                 </Button>
               </div>
