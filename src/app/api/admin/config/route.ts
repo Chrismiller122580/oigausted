@@ -131,19 +131,27 @@ export async function GET(req: NextRequest) {
     console.error('Config GET error (using safe defaults):', error);
     // Never 500 this endpoint -- it's called on nearly every page load (banner, nav, etc.).
     // Return minimal safe public config so the app remains usable.
-    return NextResponse.json({
-      maintenanceMode: false,
-      maintenanceMessage: "Estamos realizando mejoras. Volveremos pronto.",
-      siteName: 'OigaUsted',
-      siteTagline: 'Conecta con profesionales locales en Colombia',
-      logoUrl: null,
-      allowNewSignups: true,
-      referralsEnabled: true,
-      globalPushNotificationsEnabled: true,
-      globalEmailNotificationsEnabled: true,
-      wompiRealPaymentsEnabled: false,
-      wompiSftpEnabled: false,
-    });
+    try {
+      return NextResponse.json({
+        maintenanceMode: false,
+        maintenanceMessage: "Estamos realizando mejoras. Volveremos pronto.",
+        siteName: 'OigaUsted',
+        siteTagline: 'Conecta con profesionales locales en Colombia',
+        logoUrl: null,
+        allowNewSignups: true,
+        referralsEnabled: true,
+        globalPushNotificationsEnabled: true,
+        globalEmailNotificationsEnabled: true,
+        wompiRealPaymentsEnabled: false,
+        wompiSftpEnabled: false,
+      });
+    } catch (finalErr) {
+      console.error('Config GET ultimate fallback error (returning plain 200):', finalErr);
+      return new Response('{"maintenanceMode":false,"maintenanceMessage":"Estamos realizando mejoras. Volveremos pronto.","siteName":"OigaUsted","siteTagline":"Conecta con profesionales locales en Colombia","logoUrl":null,"allowNewSignups":true,"referralsEnabled":true,"globalPushNotificationsEnabled":true,"globalEmailNotificationsEnabled":true,"wompiRealPaymentsEnabled":false,"wompiSftpEnabled":false}', {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
   }
 }
 
