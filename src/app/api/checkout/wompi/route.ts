@@ -9,6 +9,9 @@ import { devLog } from '@/lib/utils';
 const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
 const WOMPI_INTEGRITY_KEY = process.env.WOMPI_INTEGRITY_KEY || process.env.WOMPI_INTEGRITY_SECRET;
 
+// Helpful startup log (appears in Vercel function logs)
+console.log('[Wompi] Integrity key loaded?', !!WOMPI_INTEGRITY_KEY, 'prefix:', (WOMPI_INTEGRITY_KEY || '').slice(0, 12) + '...');
+
 if (process.env.NODE_ENV === 'production' && WOMPI_PUBLIC_KEY?.includes('test')) {
   console.warn('⚠️  WARNING: Using Wompi SANDBOX keys in production! Real payments will not be processed.');
 }
