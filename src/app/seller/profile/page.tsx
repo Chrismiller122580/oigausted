@@ -1,17 +1,52 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save } from "lucide-react";
+import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save, Users } from "lucide-react";
 import GrokAssistant from "@/components/common/GrokAssistant";
+import { toast } from 'sonner';
+import { slugify } from '@/lib/utils';
+
+function slugifyForPreview(name?: string) {
+  return slugify(name || '');
+}
 
 export default function MiNegocioPage() {
   const { data: session, update } = useSession();
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Nuclear per-page defense against lingering Google Places widget pollution.
+  // We no longer remove DOM nodes (was causing uncaught removeChild errors + React desync).
+  // Just nuke the JS namespace. Global CSS + layout guard handle the rest.
+  useLayoutEffect(() => {
+    const cleanup = () => {
+      try {
+        const g = (window as any).google;
+        if (g?.maps?.places) {
+          try {
+            g.maps.places = {
+              Autocomplete: function() { return {}; },
+              AutocompleteService: function() {},
+              PlacesService: function() {},
+              PlacesServiceStatus: {},
+              RankBy: {},
+              PlaceAutocompleteElement: function() {}
+            };
+          } catch {}
+        }
+      } catch (e) {}
+    };
+
+    cleanup();
+    const t1 = setTimeout(cleanup, 0);
+    const t2 = setTimeout(cleanup, 80);
+    const t3 = setTimeout(cleanup, 300);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []);
 
   const [formData, setFormData] = useState({
     businessName: "",
@@ -20,12 +55,26 @@ export default function MiNegocioPage() {
     phone: "",
     whatsapp: "",
     location: "",
+    instagram: "",
+    profilePicture: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
+    serviceRadiusKm: 15,
   });
 
-  // Load existing data
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [realStats, setRealStats] = useState({
+    rating: 0,
+    reviewCount: 0,
+    gigCount: 0,
+  });
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+
+  // Load existing data + real stats + reviews
   useEffect(() => {
     if (session?.user) {
       const user = session.user as any;
+
       setFormData({
         businessName: user.businessName || "Mi Negocio Local",
         tagline: user.tagline || "Calidad y confianza que se nota",
@@ -33,7 +82,39 @@ export default function MiNegocioPage() {
         phone: user.phone || "",
         whatsapp: user.whatsapp || "",
         location: user.city || "Bucaramanga, Santander",
+        instagram: user.instagram || "",
+        profilePicture: user.profilePicture || "",
+        latitude: user.latitude || null,
+        longitude: user.longitude || null,
+        serviceRadiusKm: user.serviceRadiusKm || 15,
       });
+
+      // Load real rating/reviewCount
+      setRealStats({
+        rating: user.rating || 0,
+        reviewCount: user.reviewCount || 0,
+        gigCount: 0, // will update below
+      });
+
+      // Fetch recent reviews
+      fetch(`/api/reviews?sellerId=${user.id}&limit=4`)
+        .then(res => res.json())
+        .then(data => setReviews(data.reviews || []))
+        .catch(() => {});
+
+      // Fetch gig count
+      fetch(`/api/seller/gigs`)
+        .then(res => res.json())
+        .then(data => {
+          setRealStats(prev => ({ ...prev, gigCount: data.count || 0 }));
+        })
+        .catch(() => {});
+
+      // Fetch maintenance mode to gate debug tools (only show during maintenance)
+      fetch('/api/admin/config')
+        .then(r => r.json())
+        .then(data => setMaintenanceMode(!!data.maintenanceMode))
+        .catch(() => {});
     }
   }, [session]);
 
@@ -54,18 +135,33 @@ export default function MiNegocioPage() {
           phone: formData.phone,
           whatsapp: formData.whatsapp,
           city: formData.location,
+          instagram: formData.instagram,
+          imageUrl: formData.profilePicture,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          serviceRadiusKm: formData.serviceRadiusKm,
         }),
       });
 
       if (res.ok) {
-        await update();
-        alert("✅ Información del negocio guardada correctamente");
+        await update({
+          ...formData,
+          profilePicture: formData.profilePicture,
+          image: formData.profilePicture,
+        });
+        toast.success("Información del negocio guardada correctamente");
         setIsEditing(false);
       } else {
-        alert("❌ Error al guardar");
+        const err = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          toast.error("Tu sesión expiró. Por favor inicia sesión de nuevo.");
+          window.location.href = `/login?callbackUrl=${encodeURIComponent('/seller/profile')}`;
+        } else {
+          toast.error(err.error || "Error al guardar");
+        }
       }
     } catch (err) {
-      alert("Error de conexión");
+      toast.error("Error de conexión");
     } finally {
       setSaving(false);
     }
@@ -77,62 +173,165 @@ export default function MiNegocioPage() {
   const totalEarnings = "12.450.000";
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
+    <div className="min-h-screen bg-background pb-12">
       <div className="max-w-6xl mx-auto px-6 py-10">
         <Link href="/seller" className="inline-flex items-center gap-2 text-orange-600 hover:underline mb-8 text-lg">
           <ArrowLeft size={22} /> Volver al Dashboard
         </Link>
 
-        <div className="flex justify-between items-center mb-10">
-          <h1 className="text-4xl font-bold">Mi Negocio</h1>
-          <Button onClick={isEditing ? handleSave : () => setIsEditing(true)} disabled={saving}>
-            {isEditing ? (
-              saving ? "Guardando..." : <><Save size={18} className="mr-2" /> Guardar Cambios</>
-            ) : (
-              <><Edit3 size={18} className="mr-2" /> Editar Negocio</>
-            )}
-          </Button>
+        <div className="flex flex-col md:flex-row justify-between md:items-center mb-10 gap-4">
+          <h1 className="text-4xl font-bold text-foreground">Mi Negocio</h1>
+          <div className="flex gap-3">
+            <Link href={`/sellers/${slugifyForPreview(formData.businessName) || (session?.user as any)?.id}`} target="_blank">
+              <Button variant="outline">
+                👀 Ver perfil público
+              </Button>
+            </Link>
+            <Button onClick={isEditing ? handleSave : () => setIsEditing(true)} disabled={saving}>
+              {isEditing ? (
+                saving ? "Guardando..." : <><Save size={18} className="mr-2" /> Guardar Cambios</>
+              ) : (
+                <><Edit3 size={18} className="mr-2" /> Editar Negocio</>
+              )}
+            </Button>
+          </div>
         </div>
 
+        {/* DEBUG TOOLS - only visible when Modo Mantenimiento is active */}
+        {maintenanceMode && (
+          <div className="mb-8 p-4 border-2 border-dashed border-orange-500 rounded-2xl bg-orange-50 dark:bg-orange-950/40">
+            <div className="font-semibold text-orange-700 dark:text-orange-400 mb-3">🧪 DEBUG TOOLS — Simulate Stats (maintenance mode)</div>
+            <div className="flex flex-wrap gap-2 text-sm">
+              <Button size="sm" variant="outline" onClick={() => {
+                setRealStats({ rating: 4.9, reviewCount: 87, gigCount: 24 });
+                toast.success('Stats simulated for testing');
+              }}>
+                Simulate High Reputation
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => {
+                setRealStats({ rating: 3.2, reviewCount: 12, gigCount: 3 });
+                toast.success('Stats simulated for testing');
+              }}>
+                Simulate New Seller
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+                Reload Page
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">These only affect the local UI for testing seller dashboard states.</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8 bg-white rounded-3xl p-10 shadow-sm border">
+          <div className="lg:col-span-8 bg-card rounded-3xl p-10 shadow-sm border border-border">
             {/* ... same nice layout as before ... */}
             <div className="flex gap-10">
               <div className="flex-shrink-0">
-                <div className="w-52 h-52 bg-gradient-to-br from-orange-100 to-amber-100 rounded-3xl flex items-center justify-center text-9xl border-4 border-white shadow-inner">
-                  🏪
+                <div className="w-52 h-52 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/40 dark:to-amber-900/40 rounded-3xl overflow-hidden border-4 border-border dark:border-zinc-700 shadow-inner">
+                  {formData.profilePicture ? (
+                    <img src={formData.profilePicture} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-8xl">🏪</div>
+                  )}
                 </div>
+                {isEditing && (
+                  <div className="mt-3 text-xs text-center text-muted-foreground">
+                    (Sube tu foto/logo en el editor de perfil general)
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 space-y-8">
                 <div>
                   <label className="block text-sm font-medium mb-2">Nombre del Negocio</label>
                   <input name="businessName" value={formData.businessName} onChange={handleChange} disabled={!isEditing}
-                    className="w-full px-6 py-5 text-2xl font-semibold border rounded-2xl focus:border-orange-500" />
+                    className="w-full px-6 py-5 text-2xl font-semibold bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Tagline</label>
                   <input name="tagline" value={formData.tagline} onChange={handleChange} disabled={!isEditing}
-                    className="w-full px-6 py-4 border rounded-2xl focus:border-orange-500" />
+                    className="w-full px-6 py-4 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Descripción</label>
                   <textarea name="bio" value={formData.bio} onChange={handleChange} disabled={!isEditing} rows={5}
-                    className="w-full px-6 py-5 border rounded-2xl focus:border-orange-500" />
+                    className="w-full px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Teléfono / WhatsApp</label>
+                    <label className="block text-sm font-medium mb-2">Teléfono</label>
                     <input name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing}
-                      className="w-full px-6 py-5 border rounded-2xl focus:border-orange-500" />
+                      className="w-full px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Ubicación</label>
-                    <input name="location" value={formData.location} onChange={handleChange} disabled={!isEditing}
-                      className="w-full px-6 py-5 border rounded-2xl focus:border-orange-500" />
+                    <label className="block text-sm font-medium mb-2">WhatsApp</label>
+                    <input name="whatsapp" value={formData.whatsapp} onChange={handleChange} disabled={!isEditing}
+                      className="w-full px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" placeholder="+57 ..." />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Ubicación principal</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={formData.location}
+                        onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                        disabled={!isEditing}
+                        placeholder="Ciudad o dirección principal de tu negocio"
+                        className="flex-1 px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500 disabled:opacity-60"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!navigator.geolocation) {
+                            toast.error("Tu navegador no soporta geolocalización.");
+                            return;
+                          }
+                          navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                              const lat = position.coords.latitude;
+                              const lng = position.coords.longitude;
+                              setFormData(prev => ({
+                                ...prev,
+                                latitude: lat,
+                                longitude: lng,
+                                location: prev.location || `Ubicación actual (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+                              }));
+                            },
+                            () => toast.error("No pudimos obtener tu ubicación. Ingresa la dirección manualmente.")
+                          );
+                        }}
+                        disabled={!isEditing}
+                        className="px-4 py-2 border rounded-xl text-sm hover:bg-muted disabled:opacity-50"
+                        title="Usar mi ubicación actual"
+                      >
+                        📍 Mi ubicación
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Usaremos esto para mostrar "Gigs cerca de ti" a los compradores. (Sin Google Maps)</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Radio de servicio (km)</label>
+                    <input 
+                      type="number" 
+                      name="serviceRadiusKm" 
+                      value={formData.serviceRadiusKm} 
+                      onChange={handleChange} 
+                      disabled={!isEditing}
+                      className="w-full px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" 
+                      min="1"
+                      max="200"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ¿Hasta cuántos km viajas para atender gigs? (Ej: 15 km). Esto ayuda a mostrar tus servicios solo a clientes cercanos.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Instagram</label>
+                    <input name="instagram" value={formData.instagram} onChange={handleChange} disabled={!isEditing}
+                      className="w-full px-6 py-5 bg-background border border-border text-foreground rounded-2xl focus:border-orange-500" placeholder="@tu_negocio" />
                   </div>
                 </div>
               </div>
@@ -145,10 +344,12 @@ export default function MiNegocioPage() {
               <CardContent className="p-8">
                 <h3 className="font-semibold text-xl mb-6">Tu Reputación</h3>
                 <div className="flex items-center gap-6">
-                  <div className="text-7xl font-bold text-yellow-600">{rating}</div>
+                  <div className="text-6xl font-bold text-yellow-600">
+                    {realStats.rating ? realStats.rating.toFixed(1) : "—"}
+                  </div>
                   <div>
-                    <div className="flex text-4xl text-yellow-500">★★★★☆</div>
-                    <p className="text-gray-600 mt-2">{reviewCount} reseñas</p>
+                    <div className="flex text-3xl text-yellow-500">★★★★☆</div>
+                    <p className="text-muted-foreground mt-1">{realStats.reviewCount} reseñas</p>
                   </div>
                 </div>
               </CardContent>
@@ -158,11 +359,42 @@ export default function MiNegocioPage() {
               <CardContent className="p-8">
                 <h3 className="font-semibold text-xl mb-6">Estadísticas</h3>
                 <div className="space-y-6">
-                  <div className="flex justify-between"><span>Gigs publicados</span><span className="font-bold">{totalGigs}</span></div>
-                  <div className="flex justify-between"><span>Ingresos totales</span><span className="font-bold text-green-600">${totalEarnings}</span></div>
+                  <div className="flex justify-between">
+                    <span>Gigs publicados</span>
+                    <span className="font-bold">{realStats.gigCount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Reseñas recibidas</span>
+                    <span className="font-bold">{realStats.reviewCount}</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Recent Reviews on own profile */}
+            {reviews.length > 0 && (
+              <Card>
+                <CardContent className="p-8">
+                  <h3 className="font-semibold text-xl mb-4">Últimas reseñas</h3>
+                  <div className="space-y-4 text-sm">
+                    {reviews.slice(0, 3).map((r, i) => (
+                      <div key={i} className="border-l-4 border-yellow-400 pl-4">
+                        <div className="flex gap-1 text-yellow-500">
+                          {[1,2,3,4,5].map(n => <span key={n}>{n <= r.rating ? "★" : "☆"}</span>)}
+                        </div>
+                        <p className="text-muted-foreground mt-1 line-clamp-2">"{r.comment || 'Sin comentario'}"</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          — {r.reviewer?.name} {r.order?.gig?.title ? `• ${r.order.gig.title}` : ''}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <Link href={`/sellers/${slugifyForPreview(formData.businessName) || (session?.user as any)?.id}`} className="text-xs text-orange-600 hover:underline mt-4 inline-block">
+                    Ver todas en mi perfil público →
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 

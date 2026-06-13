@@ -2,143 +2,173 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogOut, Users, Package, TrendingUp, Home, Settings, BarChart3 } from 'lucide-react';
+import { 
+  LogOut, Users, Package, TrendingUp, Home, Settings, BarChart3, DollarSign, 
+  MessageCircle, Tag, Menu, X, Bell, Megaphone,
+  type LucideIcon
+} from 'lucide-react';
 import { useState } from 'react';
+import MobileMenu from './MobileMenu';
+import { NotificationsBell } from './NotificationsBell';
+import { ModeToggle } from '@/components/ui/mode-toggle';
+import Logo from '@/components/common/Logo';
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+const navItems: NavItem[] = [
+  { href: '/admin', label: 'Overview', icon: Home },
+  { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/gigs', label: 'Gigs', icon: Package },
+  { href: '/admin/categories', label: 'Categories', icon: Tag },
+  { href: '/admin/earnings', label: 'Earnings', icon: TrendingUp },
+  { href: '/admin/payouts', label: 'Payouts', icon: DollarSign },
+  { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
+  { href: '/admin/referrals', label: 'Referrals', icon: Users },
+  { href: '/admin/notifications', label: 'Notifications', icon: Bell },
+  { href: '/admin/marketing', label: 'Marketing', icon: Megaphone },
+  { href: '/admin/support', label: 'Support', icon: MessageCircle },
+  { href: '/admin/settings', label: 'Settings', icon: Settings },
+  { href: '/admin/audit', label: 'Audit', icon: BarChart3 },
+  { href: '/admin/grok-build', label: 'Grok Build', icon: MessageCircle },
+];
 
 export default function AdminNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
+  const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // pinned expanded state
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 
   const handleSignOut = () => {
     setIsMobileMenuOpen(false);
     signOut({ callbackUrl: '/' });
   };
 
+  const isActive = (href: string) => {
+    if (href === '/admin') return pathname === '/admin';
+    return pathname.startsWith(href);
+  };
+
   return (
-    <>
-      <nav className="bg-zinc-900 border-b border-zinc-800 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/admin" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-600 rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg">
-              ⚡
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      {/* Top Header - always visible, compact */}
+      <header className="bg-background border-b border-border sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Logo - links to public homepage */}
+            <div className="flex items-center gap-2">
+              <Logo size={36} />
+              <span className="font-semibold text-lg text-muted-foreground hidden sm:inline">Admin</span>
             </div>
-            <span className="font-bold text-xl sm:text-2xl tracking-tight text-white">
-              OigaUsted <span className="text-red-500">Admin</span>
-            </span>
-          </Link>
 
-          {/* Desktop Menu */}
-          <div className="hidden md:flex items-center gap-8 text-sm">
-            <Link href="/admin" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
-              <Home size={18} /> Overview
-            </Link>
-            <Link href="/admin/users" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
-              <Users size={18} /> Usuarios
-            </Link>
-            <Link href="/admin/gigs" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
-              <Package size={18} /> Gigs
-            </Link>
-            <Link href="/admin/earnings" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
-              <TrendingUp size={18} /> Ganancias
-            </Link>
-            <Link href="/admin/reports" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
-              <BarChart3 size={18} /> Reportes
-            </Link>
-            <Link href="/admin/settings" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
-              <Settings size={18} /> Configuración
-            </Link>
+            {/* Desktop sidebar toggle - compact */}
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="hidden md:block ml-1 p-1.5 rounded-md hover:bg-accent text-muted-foreground"
+              aria-label="Toggle sidebar"
+              title={isSidebarOpen ? "Collapse sidebar (icons only)" : "Expand sidebar (show labels)"}
+            >
+              <Menu size={18} className={isSidebarOpen ? '' : 'rotate-180'} />
+            </button>
+          </div>
 
-            <div className="flex items-center gap-4 pl-8 border-l border-zinc-800">
-              <div className="text-right text-sm">
-                <p className="font-semibold text-white">{session?.user?.name || 'Admin'}</p>
-                <p className="text-xs text-zinc-500">Administrador</p>
+          {/* Right side - user + actions */}
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-3 text-sm">
+              <div className="text-right">
+                <p className="font-medium text-foreground">{session?.user?.name || 'Admin'}</p>
+                <p className="text-xs text-muted-foreground">Administrator</p>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleSignOut}
-                className="text-zinc-400 hover:text-red-500 hover:bg-zinc-800"
-              >
-                <LogOut size={20} />
-              </Button>
             </div>
-          </div>
 
-          {/* Hamburger Button - Visible only on mobile */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-zinc-400 hover:text-white transition"
-            aria-label="Toggle menu"
-          >
-            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-          </button>
+            <NotificationsBell />
+            <ModeToggle />
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSignOut}
+              className="text-muted-foreground hover:text-red-500"
+            >
+              <LogOut size={18} />
+            </Button>
+
+            {/* Mobile controls */}
+            <div className="md:hidden">
+              <ModeToggle />
+            </div>
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 text-muted-foreground hover:text-foreground"
+              aria-label="Toggle menu"
+            >
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
+      </header>
 
-        {/* Mobile Menu - Full screen overlay */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 bg-zinc-900 z-[60] pt-20 px-6 overflow-y-auto">
-            <div className="flex flex-col gap-6 text-lg">
-              <Link 
-                href="/admin" 
-                className="flex items-center gap-3 py-4 border-b border-zinc-800 text-white hover:text-red-500"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <Home size={22} /> Overview
-              </Link>
-              <Link 
-                href="/admin/users" 
-                className="flex items-center gap-3 py-4 border-b border-zinc-800 text-white hover:text-red-500"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <Users size={22} /> Usuarios
-              </Link>
-              <Link 
-                href="/admin/gigs" 
-                className="flex items-center gap-3 py-4 border-b border-zinc-800 text-white hover:text-red-500"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <Package size={22} /> Gigs
-              </Link>
-              <Link 
-                href="/admin/earnings" 
-                className="flex items-center gap-3 py-4 border-b border-zinc-800 text-white hover:text-red-500"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <TrendingUp size={22} /> Ganancias
-              </Link>
-              <Link 
-                href="/admin/reports" 
-                className="flex items-center gap-3 py-4 border-b border-zinc-800 text-white hover:text-red-500"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <BarChart3 size={22} /> Reportes
-              </Link>
-              <Link 
-                href="/admin/settings" 
-                className="flex items-center gap-3 py-4 border-b border-zinc-800 text-white hover:text-red-500"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <Settings size={22} /> Configuración
-              </Link>
+      <div className="flex flex-1 max-w-7xl mx-auto w-full">
+        {/* Desktop Sidebar */}
+        <aside
+          className={`hidden md:block border-r border-border bg-muted/30 transition-all duration-200 overflow-hidden ${
+            (isSidebarOpen || isSidebarHovered) ? 'w-64' : 'w-14'
+          }`}
+          onMouseEnter={() => setIsSidebarHovered(true)}
+          onMouseLeave={() => setIsSidebarHovered(false)}
+        >
+          <div className="p-2 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+            <nav className="space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.href);
+                const showLabel = isSidebarOpen || isSidebarHovered;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    title={item.label}
+                    className={`flex items-center ${showLabel ? 'gap-3 px-3' : 'justify-center px-1'} py-2.5 rounded-xl text-sm transition-colors ${
+                      active
+                        ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 font-medium'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                    }`}
+                  >
+                    <Icon size={18} />
+                    {showLabel && <span>{item.label}</span>}
+                  </Link>
+                );
+              })}
+            </nav>
 
-              <Button 
-                variant="ghost" 
-                onClick={handleSignOut}
-                className="mt-8 py-6 text-lg flex items-center gap-3 justify-center border border-zinc-700 hover:bg-zinc-800"
-              >
-                <LogOut size={22} />
-                Cerrar Sesión
-              </Button>
-            </div>
+            { (isSidebarOpen || isSidebarHovered) && (
+              <div className="mt-8 pt-6 border-t text-xs text-muted-foreground px-3">
+                Admin tools • {new Date().getFullYear()}
+              </div>
+            )}
           </div>
-        )}
-      </nav>
+        </aside>
 
-      <main className="bg-zinc-950 min-h-screen text-white">
-        {children}
-      </main>
-    </>
+        {/* Main Content Area */}
+        <div className="flex-1 min-w-0">
+          <main className="p-4 sm:p-6 lg:p-8">
+            {children}
+          </main>
+        </div>
+      </div>
+
+      {/* Mobile Menu (existing component - vertical, good for admin) */}
+      <MobileMenu 
+        isOpen={isMobileMenuOpen} 
+        onClose={() => setIsMobileMenuOpen(false)} 
+        role="admin" 
+      />
+    </div>
   );
 }

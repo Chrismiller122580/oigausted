@@ -1,56 +1,147 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+// @ts-ignore
+// @ts-ignore
+ import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { notifications } from '@/lib/notifications';
+import { logAuditEvent } from '@/lib/audit';
+import { devLog } from '@/lib/utils';
 
-export async function POST(request: Request) {
+export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    console.log("Session user:", JSON.stringify(session?.user, null, 2));
+    const gigs = await prisma.gig.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: 'desc' }
+    });
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
-    }
-
-    // Ensure the user exists in DB (upsert after DB reset)
-    await prisma.user.upsert({
-      where: { id: session.user.id },
-      update: {},
-      create: {
-        id: session.user.id,
-        name: session.user.name || 'Usuario',
-        email: session.user.email || '',
-        role: 'seller',
+    // Attach seller info defensively (some old rows may have dangling sellerId)
+    const sellerIds = [...new Set(gigs.map((g: any) => g.sellerId).filter((id: any): id is string => !!id))];
+    const sellers = await prisma.user.findMany({
+      where: { id: { in: sellerIds } },
+      select: { 
+        id: true, name: true, email: true, businessName: true, 
+        // slug omitted temporarily due to prod DB schema drift (add via migration)
+        profilePicture: true, rating: true, reviewCount: true,
+        latitude: true, longitude: true, serviceRadiusKm: true, city: true
       }
     });
 
-    const body = await request.json();
+    const sellerMap = Object.fromEntries(sellers.map((s: any) => [s.id, s]));
 
-    const gig = await prisma.gig.create({
-      data: {
-        title: String(body.title || '').trim(),
-        description: body.description ? String(body.description).trim() : null,
-        price: parseFloat(body.price) || 0,
-        category: String(body.category),
-        imageUrl: body.imageUrl ? String(body.imageUrl) : null,
-        completionTime: String(body.completionTime || '3'),
-        fields: body.fields || {},
-        sellerId: session.user.id,
-      },
+    const gigsWithSeller = gigs.map((gig: any) => ({
+      ...gig,
+      seller: sellerMap[gig.sellerId] || null
+    }));
+
+    devLog(`📦 /api/gigs returned ${gigs.length} gigs with full seller info`);
+
+    return NextResponse.json({
+      gigs: gigsWithSeller || [],
+      count: gigsWithSeller.length
     });
-
-    console.log("✅ Gig created successfully:", gig.id);
-    return NextResponse.json({ success: true, gigId: gig.id, message: 'Gig creado exitosamente' });
   } catch (error: any) {
-    console.error('Create gig error:', error);
-    return NextResponse.json({ error: error.message || 'Error al crear el gig' }, { status: 500 });
+    devLog("/api/gigs failed:", error.message);
+    return NextResponse.json({
+      gigs: [],
+      count: 0,
+      error: error.message
+    }, { status: 500 });
   }
 }
 
-export async function GET() {
-  const gigs = await prisma.gig.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: { seller: { select: { id: true, name: true, businessName: true } } }
-  });
-  return NextResponse.json(gigs);
+// POST - Create new gig (authenticated sellers)
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
+      return NextResponse.json({ error: "Debes iniciar sesión" }, { status: 401 });
+    }
+
+    const role = (session?.user as any)?.role;
+    if (role !== 'seller' && role !== 'admin') {
+      return NextResponse.json({ error: "Solo vendedores pueden crear gigs" }, { status: 403 });
+    }
+
+    const sellerId = userId;
+
+    const body = await req.json();
+    const { 
+      title, 
+      description, 
+      price, 
+      category, 
+      imageUrl, 
+      fields = [], 
+      addons = [], 
+      completionTime = "2-5 días",
+      // Geolocation fields
+      city,
+      latitude,
+      longitude,
+      isRemote
+    } = body;
+
+    if (!title || !category || !price) {
+      return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
+    }
+
+    const gig = await prisma.gig.create({
+      data: {
+        title,
+        description: description || null,
+        price: Number(price),
+        category,
+        imageUrl: imageUrl || null,
+        fields: fields ? JSON.stringify(fields) : null,
+        addons: addons ? JSON.stringify(addons) : null,
+        completionTime,
+        sellerId,
+        // Geolocation
+        city: city || null,
+        latitude: latitude != null ? Number(latitude) : null,
+        longitude: longitude != null ? Number(longitude) : null,
+        isRemote: Boolean(isRemote),
+      },
+    });
+
+    devLog("✅ Gig created successfully:", gig.id);
+
+    // Audit log for system change (seller action)
+    await logAuditEvent({
+      performedById: sellerId,
+      action: 'GIG_CREATED',
+      targetType: 'Gig',
+      targetId: gig.id,
+      details: { title, category, price: Number(price), isActive: true },
+    });
+
+    // Send confirmation to seller (non-fatal: do not fail the publish if notif/prefs fails due to transient DB issues)
+    try {
+      await notifications.sendInApp(
+        sellerId,
+        'gig',
+        '¡Gig publicado exitosamente!',
+        `Tu servicio "${title}" ya está visible para los compradores.`,
+        `/seller/gigs`,
+        { gigTitle: title }
+      );
+    } catch (notifErr) {
+      devLog("Gig created but failed to send confirmation notification (prefs or delivery issue):", notifErr);
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      gigId: gig.id,
+      message: "Servicio publicado correctamente" 
+    });
+
+  } catch (error: any) {
+    devLog("Error creating gig:", error);
+    return NextResponse.json({ 
+      error: "Error al guardar en la base de datos", 
+      details: error.message 
+    }, { status: 500 });
+  }
 }

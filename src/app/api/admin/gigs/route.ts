@@ -1,0 +1,167 @@
+import { NextRequest, NextResponse } from 'next/server';
+// @ts-ignore
+// @ts-ignore
+ import { getServerSession } from 'next-auth';
+import { authOptions, isAdmin } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { logAuditEvent } from '@/lib/audit';
+import { notifications } from '@/lib/notifications';
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!isAdmin(session)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get('search') || '';
+
+    const gigs = await prisma.gig.findMany({
+      where: search
+        ? {
+            OR: [
+              { title: { contains: search } },
+              { seller: { name: { contains: search } } },
+              { seller: { email: { contains: search } } }
+            ]
+          }
+        : {},
+      include: {
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            businessName: true
+          }
+        },
+        _count: {
+          select: { orders: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100
+    });
+
+    const gigsWithStats = gigs.map((g: any) => ({
+      ...g,
+      orderCount: g._count.orders
+    }));
+
+    return NextResponse.json({ gigs: gigsWithStats });
+  } catch (error) {
+    console.error('Admin gigs error:', error);
+    return NextResponse.json({ error: 'Error loading gigs' }, { status: 500 });
+  }
+}
+
+// PATCH for moderation actions (isActive toggle, etc.)
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!isAdmin(session)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    const { gigId, isActive } = await req.json();
+
+    if (!gigId) {
+      return NextResponse.json({ error: 'gigId is required' }, { status: 400 });
+    }
+
+    const updated = await prisma.gig.update({
+      where: { id: gigId },
+      data: {
+        ...(isActive !== undefined && { isActive: Boolean(isActive) })
+      }
+    });
+
+    // Log moderation action (capture request metadata for audit)
+    const adminId = (session.user as any).id;
+    const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
+    const userAgent = req.headers.get('user-agent') || null;
+    await logAuditEvent({
+      adminId,
+      action: isActive ? 'GIG_ACTIVATED' : 'GIG_DEACTIVATED',
+      targetType: 'Gig',
+      targetId: gigId,
+      details: { isActive: Boolean(isActive) },
+      ipAddress,
+      userAgent,
+    });
+
+    // Send in-app notification to seller
+    await notifications.sendInApp(
+      updated.sellerId,
+      'gig',
+      isActive ? 'Tu gig ha sido activado' : 'Tu gig ha sido pausado',
+      `El servicio "${updated.title}" ha cambiado de estado.`,
+      `/seller/gigs`
+    );
+
+    return NextResponse.json({ success: true, gig: updated });
+  } catch (error) {
+    console.error('Admin gig update error:', error);
+    return NextResponse.json({ error: 'Error updating gig' }, { status: 500 });
+  }
+}
+
+// DELETE gig (admin moderation)
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!isAdmin(session)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    const { gigId } = await req.json();
+
+    if (!gigId) {
+      return NextResponse.json({ error: 'gigId is required' }, { status: 400 });
+    }
+
+    // Check for existing orders to prevent FK violation
+    const orderCount = await prisma.order.count({ where: { gigId } });
+    if (orderCount > 0) {
+      return NextResponse.json({ 
+        error: 'Cannot delete gig with existing orders. Consider deactivating/pausing it instead (via the pause button).' 
+      }, { status: 400 });
+    }
+
+    // Fetch gig before deleting for notification
+    const gigToDelete = await prisma.gig.findUnique({
+      where: { id: gigId },
+      select: { sellerId: true, title: true }
+    });
+
+    await prisma.gig.delete({ where: { id: gigId } });
+
+    const adminId = (session.user as any).id;
+    const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
+    const userAgent = req.headers.get('user-agent') || null;
+    await logAuditEvent({
+      adminId,
+      action: 'GIG_DELETED',
+      targetType: 'Gig',
+      targetId: gigId,
+      ipAddress,
+      userAgent,
+    });
+
+    if (gigToDelete?.sellerId) {
+      await notifications.sendInApp(
+        gigToDelete.sellerId,
+        'gig',
+        'Tu gig ha sido eliminado',
+        `El servicio "${gigToDelete.title}" ha sido eliminado por un administrador.`,
+        `/seller/gigs`
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Admin gig delete error:', error);
+    return NextResponse.json({ error: 'Error deleting gig' }, { status: 500 });
+  }
+}

@@ -1,45 +1,107 @@
-import { prisma } from '../src/lib/prisma';
+import { PrismaClient } from '@prisma/client';
+import { gigCategories } from '../src/lib/gig-categories';
+import { toPrismaJson } from '../src/lib/utils';
+
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log('🌱 Seeding categories from static definitions (gig-categories.ts)...');
 
-  // Create Demo Seller with exact UUID used in auth.ts
-  const demoSeller = await prisma.user.upsert({
-    where: { email: 'seller@demo.com' },
+  for (const [index, cat] of gigCategories.entries()) {
+    await prisma.category.upsert({
+      where: { name: cat.name },
+      update: {
+        icon: cat.icon,
+        fields: toPrismaJson(cat.fields),
+        order: index,
+        isActive: true,
+      },
+      create: {
+        name: cat.name,
+        icon: cat.icon,
+        fields: toPrismaJson(cat.fields),
+        description: null,
+        order: index,
+        isActive: true,
+      },
+    });
+  }
+
+  console.log(`✅ Seeded ${gigCategories.length} categories.`);
+
+  // Ensure the PlatformConfig singleton exists. This guarantees that maintenanceMode,
+  // wompiRealPaymentsEnabled, commissions, etc. can be reliably toggled and saved from
+  // the first moment (prevents the old "update on missing row silently fails" bug).
+  console.log('🌱 Ensuring PlatformConfig singleton (maintenance / payments / branding defaults)...');
+  await prisma.platformConfig.upsert({
+    where: { id: 'singleton' },
     update: {},
     create: {
-      id: '22222222-2222-2222-2222-222222222222',
-      email: 'seller@demo.com',
-      name: 'Seller Demo',
-      role: 'seller',
-      businessName: 'Mi Negocio Local',
-      city: 'Bucaramanga',
+      id: 'singleton',
+      commissionRate: 0.12,
+      referralCommissionRate: 0.05,
+      minPayoutAmount: 50000,
+      supportEmail: 'support@support.oigagig.com',
+      supportPhone: '',
+      enableReviews: true,
+      enableChat: true,
+      maintenanceMode: false,
+      maintenanceMessage: "Estamos realizando mejoras. Volveremos pronto.",
+      referralsEnabled: true,
+      allowNewSignups: true,
+      maxUploadSizeMB: 10,
+      siteName: 'OigaUsted',
+      siteTagline: 'Conecta con profesionales locales en Colombia',
+      logoUrl: null,
+      globalPushNotificationsEnabled: true,
+      globalEmailNotificationsEnabled: true,
+      maintenanceBypassIps: '',
+      wompiRealPaymentsEnabled: false,
+    },
+    // Safe select for prod DBs that may be missing later columns (wompiSftp*)
+    select: {
+      id: true,
+      commissionRate: true,
+      referralCommissionRate: true,
+      minPayoutAmount: true,
+      supportEmail: true,
+      supportPhone: true,
+      enableReviews: true,
+      enableChat: true,
+      maintenanceMode: true,
+      maintenanceMessage: true,
+      referralsEnabled: true,
+      allowNewSignups: true,
+      maxUploadSizeMB: true,
+      siteName: true,
+      siteTagline: true,
+      logoUrl: true,
+      globalPushNotificationsEnabled: true,
+      globalEmailNotificationsEnabled: true,
+      maintenanceBypassIps: true,
+      wompiRealPaymentsEnabled: true,
+      updatedAt: true,
     },
   });
+  console.log('✅ PlatformConfig singleton ensured.');
 
-  console.log('✅ Demo Seller created/updated with ID:', demoSeller.id);
+  console.log("🌱 Seeding complete — no users or sample data seeded.");
 
-  // Optional: Create demo buyer too
-  await prisma.user.upsert({
-    where: { email: 'buyer@demo.com' },
-    update: {},
-    create: {
-      id: '11111111-1111-1111-1111-111111111111',
-      email: 'buyer@demo.com',
-      name: 'Buyer Demo',
-      role: 'buyer',
-    },
-  });
-
-  console.log('✅ Demo Buyer created/updated');
+  // The database starts completely empty.
+  // Sign up via the app UI (/signup) to create accounts.
+  // To create an admin (works in dev, codespaces, or production against the real DB):
+  //   npm run create-admin admin@your-email.com YourSecurePassword123!
+  //
+  // You can also set ADMIN_EMAILS in env and log in with Google to auto-promote admins.
 }
 
 main()
-  .then(() => console.log('🎉 Seeding completed successfully!'))
-  .catch((e) => {
-    console.error('❌ Seeding failed:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
+  .then(async () => {
     await prisma.$disconnect();
+    process.exit(0);
+  })
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
   });

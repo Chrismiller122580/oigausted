@@ -1,37 +1,71 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
+// @ts-ignore
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { devLog } from '@/lib/utils';
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
+  let parsedBody: any = {};
   try {
-    const { prompt } = await request.json();
-    if (!prompt) return Response.json({ error: "Prompt required" }, { status: 400 });
-
-    const GROK_API_KEY = process.env.GROK_API_KEY;
-
-    if (!GROK_API_KEY) {
-      return Response.json({ 
-        description: "¡Servicio profesional y confiable en Colombia! Ofrecemos calidad, atención al detalle y resultados garantizados." 
-      });
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
     }
 
-    const res = await fetch("https://api.x.ai/v1/chat/completions", {
-      method: "POST",
+    parsedBody = await req.json();
+    const { title, category } = parsedBody;
+
+    if (!title || !category) {
+      return NextResponse.json({ error: "Title and category are required" }, { status: 400 });
+    }
+
+    const prompt = `Eres un experto en servicios locales en Colombia. 
+Crea una descripción atractiva, profesional y persuasiva (máximo 250 palabras) para este gig:
+
+Título: ${title}
+Categoría: ${category}
+
+Incluye:
+- Qué ofrece exactamente
+- Beneficios para el cliente
+- Por qué elegir este servicio en Colombia
+- Tono cercano y confiable
+
+Responde SOLO con la descripción, sin introducciones.`;
+
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROK_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROK_API_KEY || process.env.XAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "grok-3",
+        model: "grok-3-mini",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
-        max_tokens: 600,
+        max_tokens: 400,
       }),
     });
 
-    const data = await res.json();
-    const description = data.choices?.[0]?.message?.content || "No pude generar la descripción.";
-    return Response.json({ description });
+    const data = await response.json();
+
+    if (!response.ok) {
+      devLog("Grok API error:", data);
+      throw new Error("Grok API failed");
+    }
+
+    const description = data.choices?.[0]?.message?.content?.trim() || 
+      `Ofrezco ${title} en la categoría de ${category}. Servicio profesional y confiable en Colombia.`;
+
+    return NextResponse.json({ description });
+
   } catch (error) {
-    console.error(error);
-    return Response.json({ description: "Lo siento, error con Grok." });
+    devLog("Grok generate error:", error);
+    // Fallback using the title from the request (safe)
+    const fallbackTitle = parsedBody.title || "este servicio";
+    
+    return NextResponse.json({ 
+      description: `Ofrezco ${fallbackTitle} de forma profesional y confiable. Contáctame para coordinar detalles.` 
+    });
   }
 }

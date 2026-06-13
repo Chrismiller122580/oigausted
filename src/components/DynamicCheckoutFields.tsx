@@ -3,6 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { parseJsonArrayField } from '@/lib/utils';
+import { useGigCategories } from '@/lib/useGigCategories';
 
 interface Props {
   gig: any;
@@ -11,17 +13,19 @@ interface Props {
 }
 
 export default function DynamicCheckoutFields({ gig, formData, onChange }: Props) {
+  const { categories: gigCategories } = useGigCategories();
   const categoryTemplate = gigCategories.find((c: any) => c.name === gig.category) || { fields: [] };
+  const gigFields = parseJsonArrayField(gig?.fields);
   const allFields = [
     ...(categoryTemplate.fields || []),
-    ...(gig.fields || [])
+    ...gigFields
   ].filter((f: any, i: number, arr: any[]) => i === arr.findIndex(x => x.key === f.key));
 
   return (
     <Card className="mt-6">
       <CardHeader>
         <CardTitle>Detalles de tu servicio</CardTitle>
-        <p className="text-sm text-gray-500">El precio se actualizará en tiempo real</p>
+        <p className="text-sm text-muted-foreground">El precio se actualizará en tiempo real</p>
       </CardHeader>
       <CardContent className="space-y-6">
         {allFields.map((field: any) => (
@@ -52,5 +56,3 @@ export default function DynamicCheckoutFields({ gig, formData, onChange }: Props
     </Card>
   );
 }
-
-import { gigCategories } from '@/lib/gig-categories';

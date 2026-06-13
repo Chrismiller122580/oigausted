@@ -1,0 +1,410 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { Copy, Users, DollarSign, TrendingUp, Share2 } from 'lucide-react';
+
+interface ReferralData {
+  referralCode: string;
+  referralLink: string;
+  stats: {
+    totalReferred: number;
+    activeSellers: number;
+    totalEarned: number;
+    pendingEarnings: number;
+    referralRate: number;
+  };
+  referredUsers: Array<{
+    id: string;
+    name: string;
+    businessName: string | null;
+    joined: string;
+    status: string;
+    earnings: number;
+  }>;
+}
+
+export default function ReferralsPage() {
+  const { data: session } = useSession();
+  const [data, setData] = useState<ReferralData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // These hooks MUST be called unconditionally at the top (before any early returns)
+  const [manualCode, setManualCode] = useState('');
+  const [linking, setLinking] = useState(false);
+
+  useEffect(() => {
+    if (session?.user) {
+      fetchReferralData();
+    }
+  }, [session]);
+
+  const fetchReferralData = async () => {
+    setError(null);
+    try {
+      const res = await fetch('/api/referrals');
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+      } else {
+        let msg = 'No se pudieron cargar los datos de referidos. Por favor intenta de nuevo.';
+        try {
+          const errJson = await res.json();
+          if (errJson?.error) msg = errJson.error;
+        } catch {}
+        setError(msg);
+        toast.error(msg);
+      }
+    } catch (err) {
+      const msg = 'Error de conexión. Verifica tu internet e intenta de nuevo.';
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!session) {
+    return (
+      <div className="max-w-5xl mx-auto p-6 text-center pt-20">
+        <p className="mb-4">Debes iniciar sesión para ver tu programa de referidos.</p>
+        <Link href="/login" className="inline-block px-6 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700">
+          Iniciar sesión
+        </Link>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-5xl mx-auto p-6 text-center pt-20">
+        <p>Cargando tus referidos...</p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="max-w-5xl mx-auto p-6 text-center pt-20">
+        <p className="mb-4">{error || 'No se pudieron cargar los datos de referidos.'}</p>
+        <Button onClick={() => window.location.reload()}>
+          Reintentar
+        </Button>
+      </div>
+    );
+  }
+
+  const { referralCode, referralLink, stats, referredUsers } = data;
+
+  const handleCopyLink = async () => {
+    if (!referralLink) return;
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setCopied(true);
+      toast.success('Link copiado al portapapeles');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast.error('No se pudo copiar el link');
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    const text = encodeURIComponent(
+      `¡Únete a OigaUsted! Soy vendedor y te recomiendo la plataforma. Gana dinero con tus servicios:\n\n${referralLink}`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
+  const handleManualLink = async () => {
+    if (!manualCode.trim()) return;
+    setLinking(true);
+    try {
+      const res = await fetch('/api/referrals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ referralCode: manualCode.trim() })
+      });
+      const json = await res.json();
+      if (res.ok) {
+        toast.success('¡Vinculado correctamente!');
+        window.location.reload();
+      } else {
+        toast.error(json.error || 'No se pudo vincular el código');
+      }
+    } catch (e) {
+      toast.error('Error de conexión');
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto p-6 space-y-8">
+      <MapsPollutionNuke />
+      <div>
+        <h1 className="text-3xl font-bold">Programa de Referidos</h1>
+        <p className="text-muted-foreground mt-2">
+          Invita a otros vendedores y gana <strong>{((stats.referralRate ?? 0.05) * 100).toFixed(0)}%</strong> de comisión sobre todas sus ventas de por vida.
+        </p>
+      </div>
+
+      {/* Referral Link Card */}
+      <Card className="border-orange-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Share2 className="w-5 h-5" />
+            Tu enlace de invitación
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={referralLink}
+              readOnly
+              className="flex-1 px-4 py-3 bg-muted rounded-xl text-sm font-mono border"
+            />
+            <Button onClick={handleCopyLink} className="flex items-center gap-2">
+              <Copy className="w-4 h-4" />
+              {copied ? 'Copiado' : 'Copiar'}
+            </Button>
+          </div>
+
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={handleShareWhatsApp} className="flex items-center gap-2">
+              Compartir por WhatsApp
+            </Button>
+            <Button variant="outline" onClick={() => toast('Función de compartir por email próximamente')}>
+              Compartir por Email
+            </Button>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Cuando alguien se registre con tu enlace y publique servicios, ganarás <strong>{((stats.referralRate ?? 0.05) * 100).toFixed(0)}%</strong> de comisión sobre todas sus ventas de por vida.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Manual link for Google users or missed ref code */}
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-sm mb-2 font-medium">¿Tienes un código de referido?</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={manualCode}
+              onChange={(e) => setManualCode(e.target.value)}
+              placeholder="Ingresa el código (ej: ABC12345)"
+              className="flex-1 px-4 py-2 border rounded-xl text-sm"
+            />
+            <Button onClick={handleManualLink} disabled={linking || !manualCode.trim()}>
+              {linking ? 'Vinculando...' : 'Vincularme'}
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Útil si te registraste con Google o no usaste el enlace al principio.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Personas invitadas</p>
+                <p className="text-3xl font-bold mt-1">{stats.totalReferred}</p>
+              </div>
+              <Users className="w-8 h-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Vendedores activos</p>
+                <p className="text-3xl font-bold mt-1">{stats.activeSellers}</p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Ganado hasta ahora</p>
+                <p className="text-3xl font-bold mt-1 text-green-600">
+                  ${(stats.totalEarned ?? 0).toLocaleString('es-CO')}
+                </p>
+              </div>
+              <DollarSign className="w-8 h-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Tu tasa de comisión</p>
+                <p className="text-3xl font-bold mt-1 text-orange-600">
+                  {((stats.referralRate || 0.05) * 100).toFixed(1)}%
+                </p>
+                <p className="text-[10px] text-muted-foreground">por cada venta de tus referidos</p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Pendiente de pago</p>
+                <p className="text-3xl font-bold mt-1 text-orange-600">
+                  ${(stats.pendingEarnings ?? 0).toLocaleString('es-CO')}
+                </p>
+              </div>
+              <DollarSign className="w-8 h-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Payout Request */}
+      {stats.pendingEarnings > 0 && (
+        <Card className="border-orange-300 bg-orange-50/50">
+          <CardContent className="pt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <p className="font-medium">¿Listo para cobrar tus comisiones por referidos?</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Puedes solicitar el pago de tus ${(stats.pendingEarnings ?? 0).toLocaleString('es-CO')} pendientes en cualquier momento.
+              </p>
+            </div>
+            <Button 
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/referrals/request-payout', { method: 'POST' })
+                  const json = await res.json()
+                  if (res.ok) {
+                    toast.success(json.message || 'Solicitud enviada')
+                    // Refresh data
+                    window.location.reload()
+                  } else {
+                    toast.error(json.error || 'Error al enviar solicitud')
+                  }
+                } catch (e) {
+                  toast.error('Error de conexión')
+                }
+              }}
+              className="whitespace-nowrap"
+            >
+              Solicitar pago de comisiones
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Referred Users */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Personas que has invitado</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {referredUsers.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="py-3 px-4">Nombre</th>
+                    <th className="py-3 px-4">Negocio</th>
+                    <th className="py-3 px-4">Se unió</th>
+                    <th className="py-3 px-4">Estado</th>
+                    <th className="py-3 px-4 text-right">Comisión generada</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {referredUsers.map((user) => (
+                    <tr key={user.id} className="border-b last:border-none hover:bg-muted/50">
+                      <td className="py-3 px-4 font-medium">{user.name}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{user.businessName || '—'}</td>
+                      <td className="py-3 px-4 text-muted-foreground">
+                        {new Date(user.joined).toLocaleDateString('es-CO')}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          user.status === 'Active Seller' 
+                            ? 'bg-green-100 text-green-700' 
+                            : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {user.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right font-medium">
+                        ${(user.earnings ?? 0).toLocaleString('es-CO')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              Aún no has invitado a nadie. ¡Comparte tu enlace!
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* How it works */}
+      <Card>
+        <CardHeader>
+          <CardTitle>¿Cómo funciona?</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="flex gap-4">
+              <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold flex-shrink-0">1</div>
+              <div>
+                <p className="font-medium">Comparte tu enlace</p>
+                <p className="text-muted-foreground mt-1">Envía tu link personalizado a personas que puedan vender servicios.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold flex-shrink-0">2</div>
+              <div>
+                <p className="font-medium">Se registran como vendedores</p>
+                <p className="text-muted-foreground mt-1">Cuando se registren con tu enlace y publiquen gigs, quedarán asociados a ti.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold flex-shrink-0">3</div>
+              <div>
+                <p className="font-medium">Ganas comisión de por vida</p>
+                <p className="text-muted-foreground mt-1">Cada vez que realicen una venta, recibes una comisión (actualmente configurada en {((stats.referralRate ?? 0.05) * 100).toFixed(0)}%).</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t text-xs text-muted-foreground">
+            Las comisiones se calculan automáticamente cuando tus referidos reciben pagos. 
+            Puedes solicitar el pago de tus ganancias por referidos en cualquier momento desde esta página (se revisa y paga manualmente).
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

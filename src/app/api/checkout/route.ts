@@ -1,50 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import crypto from 'crypto';
+// @ts-ignore
+// @ts-ignore
+ import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { devLog } from '@/lib/utils';
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const { gigId, buyerId } = await request.json();
+    const session = await getServerSession(authOptions);
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const gig = await prisma.gig.findUnique({
-      where: { id: gigId },
-      include: { seller: true }
+    const { gigId } = await req.json();
+    const gig = await prisma.gig.findUnique({ 
+      where: { id: gigId } 
     });
 
-    if (!gig) return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
+    if (!gig) {
+      return NextResponse.json({ error: "Gig not found" }, { status: 404 });
+    }
+
+    // Prevent sellers from purchasing their own gigs (server-side enforcement)
+    if (gig.sellerId === userId) {
+      return NextResponse.json({ error: "No puedes comprar tu propio servicio" }, { status: 403 });
+    }
+
+    if (gig.isActive === false) {
+      return NextResponse.json({ error: "Este servicio está pausado y no se puede comprar" }, { status: 400 });
+    }
 
     const order = await prisma.order.create({
       data: {
-        gigId: gig.id,
-        buyerId,
+        buyerId: userId,
         sellerId: gig.sellerId,
+        gigId: gig.id,
         price: gig.price,
         status: 'Pending',
+        customFields: null
+      },
+      // Explicit select to avoid columns missing in prod DB (e.g. sellerPayoutAt)
+      select: {
+        id: true,
+        buyerId: true,
+        sellerId: true,
+        gigId: true,
+        price: true,
+        status: true,
+        customFields: true,
+        createdAt: true,
+        updatedAt: true,
       }
     });
 
-    const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY!;
-    const integritySecret = process.env.WOMPI_INTEGRITY_SECRET!;
+    devLog("✅ Order created:", order.id);
 
-    const amountInCents = Math.round(gig.price * 100);
-    const reference = order.id.toString();
-
-    const stringToSign = `${reference}${amountInCents}COP${integritySecret}`;
-    const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
-
-    const checkoutUrl = `https://checkout.wompi.co/?` +
-      `public_key=${publicKey}` +
-      `&amount_in_cents=${amountInCents}` +
-      `&currency=COP` +
-      `&reference=${reference}` +
-      `&signature:integrity=${signature}` +
-      `&customer_email=prueba@oigausted.com` +   // ← Added this
-      `&redirect_url=${encodeURIComponent(`${process.env.NEXTAUTH_URL || 'https://oigausted.vercel.app'}/orders/${order.id}`)}`;
-
-    return NextResponse.json({ success: true, checkoutUrl });
+    return NextResponse.json({ 
+      success: true, 
+      order 
+    });
 
   } catch (error: any) {
-    console.error(error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Checkout error:", error);
+    return NextResponse.json({ 
+      error: "Failed to create order", 
+      details: error.message 
+    }, { status: 500 });
   }
 }

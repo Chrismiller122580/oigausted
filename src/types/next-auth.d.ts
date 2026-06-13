@@ -1,5 +1,3 @@
-import NextAuth from "next-auth";
-
 declare module "next-auth" {
   interface Session {
     user: {
@@ -9,6 +7,16 @@ declare module "next-auth" {
       image?: string | null;
       role?: string;
       businessName?: string | null;
+      profilePicture?: string | null;
+      rating?: number;
+      reviewCount?: number;
+      phone?: string | null;
+      city?: string | null;
+      whatsapp?: string | null;
+      isActive?: boolean;
+      referredById?: string | null;
+      customReferralRate?: number | null;
+      referralCode?: string | null;
     };
   }
 
@@ -16,6 +24,14 @@ declare module "next-auth" {
     id: string;
     role?: string;
     businessName?: string | null;
+    profilePicture?: string | null;
+    rating?: number;
+    reviewCount?: number;
+    whatsapp?: string | null;
+    isActive?: boolean;
+    referredById?: string | null;
+    customReferralRate?: number | null;
+    referralCode?: string | null;
   }
 }
 
@@ -23,5 +39,11 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     role?: string;
+    name?: string | null;
+    email?: string | null;
+    profilePicture?: string | null;
+    referredById?: string | null;
+    customReferralRate?: number | null;
+    isActive?: boolean;
   }
 }

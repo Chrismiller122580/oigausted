@@ -1,0 +1,19 @@
+-- This is a baseline / sync migration.
+--
+-- It was created after running `prisma db push` to bring the production
+-- database schema in sync with the current Prisma schema (after referral
+-- system + Google Maps geolocation features were merged).
+--
+-- At the time this migration was created, the production database already
+-- exactly matched the schema (verified via successful db push).
+--
+-- No SQL statements are required. This migration exists purely to record
+-- the current state in the _prisma_migrations table so that future
+-- `prisma migrate deploy` runs succeed cleanly on Vercel.
+--
+-- Fields / tables added by this sync include:
+--   - User: referralCode (String?, unique), referredById, city, latitude, longitude, serviceRadiusKm
+--   - Gig: city, latitude, longitude, isRemote
+--   - Order: serviceLatitude, serviceLongitude, serviceAddress
+--   - ReferralEarning table (full model for referral commissions)
+--   - Plus any other fields that were pending from previous merges (OrderFile, etc. already covered earlier)

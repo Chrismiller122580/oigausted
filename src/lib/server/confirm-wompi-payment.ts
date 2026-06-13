@@ -1,0 +1,152 @@
+import { prisma } from '@/lib/prisma';
+import { notifications } from '@/lib/notifications';
+import { logAuditEvent } from '@/lib/audit';
+import { devLog } from '@/lib/utils';
+import { getEffectiveReferralRate } from '@/lib/payout';
+import { createReferralEarningIfApplicable } from '@/lib/server/referral-earnings';
+
+/**
+ * Confirm a Wompi payment for an order.
+ * - Idempotent: safe to call multiple times for same tx.
+ * - Uses $transaction for status change + referralEarning insert (atomic).
+ * - Sends buyer "pago confirmado" in-app notification.
+ * - Creates audit log.
+ * - Best-effort triggers the (idempotent) referral earning helper for notifier side-effects.
+ *
+ * Use from: wompi webhook (on transaction.updated + APPROVED) and from /check-wompi manual recovery.
+ */
+export async function confirmWompiPayment(
+  orderId: string,
+  opts?: {
+    wompiTransactionId?: string;
+    wompiStatus?: string;
+    amount?: number; // in major units for audit
+    reference?: string;
+  }
+): Promise<{ success: boolean; alreadyProcessed?: boolean; newStatus?: string; message?: string; error?: string }> {
+  try {
+    // Load rich order data (explicit select for prod DB compatibility)
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        status: true,
+        price: true,
+        buyerId: true,
+        sellerId: true,
+        gigId: true,
+        buyer: { select: { id: true, name: true } },
+        gig: { select: { title: true } },
+        seller: { select: { id: true, referredById: true } },
+      },
+    });
+
+    if (!order) {
+      return { success: false, error: 'Order not found' };
+    }
+
+    const current = order.status;
+    if (current === 'Paid' || current === 'Completed') {
+      devLog(`[Wompi][confirm] Order ${orderId} already ${current}, skipping`);
+      return { success: true, alreadyProcessed: true, newStatus: current, message: 'Already processed' };
+    }
+
+    // Only confirm to Paid on success path
+    const updateData = { status: 'Paid', updatedAt: new Date() };
+
+    // Atomic: update status + create referral earning if seller was referred (prevents orphans)
+    const updated = await prisma.$transaction(async (tx: any) => {
+      const u = await tx.order.update({
+        where: { id: orderId },
+        data: updateData,
+        select: {
+          id: true,
+          status: true,
+          price: true,
+          buyerId: true,
+          sellerId: true,
+          gigId: true,
+          buyer: { select: { id: true, name: true } },
+          gig: { select: { title: true } },
+          seller: { select: { id: true, referredById: true } },
+        },
+      });
+
+      // Referral earning inside the tx for atomicity (same pattern as before)
+      if (u.seller?.referredById) {
+        // Only if we are the first to mark it Paid (defensive)
+        if (current !== 'Paid' && current !== 'Completed') {
+          const rate = await getEffectiveReferralRate(u.seller.referredById);
+          const amount = Math.round(((u as any).price || 0) * rate);
+          if (amount > 0) {
+            try {
+              await tx.referralEarning.create({
+                data: {
+                  amount,
+                  rateUsed: rate,
+                  referrerId: u.seller.referredById,
+                  orderId: u.id,
+                  status: 'Pending',
+                },
+              });
+            } catch (e: any) {
+              if (e.code !== 'P2002') devLog('[Wompi confirm tx] referral create err (non-dup):', e);
+            }
+          }
+        }
+      }
+
+      return u;
+    });
+
+    // Audit (best effort, after commit)
+    await logAuditEvent({
+      performedById: null, // system / payment confirmation
+      action: 'PAYMENT_APPROVED',
+      targetType: 'Order',
+      targetId: orderId,
+      details: {
+        wompiTransactionId: opts?.wompiTransactionId || null,
+        status: opts?.wompiStatus || 'APPROVED',
+        amount: opts?.amount ?? updated.price,
+        reference: opts?.reference || `order_${orderId}`,
+        triggeredBy: 'confirmWompiPayment',
+      },
+    }).catch(() => {});
+
+    // Buyer in-app notification (payment confirmed)
+    if (updated.buyer?.id) {
+      try {
+        await notifications.sendInApp(
+          updated.buyer.id,
+          'payment',
+          '¡Pago confirmado!',
+          `Tu pago por "${updated.gig?.title || 'el servicio'}" fue exitoso.`,
+          `/orders/${orderId}`,
+          { gigTitle: updated.gig?.title, amount: updated.price, orderId }
+        );
+      } catch (nErr) {
+        devLog('[Wompi confirm] notif error (non-fatal):', nErr);
+      }
+    }
+
+    // Best-effort: run the full referral helper (it guards duplicates + sends referrer email/notif)
+    if (updated.seller?.referredById) {
+      try {
+        await createReferralEarningIfApplicable(updated as any);
+      } catch (rErr) {
+        devLog('[Wompi confirm] referral helper error (non-fatal):', rErr);
+      }
+    }
+
+    devLog(`[Wompi] ✅ APPROVED via confirm helper - Order ${orderId} now Paid`);
+    return {
+      success: true,
+      newStatus: 'Paid',
+      message: 'Order confirmed as Paid from Wompi transaction',
+    };
+  } catch (error: any) {
+    devLog('[Wompi][confirm] error:', error);
+    return { success: false, error: error?.message || 'Confirmation failed' };
+  }
+}
