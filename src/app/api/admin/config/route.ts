@@ -222,6 +222,32 @@ export async function PUT(request: NextRequest) {
           // Wompi real payments master switch
           wompiRealPaymentsEnabled: body.wompiRealPaymentsEnabled ?? false,
         },
+        // Explicit select of only known-safe columns. Prevents the implicit "SELECT *"
+        // (or full model projection) from referencing wompiSftp* columns that may be
+        // missing in production DBs that have not yet run the add_wompi_sftp_columns migration.
+        select: {
+          id: true,
+          commissionRate: true,
+          referralCommissionRate: true,
+          minPayoutAmount: true,
+          supportEmail: true,
+          supportPhone: true,
+          enableReviews: true,
+          enableChat: true,
+          maintenanceMode: true,
+          maintenanceMessage: true,
+          referralsEnabled: true,
+          allowNewSignups: true,
+          maxUploadSizeMB: true,
+          siteName: true,
+          siteTagline: true,
+          logoUrl: true,
+          globalPushNotificationsEnabled: true,
+          globalEmailNotificationsEnabled: true,
+          maintenanceBypassIps: true,
+          wompiRealPaymentsEnabled: true,
+          updatedAt: true,
+        },
       });
     } catch (coreErr) {
       devLog('PlatformConfig upsert (core fields) failed', coreErr);

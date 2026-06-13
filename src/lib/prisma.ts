@@ -92,6 +92,31 @@ export async function ensurePlatformConfig(): Promise<void> {
         wompiRealPaymentsEnabled: false,
         // SFTP fields use their own @default / best-effort handling
       },
+      // Safe select (core columns only) so this upsert does not fail with "column does not exist"
+      // on production databases that are still missing the wompiSftp* columns.
+      select: {
+        id: true,
+        commissionRate: true,
+        referralCommissionRate: true,
+        minPayoutAmount: true,
+        supportEmail: true,
+        supportPhone: true,
+        enableReviews: true,
+        enableChat: true,
+        maintenanceMode: true,
+        maintenanceMessage: true,
+        referralsEnabled: true,
+        allowNewSignups: true,
+        maxUploadSizeMB: true,
+        siteName: true,
+        siteTagline: true,
+        logoUrl: true,
+        globalPushNotificationsEnabled: true,
+        globalEmailNotificationsEnabled: true,
+        maintenanceBypassIps: true,
+        wompiRealPaymentsEnabled: true,
+        updatedAt: true,
+      },
     })
   } catch (e) {
     // Non-fatal: the caller will fall back to in-memory defaults.

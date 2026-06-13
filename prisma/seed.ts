@@ -58,6 +58,30 @@ async function main() {
       maintenanceBypassIps: '',
       wompiRealPaymentsEnabled: false,
     },
+    // Safe select for prod DBs that may be missing later columns (wompiSftp*)
+    select: {
+      id: true,
+      commissionRate: true,
+      referralCommissionRate: true,
+      minPayoutAmount: true,
+      supportEmail: true,
+      supportPhone: true,
+      enableReviews: true,
+      enableChat: true,
+      maintenanceMode: true,
+      maintenanceMessage: true,
+      referralsEnabled: true,
+      allowNewSignups: true,
+      maxUploadSizeMB: true,
+      siteName: true,
+      siteTagline: true,
+      logoUrl: true,
+      globalPushNotificationsEnabled: true,
+      globalEmailNotificationsEnabled: true,
+      maintenanceBypassIps: true,
+      wompiRealPaymentsEnabled: true,
+      updatedAt: true,
+    },
   });
   console.log('✅ PlatformConfig singleton ensured.');
 
