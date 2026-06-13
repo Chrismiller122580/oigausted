@@ -1,5 +1,25 @@
 # What's New – OigaUsted
 
+## Oiga GiG 1.0 Facelift: Animation & Accessibility Pass + Docs (PR7)
+
+**Production hardening for the facelift** (final incremental PR in the series). Focus: polish, a11y, and documentation. No new features or core logic.
+
+- **Marketing motion polish** (`src/app/(marketing)/page.tsx`): Reviewed all framer-motion usage (MotionConfig reducedMotion="user" at marketing root — effective for public landing via root page delegation). whileHover + initial/animate staggers polished for consistency (standardized ~0.03 step delays capped at ~0.18s; made whileHover scales uniform at 1.015 across categories/stats/testimonials/how-it-works/CTA; durations 0.35-0.4s). Added comments. Non-framer CSS hovers (Tailwind transition-all + group-hover:scale-110 on the 22 AI icon <img>s, CTA hover:scale) now explicitly guarded.
+- **Accessibility**: MotionConfig + enhanced globals.css @media (prefers-reduced-motion: reduce) ensures reduced-motion respected "everywhere" for facelift elements (framer + CSS). Added aria-hidden="true" on decorative category icon <img>s. Mobile tap targets (cards, CTAs, icon containers) already >=44px from prior; verified no regression on new elements. Contrast on icons: AI .jpg assets on bg-card surfaces (light/dark) use object-contain; verified visually/asset quality sufficient (no additional CSS filters).
+- **globals.css tweaks** (minimal): Completed/ extended PR1 reduced-motion media query with targeted rules for marketing non-framer effects + .category-icon-img hook. Added detailed comments on icon assets + MotionConfig.
+- **Docs + perf notes**: README.md and WHATS_NEW.md entries added documenting the full Oiga GiG 1.0 facelift (see below). Perf notes: revalidate=60 (ISR for live stats on marketing), small JPEG icons (no heavy bundles, lazy-loaded, object-contain), MotionConfig is lightweight, no regressions introduced.
+- **Verification**: tsc clean; grep for motion/ reduced-motion; manual a11y spot-check notes (reduced motion via devtools "prefers-reduced-motion: reduce" simulation disables framer anims + CSS transforms); mobile/contrast checks passed (icons render cleanly on cards in both themes, taps large).
+- **Overall facelift context (PR1–PR7 incremental structure)**: 
+  - PR1: framer-motion foundation + MotionConfig + basic reduced-motion CSS + mobile safe-areas.
+  - PR2: category registry (icon key mapping, no breakage for emoji/DB icons).
+  - PR3: 22 custom AI-generated icons (hottest tool: image_gen + visual prompts; assets committed to public/icons/*.jpg with kebab slugs; registry + getCategoryIcon returns paths or emoji fallback; used in landing, admin, gigs, GigCard etc; .jpg for MIME compat).
+  - PR4: hero + categories redesign + real stats (Prisma aggregates) + testimonials + upgraded how-it-works (with icon support) + motion additions.
+  - Later PRs: branding dynamic sweep (siteName etc preserved everywhere), GigCard updates, admin, etc.
+  - PR7 (this): animation/accessibility pass + docs for production readiness.
+- Assets: 22 .jpg in public/icons/ (artesanias-..., limpieza-..., etc.). Dynamic branding + dark/light + responsive fully preserved (100%). No perf or a11y regressions.
+
+**Status:** Facelift complete and production-hardened. All prior PR guarantees maintained.
+
 ## Post full-app review fixes (2026-06 follow-ups from FULL-APP-REVIEW-2b0773a1 + delta)
 - **Data integrity**: prisma.$transaction added to critical paths (wompi webhook for payment+referral earning; orders PATCH for status change + referral create + earnings cancel + audit).
 - **Security**: Removed visible prod "BETA BYPASS" UI and handler in checkout; manual `Paid` transition now only via webhook or admin (dev simulate gated by NODE_ENV).

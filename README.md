@@ -17,6 +17,16 @@ Oiga Usted conecta personas que necesitan servicios con freelancers y negocios l
 - Soporte completo de **modo claro/oscuro** (dark mode)
 - Flujo de creación de órdenes, pagos y gestión de gigs
 
+**🌟 Oiga GiG 1.0 Facelift (Production Hardening)**
+- Modernized public marketing landing (root for logged-out) with vibrant hero, popular categories grid (real ratings), "Confianza en números" live stats (Prisma aggregates, revalidate=60), curated testimonials, upgraded 3-step "Cómo funciona", final CTAs.
+- 22 premium custom AI-generated category icons (replacing emojis) via image_gen tool ("hottest tool" in facelift): committed as small .jpg to `public/icons/<kebab-name>.jpg` (MIME/practical); registry in lib + getCategoryIcon (path or emoji fallback for compat); used across landing, GigCard, admin categories, /gigs, seller profiles etc. Preserves dynamic Category.icon from DB.
+- Delightful motion (framer-motion): MotionConfig reducedMotion="user" at marketing root (PR1 foundation), polished staggers, whileHover lifts/scales. Full a11y: prefers-reduced-motion respected (framer + global CSS guards for non-framer hovers/transforms on cards/icons/CTAs). Mobile 44px+ taps, verified contrast on icon cards (light/dark).
+- Dynamic branding sweep preserved 100% (siteName, siteTagline, logoUrl from PlatformConfig/admin everywhere including new landing).
+- PWA/manifest/OG/icons updated in prior passes; no breaking changes to logged-in flows, admin, checkout etc.
+- Docs: entries in README + WHATS_NEW.md (PR structure, assets, AI icons, perf notes like small JPEGs + ISR).
+- Incremental PRs (PR1–PR7): foundation → registry → assets → wow motion/stats → branding/mobile → this animation/a11y/docs pass.
+- Perf/a11y notes: small assets, revalidate=60, no heavy bundles; verified tsc, reduced-motion sim, tap targets, contrast.
+
 **🔧 Estado del Proyecto**
 - La aplicación pasó por una limpieza importante post-revisión de código.
 - La autenticación y los flujos principales ahora funcionan con datos reales en base de datos.

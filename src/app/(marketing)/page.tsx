@@ -6,6 +6,11 @@ import { getGigCategories, getCategoryIcon } from '@/lib/categories'; // getCate
 import { motion, MotionConfig } from 'framer-motion';
 import { Star, MessageCircle, ShieldCheck, Users, Award } from 'lucide-react';
 
+// PR1/PR4/PR7: MotionConfig reducedMotion="user" (at marketing root, which covers anon landing via app/page.tsx)
+// ensures framer initial/animate + whileHover respect user's OS prefers-reduced-motion setting everywhere in this tree.
+// Non-framer CSS (Tailwind transition-all, group-hover:scale-110 on <img> icons, hover:scale on CTAs) are guarded in globals.css.
+// Staggers use consistent short delays (capped) for perceived polish without feeling sluggish. Revalidate=60 keeps stats fresh (perf note).
+
 export const metadata = {
   title: 'OigaUsted - Gigs Colombia | Encuentra el servicio que necesitas',
   description: 'Conecta directamente con profesionales locales en Colombia. Limpieza, reparaciones, belleza, marketing y más. ¡Oiga Usted!',
@@ -229,7 +234,7 @@ export default async function MarketingHomePage() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {/* index for entrance stagger timing; list items are static server data, no reordering risk */}
+          {/* index for entrance stagger timing (PR7: consistent 0.03 step, capped); static server data, no reordering risk */}
           {popularCategories.map((cat, i) => (
             <Link
               key={cat.name}
@@ -239,12 +244,12 @@ export default async function MarketingHomePage() {
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: Math.min(i * 0.02, 0.2), ease: [0.21, 0.92, 0.26, 1] }}
+                transition={{ duration: 0.35, delay: Math.min(i * 0.03, 0.18), ease: [0.21, 0.92, 0.26, 1] }}
                 whileHover={{ scale: 1.015 }}
                 className="flex flex-col items-center text-center min-h-[220px] w-full"
               >
                 {typeof cat.icon === 'string' && cat.icon.startsWith('/') ? (
-                  <img src={cat.icon} alt="" loading="lazy" className="w-12 h-12 mb-4 object-contain transition-transform group-hover:scale-110" />
+                  <img src={cat.icon} alt="" aria-hidden="true" loading="lazy" className="w-12 h-12 mb-4 object-contain transition-transform group-hover:scale-110 category-icon-img" />
                 ) : (
                   <div className="text-5xl mb-4 transition-transform group-hover:scale-110">
                     {cat.icon}
@@ -290,8 +295,8 @@ export default async function MarketingHomePage() {
                 key={i}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.05 + i * 0.03 }}
-                whileHover={{ scale: 1.01, y: -2 }}
+                transition={{ duration: 0.35, delay: 0.05 + i * 0.04 }}
+                whileHover={{ scale: 1.015, y: -2 }}
                 className="bg-card border border-border rounded-3xl p-6 text-center"
               >
                 <Icon className="w-6 h-6 mx-auto mb-3 text-orange-600" />
@@ -311,6 +316,7 @@ export default async function MarketingHomePage() {
           <p className="text-zinc-600 dark:text-zinc-400 mt-2">Cerrando la brecha de confianza en un marketplace de dos lados</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* PR7: consistent stagger step (0.03) + whileHover across sections for polish; MotionConfig ensures a11y reduced-motion */}
           {[
             { quote: "Contraté limpieza para mi apartamento y quedó impecable. La profesional fue puntual y muy amable. ¡Volveré a usarlo!", name: "Laura M.", city: "Bucaramanga", role: "Compradora" },
             { quote: "Necesitaba un DJ para mi boda en Medellín. Encontré uno excelente, chat directo y pago con Wompi. Todo salió perfecto.", name: "Carlos y Andrea", city: "Medellín", role: "Compradores" },
@@ -321,8 +327,8 @@ export default async function MarketingHomePage() {
               key={i}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: Math.min(i * 0.04, 0.2) }}
-              whileHover={{ scale: 1.01, y: -1 }}
+              transition={{ duration: 0.35, delay: Math.min(i * 0.03, 0.18) }}
+              whileHover={{ scale: 1.015, y: -1 }}
               className="bg-card border border-border rounded-3xl p-6 flex flex-col"
             >
               <p className="text-sm text-zinc-700 dark:text-zinc-300 italic flex-1">“{t.quote}”</p>
@@ -350,18 +356,19 @@ export default async function MarketingHomePage() {
           /* index for entrance stagger timing; static array, no reordering risk */
           ].map((item, i) => {
             const icon = getCategoryIcon(item.iconCat); // PR3 registry .jpg icons in steps (builds on PR1 motion)
+            /* staggered entrance + whileHover; delay uses consistent 0.06 step (polish PR7); reduced-motion via MotionConfig */
             return (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 + i * 0.08 }}
-                whileHover={{ scale: 1.01, y: -2 }}
+                transition={{ duration: 0.4, delay: 0.1 + i * 0.06 }}
+                whileHover={{ scale: 1.015, y: -2 }}
                 className="text-center"
               >
                 <div className="mx-auto w-14 h-14 rounded-2xl bg-orange-100 dark:bg-orange-950/60 text-orange-600 flex items-center justify-center mb-4 overflow-hidden ring-1 ring-orange-200/60 relative">
                   {typeof icon === 'string' && icon.startsWith('/') ? (
-                    <img src={icon} alt="" className="w-8 h-8 object-contain" loading="lazy" />
+                    <img src={icon} alt="" aria-hidden="true" className="w-8 h-8 object-contain category-icon-img" loading="lazy" />
                   ) : (
                     <span className="text-3xl">{icon}</span>
                   )}
