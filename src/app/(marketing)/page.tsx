@@ -66,7 +66,7 @@ export default async function MarketingHomePage() {
   const allCategories = await getGigCategories();
   const topCategoryNames = allCategories.slice(0, 12).map((c) => c.name);
 
-  const [gigsWithRatings, activeGigsCount, reviewsCount, citiesRows, reviewAgg] = await Promise.all([
+  const [gigsWithRatings, activeGigsCount, citiesRows, reviewAgg] = await Promise.all([
     prisma.gig.findMany({
       where: {
         isActive: true,
@@ -81,7 +81,6 @@ export default async function MarketingHomePage() {
       take: 200 // enough sample per category
     }),
     prisma.gig.count({ where: { isActive: true } }),
-    prisma.review.count(),
     prisma.gig.findMany({
       where: { isActive: true, city: { not: null } },
       select: { city: true },
@@ -100,7 +99,8 @@ export default async function MarketingHomePage() {
   }
 
   const citiesCount = citiesRows.length;
-  const reviewsTotal = reviewsCount;
+  // Derive reviewsTotal from aggregate._count (removed redundant separate prisma.review.count() per review nit; _count shape uses ._all in Prisma aggregate)
+  const reviewsTotal = (reviewAgg as any)._count?._all ?? 0;
   const avgReviewRating = reviewAgg._avg.rating ? Math.round(reviewAgg._avg.rating * 10) / 10 : null;
 
   const popularCategories = topCategoryNames.map((name) => {
@@ -187,7 +187,7 @@ export default async function MarketingHomePage() {
                 <span className="hidden sm:inline">•</span>
                 <span>{reviewsTotal.toLocaleString()} reseñas reales</span>
                 <span className="hidden sm:inline">•</span>
-                <span>{citiesCount} ciudades</span>
+                <span>{citiesCount.toLocaleString()} ciudades</span>
               </motion.div>
 
               {/* Upgraded trust line with lucide icons (premium polish) */}
@@ -281,7 +281,8 @@ export default async function MarketingHomePage() {
             { label: "Gigs activos", value: activeGigsCount.toLocaleString(), sub: "publicados y disponibles", icon: Users },
             { label: "Reseñas reales", value: reviewsTotal.toLocaleString(), sub: avgReviewRating ? `promedio ${avgReviewRating} ★` : "de usuarios verificados", icon: Award },
             { label: "Ciudades activas", value: citiesCount.toString(), sub: "en toda Colombia", icon: Star },
-            { label: "Profesionales", value: Math.max(activeGigsCount, 1).toLocaleString(), sub: "conectados localmente", icon: ShieldCheck },
+            // "Profesionales" is a lightweight proxy (active gigs count) to avoid extra distinct-seller query; now shows 0 consistently in clean DB (zero-state matches other stats)
+            { label: "Profesionales", value: activeGigsCount.toLocaleString(), sub: "conectados localmente", icon: ShieldCheck },
           ].map((stat, i) => {
             const Icon = stat.icon;
             return (
@@ -358,12 +359,16 @@ export default async function MarketingHomePage() {
                 whileHover={{ scale: 1.01, y: -2 }}
                 className="text-center"
               >
-                <div className="mx-auto w-14 h-14 rounded-2xl bg-orange-100 dark:bg-orange-950/60 text-orange-600 flex items-center justify-center mb-4 overflow-hidden ring-1 ring-orange-200/60">
+                <div className="mx-auto w-14 h-14 rounded-2xl bg-orange-100 dark:bg-orange-950/60 text-orange-600 flex items-center justify-center mb-4 overflow-hidden ring-1 ring-orange-200/60 relative">
                   {typeof icon === 'string' && icon.startsWith('/') ? (
                     <img src={icon} alt="" className="w-8 h-8 object-contain" loading="lazy" />
                   ) : (
                     <span className="text-3xl">{icon}</span>
                   )}
+                  {/* Small step number badge restored for visual "3 steps" scannability (uses item.step data; minimal overlay on enhanced icon containers per reviewer suggestion) */}
+                  <span className="absolute -top-1 -right-1 bg-orange-600 text-white text-[10px] leading-none w-4 h-4 rounded-full flex items-center justify-center font-bold ring-1 ring-white/60 dark:ring-black/30 tabular-nums">
+                    {item.step}
+                  </span>
                 </div>
                 <h3 className="font-semibold text-xl mb-2">{item.title}</h3>
                 <p className="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed">{item.desc}</p>
