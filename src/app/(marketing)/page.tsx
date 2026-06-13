@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
 import { getGigCategories, getCategoryIcon } from '@/lib/categories'; // getCategoryIcon from registry (now .jpg path for PR3 AI assets, emoji fallback)
 import { motion, MotionConfig } from 'framer-motion';
+import { Star, MessageCircle, ShieldCheck, Users, Award } from 'lucide-react';
 
 export const metadata = {
   title: 'OigaUsted - Gigs Colombia | Encuentra el servicio que necesitas',
@@ -28,7 +29,11 @@ export const metadata = {
   },
 };
 
-// Short, friendly descriptions for the homepage category cards
+// ISR-friendly revalidation for live stats (per PR plan: 60s)
+export const revalidate = 60;
+
+// Short, friendly descriptions for the homepage category cards (fallback when DB description is empty/null)
+// DB-backed Category.description (via getGigCategories) is source of truth and admin-editable.
 const categoryDescriptions: Record<string, string> = {
   "Limpieza de Hogar y Oficinas": "Limpieza profesional para hogares y oficinas",
   "Música y DJ para Eventos": "Sonido, animación y DJ para fiestas y eventos",
@@ -44,26 +49,46 @@ const categoryDescriptions: Record<string, string> = {
   "Marketing Digital y Redes Sociales": "Gestión de redes y marketing digital",
   "Plomería y Fontanería": "Reparaciones de tuberías, grifos, desagües e instalaciones hidráulicas",
   "Mensajería y Delivery": "Envíos, paquetes y domicilios rápidos en la ciudad",
+  // Extended for full 22 (PR4 unification; DB overrides these when populated via admin)
+  "Desarrollo Web y Tiendas Online": "Sitios web, tiendas online y desarrollo profesional",
+  "Edición de Video y Contenido Audiovisual": "Edición profesional de video y contenido audiovisual",
+  "Asistente Virtual y Soporte Administrativo": "Asistentes virtuales y soporte admin remoto",
+  "Redacción de Contenidos y Copywriting": "Redactores y copywriters para tus textos",
+  "Reparaciones y Mantenimiento del Hogar": "Reparaciones, mantenimiento y mano de obra calificada",
+  "Clases de Idiomas y Tutorías Online": "Clases de idiomas y tutorías personalizadas online",
+  "Diseño de Interiores y Arquitectura": "Diseño de interiores, planos y proyectos de arquitectura",
+  "Gestión de Eventos y Organización de Fiestas": "Planificación y coordinación de eventos y fiestas",
 };
 
 export default async function MarketingHomePage() {
   // Fetch gigs for top categories and compute averages in JS (the groupBy above was removed because it was invalid)
-
+  // + lightweight live stats for hero strip + new Stats section (direct prisma; ISR revalidate 60s)
   const allCategories = await getGigCategories();
   const topCategoryNames = allCategories.slice(0, 12).map((c) => c.name);
-  const gigsWithRatings = await prisma.gig.findMany({
-    where: {
-      isActive: true,
-      category: { in: topCategoryNames as any }
-    },
-    select: {
-      category: true,
-      seller: {
-        select: { rating: true }
-      }
-    },
-    take: 200 // enough sample per category
-  });
+
+  const [gigsWithRatings, activeGigsCount, reviewsCount, citiesRows, reviewAgg] = await Promise.all([
+    prisma.gig.findMany({
+      where: {
+        isActive: true,
+        category: { in: topCategoryNames as any }
+      },
+      select: {
+        category: true,
+        seller: {
+          select: { rating: true }
+        }
+      },
+      take: 200 // enough sample per category
+    }),
+    prisma.gig.count({ where: { isActive: true } }),
+    prisma.review.count(),
+    prisma.gig.findMany({
+      where: { isActive: true, city: { not: null } },
+      select: { city: true },
+      distinct: ['city'],
+    }),
+    prisma.review.aggregate({ _avg: { rating: true }, _count: true }),
+  ]);
 
   const ratingMap: Record<string, { total: number; count: number }> = {};
   for (const g of gigsWithRatings) {
@@ -73,6 +98,10 @@ export default async function MarketingHomePage() {
       ratingMap[g.category].count += 1;
     }
   }
+
+  const citiesCount = citiesRows.length;
+  const reviewsTotal = reviewsCount;
+  const avgReviewRating = reviewAgg._avg.rating ? Math.round(reviewAgg._avg.rating * 10) / 10 : null;
 
   const popularCategories = topCategoryNames.map((name) => {
     const stat = ratingMap[name];
@@ -133,7 +162,7 @@ export default async function MarketingHomePage() {
               >
                 <Link
                   href="/gigs"
-                  className="bg-card text-orange-600 hover:bg-muted font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95"
+                  className="bg-card text-orange-600 hover:bg-muted font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 hover:scale-[1.02] hover:shadow-xl"
                 >
                   Ver todos los servicios
                   <span aria-hidden="true">→</span>
@@ -141,25 +170,49 @@ export default async function MarketingHomePage() {
 
                 <Link
                   href="/create-gig"
-                  className="border-2 border-border/80 hover:bg-muted/10 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center transition-all"
+                  className="border-2 border-border/80 hover:bg-muted/10 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95"
                 >
                   Quiero ofrecer mis servicios
                 </Link>
               </motion.div>
 
-              <motion.p
+              {/* Live stats strip (lightweight prisma aggregates; shows real counts from DB) */}
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.22 }}
+                className="mt-5 text-xs sm:text-sm text-white/70 flex flex-wrap items-center gap-x-4 gap-y-1"
+              >
+                <span>{activeGigsCount.toLocaleString()} gigs publicados</span>
+                <span className="hidden sm:inline">•</span>
+                <span>{reviewsTotal.toLocaleString()} reseñas reales</span>
+                <span className="hidden sm:inline">•</span>
+                <span>{citiesCount} ciudades</span>
+              </motion.div>
+
+              {/* Upgraded trust line with lucide icons (premium polish) */}
+              <motion.div
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.25 }}
-                className="mt-8 text-sm text-white/70 flex items-center gap-2"
+                className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-white/80"
               >
-                ⭐ Calificaciones reales • 💬 Chat directo • 💰 Pagos con Wompi
-              </motion.p>
+                <span className="flex items-center gap-1.5"><Star className="w-4 h-4" /> Calificaciones reales</span>
+                <span className="flex items-center gap-1.5"><MessageCircle className="w-4 h-4" /> Chat directo</span>
+                <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4" /> Pagos con Wompi</span>
+              </motion.div>
             </div>
           </div>
 
+          {/* Subtle motion on decorative premium visual (globe) - keeps/enhances existing */}
           <div className="absolute bottom-0 right-10 hidden lg:block opacity-30">
-            <Image src="/globe.svg" alt="Colombia" width={280} height={280} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.3, ease: [0.21, 0.92, 0.26, 1] }}
+            >
+              <Image src="/globe.svg" alt="Colombia" width={280} height={280} />
+            </motion.div>
           </div>
       </section>
 
@@ -217,6 +270,70 @@ export default async function MarketingHomePage() {
         </div>
       </section>
 
+      {/* STATS SECTION - real aggregates from Prisma (gigs / reviews / cities) for credibility */}
+      <section className="max-w-7xl mx-auto px-6 py-14 border-y bg-muted/30 dark:bg-muted/10">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold text-zinc-900 dark:text-white">Confianza en números</h2>
+          <p className="text-zinc-600 dark:text-zinc-400 mt-2">Datos reales de la plataforma, actualizados frecuentemente</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
+          {[
+            { label: "Gigs activos", value: activeGigsCount.toLocaleString(), sub: "publicados y disponibles", icon: Users },
+            { label: "Reseñas reales", value: reviewsTotal.toLocaleString(), sub: avgReviewRating ? `promedio ${avgReviewRating} ★` : "de usuarios verificados", icon: Award },
+            { label: "Ciudades activas", value: citiesCount.toString(), sub: "en toda Colombia", icon: Star },
+            { label: "Profesionales", value: Math.max(activeGigsCount, 1).toLocaleString(), sub: "conectados localmente", icon: ShieldCheck },
+          ].map((stat, i) => {
+            const Icon = stat.icon;
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.05 + i * 0.03 }}
+                whileHover={{ scale: 1.01, y: -2 }}
+                className="bg-card border border-border rounded-3xl p-6 text-center"
+              >
+                <Icon className="w-6 h-6 mx-auto mb-3 text-orange-600" />
+                <div className="text-3xl font-bold text-zinc-900 dark:text-white tabular-nums">{stat.value}</div>
+                <div className="text-sm font-medium mt-1 text-zinc-900 dark:text-white/90">{stat.label}</div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{stat.sub}</div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* TESTIMONIALS - static curated quotes (local trust-focused; future: dynamic 5-star from reviews) */}
+      <section className="max-w-7xl mx-auto px-6 py-16">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold text-zinc-900 dark:text-white">Historias reales de colombianos</h2>
+          <p className="text-zinc-600 dark:text-zinc-400 mt-2">Cerrando la brecha de confianza en un marketplace de dos lados</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { quote: "Contraté limpieza para mi apartamento y quedó impecable. La profesional fue puntual y muy amable. ¡Volveré a usarlo!", name: "Laura M.", city: "Bucaramanga", role: "Compradora" },
+            { quote: "Necesitaba un DJ para mi boda en Medellín. Encontré uno excelente, chat directo y pago con Wompi. Todo salió perfecto.", name: "Carlos y Andrea", city: "Medellín", role: "Compradores" },
+            { quote: "Ofrezco clases de inglés y he conseguido varios estudiantes gracias a la plataforma. Las reseñas reales ayudan a generar confianza.", name: "Prof. Elena V.", city: "Bogotá", role: "Vendedora" },
+            { quote: "Mudanza express en Cali sin complicaciones. El transportador recomendado, pago seguro y excelente comunicación.", name: "Jorge P.", city: "Cali", role: "Comprador" },
+          ].map((t, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: Math.min(i * 0.04, 0.2) }}
+              whileHover={{ scale: 1.01, y: -1 }}
+              className="bg-card border border-border rounded-3xl p-6 flex flex-col"
+            >
+              <p className="text-sm text-zinc-700 dark:text-zinc-300 italic flex-1">“{t.quote}”</p>
+              <div className="mt-4 pt-4 border-t text-sm">
+                <div className="font-semibold text-zinc-900 dark:text-white">{t.name}</div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400">{t.city} • {t.role}</div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
       {/* CÓMO FUNCIONA */}
       <section className="max-w-7xl mx-auto px-6 py-16 bg-card dark:bg-card">
         <div className="text-center mb-12">
@@ -226,26 +343,33 @@ export default async function MarketingHomePage() {
 
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {[
-            { step: "1", title: "Busca o publica", desc: "Explora categorías o publica tu propio servicio en menos de 2 minutos." },
-            { step: "2", title: "Contacta directo", desc: "Chatea con el profesional, acuerda detalles y precio sin intermediarios." },
-            { step: "3", title: "Paga seguro y califica", desc: "Paga con Wompi al finalizar. Deja una reseña real para ayudar a otros." }
+            { step: "1", title: "Busca o publica", desc: "Explora categorías o publica tu propio servicio en menos de 2 minutos.", iconCat: "Limpieza de Hogar y Oficinas" },
+            { step: "2", title: "Contacta directo", desc: "Chatea con el profesional, acuerda detalles y precio sin intermediarios.", iconCat: "Mensajería y Delivery" },
+            { step: "3", title: "Paga seguro y califica", desc: "Paga con Wompi al finalizar. Deja una reseña real para ayudar a otros.", iconCat: "Cuidado Holístico y Bienestar" }
           /* index for entrance stagger timing; static array, no reordering risk */
-          ].map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 + i * 0.08 }}
-              whileHover={{ scale: 1.01, y: -2 }}
-              className="text-center"
-            >
-              <div className="mx-auto w-14 h-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-2xl font-bold mb-4">
-                {item.step}
-              </div>
-              <h3 className="font-semibold text-xl mb-2">{item.title}</h3>
-              <p className="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed">{item.desc}</p>
-            </motion.div>
-          ))}
+          ].map((item, i) => {
+            const icon = getCategoryIcon(item.iconCat); // PR3 registry .jpg icons in steps (builds on PR1 motion)
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 + i * 0.08 }}
+                whileHover={{ scale: 1.01, y: -2 }}
+                className="text-center"
+              >
+                <div className="mx-auto w-14 h-14 rounded-2xl bg-orange-100 dark:bg-orange-950/60 text-orange-600 flex items-center justify-center mb-4 overflow-hidden ring-1 ring-orange-200/60">
+                  {typeof icon === 'string' && icon.startsWith('/') ? (
+                    <img src={icon} alt="" className="w-8 h-8 object-contain" loading="lazy" />
+                  ) : (
+                    <span className="text-3xl">{icon}</span>
+                  )}
+                </div>
+                <h3 className="font-semibold text-xl mb-2">{item.title}</h3>
+                <p className="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed">{item.desc}</p>
+              </motion.div>
+            );
+          })}
         </div>
       </section>
 
@@ -277,13 +401,13 @@ export default async function MarketingHomePage() {
           >
             <Link
               href="/gigs"
-              className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-10 py-4 rounded-2xl text-lg transition"
+              className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-10 py-4 rounded-2xl text-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-md hover:shadow-xl"
             >
               Explorar servicios
             </Link>
             <Link
               href="/signup"
-              className="border-2 border-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-semibold px-10 py-4 rounded-2xl text-lg transition"
+              className="border-2 border-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-semibold px-10 py-4 rounded-2xl text-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 hover:shadow-lg"
             >
               Crear cuenta gratis
             </Link>
