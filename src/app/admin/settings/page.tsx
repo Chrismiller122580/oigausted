@@ -933,8 +933,8 @@ export default function AdminSettings() {
               <textarea 
                 value={config?.wompiSftpPrivateKey || ''} 
                 onChange={(e) => updateField('wompiSftpPrivateKey', e.target.value)} 
-                placeholder="-----BEGIN RSA PRIVATE KEY-----\n..."
-                rows={3}
+                placeholder="Paste the COMPLETE private key text here, including the -----BEGIN ... PRIVATE KEY----- header and -----END ... PRIVATE KEY----- footer with proper line breaks.&#10;Create a local file first if you have the raw key from Wompi:&#10;  cat > wompi_private_key.pem << 'EOF'&#10;  [paste private key here]&#10;  EOF&#10;  chmod 600 wompi_private_key.pem&#10;Then open the file and copy its full contents into this box."
+                rows={6}
                 className="w-full border rounded-xl px-3 py-2 bg-background font-mono text-xs" 
               />
             </div>
