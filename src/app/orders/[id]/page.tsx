@@ -785,6 +785,19 @@ function OrderDetailClient() {
                         className="text-xs h-7"
                         onClick={async () => {
                           try {
+                            // First ask Wompi (applies full confirmation via check-wompi if APPROVED)
+                            const candidateTxId = lastWompiPrepareDebug?.lastCheckWompi?.transactionId ||
+                              lastWompiPrepareDebug?.lastCheckWompi?.wompiTransactionId ||
+                              lastWompiPrepareDebug?.lastWidgetResult?.transaction?.id || null;
+
+                            const fetchOpts: RequestInit = { method: 'POST' };
+                            if (candidateTxId) {
+                              fetchOpts.headers = { 'Content-Type': 'application/json' };
+                              fetchOpts.body = JSON.stringify({ transactionId: candidateTxId });
+                            }
+                            await fetch(`/api/orders/${orderId}/check-wompi`, fetchOpts).catch(() => {});
+
+                            // Then refresh DB order (check-wompi may have flipped it to Paid + side effects)
                             const res = await fetch(`/api/orders/${orderId}`);
                             if (res.ok) {
                               const fresh = await res.json();
@@ -795,10 +808,12 @@ function OrderDetailClient() {
                               } else {
                                 setIsPollingPayment(false);
                               }
-                              toast.info('Estado refrescado desde servidor + polling reiniciado');
+                              toast.info('Consultado Wompi + estado actualizado');
+                            } else {
+                              toast.info('Estado refrescado (Wompi consult may have been skipped)');
                             }
                           } catch {
-                            toast.error('No se pudo refrescar');
+                            toast.error('No se pudo forzar chequeo');
                           }
                         }}
                       >

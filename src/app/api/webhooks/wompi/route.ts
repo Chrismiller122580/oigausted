@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
-import { notifications } from '@/lib/notifications'
 import { logAuditEvent } from '@/lib/audit'
 import { devLog } from '@/lib/utils'
+import { confirmWompiPayment } from '@/lib/server/confirm-wompi-payment'
 
 const WOMPI_EVENTS_KEY = process.env.WOMPI_EVENTS_KEY || process.env.WOMPI_EVENTS_SECRET;
 
@@ -172,117 +172,54 @@ export async function POST(request: Request) {
         return NextResponse.json({ received: true })
       }
 
-      // Fetch current to support idempotency checks
+      // Fetch current for quick idempotency decision
       const existingOrder = await prisma.order.findUnique({ where: { id: orderId }, select: { status: true } })
 
-      const updateData: any = {
-        updatedAt: new Date(),
-      }
+      if (transaction.status === 'APPROVED') {
+        devLog(`✅ Payment APPROVED for order: ${orderId} (delegating to confirm helper)`)
 
-      switch (transaction.status) {
-        case 'APPROVED':
-          updateData.status = 'Paid'
-          devLog(`✅ Payment APPROVED for order: ${orderId}`)
-          break
-
-        case 'DECLINED':
-        case 'ERROR':
-        case 'VOIDED':
-          updateData.status = 'Cancelled'
-          devLog(`❌ Payment ${transaction.status} for order: ${orderId}`)
-          break
-
-        case 'PENDING':
-          // Keep current status or set to something like "Payment Pending"
-          devLog(`⏳ Payment still PENDING for order: ${orderId}`)
-          return NextResponse.json({ received: true, event })
-      }
-
-      // Wrap status update + referralEarning create in tx for atomicity (prevents orphan earnings on crash/partial)
-      // Use explicit select (not include) to avoid prod DB drift on columns like sellerPayoutAt
-      const updatedOrder = await prisma.$transaction(async (tx: any) => {
-        const u = await tx.order.update({
-          where: { id: orderId },
-          data: updateData,
-          select: {
-            id: true,
-            price: true,
-            status: true,
-            buyerId: true,
-            sellerId: true,
-            gigId: true,
-            buyer: { select: { id: true, name: true } },
-            gig: { select: { title: true } },
-            seller: { select: { id: true, referredById: true } }
-          }
+        const confirmRes = await confirmWompiPayment(orderId, {
+          wompiTransactionId: transaction.id,
+          wompiStatus: transaction.status,
+          amount: transaction.amount_in_cents ? transaction.amount_in_cents / 100 : undefined,
+          reference: transaction.reference,
         })
 
-        if (transaction.status === 'APPROVED' && (u as any).seller?.referredById) {
-          // Idempotency inside tx too (best effort)
-          const currentStatus = existingOrder?.status || (u as any).status
-          if (currentStatus !== 'Paid' && currentStatus !== 'Completed') {
-            const { getEffectiveReferralRate } = await import('@/lib/payout')
-            const rate = await getEffectiveReferralRate((u as any).seller.referredById)
-            const amount = Math.round(((u as any).price || 0) * rate)
-            if (amount > 0) {
-              try {
-                await tx.referralEarning.create({
-                  data: {
-                    amount,
-                    rateUsed: rate,
-                    referrerId: (u as any).seller.referredById,
-                    orderId: (u as any).id,
-                    status: 'Pending',
-                  }
-                })
-              } catch (e: any) {
-                if (e.code !== 'P2002') devLog('[Wompi tx] referral create err (non dup):', e)
-              }
-            }
-          }
-        }
-        return u
-      })
-
-      // Audit log for critical payment system change (webhook driven) — after tx commit
-      await logAuditEvent({
-        performedById: null, // system / webhook
-        action: `PAYMENT_${transaction.status}`,
-        targetType: 'Order',
-        targetId: orderId,
-        details: {
-          wompiTransactionId: transaction.id,
-          status: transaction.status,
-          amount: transaction.amount_in_cents / 100,
-          reference: transaction.reference,
-        },
-      });
-
-      if (transaction.status === 'APPROVED' && updatedOrder.buyer) {
-        // Idempotency: if already terminal paid, skip re-processing referral etc.
-        const currentStatus = existingOrder?.status || updatedOrder.status
-        if (currentStatus === 'Paid' || currentStatus === 'Completed') {
-          devLog(`[Wompi] Order ${orderId} already ${currentStatus}, skipping re-trigger`);
-        } else {
-          devLog(`[Wompi] ✅ APPROVED - Processing order ${orderId} (webhook confirmed real payment)`);
-          // Payment confirmation now triggers both in-app + email automatically
-          await notifications.sendInApp(
-            updatedOrder.buyer.id,
-            'payment',
-            '¡Pago confirmado!',
-            `Tu pago por "${updatedOrder.gig.title}" fue exitoso.`,
-            `/orders/${orderId}`,
-            { gigTitle: updatedOrder.gig.title, amount: updatedOrder.price, orderId }
-          )
-
-          // Note: referral earning create moved inside the tx above (the helper's notify still happens via the send path or can be called)
-          // If needed, the helper can still be called for its notify side-effect (it will no-op create on P2002)
-          if (updatedOrder.seller?.referredById) {
-            const { createReferralEarningIfApplicable } = await import('@/lib/server/referral-earnings')
-            await createReferralEarningIfApplicable(updatedOrder);
-          }
-        }
+        // Webhook still returns 200 even if confirm was no-op (idempotent)
+        return NextResponse.json({ received: true, event, orderStatus: confirmRes.newStatus || 'Paid' })
       }
+
+      // Non-success terminal statuses: mark Cancelled (light path, no referral side effects)
+      if (['DECLINED', 'ERROR', 'VOIDED'].includes(transaction.status)) {
+        await prisma.order.update({
+          where: { id: orderId },
+          data: { status: 'Cancelled', updatedAt: new Date() },
+        }).catch(() => {})
+
+        await logAuditEvent({
+          performedById: null,
+          action: `PAYMENT_${transaction.status}`,
+          targetType: 'Order',
+          targetId: orderId,
+          details: {
+            wompiTransactionId: transaction.id,
+            status: transaction.status,
+            amount: transaction.amount_in_cents / 100,
+            reference: transaction.reference,
+          },
+        }).catch(() => {})
+
+        devLog(`❌ Payment ${transaction.status} for order: ${orderId}`)
+        return NextResponse.json({ received: true, event })
+      }
+
+      if (transaction.status === 'PENDING') {
+        devLog(`⏳ Payment still PENDING for order: ${orderId}`)
+        return NextResponse.json({ received: true, event })
+      }
+
+      // Unknown status: acknowledge
+      return NextResponse.json({ received: true, event })
     }
 
     return NextResponse.json({ received: true, event })

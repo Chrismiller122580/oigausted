@@ -204,6 +204,10 @@ export default function AdminSettings() {
   // Recent Wompi-related audit logs for debugging
   const [recentWompiLogs, setRecentWompiLogs] = useState<any[]>([]);
 
+  // Wompi self-test (keys + live query capability)
+  const [wompiTest, setWompiTest] = useState<any>(null);
+  const [wompiTestLoading, setWompiTestLoading] = useState(false);
+
   // Admin password change state
   const [adminPasswordForm, setAdminPasswordForm] = useState({
     currentPassword: '',
@@ -743,6 +747,48 @@ export default function AdminSettings() {
             <code className="font-mono bg-muted px-1.5 py-0.5 rounded">NEXT_PUBLIC_WOMPI_PUBLIC_KEY</code>
             <code className="font-mono bg-muted px-1.5 py-0.5 rounded">WOMPI_INTEGRITY_KEY</code>
             <code className="font-mono bg-muted px-1.5 py-0.5 rounded">WOMPI_EVENTS_KEY</code>
+          </div>
+
+          {/* Wompi connectivity + key self-test (uses the new /api/admin/wompi/test) */}
+          <div className="mt-3 p-3 border border-border rounded-xl bg-background">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="text-sm font-medium">Probar llaves y conexión Wompi</div>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={wompiTestLoading}
+                onClick={async () => {
+                  setWompiTestLoading(true);
+                  try {
+                    const res = await fetch('/api/admin/wompi/test', { method: 'POST' });
+                    const data = await res.json();
+                    setWompiTest(data?.summary || data);
+                    if (data?.success === false) toast.error(data.error || 'Test falló');
+                  } catch (e: any) {
+                    toast.error('No se pudo ejecutar el test de Wompi');
+                  } finally {
+                    setWompiTestLoading(false);
+                  }
+                }}
+              >
+                {wompiTestLoading ? 'Probando...' : 'Ejecutar test de conexión'}
+              </Button>
+            </div>
+            {wompiTest && (
+              <div className="text-[10px] font-mono bg-muted/60 p-2 rounded overflow-auto max-h-48">
+                <div>Pub: {wompiTest.publicKeyPrefix} | Integ: {wompiTest.integrityKeyPrefix} | Events: {wompiTest.eventsKeyPrefix} | Priv: {wompiTest.privateKeyPrefix}</div>
+                <div>Env: pub={wompiTest.environments?.public} integ={wompiTest.environments?.integrity} events={wompiTest.environments?.events} priv={wompiTest.environments?.private}</div>
+                {wompiTest.integrityPubMismatch && <div className="text-red-600 font-bold">⚠️ MISMATCH pub vs integrity (causa principal de "firma inválida")</div>}
+                {wompiTest.sampleSignature && <div>Sample sig OK: {wompiTest.sampleSignature} ({wompiTest.sampleSignatureNote})</div>}
+                {wompiTest.query && (
+                  <div>Query: ok={String(wompiTest.query.ok)} status={wompiTest.query.status} usedPrivate={String(wompiTest.query.usedPrivate)} {wompiTest.query.error ? 'err=' + String(wompiTest.query.error).slice(0,80) : ''}</div>
+                )}
+                {wompiTest.recommendations?.length > 0 && (
+                  <div className="mt-1 text-amber-600">Recomendaciones: {wompiTest.recommendations.join(' • ')}</div>
+                )}
+              </div>
+            )}
+            <div className="text-[10px] text-muted-foreground mt-1">Ejecuta esto después de rotar llaves o para validar que el PRIVATE key puede leer transacciones.</div>
           </div>
 
           <div className="mt-3 p-3 bg-muted/50 rounded-xl text-xs">

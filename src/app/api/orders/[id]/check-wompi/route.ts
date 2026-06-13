@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { devLog } from '@/lib/utils';
+import { confirmWompiPayment } from '@/lib/server/confirm-wompi-payment';
 
 export async function POST(
   req: NextRequest,
@@ -31,13 +32,16 @@ export async function POST(
   const privateKey = process.env.WOMPI_PRIVATE_KEY || '';
   const pubKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '';
 
-  // Prefer public key for read-only status queries (officially supported by Wompi for verifying transaction status).
-  // Private key is optional / used for privileged actions (voids, payouts, etc.). This endpoint no longer requires it.
+  // Private key (prv_...) is strongly preferred for reliable transaction queries (list by ref + get by id).
+  // Many Wompi merchant queries require the private key for the Bearer token.
+  // Public key is a last-resort fallback (may 401 on some environments/endpoints).
   const authToken = privateKey || pubKey;
+  const usingPrivate = !!privateKey;
+
   if (!authToken) {
     return NextResponse.json({
       error: 'Wompi is not configured (missing NEXT_PUBLIC_WOMPI_PUBLIC_KEY).',
-      details: 'At least the public key is required to query transaction status.'
+      details: 'At least the public key is required to query transaction status. For reliable "Consultar Wompi API" results add WOMPI_PRIVATE_KEY (prv_test_... or prv_prod_...) matching your public key.'
     }, { status: 500 });
   }
 
@@ -89,7 +93,7 @@ export async function POST(
         transaction: null,
         wompiBase,
         queriedBy: txIdFromBody ? 'id' : 'reference',
-        authType: privateKey ? 'private' : 'public',
+        authType: usingPrivate ? 'private' : 'public',
       });
     }
 
@@ -102,6 +106,7 @@ export async function POST(
       queriedBase: wompiBase,
       byId: !!txIdFromBody,
       authPrefix: authToken.slice(0, 8),
+      usingPrivate,
     });
 
     // Extract any Wompi error details (signature errors, etc. often appear here)
@@ -112,26 +117,47 @@ export async function POST(
 
     const isErrorStatus = ['ERROR', 'DECLINED', 'VOIDED'].includes(transaction.status);
 
-    // If Wompi says APPROVED but our DB is still Pending, update it (bypass webhook issues)
-    if (transaction.status === 'APPROVED' && order.status === 'Pending') {
-      await prisma.order.update({
-        where: { id: orderId },
-        data: { status: 'Paid' },
+    // If Wompi reports APPROVED, run the FULL confirmation (Paid + referral + audit + notif).
+    // This makes the "Consultar Wompi API" button a complete recovery path (same as webhook).
+    // The helper is idempotent, so safe to call even if already Paid.
+    if (transaction.status === 'APPROVED') {
+      const confirmRes = await confirmWompiPayment(orderId, {
+        wompiTransactionId: transaction.id,
+        wompiStatus: transaction.status,
+        amount: transaction.amount_in_cents ? transaction.amount_in_cents / 100 : undefined,
+        reference: transaction.reference,
       });
-      devLog('[Wompi][check-wompi] Force-updated order to Paid', { orderId });
+
+      const message = confirmRes.alreadyProcessed
+        ? 'Wompi shows APPROVED; order was already Paid.'
+        : (confirmRes.message || 'Order status updated to Paid based on Wompi transaction (full confirmation applied).');
 
       return NextResponse.json({
         success: true,
-        message: 'Order status updated to Paid based on Wompi transaction.',
+        message,
+        confirmed: !confirmRes.alreadyProcessed,
         transaction,
         wompiError,
         wompiBase,
         queriedBy: txIdFromBody ? 'id' : 'reference',
-        authType: privateKey ? 'private' : 'public',
+        authType: usingPrivate ? 'private' : 'public',
+        // Keep legacy fields the debugger expects
+        wompiTransactionId: transaction.id,
+        wompiSummary: {
+          id: transaction.id,
+          status: transaction.status,
+          reference: transaction.reference,
+          amount_in_cents: transaction.amount_in_cents,
+          currency: transaction.currency,
+          created_at: transaction.created_at,
+          finalized_at: transaction.finalized_at,
+          payment_method_type: transaction.payment_method_type,
+          error: wompiError,
+        },
       });
     }
 
-    // For other statuses or if already updated, just report back — surface error prominently if present
+    // For other statuses or errors, just report back — surface error prominently if present
     let message = `Wompi status: ${transaction.status}`;
     if (isErrorStatus && wompiError) {
       message = `Wompi ${transaction.status}: ${wompiError}`;
@@ -147,7 +173,7 @@ export async function POST(
       wompiError: isErrorStatus || wompiError ? wompiError : undefined,
       wompiBase, // sandbox or production that was queried (useful for debugger)
       queriedBy: txIdFromBody ? 'id' : 'reference',
-      authType: privateKey ? 'private' : 'public',
+      authType: usingPrivate ? 'private' : 'public',
       // Include key fields for easy display in debugger
       wompiSummary: {
         id: transaction.id,
