@@ -230,9 +230,8 @@ export async function PUT(request: NextRequest) {
           // Wompi real payments master switch
           wompiRealPaymentsEnabled: body.wompiRealPaymentsEnabled ?? false,
         },
-        // Explicit select of only known-safe columns. Prevents the implicit "SELECT *"
-        // (or full model projection) from referencing wompiSftp* columns that may be
-        // missing in production DBs that have not yet run the add_wompi_sftp_columns migration.
+        // Select now includes wompiSftp* (safe selects in prisma.ts + here were updated).
+        // The previous omit was causing SFTP values to disappear after save + reload.
         select: {
           id: true,
           commissionRate: true,
@@ -254,6 +253,14 @@ export async function PUT(request: NextRequest) {
           globalEmailNotificationsEnabled: true,
           maintenanceBypassIps: true,
           wompiRealPaymentsEnabled: true,
+          // wompiSftp* included (the previous "safe omit" was causing values to be lost on reload after save)
+          wompiSftpEnabled: true,
+          wompiSftpHost: true,
+          wompiSftpPort: true,
+          wompiSftpUsername: true,
+          wompiSftpPassword: true,
+          wompiSftpPrivateKey: true,
+          wompiSftpRemotePath: true,
           updatedAt: true,
         },
       });
@@ -262,8 +269,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Error al guardar configuración (core)' }, { status: 500 });
     }
 
-    // SFTP fields in separate best-effort update (may fail if columns missing in prod DB).
+    // SFTP fields in separate update. (Best-effort in case prod DB is behind on the add_wompi_sftp_columns migration.)
     // The row now exists thanks to the upsert above, so the update will target a real record.
+    // Note: the main reason SFTP values "erased" on save was the safe selects in prisma.ts stripping the columns on every read.
     const hasAnySftpField =
       body.wompiSftpEnabled !== undefined ||
       body.wompiSftpHost !== undefined ||

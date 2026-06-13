@@ -115,6 +115,14 @@ export async function ensurePlatformConfig(): Promise<void> {
         globalEmailNotificationsEnabled: true,
         maintenanceBypassIps: true,
         wompiRealPaymentsEnabled: true,
+        // wompiSftp* included now that migration is expected
+        wompiSftpEnabled: true,
+        wompiSftpHost: true,
+        wompiSftpPort: true,
+        wompiSftpUsername: true,
+        wompiSftpPassword: true,
+        wompiSftpPrivateKey: true,
+        wompiSftpRemotePath: true,
         updatedAt: true,
       },
     })
@@ -131,7 +139,7 @@ export async function getPlatformConfig(force = false) {
   }
 
   try {
-    // Explicit select omitting new columns (wompiSftp*) to avoid "column does not exist" on prod DBs behind on migrations.
+    // Select includes wompiSftp* (the previous omit was to protect old DBs; now that the migration exists we include them so admin SFTP config and getWompiSftpConfig can actually read persisted values).
     const config = await prisma.platformConfig.findUnique({
       where: { id: 'singleton' },
       select: {
@@ -155,7 +163,14 @@ export async function getPlatformConfig(force = false) {
         globalEmailNotificationsEnabled: true,
         maintenanceBypassIps: true,
         wompiRealPaymentsEnabled: true,
-        // wompiSftp* fields intentionally omitted for prod DB compatibility
+        // wompiSftp* now included (safe select updated after sftp migration)
+        wompiSftpEnabled: true,
+        wompiSftpHost: true,
+        wompiSftpPort: true,
+        wompiSftpUsername: true,
+        wompiSftpPassword: true,
+        wompiSftpPrivateKey: true,
+        wompiSftpRemotePath: true,
         updatedAt: true,
       }
     })
@@ -193,6 +208,14 @@ export async function getPlatformConfig(force = false) {
         globalEmailNotificationsEnabled: true,
         maintenanceBypassIps: true,
         wompiRealPaymentsEnabled: true,
+        // wompiSftp* now included
+        wompiSftpEnabled: true,
+        wompiSftpHost: true,
+        wompiSftpPort: true,
+        wompiSftpUsername: true,
+        wompiSftpPassword: true,
+        wompiSftpPrivateKey: true,
+        wompiSftpRemotePath: true,
         updatedAt: true,
       }
     })
