@@ -24,12 +24,13 @@ export function ModeToggle() {
     )
   }
 
-  const isDark = theme === "dark" || 
-    (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+  // Note: "system" value is not used for initial resolution (see ThemeProvider: defaultTheme="light" without enableSystem).
+  // This guarantees the landing page does not start in dark mode for any visitor.
+  const isDark = theme === "dark"
 
   const toggleTheme = () => {
-    // Simple and reliable: toggle between light and dark
-    // (system preference is respected on initial load via ThemeProvider)
+    // Simple and reliable: toggle between light and dark.
+    // Initial load for everyone is light (landing-friendly); user choice is persisted.
     setTheme(isDark ? "light" : "dark")
   }
 
