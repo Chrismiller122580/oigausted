@@ -196,3 +196,34 @@ button, a, [role="button"] {
     min-height: 48px;
   }
 }
+
+/* Oiga GiG 1.0 Facelift - Premium landing visuals */
+.category-icon-wrap {
+  @apply flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50/80 dark:bg-orange-950/40 ring-1 ring-inset ring-orange-200/60 dark:ring-orange-900/40 transition-all;
+}
+
+.category-card {
+  @apply group bg-card border border-border rounded-3xl p-6 hover:border-orange-500 hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300 flex flex-col items-center text-center min-h-[220px] active:scale-[0.985];
+}
+
+.stat-card {
+  @apply rounded-3xl bg-card p-6 shadow-sm border border-border/60 hover:border-orange-200 dark:hover:border-orange-900/50 transition-all hover:shadow-md;
+}
+
+.testimonial-card {
+  @apply rounded-3xl border bg-card p-6 flex flex-col hover:shadow-lg transition-all hover:-translate-y-px;
+}
+
+.how-step {
+  @apply text-center transition-all hover:scale-[1.01];
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .category-card,
+  .stat-card,
+  .testimonial-card {
+    transition: none !important;
+    transform: none !important;
+  }
+}

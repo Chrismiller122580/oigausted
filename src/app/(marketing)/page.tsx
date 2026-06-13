@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
 import { getGigCategories } from '@/lib/categories';
 import { getCategoryIcon } from '@/lib/icon-registry';
+import { Search, MessageCircle, ShieldCheck } from 'lucide-react';
 
 export const metadata = {
   title: 'OigaUsted - Gigs Colombia | Encuentra el servicio que necesitas',
@@ -129,38 +130,40 @@ export default async function MarketingHomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* HERO SECTION - kept energetic Colombian gradient + enhanced sub + trust */}
+      {/* HERO - More premium with stronger visual pop and trust strip */}
       <section className="relative bg-gradient-to-br from-orange-600 via-red-600 to-rose-600 text-white overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(#ffffff33_1px,transparent_1px)] [background-size:20px_20px]"></div>
+        {/* Subtle brand accent overlay for depth */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/10" />
 
         <div className="max-w-7xl mx-auto px-6 pt-20 pb-16 relative z-10">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm mb-6">
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm mb-6 border border-white/30">
               🇨🇴 Hecho en Colombia • Conecta local
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
+            <h1 className="text-5xl md:text-6xl font-bold leading-[1.05] tracking-tighter mb-6 drop-shadow-sm">
               El servicio que necesitas,<br className="hidden md:block" /> con gente de confianza.
             </h1>
 
-            <p className="text-xl md:text-2xl text-white/90 mb-8">
+            <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl">
               Conecta directo con profesionales locales en Bucaramanga, Bogotá, Medellín, Cali y todo Colombia.<br className="hidden md:block" />
               Sin intermediarios. Pagos seguros. Calificaciones reales.
             </p>
 
-            {/* Live stats strip in hero */}
-            <div className="mb-8 flex flex-wrap gap-x-6 gap-y-1 text-sm text-white/80">
-              <span>{stats.gigs.toLocaleString('es-CO')} gigs activos</span>
-              <span>•</span>
+            {/* Live stats strip in hero - more prominent */}
+            <div className="mb-8 inline-flex flex-wrap items-center gap-x-5 gap-y-1 rounded-full bg-white/10 px-5 py-2 text-sm text-white/85 backdrop-blur">
+              <span className="font-medium">{stats.gigs.toLocaleString('es-CO')} gigs activos</span>
+              <span className="opacity-50">•</span>
               <span>{stats.reviews.toLocaleString('es-CO')} reseñas reales</span>
-              <span>•</span>
+              <span className="opacity-50">•</span>
               <span>{stats.cities} ciudades</span>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
                 href="/gigs"
-                className="bg-card text-orange-600 hover:bg-muted font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95"
+                className="bg-white text-orange-600 hover:bg-white/95 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl active:scale-[0.985] transition-all"
               >
                 Ver todos los servicios
                 <span aria-hidden="true">→</span>
@@ -168,150 +171,102 @@ export default async function MarketingHomePage() {
 
               <Link
                 href="/create-gig"
-                className="border-2 border-border/80 hover:bg-muted/10 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center transition-all"
+                className="border-2 border-white/70 hover:bg-white/10 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center transition-all backdrop-blur active:scale-[0.985]"
               >
                 Quiero ofrecer mis servicios
               </Link>
             </div>
 
             <p className="mt-8 text-sm text-white/70 flex items-center gap-2">
-              ⭐ Calificaciones reales • 💬 Chat directo • 💰 Pagos con Wompi
+              ⭐ Calificaciones reales • 💬 Chat directo en órdenes • 💳 Pagos con Wompi
             </p>
           </div>
         </div>
 
-        <div className="absolute bottom-0 right-10 hidden lg:block opacity-30">
-          <Image src="/globe.svg" alt="Colombia" width={280} height={280} />
+        <div className="absolute bottom-0 right-10 hidden lg:block opacity-20">
+          <Image src="/globe.svg" alt="Colombia" width={320} height={320} />
         </div>
       </section>
 
-      {/* CATEGORIES GRID - now with premium icons from the registry */}
+      {/* CATEGORIES - More attractive premium cards with branded icon containers */}
       <section className="max-w-7xl mx-auto px-6 py-16">
         <div className="flex items-end justify-between mb-10">
           <div>
-            <h2 className="text-4xl font-bold text-zinc-900 dark:text-white">Categorías populares</h2>
-            <p className="text-zinc-600 dark:text-zinc-400 mt-2">Con calificaciones reales de usuarios locales</p>
+            <h2 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">Categorías populares</h2>
+            <p className="text-zinc-600 dark:text-zinc-400 mt-2 text-lg">Con calificaciones reales de usuarios locales</p>
           </div>
-          <Link href="/gigs" className="text-orange-600 hover:underline font-medium flex items-center gap-1">
-            Ver todas <span>→</span>
+          <Link href="/gigs" className="text-orange-600 hover:text-orange-700 hover:underline font-semibold flex items-center gap-1 text-sm transition-colors">
+            Ver todas → 
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {popularCategories.map((cat) => {
-            const ic = cat.icon;
-            const isIconPath = typeof ic === 'string' && ic.startsWith('/');
-            return (
-              <Link
-                key={cat.name}
-                href={`/gigs?categoria=${encodeURIComponent(cat.name)}`}
-                className="group bg-card dark:bg-card border border-border rounded-3xl p-6 hover:border-orange-500 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center min-h-[220px]"
-              >
-                <div className="mb-4 flex h-16 w-16 items-center justify-center transition-transform group-hover:scale-110">
-                  {isIconPath ? (
-                    <img
-                      src={ic}
-                      alt=""
-                      className="h-14 w-14 object-contain"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <span className="text-5xl">{ic}</span>
-                  )}
-                </div>
-                <h3 className="font-semibold text-lg text-zinc-900 dark:text-white group-hover:text-orange-600">
-                  {cat.name}
-                </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2 flex-1">
-                  {cat.description}
-                </p>
+        <AnimatedCategoryGrid popularCategories={popularCategories} />
+      </section>
 
-                {cat.avgRating ? (
-                  <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-0.5 text-xs text-amber-700 font-medium">
-                    ⭐ {cat.avgRating} <span className="text-amber-500">({cat.reviewCount})</span>
-                  </div>
-                ) : (
-                  <div className="mt-3 text-xs text-zinc-400">Disponible ahora</div>
-                )}
-              </Link>
+      {/* STATS - More visually attractive with premium cards and subtle accents */}
+      <section className="border-y bg-gradient-to-b from-muted/20 to-background py-14">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {[
+              { label: "Gigs activos", value: stats.gigs.toLocaleString('es-CO'), icon: "📈" },
+              { label: "Reseñas reales", value: stats.reviews.toLocaleString('es-CO'), icon: "⭐" },
+              { label: "Ciudades", value: stats.cities.toLocaleString('es-CO'), icon: "📍" },
+              { label: "Profesionales", value: stats.sellers.toLocaleString('es-CO'), icon: "👥" },
+            ].map((stat, idx) => (
+              <div key={idx} className="stat-card flex flex-col items-center text-center py-7">
+                <div className="text-5xl mb-3">{stat.icon}</div>
+                <div className="text-4xl font-bold text-orange-600 tracking-tighter">{stat.value}</div>
+                <div className="mt-1.5 text-sm font-medium text-muted-foreground">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-6 text-center text-xs text-muted-foreground tracking-wide">
+            DATOS ACTUALIZADOS EN TIEMPO REAL • RESEÑAS VERIFICADAS POST-SERVICIO
+          </p>
+        </div>
+      </section>
+
+      {/* TESTIMONIALS - More attractive with quote styling and premium cards */}
+      <section className="max-w-7xl mx-auto px-6 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">Lo que dicen quienes ya confiaron</h2>
+          <p className="text-zinc-600 dark:text-zinc-400 mt-2 text-lg">Reseñas reales de personas y negocios en Colombia</p>
+        </div>
+
+        <AnimatedTestimonials testimonials={testimonials} />
+      </section>
+
+      {/* CÓMO FUNCIONA - Visually upgraded with lucide icons and better polish */}
+      <section className="max-w-7xl mx-auto px-6 py-16 bg-card dark:bg-card border-y">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">Así de fácil es usar OigaUsted</h2>
+          <p className="text-zinc-600 dark:text-zinc-400 mt-2 text-lg">En 3 pasos encuentras o publicas el servicio que necesitas</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {[
+            { icon: Search, title: "Busca o publica", desc: "Explora categorías o publica tu propio servicio en menos de 2 minutos." },
+            { icon: MessageCircle, title: "Contacta directo", desc: "Chatea con el profesional, acuerda detalles y precio sin intermediarios." },
+            { icon: ShieldCheck, title: "Paga seguro y califica", desc: "Paga con Wompi al finalizar. Deja una reseña real para ayudar a otros." }
+          ].map((item, i) => {
+            const Icon = item.icon;
+            return (
+              <div key={i} className="how-step bg-background rounded-3xl p-8 border border-border/70 flex flex-col items-center text-center hover:border-orange-200 transition-colors">
+                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400">
+                  <Icon className="h-8 w-8" />
+                </div>
+                <h3 className="font-semibold text-2xl mb-3">{item.title}</h3>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">{item.desc}</p>
+              </div>
             );
           })}
         </div>
       </section>
 
-      {/* NEW: LIVE STATS / SOCIAL PROOF (the credibility the old landing lacked) */}
-      <section className="border-y bg-muted/30 py-12">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            {[
-              { label: "Gigs activos", value: stats.gigs.toLocaleString('es-CO') },
-              { label: "Reseñas reales", value: stats.reviews.toLocaleString('es-CO') },
-              { label: "Ciudades", value: stats.cities.toLocaleString('es-CO') },
-              { label: "Profesionales", value: stats.sellers.toLocaleString('es-CO') },
-            ].map((stat, idx) => (
-              <div key={idx} className="rounded-2xl bg-card p-6 shadow-sm">
-                <div className="text-4xl font-bold text-orange-600">{stat.value}</div>
-                <div className="mt-1 text-sm text-muted-foreground">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            Datos actualizados • Reseñas verificadas después de cada servicio
-          </p>
-        </div>
-      </section>
-
-      {/* NEW: TESTIMONIALS (social proof) */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-zinc-900 dark:text-white">Lo que dicen quienes ya confiaron</h2>
-          <p className="text-zinc-600 dark:text-zinc-400 mt-2">Reseñas reales de personas y negocios en Colombia</p>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {testimonials.map((t, i) => (
-            <div key={i} className="rounded-3xl border bg-card p-6 flex flex-col">
-              <div className="flex text-amber-500 mb-3">
-                {'★'.repeat(t.rating)}
-              </div>
-              <p className="text-sm text-zinc-700 dark:text-zinc-300 flex-1 leading-relaxed">“{t.quote}”</p>
-              <div className="mt-4 text-xs">
-                <div className="font-semibold text-zinc-900 dark:text-white">{t.name}</div>
-                <div className="text-muted-foreground">{t.role} • {t.city}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CÓMO FUNCIONA - enhanced with better visuals */}
-      <section className="max-w-7xl mx-auto px-6 py-16 bg-card dark:bg-card">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-zinc-900 dark:text-white">Así de fácil es usar OigaUsted</h2>
-          <p className="text-zinc-600 dark:text-zinc-400 mt-2">En 3 pasos encuentras o publicas el servicio que necesitas</p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {[
-            { step: "1", title: "Busca o publica", desc: "Explora categorías o publica tu propio servicio en menos de 2 minutos." },
-            { step: "2", title: "Contacta directo", desc: "Chatea con el profesional, acuerda detalles y precio sin intermediarios." },
-            { step: "3", title: "Paga seguro y califica", desc: "Paga con Wompi al finalizar. Deja una reseña real para ayudar a otros." }
-          ].map((item, i) => (
-            <div key={i} className="text-center">
-              <div className="mx-auto w-14 h-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-2xl font-bold mb-4">
-                {item.step}
-              </div>
-              <h3 className="font-semibold text-xl mb-2">{item.title}</h3>
-              <p className="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed">{item.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* FINAL CTA */}
+      {/* FINAL CTA - Stronger visual weight */}
       <section className="max-w-7xl mx-auto px-6 py-20 text-center">
         <div className="max-w-2xl mx-auto">
-          <h2 className="text-4xl font-bold mb-4">¿Listo para empezar?</h2>
+          <h2 className="text-4xl font-bold tracking-tight mb-4">¿Listo para empezar?</h2>
           <p className="text-xl text-zinc-600 dark:text-zinc-400 mb-8">
             Miles de personas ya están conectando con profesionales de confianza en su ciudad.
           </p>
@@ -319,21 +274,22 @@ export default async function MarketingHomePage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/gigs"
-              className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-10 py-4 rounded-2xl text-lg transition"
+              className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-10 py-4 rounded-2xl text-lg shadow-md hover:shadow-xl active:scale-[0.985] transition-all"
             >
               Explorar servicios
             </Link>
             <Link
               href="/signup"
-              className="border-2 border-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-semibold px-10 py-4 rounded-2xl text-lg transition"
+              className="border-2 border-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-semibold px-10 py-4 rounded-2xl text-lg transition-all active:scale-[0.985]"
             >
               Crear cuenta gratis
             </Link>
           </div>
+          <p className="mt-4 text-xs text-muted-foreground">Sin costos ocultos • Pagos protegidos • Soporte local</p>
         </div>
       </section>
 
-      {/* SIMPLE FOOTER */}
+      {/* FOOTER - Slightly refined */}
       <footer className="border-t bg-card dark:bg-card py-10 text-sm">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between gap-6 text-zinc-500">
           <div>
@@ -341,13 +297,91 @@ export default async function MarketingHomePage() {
             <div>Conectando Colombia, un servicio a la vez.</div>
           </div>
           <div className="flex gap-8">
-            <Link href="/gigs" className="hover:text-zinc-900 dark:hover:text-white">Explorar</Link>
-            <Link href="/create-gig" className="hover:text-zinc-900 dark:hover:text-white">Publicar</Link>
-            <Link href="/login" className="hover:text-zinc-900 dark:hover:text-white">Iniciar sesión</Link>
+            <Link href="/gigs" className="hover:text-zinc-900 dark:hover:text-white transition-colors">Explorar</Link>
+            <Link href="/create-gig" className="hover:text-zinc-900 dark:hover:text-white transition-colors">Publicar</Link>
+            <Link href="/login" className="hover:text-zinc-900 dark:hover:text-white transition-colors">Iniciar sesión</Link>
           </div>
           <div>© {new Date().getFullYear()} OigaUsted</div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+/* Client components for attractive framer-motion animations (entrances + hovers) */
+'use client';
+
+import { motion } from 'framer-motion';
+
+function AnimatedCategoryGrid({ popularCategories }: { popularCategories: any[] }) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      {popularCategories.map((cat, index) => {
+        const ic = cat.icon;
+        const isIconPath = typeof ic === 'string' && ic.startsWith('/');
+        return (
+          <motion.div
+            key={cat.name}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: Math.min(index * 0.035, 0.4) }}
+            whileHover={{ y: -4 }}
+          >
+            <Link
+              href={`/gigs?categoria=${encodeURIComponent(cat.name)}`}
+              className="category-card"
+            >
+              <div className="category-icon-wrap mb-4 transition-transform group-hover:scale-110">
+                {isIconPath ? (
+                  <img
+                    src={ic}
+                    alt=""
+                    className="h-12 w-12 object-contain p-1"
+                    loading="lazy"
+                  />
+                ) : (
+                  <span className="text-5xl">{ic}</span>
+                )}
+              </div>
+              <h3 className="font-semibold text-lg text-zinc-900 dark:text-white group-hover:text-orange-600">
+                {cat.name}
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2 flex-1">
+                {cat.description}
+              </p>
+
+              {cat.avgRating ? (
+                <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-0.5 text-xs text-amber-700 font-medium">
+                  ⭐ {cat.avgRating} <span className="text-amber-500">({cat.reviewCount})</span>
+                </div>
+              ) : (
+                <div className="mt-3 text-xs text-zinc-400">Disponible ahora</div>
+              )}
+            </Link>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
+function AnimatedTestimonials({ testimonials }: { testimonials: any[] }) {
+  return (
+    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {testimonials.map((t, i) => (
+        <motion.div
+          key={i}
+          whileHover={{ y: -3 }}
+          className="testimonial-card"
+        >
+          <div className="flex text-amber-500 mb-3 text-lg tracking-[2px]">★★★★★</div>
+          <p className="text-sm text-zinc-700 dark:text-zinc-300 flex-1 leading-relaxed">“{t.quote}”</p>
+          <div className="mt-5 pt-4 border-t text-xs">
+            <div className="font-semibold text-zinc-900 dark:text-white">{t.name}</div>
+            <div className="text-muted-foreground">{t.role} • {t.city}</div>
+          </div>
+        </motion.div>
+      ))}
     </div>
   );
 }
