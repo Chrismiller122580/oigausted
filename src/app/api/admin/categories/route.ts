@@ -1,5 +1,4 @@
-// @ts-ignore
-// @ts-ignore
+// @ts-ignore  (consolidated; covers prisma Category type + additive iconKey any-casts until full migrate/generate)
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
@@ -8,6 +7,8 @@ import { parseJsonArrayField, toPrismaJson } from '@/lib/utils';
 import { gigCategories as staticGigCategories } from '@/lib/gig-categories';
 import { getCategoryIconKey } from '@/lib/icon-registry';
 import type { Category } from '@prisma/client';
+
+// TODO (future additive, post-PR2): public /api/categories/route.ts (used by useGigCategories + /gigs) should also select/surface iconKey (with ?? getCategoryIconKey fallback) for full pass-through in client category objects. Kept out of scope per exact PR2 instructions (no change to public route).
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);

@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
-import { getGigCategories, categoryEmojis, getCategoryIcon } from '@/lib/categories'; // getCategoryIcon from registry (emoji for zero visual change)
+import { getGigCategories, getCategoryIcon } from '@/lib/categories'; // getCategoryIcon from registry (emoji for zero visual change)
 import { motion, MotionConfig } from 'framer-motion';
 
 export const metadata = {

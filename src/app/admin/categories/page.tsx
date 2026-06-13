@@ -270,7 +270,7 @@ export default function AdminCategoriesPage() {
                   placeholder={getCategoryIconKey(formName) || 'limpieza-de-hogar-y-oficinas'}
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Preview (emoji until assets in later PR): <span className="text-xl align-middle">{getCategoryIcon(formName || 'Limpieza de Hogar y Oficinas')}</span>
+                  Preview (emoji until assets in later PR): <span className="text-xl align-middle">{getCategoryIcon(formName || '')}</span> {/* relies on registry's '🛠️' safe fallback when no name yet */}
                   {formIconKey && <span className="ml-1 font-mono text-[10px]">({formIconKey})</span>}
                 </p>
               </div>

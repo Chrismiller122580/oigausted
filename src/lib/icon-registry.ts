@@ -47,6 +47,8 @@ export function getCategoryIconKey(name: string): string | undefined {
  */
 export function getCategoryIcon(name: string): string {
   const match = gigCategories.find((c) => c.name === name);
+  // Intentional '🛠️' fallback for robustness (new admin-created categories without icon, or unknown names).
+  // Matches legacy default. A computeCategoryIconKey(name) helper (exposing internal slugify) can be added later for on-the-fly slugs on dynamic admin names.
   return match?.icon || '🛠️';
 }
 

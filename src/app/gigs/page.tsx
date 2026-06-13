@@ -18,12 +18,6 @@ function GigsClient() {
 
   const { categories: loadedCategories, loading: catLoading } = useGigCategories();
 
-  // Build emoji map from loaded data for dynamic categories (kept for other potential uses; icon rendering now prefers registry)
-  const categoryEmojis = loadedCategories.reduce((acc: Record<string, string>, c) => {
-    acc[c.name] = c.icon;
-    return acc;
-  }, {});
-
   const categoryList = loadedCategories.map((c) => c.name);
 
   const [gigs, setGigs] = useState<any[]>([]);
