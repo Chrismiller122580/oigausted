@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { toast } from 'sonner';
 import { Plus, Trash2, Edit2, Save, X, Tag, RefreshCw, AlertTriangle } from 'lucide-react';
 import { gigCategories as staticGigCategories } from '@/lib/gig-categories';
+import { getCategoryIcon, getCategoryIconKey } from '@/lib/icon-registry'; // for preview + iconKey support (emoji fallback today)
 
 interface FieldDef {
   key: string;
@@ -27,6 +28,7 @@ interface Category {
   isActive: boolean;
   order: number;
   gigCount?: number;
+  iconKey?: string; // additive prep for icon registry (admin-settable slug)
 }
 
 export default function AdminCategoriesPage() {
@@ -37,6 +39,7 @@ export default function AdminCategoriesPage() {
   const [editingName, setEditingName] = useState<string | null>(null); // null = creating new
   const [formName, setFormName] = useState('');
   const [formIcon, setFormIcon] = useState('🛠️');
+  const [formIconKey, setFormIconKey] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formIsActive, setFormIsActive] = useState(true);
   const [formOrder, setFormOrder] = useState(0);
@@ -76,6 +79,7 @@ export default function AdminCategoriesPage() {
     setEditingName(null);
     setFormName('');
     setFormIcon('🛠️');
+    setFormIconKey('');
     setFormDescription('');
     setFormIsActive(true);
     setFormOrder(0);
@@ -88,6 +92,7 @@ export default function AdminCategoriesPage() {
     setEditingName(cat.name);
     setFormName(cat.name);
     setFormIcon(cat.icon || '🛠️');
+    setFormIconKey(cat.iconKey || getCategoryIconKey(cat.name) || '');
     setFormDescription(cat.description || '');
     setFormIsActive(cat.isActive);
     setFormOrder(cat.order || 0);
@@ -150,6 +155,7 @@ export default function AdminCategoriesPage() {
     const payload = {
       name: formName.trim(),
       icon: formIcon || '🛠️',
+      iconKey: formIconKey.trim() || undefined, // accepted + persisted (additive)
       description: formDescription.trim() || null,
       fields: formFields,
       isActive: formIsActive,
@@ -255,6 +261,18 @@ export default function AdminCategoriesPage() {
               <div>
                 <Label>Icon (emoji)</Label>
                 <Input value={formIcon} onChange={(e) => setFormIcon(e.target.value)} placeholder="🚰" />
+              </div>
+              <div>
+                <Label>Icon Key (slug for custom assets; registry fallback)</Label>
+                <Input
+                  value={formIconKey}
+                  onChange={(e) => setFormIconKey(e.target.value)}
+                  placeholder={getCategoryIconKey(formName) || 'limpieza-de-hogar-y-oficinas'}
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Preview (emoji until assets in later PR): <span className="text-xl align-middle">{getCategoryIcon(formName || 'Limpieza de Hogar y Oficinas')}</span>
+                  {formIconKey && <span className="ml-1 font-mono text-[10px]">({formIconKey})</span>}
+                </p>
               </div>
             </div>
 
@@ -472,7 +490,7 @@ export default function AdminCategoriesPage() {
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">
                 No categories in the database yet. 
-                Static fallback definitions are currently in use (20 categories).
+                Static fallback definitions are currently in use ({staticGigCategories.length} categories).
               </p>
               <Button 
                 onClick={async () => {
@@ -495,7 +513,7 @@ export default function AdminCategoriesPage() {
                 }}
                 className="mx-auto"
               >
-                <Plus className="h-4 w-4 mr-2" /> Import the 20 initial categories (recommended)
+                <Plus className="h-4 w-4 mr-2" /> Import the {staticGigCategories.length} initial categories (recommended)
               </Button>
               <p className="text-xs text-muted-foreground mt-2">
                 This will populate the database so the admin and public pages use the managed categories.
@@ -521,6 +539,7 @@ export default function AdminCategoriesPage() {
                 <thead>
                   <tr className="border-b">
                     <th className="text-left py-2 pr-4">Icon</th>
+                    <th className="text-left py-2 pr-4">Icon Key</th>
                     <th className="text-left py-2 pr-4">Name</th>
                     <th className="text-left py-2 pr-4">Fields</th>
                     <th className="text-left py-2 pr-4">Gigs</th>
@@ -532,6 +551,9 @@ export default function AdminCategoriesPage() {
                   {categories.map((cat) => (
                     <tr key={cat.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="py-3 pr-4 text-2xl">{cat.icon}</td>
+                      <td className="py-3 pr-4 text-xs text-muted-foreground font-mono">
+                        {cat.iconKey || getCategoryIconKey(cat.name) || '—'}
+                      </td>
                       <td className="py-3 pr-4 font-medium">{cat.name}</td>
                       <td className="py-3 pr-4 text-muted-foreground">{cat.fields?.length || 0} campos</td>
                       <td className="py-3 pr-4 text-muted-foreground">{cat.gigCount || 0}</td>

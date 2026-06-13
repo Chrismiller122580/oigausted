@@ -6,6 +6,7 @@ import GigCard from "@/components/common/GigCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useGigCategories } from "@/lib/useGigCategories";
+import { getCategoryIcon } from "@/lib/icon-registry"; // prefer registry for icons (emoji fallback, zero visual diff)
 import { getCurrentLocation, calculateDistance } from "@/lib/distance";
 import LocationPermissionPrompt from "@/components/maps/LocationPermissionPrompt";
 import { MapPin, Wifi, X, ChevronLeft, ChevronRight } from "lucide-react";
@@ -17,7 +18,7 @@ function GigsClient() {
 
   const { categories: loadedCategories, loading: catLoading } = useGigCategories();
 
-  // Build emoji map from loaded data for dynamic categories
+  // Build emoji map from loaded data for dynamic categories (kept for other potential uses; icon rendering now prefers registry)
   const categoryEmojis = loadedCategories.reduce((acc: Record<string, string>, c) => {
     acc[c.name] = c.icon;
     return acc;
@@ -332,7 +333,7 @@ function GigsClient() {
               </button>
 
               {(catLoading ? [] : categoryList).map((cat) => {
-                const icon = categoryEmojis[cat] || "🛠️";
+                const icon = getCategoryIcon(cat); // registry call (still returns emoji for zero visual change)
                 const count = categoryCounts[cat] || 0;
                 const isActive = selectedCategory === cat;
 

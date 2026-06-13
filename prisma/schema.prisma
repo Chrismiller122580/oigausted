@@ -256,6 +256,7 @@ model Category {
   id          String   @id @default(cuid())
   name        String   @unique
   icon        String   @default("🛠️")
+  iconKey     String?  // e.g. "limpieza-de-hogar-y-oficinas" for registry asset lookup (additive for icon facelift)
   description String?
   fields      Json?    // Array of dynamic field definitions for pricing: e.g. [{ "key": "rooms", "label": "...", "type": "number", "extraPrice": 35000 }, { "key": "type", "label": "...", "type": "select", "options": [{"label": "X", "extraPrice": 10000}] }]
   isActive    Boolean  @default(true)

@@ -1,12 +1,19 @@
 import { prisma } from './prisma';
 import { parseJsonArrayField } from './utils';
 import { gigCategories as staticGigCategories } from './gig-categories'; // fallback / seed source
+import {
+  categoryIconKeys,
+  getCategoryIcon,
+  getCategoryIconKey,
+  getCategoryEmoji,
+} from './icon-registry'; // central source for icon keys + resolution (emoji fallback)
 
 export interface GigCategory {
   name: string;
   icon: string;
   fields: any[];
   description?: string;
+  iconKey?: string; // additive: slug from icon registry (e.g. "limpieza-de-hogar-y-oficinas"); optional for backward compat
 }
 
 /**
@@ -25,16 +32,22 @@ export async function getGigCategories(): Promise<GigCategory[]> {
         icon: c.icon || '🛠️',
         description: c.description || undefined,
         fields: parseJsonArrayField(c.fields),
+        // iconKey may come from DB (additive column) or computed from registry by name
+        iconKey: c.iconKey ?? getCategoryIconKey(c.name),
       }));
     }
   } catch (e) {
     // During initial setup or migration, fall back silently
   }
   // Fallback to the (now legacy) static definitions
+  // Note: description surfaces reliably (undefined here; DB populates when present).
+  // iconKey always provided via registry for prep + future admin overrides.
   return staticGigCategories.map((c) => ({
     name: c.name,
     icon: c.icon,
+    description: undefined,
     fields: c.fields || [],
+    iconKey: getCategoryIconKey(c.name),
   }));
 }
 
@@ -55,4 +68,8 @@ export const categoryEmojis: Record<string, string> = staticGigCategories.reduce
   },
   {} as Record<string, string>
 );
+
+// Re-export icon registry as the central authority (additive, no breakage).
+// Prefer these over direct categoryEmojis access for new icon-related code.
+export { categoryIconKeys, getCategoryIcon, getCategoryIconKey, getCategoryEmoji };
 

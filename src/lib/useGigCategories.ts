@@ -7,6 +7,7 @@ export interface GigCategory {
   icon: string;
   fields: any[];
   description?: string;
+  iconKey?: string; // additive (from registry or future DB column); passed through from /api/categories
 }
 
 /**

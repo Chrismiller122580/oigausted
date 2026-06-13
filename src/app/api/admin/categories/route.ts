@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { parseJsonArrayField, toPrismaJson } from '@/lib/utils';
 import { gigCategories as staticGigCategories } from '@/lib/gig-categories';
+import { getCategoryIconKey } from '@/lib/icon-registry';
 import type { Category } from '@prisma/client';
 
 async function requireAdmin() {
@@ -40,6 +41,8 @@ export async function GET() {
     const normalized = categories.map((c: Category) => ({
       ...c,
       fields: parseJsonArrayField(c.fields),
+      // Surface iconKey (additive; computed via registry if column empty or types stale)
+      iconKey: (c as any).iconKey ?? getCategoryIconKey(c.name),
       gigCount: usageMap[c.name] || 0,
     }));
 
@@ -85,12 +88,14 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Now upsert all static ones (adds missing + refreshes icon/fields/order/isActive)
+      // Now upsert all static ones (adds missing + refreshes icon/fields/order/isActive + iconKey)
       for (const [index, cat] of staticGigCategories.entries()) {
+        const defaultIconKey = getCategoryIconKey(cat.name);
         await prisma.category.upsert({
           where: { name: cat.name },
           update: {
             icon: cat.icon,
+            // iconKey left as-is on update (admin can override); set only on create below
             fields: toPrismaJson(cat.fields || []),
             order: index,
             isActive: true,
@@ -98,6 +103,7 @@ export async function POST(req: NextRequest) {
           create: {
             name: cat.name,
             icon: cat.icon,
+            iconKey: defaultIconKey || null,
             fields: toPrismaJson(cat.fields || []),
             description: null,
             order: index,
@@ -114,7 +120,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, seeded, cleaned, message });
     }
 
-    const { name, icon, description, fields, isActive, order } = body;
+    const { name, icon, iconKey, description, fields, isActive, order } = body;
 
     if (!name || typeof name !== 'string' || name.trim().length < 3) {
       return NextResponse.json({ error: 'Nombre de categoría requerido (mínimo 3 caracteres)' }, { status: 400 });
@@ -122,18 +128,22 @@ export async function POST(req: NextRequest) {
 
     const normalizedFields = Array.isArray(fields) ? fields : [];
 
+    // Build data with any to tolerate additive iconKey column (prisma types may be stale until generate + migrate)
+    const createData: any = {
+      name: name.trim(),
+      icon: icon || '🛠️',
+      description: description || null,
+      fields: toPrismaJson(normalizedFields),
+      isActive: isActive !== false,
+      order: typeof order === 'number' ? order : 0,
+    };
+    if (iconKey) createData.iconKey = iconKey;
+
     const created = await prisma.category.create({
-      data: {
-        name: name.trim(),
-        icon: icon || '🛠️',
-        description: description || null,
-        fields: toPrismaJson(normalizedFields),
-        isActive: isActive !== false,
-        order: typeof order === 'number' ? order : 0,
-      },
+      data: createData,
     });
 
-    return NextResponse.json({ category: { ...created, fields: normalizedFields } });
+    return NextResponse.json({ category: { ...created, fields: normalizedFields, iconKey: iconKey || (created as any).iconKey || getCategoryIconKey(name) } });
   } catch (error: any) {
     if (error.code === 'P2002') {
       return NextResponse.json({ error: 'Ya existe una categoría con ese nombre' }, { status: 409 });
@@ -151,7 +161,7 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { name, icon, description, fields, isActive, order } = body;
+    const { name, icon, iconKey, description, fields, isActive, order } = body;
 
     if (!name) {
       return NextResponse.json({ error: 'Nombre (identificador) requerido para actualizar' }, { status: 400 });
@@ -159,6 +169,7 @@ export async function PUT(req: NextRequest) {
 
     const data: any = {};
     if (icon !== undefined) data.icon = icon;
+    if (iconKey !== undefined) data.iconKey = iconKey || null; // accept + persist additive iconKey
     if (description !== undefined) data.description = description || null;
     if (fields !== undefined) data.fields = toPrismaJson(Array.isArray(fields) ? fields : []);
     if (isActive !== undefined) data.isActive = !!isActive;
@@ -169,7 +180,7 @@ export async function PUT(req: NextRequest) {
       data,
     });
 
-    return NextResponse.json({ category: { ...updated, fields: parseJsonArrayField(updated.fields) } });
+    return NextResponse.json({ category: { ...updated, fields: parseJsonArrayField(updated.fields), iconKey: (updated as any).iconKey ?? iconKey ?? getCategoryIconKey(name) } });
   } catch (error) {
     console.error('Admin categories PUT error:', error);
     return NextResponse.json({ error: 'Error al actualizar categoría' }, { status: 500 });

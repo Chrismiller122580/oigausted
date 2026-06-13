@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
-import { getGigCategories, categoryEmojis } from '@/lib/categories';
+import { getGigCategories, categoryEmojis, getCategoryIcon } from '@/lib/categories'; // getCategoryIcon from registry (emoji for zero visual change)
 import { motion, MotionConfig } from 'framer-motion';
 
 export const metadata = {
@@ -77,11 +77,12 @@ export default async function MarketingHomePage() {
   const popularCategories = topCategoryNames.map((name) => {
     const stat = ratingMap[name];
     const avg = stat && stat.count > 0 ? Math.round((stat.total / stat.count) * 10) / 10 : null;
+    const catData = allCategories.find((c) => c.name === name); // for reliable DB description surfacing (prep for PR4 unification)
 
     return {
       name,
-      emoji: categoryEmojis[name] || '🛠️',
-      description: categoryDescriptions[name] || 'Profesionales locales disponibles',
+      emoji: getCategoryIcon(name), // registry (still emoji; zero visual diff)
+      description: catData?.description || categoryDescriptions[name] || 'Profesionales locales disponibles',
       avgRating: avg,
       reviewCount: stat?.count || 0
     };
