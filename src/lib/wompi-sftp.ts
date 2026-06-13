@@ -86,7 +86,22 @@ export async function testWompiSftpConnection(config?: WompiSftpConfig): Promise
   } catch (error: any) {
     devLog('[Wompi SFTP] Test connection error:', error);
     try { await client.end(); } catch {}
-    return { success: false, message: `Connection failed: ${error.message || error}` };
+
+    let msg = error.message || String(error);
+
+    if (msg.includes('ENOTFOUND') || msg.includes('getaddrinfo')) {
+      msg = `DNS lookup failed for host "${sftpConfig.host}". The hostname could not be resolved from the server. ` +
+            `Verify the exact Host Wompi provided in your dashboard for this commerce (placeholders like sftp.wompi.co may not be active until SFTP is fully enabled). ` +
+            `Test the same Host + Username + Private Key from your local computer using any SFTP client (FileZilla, Cyberduck, WinSCP, or command-line sftp). ` +
+            `If it works locally but not here, Wompi may require whitelisting your hosting provider's outbound IPs (e.g. Vercel IPs).`;
+    } else if (msg.includes('authentication') || msg.includes('Permission denied') || msg.includes('all keys failed')) {
+      msg = `Authentication failed for user "${sftpConfig.username}". ` +
+            `Double-check the username, that you pasted the FULL private key content (including -----BEGIN ... and -----END lines), and that the key matches what you attached/generated in the Wompi SFTP setup for this account. No passphrase is supported.`;
+    } else if (msg.includes('ECONNREFUSED')) {
+      msg = `Connection refused to ${sftpConfig.host}:${sftpConfig.port}. Check the port (usually 22 for SFTP) and that SFTP access is enabled in your Wompi account.`;
+    }
+
+    return { success: false, message: `Connection failed: ${msg}` };
   }
 }
 
