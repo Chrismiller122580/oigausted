@@ -63,7 +63,7 @@ export default function Logo({
   return (
     <Link 
       href="/" 
-      className={`flex items-center gap-2.5 text-muted-foreground hover:text-foreground transition ${linkClassName}`}
+      className={`flex items-center gap-2.5 text-muted-foreground hover:text-foreground transition ${linkClassName} ${className}`}
     >
       {icon}
       {showText && (

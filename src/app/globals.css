@@ -196,3 +196,26 @@ button, a, [role="button"] {
     min-height: 48px;
   }
 }
+
+/* Premium, minimal motion utilities for framer-motion + landing polish (PR1).
+   Respect reduced-motion per accessibility guidelines. */
+.motion-safe {
+  transition-property: transform, opacity, box-shadow;
+  transition-timing-function: cubic-bezier(0.21, 0.92, 0.26, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-safe,
+  .motion-safe *,
+  .motion-safe-hover,
+  .motion-safe-hover * {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* Subtle lift base for interactive cards (pairs with whileHover; no heavy styles) */
+.motion-safe-hover:hover {
+  transform: translateY(-1px);
+}

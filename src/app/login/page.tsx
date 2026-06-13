@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
+import Logo from '@/components/common/Logo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -86,14 +87,11 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center pb-4">
           <div className="flex justify-center mb-3">
-            <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center text-white text-3xl font-black">
-              O
-            </div>
+            <Logo showText size={56} />
           </div>
           <CardTitle className="text-2xl font-bold text-foreground">
             Welcome back
           </CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">Sign in to OigaUsted</p>
         </CardHeader>
 
         <CardContent>

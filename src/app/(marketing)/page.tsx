@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
 import { getGigCategories, categoryEmojis } from '@/lib/categories';
+import { motion, MotionConfig } from 'framer-motion';
 
 export const metadata = {
   title: 'OigaUsted - Gigs Colombia | Encuentra el servicio que necesitas',
@@ -87,27 +88,48 @@ export default async function MarketingHomePage() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* HERO SECTION */}
-      <section className="relative bg-gradient-to-br from-orange-600 via-red-600 to-rose-600 text-white overflow-hidden">
+    <MotionConfig reducedMotion="user">
+      <div className="min-h-screen bg-background">
+        {/* HERO SECTION */}
+        <section className="relative bg-gradient-to-br from-orange-600 via-red-600 to-rose-600 text-white overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(#ffffff33_1px,transparent_1px)] [background-size:20px_20px]"></div>
         
         <div className="max-w-7xl mx-auto px-6 pt-20 pb-16 relative z-10">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm mb-6">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: [0.21, 0.92, 0.26, 1] }}
+              className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm mb-6"
+            >
               🇨🇴 Hecho en Colombia • Conecta local
-            </div>
+            </motion.div>
 
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
+            <motion.h1
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.21, 0.92, 0.26, 1], delay: 0.05 }}
+              className="text-5xl md:text-6xl font-bold leading-tight mb-6"
+            >
               El servicio que necesitas,<br className="hidden md:block" /> con gente de confianza.
-            </h1>
+            </motion.h1>
 
-            <p className="text-xl md:text-2xl text-white/90 mb-10">
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.21, 0.92, 0.26, 1], delay: 0.1 }}
+              className="text-xl md:text-2xl text-white/90 mb-10"
+            >
               Conecta directo con profesionales locales en Bucaramanga, Bogotá, Medellín, Cali y todo Colombia.<br className="hidden md:block" />
               Sin intermediarios. Pagos seguros. Calificaciones reales.
-            </p>
+            </motion.p>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.21, 0.92, 0.26, 1], delay: 0.15 }}
+              className="flex flex-col sm:flex-row gap-4"
+            >
               <Link
                 href="/gigs"
                 className="bg-card text-orange-600 hover:bg-muted font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95"
@@ -122,11 +144,16 @@ export default async function MarketingHomePage() {
               >
                 Quiero ofrecer mis servicios
               </Link>
-            </div>
+            </motion.div>
 
-            <p className="mt-8 text-sm text-white/70 flex items-center gap-2">
+            <motion.p
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.25 }}
+              className="mt-8 text-sm text-white/70 flex items-center gap-2"
+            >
               ⭐ Calificaciones reales • 💬 Chat directo • 💰 Pagos con Wompi
-            </p>
+            </motion.p>
           </div>
         </div>
 
@@ -148,29 +175,37 @@ export default async function MarketingHomePage() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {popularCategories.map((cat) => (
+          {popularCategories.map((cat, i) => (
             <Link
               key={cat.name}
               href={`/gigs?categoria=${encodeURIComponent(cat.name)}`}
-              className="group bg-card dark:bg-card border border-border rounded-3xl p-6 hover:border-orange-500 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center min-h-[220px]"
+              className="group block bg-card dark:bg-card border border-border rounded-3xl p-6 hover:border-orange-500 hover:shadow-xl transition-all duration-300"
             >
-              <div className="text-5xl mb-4 transition-transform group-hover:scale-110">
-                {cat.emoji}
-              </div>
-              <h3 className="font-semibold text-lg text-zinc-900 dark:text-white group-hover:text-orange-600">
-                {cat.name}
-              </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2 flex-1">
-                {cat.description}
-              </p>
-
-              {cat.avgRating ? (
-                <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-0.5 text-xs text-amber-700 font-medium">
-                  ⭐ {cat.avgRating} <span className="text-amber-500">({cat.reviewCount})</span>
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: Math.min(i * 0.02, 0.2), ease: [0.21, 0.92, 0.26, 1] }}
+                whileHover={{ scale: 1.015 }}
+                className="flex flex-col items-center text-center min-h-[220px] w-full"
+              >
+                <div className="text-5xl mb-4 transition-transform group-hover:scale-110">
+                  {cat.emoji}
                 </div>
-              ) : (
-                <div className="mt-3 text-xs text-zinc-400">Disponible ahora</div>
-              )}
+                <h3 className="font-semibold text-lg text-zinc-900 dark:text-white group-hover:text-orange-600">
+                  {cat.name}
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2 flex-1">
+                  {cat.description}
+                </p>
+
+                {cat.avgRating ? (
+                  <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-0.5 text-xs text-amber-700 font-medium">
+                    ⭐ {cat.avgRating} <span className="text-amber-500">({cat.reviewCount})</span>
+                  </div>
+                ) : (
+                  <div className="mt-3 text-xs text-zinc-400">Disponible ahora</div>
+                )}
+              </motion.div>
             </Link>
           ))}
         </div>
@@ -189,13 +224,20 @@ export default async function MarketingHomePage() {
             { step: "2", title: "Contacta directo", desc: "Chatea con el profesional, acuerda detalles y precio sin intermediarios." },
             { step: "3", title: "Paga seguro y califica", desc: "Paga con Wompi al finalizar. Deja una reseña real para ayudar a otros." }
           ].map((item, i) => (
-            <div key={i} className="text-center">
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 + i * 0.08 }}
+              whileHover={{ scale: 1.01, y: -2 }}
+              className="text-center"
+            >
               <div className="mx-auto w-14 h-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-2xl font-bold mb-4">
                 {item.step}
               </div>
               <h3 className="font-semibold text-xl mb-2">{item.title}</h3>
               <p className="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed">{item.desc}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
       </section>
@@ -203,12 +245,29 @@ export default async function MarketingHomePage() {
       {/* FINAL CTA */}
       <section className="max-w-7xl mx-auto px-6 py-20 text-center">
         <div className="max-w-2xl mx-auto">
-          <h2 className="text-4xl font-bold mb-4">¿Listo para empezar?</h2>
-          <p className="text-xl text-zinc-600 dark:text-zinc-400 mb-8">
+          <motion.h2
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="text-4xl font-bold mb-4"
+          >
+            ¿Listo para empezar?
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.05 }}
+            className="text-xl text-zinc-600 dark:text-zinc-400 mb-8"
+          >
             Miles de personas ya están conectando con profesionales de confianza en su ciudad.
-          </p>
+          </motion.p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center"
+          >
             <Link
               href="/gigs"
               className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-10 py-4 rounded-2xl text-lg transition"
@@ -221,7 +280,7 @@ export default async function MarketingHomePage() {
             >
               Crear cuenta gratis
             </Link>
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -240,6 +299,7 @@ export default async function MarketingHomePage() {
           <div>© {new Date().getFullYear()} OigaUsted</div>
         </div>
       </footer>
-    </div>
+      </div>
+    </MotionConfig>
   );
 }
