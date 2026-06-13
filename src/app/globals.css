@@ -203,7 +203,7 @@ button, a, [role="button"] {
 }
 
 .category-card {
-  @apply group bg-card border border-border rounded-3xl p-6 hover:border-orange-500 hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300 flex flex-col items-center text-center min-h-[220px] active:scale-[0.985];
+  @apply bg-card border border-border rounded-3xl p-6 hover:border-orange-500 hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300 flex flex-col items-center text-center min-h-[220px] active:scale-[0.985];
 }
 
 .stat-card {
