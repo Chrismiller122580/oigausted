@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { toast } from 'sonner'
+import { CategoryIcon } from "@/lib/icon-registry"
 
 interface Gig {
   id: string
@@ -142,7 +143,8 @@ export default function GigCard({
               </div>
             )}
             {gig.category && (
-              <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
+              <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full flex items-center gap-1">
+                <CategoryIcon name={gig.category} className="w-3 h-3 mr-0.5 object-contain inline align-middle" />
                 {gig.category}
               </span>
             )}

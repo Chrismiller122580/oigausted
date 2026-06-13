@@ -9,6 +9,7 @@ import { useGigCategories } from "@/lib/useGigCategories";
 import { getCurrentLocation, calculateDistance } from "@/lib/distance";
 import LocationPermissionPrompt from "@/components/maps/LocationPermissionPrompt";
 import { MapPin, Wifi, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { CategoryIcon } from "@/lib/icon-registry";
 
 // Inner client component - this is where useSearchParams is safe
 function GigsClient() {
@@ -332,7 +333,6 @@ function GigsClient() {
               </button>
 
               {(catLoading ? [] : categoryList).map((cat) => {
-                const icon = categoryEmojis[cat] || "🛠️";
                 const count = categoryCounts[cat] || 0;
                 const isActive = selectedCategory === cat;
 
@@ -347,7 +347,9 @@ function GigsClient() {
                     }`}
                     title={cat}
                   >
-                    <div className="text-3xl mb-1">{icon}</div>
+                    <div className="mb-1 flex h-8 w-8 items-center justify-center">
+                      <CategoryIcon name={cat} className="h-7 w-7 object-contain" fallbackClassName="text-2xl" />
+                    </div>
                     <div className="text-[10px] font-medium text-center leading-tight line-clamp-2">
                       {cat}
                     </div>

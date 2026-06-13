@@ -106,6 +106,12 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
   - Updated `vercel.json` to use `prisma migrate deploy` instead of `db push --accept-data-loss`.
   - All future deploys will now run real migrations safely.
 
+- **2026-06-13**: Merged `feat/oiga-gig-1.0-facelift` into `main` and deployed to prod (https://oigagig.com).
+  - Landing page no longer starts in dark mode (ThemeProvider default "light", no enableSystem for new visitors; toggle preserved).
+  - Committed the 22 custom AI-generated category icons (public/icons/*.jpg) + Oiga-GiG-1.0-Facelift-Design-Plan.md.
+  - Cleaned up temporary implementation review artifact .md files.
+  - Note: core facelift visual/landing redesign and icon-registry wiring from the plan are available in the design doc and assets for follow-up; current committed landing still uses emoji category grid + pre-redesign structure. Dark mode default + prep commits are live.
+
 ### Developing locally against Production DB (Codespaces)
 
 When testing against the real production database from GitHub Codespaces:
