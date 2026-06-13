@@ -179,21 +179,69 @@ export default function MiNegocioPage() {
           <ArrowLeft size={22} /> Volver al Dashboard
         </Link>
 
-        <div className="flex flex-col md:flex-row justify-between md:items-center mb-10 gap-4">
-          <h1 className="text-4xl font-bold text-foreground">Mi Negocio</h1>
+        <div className="flex flex-col md:flex-row justify-between md:items-center mb-8 gap-4">
+          <h1 className="text-4xl font-bold text-foreground tracking-tight">Mi Negocio</h1>
           <div className="flex gap-3">
-            <Link href={`/sellers/${slugifyForPreview(formData.businessName) || (session?.user as any)?.id}`} target="_blank">
-              <Button variant="outline">
-                👀 Ver perfil público
-              </Button>
-            </Link>
-            <Button onClick={isEditing ? handleSave : () => setIsEditing(true)} disabled={saving}>
+            <Button onClick={isEditing ? handleSave : () => setIsEditing(true)} disabled={saving} className="px-6">
               {isEditing ? (
                 saving ? "Guardando..." : <><Save size={18} className="mr-2" /> Guardar Cambios</>
               ) : (
                 <><Edit3 size={18} className="mr-2" /> Editar Negocio</>
               )}
             </Button>
+          </div>
+        </div>
+
+        {/* PROMINENT "Your Direct Web Address" - Let sellers know to use & share it */}
+        <div className="mb-10 bg-gradient-to-br from-orange-50 to-white dark:from-orange-950/30 dark:to-background border border-orange-200 dark:border-orange-900/50 rounded-3xl p-7 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="hidden sm:flex w-12 h-12 rounded-2xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 items-center justify-center flex-shrink-0">
+              🔗
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold text-xl text-orange-900 dark:text-orange-100">Tu Dirección Pública Directa</h3>
+                <span className="text-[10px] font-mono bg-orange-100 dark:bg-orange-900/60 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded">NUEVO</span>
+              </div>
+              <p className="text-sm text-orange-800/80 dark:text-orange-200/80 mb-3">
+                Este es tu enlace personal. Compártelo para que los clientes te encuentren directamente sin buscar en la plataforma.
+              </p>
+
+              {(() => {
+                const previewSlug = slugifyForPreview(formData.businessName);
+                const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://oigagig.com'}/sellers/${previewSlug || (session?.user as any)?.id}`;
+                return (
+                  <div className="bg-white dark:bg-zinc-900 border border-orange-200 dark:border-orange-800/60 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="font-mono text-sm text-orange-700 dark:text-orange-300 break-all flex-1 select-all">
+                      {publicUrl}
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(publicUrl);
+                          toast.success('Enlace copiado al portapapeles');
+                        }}
+                        className="gap-1.5"
+                      >
+                        Copiar
+                      </Button>
+                      <Link href={`/sellers/${previewSlug || (session?.user as any)?.id}`} target="_blank">
+                        <Button size="sm" className="bg-orange-600 hover:bg-orange-700 gap-1.5">
+                          Ver perfil →
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="mt-3 text-xs text-orange-700/70 dark:text-orange-300/70">
+                Tip: Actualiza el <strong>Nombre del Negocio</strong> arriba para mejorar tu enlace (ej: <span className="font-mono">plomeria-juan-bucaramanga</span>). 
+                Compártelo en WhatsApp, Instagram, tarjetas de presentación y flyers.
+              </div>
+            </div>
           </div>
         </div>
 

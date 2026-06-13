@@ -157,76 +157,64 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header / Profile Banner */}
-      <div className="bg-gradient-to-br from-orange-600 via-red-600 to-rose-600 text-white py-12">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-            {/* Avatar */}
-            <div className="w-24 h-24 rounded-3xl bg-card/20 backdrop-blur flex items-center justify-center overflow-hidden border-4 border-border/30 flex-shrink-0">
+      {/* Premium Header / Profile Banner - facelift style */}
+      <div className="bg-gradient-to-br from-orange-600 via-red-600 to-rose-600 text-white py-14 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(#ffffff22_1px,transparent_1px)] [background-size:22px_22px]" />
+        <div className="max-w-5xl mx-auto px-6 relative z-10">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-8">
+            {/* Avatar with facelift treatment */}
+            <div className="w-28 h-28 md:w-32 md:h-32 rounded-3xl bg-white/15 backdrop-blur-md flex items-center justify-center overflow-hidden border-4 border-white/30 shadow-2xl flex-shrink-0">
               {seller.profilePicture ? (
                 <img src={seller.profilePicture} alt={displayName} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-5xl font-bold opacity-90">{displayName[0]}</span>
+                <span className="text-6xl font-bold opacity-95">{displayName[0]}</span>
               )}
             </div>
 
             <div className="flex-1">
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-4xl md:text-5xl font-bold">{displayName}</h1>
-                <div className="bg-card/20 px-4 py-1 rounded-full text-sm flex items-center gap-1">
-                  ⭐ {avgRating.toFixed(1)} ({reviews.length} reseñas)
+                <h1 className="text-4xl md:text-5xl font-bold tracking-tighter">{displayName}</h1>
+                <div className="bg-white/20 backdrop-blur px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-1.5 border border-white/30">
+                  ⭐ {avgRating.toFixed(1)} <span className="opacity-80">({reviews.length} reseñas)</span>
                 </div>
               </div>
 
-              <p className="text-white/90 mt-2 text-lg">
+              <p className="text-white/90 mt-2 text-xl">
                 Profesional local en Colombia • {gigs.length} servicios activos
               </p>
 
               {seller.bio && (
-                <p className="mt-4 max-w-2xl text-white/90">{seller.bio}</p>
+                <p className="mt-4 max-w-2xl text-lg text-white/90 leading-relaxed">{seller.bio}</p>
               )}
 
               {hasContact && (
-                <div className="flex gap-3 mt-5">
+                <div className="flex flex-wrap gap-3 mt-6">
                   {seller.whatsapp && (
                     <a 
                       href={`https://wa.me/${seller.whatsapp.replace(/\D/g, '')}`}
                       target="_blank"
-                      className="bg-card text-orange-600 font-semibold px-5 py-2 rounded-2xl text-sm hover:bg-muted transition"
+                      className="bg-white text-orange-600 font-semibold px-6 py-3 rounded-2xl text-sm hover:bg-white/95 transition-all flex items-center gap-2 shadow-lg active:scale-[0.985]"
                     >
-                      💬 WhatsApp
+                      💬 Contactar por WhatsApp
                     </a>
                   )}
                   {seller.instagram && (
                     <a 
                       href={`https://instagram.com/${seller.instagram.replace('@','')}`}
                       target="_blank"
-                      className="border border-border/60 hover:bg-muted/10 px-5 py-2 rounded-2xl text-sm transition"
+                      className="border-2 border-white/70 hover:bg-white/10 px-5 py-3 rounded-2xl text-sm font-medium transition flex items-center gap-2 backdrop-blur active:scale-[0.985]"
                     >
-                      📷 Instagram
+                      📷 Ver en Instagram
                     </a>
                   )}
                 </div>
               )}
-
-              {/* Share profile */}
-              <div className="mt-6 flex flex-wrap items-center gap-3 text-sm">
-                <span className="text-white/70">Compartir este perfil:</span>
-                <a 
-                  href={`https://wa.me/?text=${encodeURIComponent(`Mira los servicios de ${displayName} en OigaUsted`)}`}
-                  target="_blank"
-                  className="px-3 py-1 bg-card/20 hover:bg-card/30 rounded-xl text-xs transition"
-                >
-                  WhatsApp
-                </a>
-                <span className="text-white/50 text-xs">• Copia la URL del navegador para compartir</span>
-              </div>
             </div>
 
-            <div className="md:ml-auto">
+            <div className="md:ml-auto flex flex-col gap-3">
               <Link href="/gigs">
-                <Button variant="outline" className="border-border/70 text-foreground hover:bg-muted/10">
-                  Ver todos los gigs
+                <Button variant="outline" className="border-white/70 text-white hover:bg-white/10 w-full md:w-auto">
+                  Explorar más servicios
                 </Button>
               </Link>
             </div>
@@ -249,59 +237,56 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
         </div>
 
         {gigs.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {gigs.map((gig: any) => (
               <GigCard key={gig.id} gig={gig as any} />
             ))}
           </div>
         ) : (
-          <div className="text-center py-20 bg-card rounded-3xl border-border">
-            <p className="text-2xl text-muted-foreground">Este vendedor aún no tiene gigs publicados.</p>
+          <div className="text-center py-16 bg-card rounded-3xl border border-border">
+            <p className="text-xl text-muted-foreground">Este vendedor aún no tiene servicios publicados.</p>
+            <Link href="/gigs" className="text-orange-600 hover:underline text-sm mt-3 inline-block">
+              Explora otros profesionales locales →
+            </Link>
           </div>
         )}
 
-        {/* Recent Reviews */}
+        {/* Recent Reviews - facelift style */}
         {reviews.length > 0 && (
           <div className="mt-16">
-            <h3 className="text-2xl font-semibold mb-6 flex items-center gap-3">
-              Reseñas de clientes <span className="text-base font-normal text-muted-foreground">({reviews.length} recientes)</span>
-            </h3>
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="flex items-end justify-between mb-6">
+              <h3 className="text-3xl font-bold tracking-tight">Lo que dicen sus clientes</h3>
+              <span className="text-sm text-muted-foreground">({reviews.length} reseñas recientes)</span>
+            </div>
+            <div className="grid md:grid-cols-2 gap-5">
               {reviews.map((review: any) => (
-                <div key={review.id} className="bg-card border rounded-3xl p-6 hover:shadow-sm transition">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="flex gap-0.5 text-xl">
-                      {[1,2,3,4,5].map(n => (
-                        <span key={n}>{n <= review.rating ? '⭐' : '☆'}</span>
-                      ))}
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(review.createdAt).toLocaleDateString('es-CO')}
-                    </span>
+                <div key={review.id} className="testimonial-card border border-border/70">
+                  <div className="flex items-center gap-2 mb-3 text-amber-500 text-lg tracking-[1px]">
+                    {[1,2,3,4,5].map(n => (
+                      <span key={n}>{n <= review.rating ? '★' : '☆'}</span>
+                    ))}
                   </div>
 
                   {review.comment && (
-                    <p className="text-foreground mb-4 leading-relaxed">"{review.comment}"</p>
+                    <p className="text-foreground mb-5 leading-relaxed text-[15px]">“{review.comment}”</p>
                   )}
 
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
+                  <div className="mt-auto pt-4 border-t flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 text-muted-foreground">
                       {review.reviewer?.profilePicture ? (
                         <img 
                           src={review.reviewer.profilePicture} 
                           alt="" 
-                          className="w-6 h-6 rounded-full object-cover" 
+                          className="w-5 h-5 rounded-full object-cover border" 
                         />
                       ) : (
-                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px]">👤</div>
+                        <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[9px]">👤</div>
                       )}
-                      <span className="text-foreground font-medium">
-                        {review.reviewer?.name || 'Cliente'}
-                      </span>
+                      <span className="font-medium text-foreground">{review.reviewer?.name || 'Cliente'}</span>
                     </div>
 
                     {review.order?.gig?.title && (
-                      <div className="text-[10px] bg-orange-50 text-orange-600 px-2.5 py-0.5 rounded-full">
+                      <div className="text-[10px] bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 px-2.5 py-0.5 rounded-full">
                         {review.order.gig.title}
                       </div>
                     )}
@@ -309,17 +294,42 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
                 </div>
               ))}
             </div>
-            <p className="text-center text-xs text-muted-foreground mt-6">
-              Mostrando las reseñas más recientes
-            </p>
           </div>
         )}
+      </div>
+
+      {/* Share & Spread section - helps sellers get more visibility */}
+      <div className="border-t bg-muted/30 py-10">
+        <div className="max-w-3xl mx-auto px-6 text-center">
+          <p className="text-sm text-muted-foreground mb-2">¿Conoces a alguien que necesite estos servicios?</p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <a 
+              href={`https://wa.me/?text=${encodeURIComponent(`Mira los servicios de ${displayName} en OigaUsted: ${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+              target="_blank"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-2xl border bg-background text-sm font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 transition"
+            >
+              Compartir por WhatsApp
+            </a>
+            <button 
+              onClick={() => {
+                if (typeof navigator !== 'undefined') {
+                  navigator.clipboard.writeText(window.location.href);
+                  // Simple alert fallback if no toast in this context
+                  alert('Enlace del perfil copiado');
+                }
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-2xl border bg-background text-sm font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 transition"
+            >
+              Copiar enlace del perfil
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Footer CTA */}
       <div className="border-t py-8 bg-card">
         <div className="max-w-4xl mx-auto px-6 text-center text-sm text-muted-foreground">
-          ¿Te gusta lo que ves? <Link href="/gigs" className="text-orange-600 hover:underline">Explora más servicios locales</Link> o publica tu propia necesidad.
+          ¿Te gusta lo que ves? <Link href="/gigs" className="text-orange-600 hover:underline">Explora más servicios locales</Link> o publica tu propia necesidad en OigaUsted.
         </div>
       </div>
     </div>

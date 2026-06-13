@@ -71,6 +71,13 @@ export default function SellerDashboard() {
             <Link href="/seller/profile" className="text-sm text-orange-600 hover:underline inline-block mt-1">
               Editar Mi Negocio →
             </Link>
+            {/* Quick promotion of public seller URL */}
+            <Link 
+              href="/seller/profile" 
+              className="text-xs inline-flex items-center gap-1 mt-2 text-orange-700 hover:text-orange-600 dark:text-orange-400"
+            >
+              🔗 Ver y compartir tu enlace público directo →
+            </Link>
           </div>
           {/* Center the CTA on mobile so it aligns with the stacked stat tiles */}
           <div className="flex justify-center md:justify-end">
