@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { toast } from 'sonner';
 import { Plus, Trash2, Edit2, Save, X, Tag, RefreshCw, AlertTriangle } from 'lucide-react';
 import { gigCategories as staticGigCategories } from '@/lib/gig-categories';
-import { getCategoryIcon, getCategoryIconKey } from '@/lib/icon-registry'; // for preview + iconKey support (PR3 PNG or emoji)
+import { getCategoryIcon, getCategoryIconKey } from '@/lib/icon-registry'; // for preview + iconKey support (PR3 .jpg or emoji)
 
 interface FieldDef {
   key: string;
@@ -270,7 +270,7 @@ export default function AdminCategoriesPage() {
                   placeholder={getCategoryIconKey(formName) || 'limpieza-de-hogar-y-oficinas'}
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Preview: {(() => { const ic = getCategoryIcon(formName || ''); return (typeof ic === 'string' && ic.startsWith('/') ? <img src={ic} alt="" className="inline w-6 h-6 align-middle" /> : <span className="text-xl align-middle">{ic}</span>); })()} {/* PR3 AI icons; emoji fallback */}
+                  Preview: {(() => { const ic = getCategoryIcon(formName || ''); return (typeof ic === 'string' && ic.startsWith('/') ? <img src={ic} alt="" loading="lazy" className="inline w-6 h-6 align-middle" /> : <span className="text-xl align-middle">{ic}</span>); })()} {/* PR3 AI icons; emoji fallback */}
                   {formIconKey && <span className="ml-1 font-mono text-[10px]">({formIconKey})</span>}
                 </p>
               </div>
@@ -550,7 +550,16 @@ export default function AdminCategoriesPage() {
                 <tbody>
                   {categories.map((cat) => (
                     <tr key={cat.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="py-3 pr-4 text-2xl">{cat.icon}</td>
+                      <td className="py-3 pr-4">
+                        {(() => {
+                          const ic = getCategoryIcon(cat.name);
+                          return typeof ic === 'string' && ic.startsWith('/') ? (
+                            <img src={ic} alt="" loading="lazy" className="inline w-6 h-6 align-middle" />
+                          ) : (
+                            <span className="text-2xl align-middle">{ic}</span>
+                          );
+                        })()}
+                      </td>
                       <td className="py-3 pr-4 text-xs text-muted-foreground font-mono">
                         {cat.iconKey || getCategoryIconKey(cat.name) || '—'}
                       </td>

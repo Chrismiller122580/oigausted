@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
-import { getGigCategories, getCategoryIcon } from '@/lib/categories'; // getCategoryIcon from registry (now PNG path for PR3 AI assets, emoji fallback)
+import { getGigCategories, getCategoryIcon } from '@/lib/categories'; // getCategoryIcon from registry (now .jpg path for PR3 AI assets, emoji fallback)
 import { motion, MotionConfig } from 'framer-motion';
 
 export const metadata = {
@@ -191,7 +191,7 @@ export default async function MarketingHomePage() {
                 className="flex flex-col items-center text-center min-h-[220px] w-full"
               >
                 {typeof cat.icon === 'string' && cat.icon.startsWith('/') ? (
-                  <img src={cat.icon} alt="" className="w-12 h-12 mb-4 object-contain transition-transform group-hover:scale-110" />
+                  <img src={cat.icon} alt="" loading="lazy" className="w-12 h-12 mb-4 object-contain transition-transform group-hover:scale-110" />
                 ) : (
                   <div className="text-5xl mb-4 transition-transform group-hover:scale-110">
                     {cat.icon}

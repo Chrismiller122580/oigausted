@@ -6,7 +6,7 @@ import GigCard from "@/components/common/GigCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useGigCategories } from "@/lib/useGigCategories";
-import { getCategoryIcon } from "@/lib/icon-registry"; // prefer registry for icons (PR3 PNG paths or emoji fallback)
+import { getCategoryIcon } from "@/lib/icon-registry"; // prefer registry for icons (PR3 .jpg paths or emoji fallback)
 import { getCurrentLocation, calculateDistance } from "@/lib/distance";
 import LocationPermissionPrompt from "@/components/maps/LocationPermissionPrompt";
 import { MapPin, Wifi, X, ChevronLeft, ChevronRight } from "lucide-react";
@@ -343,7 +343,7 @@ function GigsClient() {
                     title={cat}
                   >
                     {typeof icon === 'string' && icon.startsWith('/') ? (
-                      <img src={icon} alt="" className="w-8 h-8 mb-1 object-contain" />
+                      <img src={icon} alt="" loading="lazy" className="w-8 h-8 mb-1 object-contain" />
                     ) : (
                       <div className="text-3xl mb-1">{icon}</div>
                     )}

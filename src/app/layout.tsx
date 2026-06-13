@@ -56,7 +56,8 @@ export async function generateMetadata(): Promise<Metadata> {
       ],
       shortcut: "/icon.png",
     },
-    // PR3 note: premium AI custom category icons at /icons/<kebab-slug>.png (see icon-registry.ts + public/icons/*).
+    // PR3 note: premium AI custom category icons at /icons/<kebab-slug>.jpg (see icon-registry.ts + public/icons/*).
+    // Note: committed assets are JPEG rasters (.jpg for MIME; 1024x1024 despite 'PNG primary'/'256 base' prompt); see registry docs + summary for env practicality details. object-contain + lazy used in renders.
     // No refined app icon or hero illustration was generated alongside the 22 category assets; root icons/logo remain.
     appleWebApp: {
       capable: true,

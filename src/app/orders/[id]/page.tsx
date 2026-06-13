@@ -12,6 +12,7 @@ import { useGigCategories } from '@/lib/useGigCategories';
 import { parseCustomFields } from '@/lib/utils';
 import GoogleMap from '@/components/maps/GoogleMap';
 import { MapPin } from 'lucide-react';
+import { getCategoryIcon } from '@/lib/icon-registry'; // PR3: support PNG/JPG paths + emoji fallback for category visual
 
 declare global {
   interface Window {
@@ -365,9 +366,9 @@ function OrderDetailClient() {
     );
   }
 
-  const categoryInfo = gigCategories.find(c => c.name === order.gig?.category) || {};
-  const emoji = (categoryInfo as any).icon || (categoryInfo as any).emoji || '📦';
   const isCleaningGig = order.gig?.category?.toLowerCase().includes("limpieza");
+  // PR3: use registry for icon (supports .jpg asset path or emoji fallback); was hardcoded static emoji
+  const icon = getCategoryIcon(order.gig?.category || '');
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -381,7 +382,11 @@ function OrderDetailClient() {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 bg-card p-6 rounded-3xl shadow">
         <div className="flex items-center gap-4">
-          <span className="text-6xl">{emoji}</span>
+          {typeof icon === 'string' && icon.startsWith('/') ? (
+            <img src={icon} alt="" loading="lazy" className="w-12 h-12 object-contain" />
+          ) : (
+            <span className="text-6xl">{icon}</span>
+          )}
           <div>
             <h1 className="text-3xl font-bold">Pedido #{order.id.slice(0, 8)}</h1>
             <p className="text-xl text-foreground">{order.gig?.title}</p>
