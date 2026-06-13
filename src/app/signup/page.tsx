@@ -135,6 +135,7 @@ function SignUpClient() {
         {/* Hero with Logo */}
         <div className="bg-gradient-to-r from-orange-500 to-red-600 p-8 sm:p-10 text-white text-center">
           <div className="flex justify-center mb-6">
+            {/* Logo replaces prior static <Image src="/logo.png">; uses dynamic siteName/logoUrl (internal shadow-sm on icon; wrapper className for container) */}
             <Logo size={100} className="drop-shadow-lg text-white" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold">¡Bienvenido a {siteName}!</h1>

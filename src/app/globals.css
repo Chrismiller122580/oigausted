@@ -197,8 +197,9 @@ button, a, [role="button"] {
   }
 }
 
-/* Premium, minimal motion utilities for framer-motion + landing polish (PR1).
-   Respect reduced-motion per accessibility guidelines. */
+/* Forward-looking premium utilities for future non-framer elements or consistency.
+   Framer <motion.*> + <MotionConfig reducedMotion="user"> handle the landing animations + reducedMotion.
+   The media query provides a11y baseline. (Added PR1 for polish; not applied to current framer elements.) */
 .motion-safe {
   transition-property: transform, opacity, box-shadow;
   transition-timing-function: cubic-bezier(0.21, 0.92, 0.26, 1);

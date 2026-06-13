@@ -92,74 +92,74 @@ export default async function MarketingHomePage() {
       <div className="min-h-screen bg-background">
         {/* HERO SECTION */}
         <section className="relative bg-gradient-to-br from-orange-600 via-red-600 to-rose-600 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(#ffffff33_1px,transparent_1px)] [background-size:20px_20px]"></div>
-        
-        <div className="max-w-7xl mx-auto px-6 pt-20 pb-16 relative z-10">
-          <div className="max-w-3xl">
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: [0.21, 0.92, 0.26, 1] }}
-              className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm mb-6"
-            >
-              🇨🇴 Hecho en Colombia • Conecta local
-            </motion.div>
-
-            <motion.h1
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.21, 0.92, 0.26, 1], delay: 0.05 }}
-              className="text-5xl md:text-6xl font-bold leading-tight mb-6"
-            >
-              El servicio que necesitas,<br className="hidden md:block" /> con gente de confianza.
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.21, 0.92, 0.26, 1], delay: 0.1 }}
-              className="text-xl md:text-2xl text-white/90 mb-10"
-            >
-              Conecta directo con profesionales locales en Bucaramanga, Bogotá, Medellín, Cali y todo Colombia.<br className="hidden md:block" />
-              Sin intermediarios. Pagos seguros. Calificaciones reales.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.21, 0.92, 0.26, 1], delay: 0.15 }}
-              className="flex flex-col sm:flex-row gap-4"
-            >
-              <Link
-                href="/gigs"
-                className="bg-card text-orange-600 hover:bg-muted font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95"
+          <div className="absolute inset-0 bg-[radial-gradient(#ffffff33_1px,transparent_1px)] [background-size:20px_20px]"></div>
+          
+          <div className="max-w-7xl mx-auto px-6 pt-20 pb-16 relative z-10">
+            <div className="max-w-3xl">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: [0.21, 0.92, 0.26, 1] }}
+                className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm mb-6"
               >
-                Ver todos los servicios
-                <span aria-hidden="true">→</span>
-              </Link>
+                🇨🇴 Hecho en Colombia • Conecta local
+              </motion.div>
 
-              <Link
-                href="/create-gig"
-                className="border-2 border-border/80 hover:bg-muted/10 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center transition-all"
+              <motion.h1
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.21, 0.92, 0.26, 1], delay: 0.05 }}
+                className="text-5xl md:text-6xl font-bold leading-tight mb-6"
               >
-                Quiero ofrecer mis servicios
-              </Link>
-            </motion.div>
+                El servicio que necesitas,<br className="hidden md:block" /> con gente de confianza.
+              </motion.h1>
 
-            <motion.p
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.25 }}
-              className="mt-8 text-sm text-white/70 flex items-center gap-2"
-            >
-              ⭐ Calificaciones reales • 💬 Chat directo • 💰 Pagos con Wompi
-            </motion.p>
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.21, 0.92, 0.26, 1], delay: 0.1 }}
+                className="text-xl md:text-2xl text-white/90 mb-10"
+              >
+                Conecta directo con profesionales locales en Bucaramanga, Bogotá, Medellín, Cali y todo Colombia.<br className="hidden md:block" />
+                Sin intermediarios. Pagos seguros. Calificaciones reales.
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.21, 0.92, 0.26, 1], delay: 0.15 }}
+                className="flex flex-col sm:flex-row gap-4"
+              >
+                <Link
+                  href="/gigs"
+                  className="bg-card text-orange-600 hover:bg-muted font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95"
+                >
+                  Ver todos los servicios
+                  <span aria-hidden="true">→</span>
+                </Link>
+
+                <Link
+                  href="/create-gig"
+                  className="border-2 border-border/80 hover:bg-muted/10 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center transition-all"
+                >
+                  Quiero ofrecer mis servicios
+                </Link>
+              </motion.div>
+
+              <motion.p
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.25 }}
+                className="mt-8 text-sm text-white/70 flex items-center gap-2"
+              >
+                ⭐ Calificaciones reales • 💬 Chat directo • 💰 Pagos con Wompi
+              </motion.p>
+            </div>
           </div>
-        </div>
 
-        <div className="absolute bottom-0 right-10 hidden lg:block opacity-30">
-          <Image src="/globe.svg" alt="Colombia" width={280} height={280} />
-        </div>
+          <div className="absolute bottom-0 right-10 hidden lg:block opacity-30">
+            <Image src="/globe.svg" alt="Colombia" width={280} height={280} />
+          </div>
       </section>
 
       {/* CATEGORIES GRID */}
@@ -175,6 +175,7 @@ export default async function MarketingHomePage() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {/* index for entrance stagger timing; list items are static server data, no reordering risk */}
           {popularCategories.map((cat, i) => (
             <Link
               key={cat.name}
@@ -223,6 +224,7 @@ export default async function MarketingHomePage() {
             { step: "1", title: "Busca o publica", desc: "Explora categorías o publica tu propio servicio en menos de 2 minutos." },
             { step: "2", title: "Contacta directo", desc: "Chatea con el profesional, acuerda detalles y precio sin intermediarios." },
             { step: "3", title: "Paga seguro y califica", desc: "Paga con Wompi al finalizar. Deja una reseña real para ayudar a otros." }
+          {/* index for entrance stagger timing; static array, no reordering risk */}
           ].map((item, i) => (
             <motion.div
               key={i}
