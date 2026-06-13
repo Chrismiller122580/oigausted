@@ -164,6 +164,14 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
 
+    // Snapshot current values (using the safe getPlatformConfig path with limited
+    // select) so we can compute a meaningful diff for the audit log. This prevents
+    // every save from appearing to change 25+ fields.
+    let current: any = {};
+    try {
+      current = (await getPlatformConfig(true)) || {};
+    } catch {}
+
     // Use upsert for the core (stable) fields. This guarantees the singleton row is
     // created if it is missing (the previous getPlatformConfig + update path would
     // silently swallow "record not found", set updated= stale defaults, return 200,
@@ -291,7 +299,25 @@ export async function PUT(request: NextRequest) {
     const adminId = (session.user as any).id;
     const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || null;
     const userAgent = request.headers.get('user-agent') || null;
-    const changedKeys = Object.keys(body).filter(k => body[k] !== undefined);
+
+    // Only report fields that actually differ from the previous persisted values.
+    // (Client always sends the full current form state.)
+    const changedKeys = Object.keys(body).filter(k => {
+      if (body[k] === undefined) return false;
+      const oldVal = (current as any)[k];
+      const newVal = body[k];
+      // Normalize empty-ish values so '' / null / undefined don't count as a change for
+      // optional string fields (supportPhone, logoUrl, bypass IPs, SFTP strings, etc.)
+      const norm = (v: any) => (v == null || v === '') ? '' : v;
+      return norm(oldVal) !== norm(newVal);
+    });
+
+    // Redact secrets — they must never be stored in plain text inside AuditLog.details
+    // (even when the admin legitimately updates the SFTP credentials).
+    const redactedNewValues: any = { ...body };
+    if (redactedNewValues.wompiSftpPassword) redactedNewValues.wompiSftpPassword = '[REDACTED]';
+    if (redactedNewValues.wompiSftpPrivateKey) redactedNewValues.wompiSftpPrivateKey = '[REDACTED]';
+
     await logAuditEvent({
       adminId,
       action: 'PLATFORM_CONFIG_UPDATED',
@@ -299,7 +325,7 @@ export async function PUT(request: NextRequest) {
       targetId: updated.id,
       details: {
         changedFields: changedKeys,
-        newValues: body,
+        newValues: redactedNewValues,
       },
       ipAddress,
       userAgent,
