@@ -239,6 +239,14 @@ export default function AdminSettings() {
     globalEmailNotificationsEnabled: config.globalEmailNotificationsEnabled,
     maintenanceBypassIps: config.maintenanceBypassIps || '',
     wompiRealPaymentsEnabled: config.wompiRealPaymentsEnabled ?? false,
+    // SFTP fields (were missing from dirty check — this was why Save stayed disabled)
+    wompiSftpEnabled: config.wompiSftpEnabled ?? false,
+    wompiSftpHost: config.wompiSftpHost || '',
+    wompiSftpPort: config.wompiSftpPort || 22,
+    wompiSftpUsername: config.wompiSftpUsername || '',
+    wompiSftpPassword: config.wompiSftpPassword || '',
+    wompiSftpPrivateKey: config.wompiSftpPrivateKey || '',
+    wompiSftpRemotePath: config.wompiSftpRemotePath || '/',
   }) !== JSON.stringify({
     commissionRate: originalConfig.commissionRate,
     referralCommissionRate: originalConfig.referralCommissionRate,
@@ -259,6 +267,13 @@ export default function AdminSettings() {
     globalEmailNotificationsEnabled: originalConfig.globalEmailNotificationsEnabled,
     maintenanceBypassIps: originalConfig.maintenanceBypassIps || '',
     wompiRealPaymentsEnabled: originalConfig.wompiRealPaymentsEnabled ?? false,
+    wompiSftpEnabled: originalConfig.wompiSftpEnabled ?? false,
+    wompiSftpHost: originalConfig.wompiSftpHost || '',
+    wompiSftpPort: originalConfig.wompiSftpPort || 22,
+    wompiSftpUsername: originalConfig.wompiSftpUsername || '',
+    wompiSftpPassword: originalConfig.wompiSftpPassword || '',
+    wompiSftpPrivateKey: originalConfig.wompiSftpPrivateKey || '',
+    wompiSftpRemotePath: originalConfig.wompiSftpRemotePath || '/',
   });
 
   const payment = config?._meta?.payment;
