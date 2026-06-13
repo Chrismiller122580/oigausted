@@ -7,6 +7,7 @@ export async function middleware(request: NextRequest) {
   // - Bypassed IPs (e.g. your office/home) + login/admin flows get full access (plus the red banner for testing).
   // - The banner (client fetch to /api/admin/config) shows for everyone when active.
   // - Lightweight: we fetch config with short revalidate; fail-open on error.
+  // - Additional IPs can be set via MAINTENANCE_BYPASS_IPS env var (comma-separated) — merged with DB list.
 
   const pathname = request.nextUrl.pathname;
 
@@ -31,12 +32,21 @@ export async function middleware(request: NextRequest) {
     if (res.ok) {
       const cfg = await res.json();
       if (cfg.maintenanceMode) {
-        const bypassIps = (cfg.maintenanceBypassIps || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+        const dbBypass = (cfg.maintenanceBypassIps || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+        const envBypass = (process.env.MAINTENANCE_BYPASS_IPS || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+        const bypassIps = Array.from(new Set([...dbBypass, ...envBypass]));
+
+        // TEMP: ensure the currently reported dev/test IP (from the maintenance screen) is bypassed
+        // so the full site + banner is visible without needing an immediate DB/env update.
+        // Remove this block once 73.23.141.95 (or your current IP) is permanently in the bypass list.
+        if (!bypassIps.includes('73.23.141.95')) {
+          bypassIps.push('73.23.141.95');
+        }
         const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
                    request.headers.get('x-real-ip') ||
                    '';
 
-        const isBypassed = bypassIps.some((b: string) => ip.includes(b) || b.includes(ip));
+        const isBypassed = bypassIps.some((b: string) => ip === b || ip.includes(b) || b.includes(ip));
 
         if (!isBypassed && !isExempt) {
           // Non-bypassed normal user hitting a regular page → serve maintenance page (real restriction).
