@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,8 @@ interface User {
 }
 
 export default function AdminUsersPage() {
+  const { data: currentSession, update } = useSession();
+  const currentUserId = (currentSession?.user as any)?.id;
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -206,7 +209,7 @@ export default function AdminUsersPage() {
   };
 
   const impersonateUser = async (user: User) => {
-    if (!confirm(`Impersonate ${user.email}? This action will be logged.`)) return;
+    if (!confirm(`Impersonate ${user.email || user.name}? This will switch you into their account (all actions will be performed as them). This is logged for audit.`)) return;
 
     try {
       const res = await fetch('/api/admin/impersonate', {
@@ -216,11 +219,14 @@ export default function AdminUsersPage() {
       });
 
       if (res.ok) {
-        toast.success(`Opening session as ${user.email}...`);
-        // Open their profile in a new tab with impersonation flag
-        window.open(`/profile?impersonate=${user.id}`, '_blank');
+        toast.success(`Switching to ${user.email}...`);
+        // Update the NextAuth JWT in-place so the current browser session now acts as the target user.
+        await update({ impersonatedUserId: user.id });
+        // Hard navigate to home so the user immediately experiences the site with the new identity (navbars, permissions, data etc.)
+        window.location.href = '/';
       } else {
-        toast.error('Could not start impersonation');
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.error || 'Could not start impersonation');
       }
     } catch (e) {
       toast.error('Error impersonating user');
@@ -420,6 +426,17 @@ export default function AdminUsersPage() {
                       >
                         Orders
                       </a>
+
+                      {user.id !== currentUserId && (
+                        <Button
+                          size="sm"
+                          onClick={() => impersonateUser(user)}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs"
+                          title="Impersonate this user (admin actions will be performed as them)"
+                        >
+                          Impersonate
+                        </Button>
+                      )}
 
                       {roleEditingId === user.id ? (
                         <div className="inline-flex gap-1">

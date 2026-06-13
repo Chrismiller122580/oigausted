@@ -224,6 +224,124 @@ export const authOptions = {
         if (session.latitude !== undefined) t.latitude = session.latitude
         if (session.longitude !== undefined) t.longitude = session.longitude
         if (session.serviceRadiusKm !== undefined) t.serviceRadiusKm = session.serviceRadiusKm
+
+        // === Impersonation support (admin can temporarily become another user) ===
+        // Triggered from admin/users "Impersonate" button via session.update()
+        if (session.impersonatedUserId) {
+          // Preserve the real admin identity so we can restore later
+          if (!t.impersonatorId) {
+            t.impersonatorId = t.id
+          }
+          t.impersonatedUserId = session.impersonatedUserId
+        }
+
+        if (session.stopImpersonation) {
+          const realAdminId = t.impersonatorId || t.id
+          // Clear impersonation flags
+          delete t.impersonatedUserId
+          delete t.impersonatorId
+          // Re-load the real admin's identity so the session becomes the admin again
+          if (realAdminId) {
+            try {
+              const realAdmin = await prisma.user.findUnique({
+                where: { id: realAdminId },
+                select: {
+                  id: true, name: true, role: true, email: true,
+                  tagline: true, profilePicture: true, businessName: true,
+                  bio: true, phone: true, whatsapp: true, instagram: true, facebook: true,
+                  city: true, latitude: true, longitude: true, serviceRadiusKm: true,
+                  rating: true, reviewCount: true, referredById: true,
+                }
+              })
+              if (realAdmin) {
+                t.id = realAdmin.id
+                t.role = realAdmin.role || 'admin'
+                t.name = realAdmin.name
+                t.email = realAdmin.email
+                t.tagline = realAdmin.tagline
+                t.profilePicture = realAdmin.profilePicture
+                t.businessName = realAdmin.businessName
+                t.bio = realAdmin.bio
+                t.phone = realAdmin.phone
+                t.whatsapp = realAdmin.whatsapp
+                t.instagram = realAdmin.instagram
+                t.facebook = realAdmin.facebook
+                t.city = realAdmin.city
+                t.latitude = realAdmin.latitude
+                t.longitude = realAdmin.longitude
+                t.serviceRadiusKm = realAdmin.serviceRadiusKm
+                t.rating = realAdmin.rating ?? 0
+                t.reviewCount = realAdmin.reviewCount ?? 0
+                t.referredById = realAdmin.referredById ?? null
+              }
+            } catch (e) {
+              devLog('[auth] Failed to restore admin after stopping impersonation', e)
+            }
+          }
+        }
+      }
+
+      // === Impersonation override (applies on every token resolution / refresh) ===
+      // If the token carries an impersonatedUserId (set via update or persisted in JWT),
+      // we override the visible identity (id, role, profile fields) with the target's data.
+      // The original admin id is kept in impersonatorId so we can stop later.
+      const t = token as any
+      if (t.impersonatedUserId && t.impersonatedUserId !== t.id) {
+        try {
+          const target = await prisma.user.findUnique({
+            where: { id: t.impersonatedUserId },
+            select: {
+              id: true,
+              name: true,
+              role: true,
+              email: true,
+              tagline: true,
+              profilePicture: true,
+              businessName: true,
+              bio: true,
+              phone: true,
+              whatsapp: true,
+              instagram: true,
+              facebook: true,
+              city: true,
+              latitude: true,
+              longitude: true,
+              serviceRadiusKm: true,
+              rating: true,
+              reviewCount: true,
+              referredById: true,
+            }
+          })
+          if (target) {
+            // Save who the real admin is (if not already recorded)
+            if (!t.impersonatorId) {
+              t.impersonatorId = t.id
+            }
+            // Override visible session identity with the impersonated user
+            t.id = target.id
+            t.role = target.role || 'buyer'
+            t.name = target.name
+            t.email = target.email
+            t.tagline = target.tagline
+            t.profilePicture = target.profilePicture
+            t.businessName = target.businessName
+            t.bio = target.bio
+            t.phone = target.phone
+            t.whatsapp = target.whatsapp
+            t.instagram = target.instagram
+            t.facebook = target.facebook
+            t.city = target.city
+            t.latitude = target.latitude
+            t.longitude = target.longitude
+            t.serviceRadiusKm = target.serviceRadiusKm
+            t.rating = target.rating ?? 0
+            t.reviewCount = target.reviewCount ?? 0
+            t.referredById = target.referredById ?? null
+            t.impersonating = true
+          }
+        } catch (e) {
+          devLog('[auth] Impersonation user load failed (non-fatal)', e)
+        }
       }
 
       // No per-request role/profile refetch to reduce DB load on every getServerSession (role changes require re-login or explicit session update)
@@ -257,6 +375,10 @@ export const authOptions = {
         su.rating = t.rating ?? 0
         su.reviewCount = t.reviewCount ?? 0
         su.referredById = t.referredById ?? null
+
+        // Impersonation flags (visible to all UI so we can show the banner + stop button)
+        su.impersonatorId = t.impersonatorId || null
+        su.isImpersonating = !!t.impersonatorId
       }
       return session
     },

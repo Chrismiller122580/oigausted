@@ -14,6 +14,7 @@ import Logo from '@/components/common/Logo';
 import AdminNavbar from './AdminNavbar';
 import BuyerNavbar from './BuyerNavbar';
 import SellerNavbar from './SellerNavbar';
+import ImpersonationBanner from './ImpersonationBanner';
 
 export default function NavbarWrapper({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
@@ -27,13 +28,40 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
 
   const role = String((session?.user as any)?.role || '').toLowerCase().trim();
 
-  if (role === 'admin') return <AdminNavbar>{children}</AdminNavbar>;
-  if (role === 'seller') return <SellerNavbar>{children}</SellerNavbar>;
-  if (role === 'buyer') return <BuyerNavbar>{children}</BuyerNavbar>;
+  // The impersonation banner (if active) is always rendered at the very top.
+  // It is self-contained and will only show when the current session has impersonatorId.
+  // This works even when the effective role is buyer/seller (the admin is "wearing" that identity).
+  const banner = <ImpersonationBanner />;
+
+  if (role === 'admin') {
+    return (
+      <>
+        {banner}
+        <AdminNavbar>{children}</AdminNavbar>
+      </>
+    );
+  }
+  if (role === 'seller') {
+    return (
+      <>
+        {banner}
+        <SellerNavbar>{children}</SellerNavbar>
+      </>
+    );
+  }
+  if (role === 'buyer') {
+    return (
+      <>
+        {banner}
+        <BuyerNavbar>{children}</BuyerNavbar>
+      </>
+    );
+  }
 
   // Public navbar
   return (
     <>
+      {banner}
       <nav className="bg-background border-b border-border shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
