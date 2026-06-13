@@ -141,7 +141,7 @@ export default function SellerGigsManagement() {
       <MapsPollutionNuke />
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
             <h1 className="text-5xl font-bold tracking-tight text-foreground">Mis Servicios</h1>
             <p className="text-xl text-muted-foreground mt-2">Gestiona, pausa o edita tus gigs</p>
@@ -154,6 +154,16 @@ export default function SellerGigsManagement() {
               </Button>
             </Link>
           </div>
+        </div>
+
+        {/* Public profile promo in gigs management */}
+        <div className="mb-8 p-4 rounded-2xl bg-gradient-to-r from-orange-50 to-white dark:from-orange-950/40 border border-orange-100 dark:border-orange-900/50 flex flex-col sm:flex-row sm:items-center gap-3 text-sm">
+          <div className="flex-1">
+            <span className="font-medium">🔗 Tus clientes pueden contactarte directamente</span> usando tu perfil público personalizado.
+          </div>
+          <Link href="/seller/profile">
+            <Button size="sm" variant="outline" className="border-orange-300">Ver mi enlace y QR público</Button>
+          </Link>
         </div>
 
         {/* Summary Stats */}

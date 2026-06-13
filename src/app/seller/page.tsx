@@ -71,14 +71,24 @@ export default function SellerDashboard() {
             <Link href="/seller/profile" className="text-sm text-orange-600 hover:underline inline-block mt-1">
               Editar Mi Negocio →
             </Link>
-            {/* Quick promotion of public seller URL */}
-            <Link 
-              href="/seller/profile" 
-              className="text-xs inline-flex items-center gap-1 mt-2 text-orange-700 hover:text-orange-600 dark:text-orange-400"
-            >
-              🔗 Ver y compartir tu enlace público directo →
-            </Link>
           </div>
+
+          {/* Prominent public profile card on main dashboard */}
+          <Card className="bg-gradient-to-br from-orange-50 to-white dark:from-orange-950/40 border-orange-200 dark:border-orange-900/60">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-orange-600 font-semibold mb-2">
+                🔗 Tu perfil público directo
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Comparte este enlace para que los clientes te encuentren sin intermediarios.
+              </p>
+              <Link href="/seller/profile">
+                <Button size="sm" variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-100">
+                  Ver y compartir mi enlace público
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
           {/* Center the CTA on mobile so it aligns with the stacked stat tiles */}
           <div className="flex justify-center md:justify-end">
             <Link href="/create-gig">

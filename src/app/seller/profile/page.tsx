@@ -18,6 +18,21 @@ export default function MiNegocioPage() {
   const { data: session, update } = useSession();
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showNewBanner, setShowNewBanner] = useState(false);
+
+  // Show a one-time "New!" nudge for the public profile feature
+  useEffect(() => {
+    if (session?.user) {
+      const dismissed = localStorage.getItem('dismissedSellerPublicProfilePromo');
+      if (!dismissed) {
+        // Show if they have a business name (i.e. they are a seller)
+        const user = session.user as any;
+        if (user.businessName) {
+          setShowNewBanner(true);
+        }
+      }
+    }
+  }, [session]);
 
   // Nuclear per-page defense against lingering Google Places widget pollution.
   // We no longer remove DOM nodes (was causing uncaught removeChild errors + React desync).
@@ -192,8 +207,40 @@ export default function MiNegocioPage() {
           </div>
         </div>
 
+        {/* One-time New! onboarding nudge */}
+        {showNewBanner && (
+          <div className="mb-8 p-5 rounded-3xl bg-orange-600 text-white flex flex-col sm:flex-row sm:items-center gap-4 shadow-lg">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 font-semibold text-lg">
+                🎉 ¡Nuevo! Tu perfil público directo
+              </div>
+              <p className="text-orange-100 mt-1 text-sm">
+                Ahora tienes tu propia dirección web personal (ej: oigagig.com/sellers/tu-negocio). 
+                Compártela para conseguir más clientes directamente.
+              </p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <Button 
+                variant="outline" 
+                className="border-white/70 text-white hover:bg-white/10"
+                onClick={() => {
+                  localStorage.setItem('dismissedSellerPublicProfilePromo', 'true');
+                  setShowNewBanner(false);
+                }}
+              >
+                Entendido
+              </Button>
+              <Link href="#public-link-section">
+                <Button className="bg-white text-orange-600 hover:bg-white/90">
+                  Ver mi enlace
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* PROMINENT "Your Direct Web Address" - Let sellers know to use & share it */}
-        <div className="mb-10 bg-gradient-to-br from-orange-50 to-white dark:from-orange-950/30 dark:to-background border border-orange-200 dark:border-orange-900/50 rounded-3xl p-7 shadow-sm">
+        <div id="public-link-section" className="mb-10 bg-gradient-to-br from-orange-50 to-white dark:from-orange-950/30 dark:to-background border border-orange-200 dark:border-orange-900/50 rounded-3xl p-7 shadow-sm">
           <div className="flex items-start gap-4">
             <div className="hidden sm:flex w-12 h-12 rounded-2xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 items-center justify-center flex-shrink-0">
               🔗
@@ -210,28 +257,61 @@ export default function MiNegocioPage() {
               {(() => {
                 const previewSlug = slugifyForPreview(formData.businessName);
                 const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://oigagig.com'}/sellers/${previewSlug || (session?.user as any)?.id}`;
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(publicUrl)}&color=ea580c&bgcolor=ffffff&margin=10`;
+
                 return (
-                  <div className="bg-white dark:bg-zinc-900 border border-orange-200 dark:border-orange-800/60 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                    <div className="font-mono text-sm text-orange-700 dark:text-orange-300 break-all flex-1 select-all">
-                      {publicUrl}
-                    </div>
-                    <div className="flex gap-2 flex-shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          navigator.clipboard.writeText(publicUrl);
-                          toast.success('Enlace copiado al portapapeles');
-                        }}
-                        className="gap-1.5"
-                      >
-                        Copiar
-                      </Button>
-                      <Link href={`/sellers/${previewSlug || (session?.user as any)?.id}`} target="_blank">
-                        <Button size="sm" className="bg-orange-600 hover:bg-orange-700 gap-1.5">
-                          Ver perfil →
+                  <div className="space-y-4">
+                    <div className="bg-white dark:bg-zinc-900 border border-orange-200 dark:border-orange-800/60 rounded-2xl p-4">
+                      <div className="font-mono text-sm text-orange-700 dark:text-orange-300 break-all select-all mb-3">
+                        {publicUrl}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(publicUrl);
+                            toast.success('Enlace copiado al portapapeles');
+                          }}
+                          className="gap-1.5"
+                        >
+                          Copiar enlace
                         </Button>
-                      </Link>
+                        <Link href={`/sellers/${previewSlug || (session?.user as any)?.id}`} target="_blank">
+                          <Button size="sm" className="bg-orange-600 hover:bg-orange-700 gap-1.5">
+                            Ver perfil público →
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = qrUrl;
+                            link.download = `qr-${previewSlug || 'perfil'}.png`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            toast.success('QR descargado');
+                          }}
+                          className="gap-1.5"
+                        >
+                          Descargar QR
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* QR Code preview */}
+                    <div className="flex justify-center">
+                      <div className="bg-white p-3 rounded-2xl border border-orange-100 dark:border-orange-900/50 shadow-inner">
+                        <img 
+                          src={qrUrl} 
+                          alt="QR code para tu perfil público" 
+                          className="w-40 h-40 rounded-lg" 
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                        <p className="text-center text-[10px] text-muted-foreground mt-1">Escanea para abrir tu perfil</p>
+                      </div>
                     </div>
                   </div>
                 );
