@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
-import { getGigCategories, getCategoryIcon } from '@/lib/categories'; // getCategoryIcon from registry (emoji for zero visual change)
+import { getGigCategories, getCategoryIcon } from '@/lib/categories'; // getCategoryIcon from registry (now PNG path for PR3 AI assets, emoji fallback)
 import { motion, MotionConfig } from 'framer-motion';
 
 export const metadata = {
@@ -81,7 +81,7 @@ export default async function MarketingHomePage() {
 
     return {
       name,
-      emoji: getCategoryIcon(name), // registry (still emoji; zero visual diff)
+      icon: getCategoryIcon(name), // registry (PR3: /icons/slug.png or emoji fallback; zero breakage)
       description: catData?.description || categoryDescriptions[name] || 'Profesionales locales disponibles',
       avgRating: avg,
       reviewCount: stat?.count || 0
@@ -190,9 +190,13 @@ export default async function MarketingHomePage() {
                 whileHover={{ scale: 1.015 }}
                 className="flex flex-col items-center text-center min-h-[220px] w-full"
               >
-                <div className="text-5xl mb-4 transition-transform group-hover:scale-110">
-                  {cat.emoji}
-                </div>
+                {typeof cat.icon === 'string' && cat.icon.startsWith('/') ? (
+                  <img src={cat.icon} alt="" className="w-12 h-12 mb-4 object-contain transition-transform group-hover:scale-110" />
+                ) : (
+                  <div className="text-5xl mb-4 transition-transform group-hover:scale-110">
+                    {cat.icon}
+                  </div>
+                )}
                 <h3 className="font-semibold text-lg text-zinc-900 dark:text-white group-hover:text-orange-600">
                   {cat.name}
                 </h3>
@@ -225,7 +229,7 @@ export default async function MarketingHomePage() {
             { step: "1", title: "Busca o publica", desc: "Explora categorías o publica tu propio servicio en menos de 2 minutos." },
             { step: "2", title: "Contacta directo", desc: "Chatea con el profesional, acuerda detalles y precio sin intermediarios." },
             { step: "3", title: "Paga seguro y califica", desc: "Paga con Wompi al finalizar. Deja una reseña real para ayudar a otros." }
-          {/* index for entrance stagger timing; static array, no reordering risk */}
+          /* index for entrance stagger timing; static array, no reordering risk */
           ].map((item, i) => (
             <motion.div
               key={i}

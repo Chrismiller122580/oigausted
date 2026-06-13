@@ -6,7 +6,7 @@ import GigCard from "@/components/common/GigCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useGigCategories } from "@/lib/useGigCategories";
-import { getCategoryIcon } from "@/lib/icon-registry"; // prefer registry for icons (emoji fallback, zero visual diff)
+import { getCategoryIcon } from "@/lib/icon-registry"; // prefer registry for icons (PR3 PNG paths or emoji fallback)
 import { getCurrentLocation, calculateDistance } from "@/lib/distance";
 import LocationPermissionPrompt from "@/components/maps/LocationPermissionPrompt";
 import { MapPin, Wifi, X, ChevronLeft, ChevronRight } from "lucide-react";
@@ -327,7 +327,7 @@ function GigsClient() {
               </button>
 
               {(catLoading ? [] : categoryList).map((cat) => {
-                const icon = getCategoryIcon(cat); // registry call (still returns emoji for zero visual change)
+                const icon = getCategoryIcon(cat); // registry call (PR3: returns PNG path or emoji fallback)
                 const count = categoryCounts[cat] || 0;
                 const isActive = selectedCategory === cat;
 
@@ -342,7 +342,11 @@ function GigsClient() {
                     }`}
                     title={cat}
                   >
-                    <div className="text-3xl mb-1">{icon}</div>
+                    {typeof icon === 'string' && icon.startsWith('/') ? (
+                      <img src={icon} alt="" className="w-8 h-8 mb-1 object-contain" />
+                    ) : (
+                      <div className="text-3xl mb-1">{icon}</div>
+                    )}
                     <div className="text-[10px] font-medium text-center leading-tight line-clamp-2">
                       {cat}
                     </div>

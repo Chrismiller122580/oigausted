@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { toast } from 'sonner';
 import { Plus, Trash2, Edit2, Save, X, Tag, RefreshCw, AlertTriangle } from 'lucide-react';
 import { gigCategories as staticGigCategories } from '@/lib/gig-categories';
-import { getCategoryIcon, getCategoryIconKey } from '@/lib/icon-registry'; // for preview + iconKey support (emoji fallback today)
+import { getCategoryIcon, getCategoryIconKey } from '@/lib/icon-registry'; // for preview + iconKey support (PR3 PNG or emoji)
 
 interface FieldDef {
   key: string;
@@ -270,7 +270,7 @@ export default function AdminCategoriesPage() {
                   placeholder={getCategoryIconKey(formName) || 'limpieza-de-hogar-y-oficinas'}
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Preview (emoji until assets in later PR): <span className="text-xl align-middle">{getCategoryIcon(formName || '')}</span> {/* relies on registry's '🛠️' safe fallback when no name yet */}
+                  Preview: {(() => { const ic = getCategoryIcon(formName || ''); return (typeof ic === 'string' && ic.startsWith('/') ? <img src={ic} alt="" className="inline w-6 h-6 align-middle" /> : <span className="text-xl align-middle">{ic}</span>); })()} {/* PR3 AI icons; emoji fallback */}
                   {formIconKey && <span className="ml-1 font-mono text-[10px]">({formIconKey})</span>}
                 </p>
               </div>

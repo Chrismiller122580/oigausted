@@ -6,7 +6,7 @@ import {
   getCategoryIcon,
   getCategoryIconKey,
   getCategoryEmoji,
-} from './icon-registry'; // central source for icon keys + resolution (emoji fallback)
+} from './icon-registry'; // central source for icon keys + resolution (PR3 PNG paths with emoji fallback)
 
 export interface GigCategory {
   name: string;
@@ -70,6 +70,7 @@ export const categoryEmojis: Record<string, string> = staticGigCategories.reduce
 );
 
 // Re-export icon registry as the central authority (additive, no breakage).
+// getCategoryIcon now serves PR3 AI PNG icons (with emoji hard fallback).
 // Prefer these over direct categoryEmojis access for new icon-related code.
 export { categoryIconKeys, getCategoryIcon, getCategoryIconKey, getCategoryEmoji };
 

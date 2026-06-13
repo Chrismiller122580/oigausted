@@ -5,14 +5,14 @@ import { gigCategories } from './gig-categories';
  * Single source of truth for icon keys (clean kebab-case slugs) + resolution helpers.
  * Pure module (no side effects), works on server and client.
  *
- * Current behavior: getCategoryIcon() and friends always return the legacy emoji string.
- * This guarantees *zero visual change* in this PR while wiring the full system.
+ * PR3: getCategoryIcon now returns `/icons/<slug>.png` for the 22 known categories
+ * (AI-generated premium custom assets via "hottest tool" step). Style:
+ * "clean flat illustration with subtle Colombian warmth, orange #f97316 accents, line weight 2, rounded, white/transparent bg, suitable for light+dark cards, 256x256 base"
+ * + references to public/logo.png + public/icon.png colors + AI marketing studio visualPrompts for cohesion.
+ * PNG primary (raster-to-SVG selective later if needed). Always commit only final optimized files.
  *
- * Future (PR3+): update getCategoryIcon to return `/icons/${key}.png` (or .svg) path when
- * the custom assets land. Callers (marketing, gigs, admin, GigCard) will then branch:
- *   const icon = getCategoryIcon(name);
- *   {typeof icon === 'string' && icon.startsWith('/') ? <img src={icon} ... /> : <span className="text-5xl">{icon}</span>}
- *
+ * Emoji fallback preserved for unknown categories / safety (getCategoryEmoji always emoji).
+ * Callers (marketing, gigs, admin) should branch on path vs emoji for <img> rendering (see PR3 updates).
  * iconKey support is additive: optional in Category responses, editable in admin.
  * getCategoryIconKey(name) always works via the static map (no DB dependency).
  */
@@ -41,25 +41,33 @@ export function getCategoryIconKey(name: string): string | undefined {
 }
 
 /**
- * Returns the icon for a category name.
- * In this PR: always returns emoji string (🧹, 🎧, etc.) for 100% backward compat + zero visual diff.
- * Ready for path return in future.
+ * Returns the (visual) icon for a category name.
+ * PR3 (AI-powered): for the 22 canonical categories, returns the path to the premium generated asset e.g. `/icons/limpieza-de-hogar-y-oficinas.png`
+ * (PNG primary; optimized raster committed). Emoji fallback for dynamic/unknown categories (or if asset missing) to preserve zero breakage.
+ * Callers must support both string path (use <img src={icon} alt="" className="..." />) and emoji (legacy span).
  */
 export function getCategoryIcon(name: string): string {
+  if (!name || typeof name !== 'string') return '🛠️';
+  const key = getCategoryIconKey(name);
+  if (key) {
+    // All 22 known categories now have AI custom icon assets (PR3 hottest tool step)
+    return `/icons/${key}.png`;
+  }
   const match = gigCategories.find((c) => c.name === name);
   // Intentional '🛠️' fallback for robustness (new admin-created categories without icon, or unknown names).
   // Matches legacy default. A computeCategoryIconKey(name) helper (exposing internal slugify) can be added later for on-the-fly slugs on dynamic admin names.
   return match?.icon || '🛠️';
 }
 
-// Convenience re-export of emoji (used by some fallbacks).
+// Convenience re-export of emoji (used by some fallbacks). Always returns legacy emoji, independent of getCategoryIcon path change.
 export function getCategoryEmoji(name: string): string {
-  return getCategoryIcon(name);
+  const match = gigCategories.find((c) => c.name === name);
+  return match?.icon || '🛠️';
 }
 
 export type CategoryIconResolution = {
   key?: string;
-  icon: string; // emoji today; path | emoji tomorrow
+  icon: string; // path to /icons/<slug>.png (PR3 AI assets) or emoji fallback
 };
 
 export function resolveCategoryIcon(name: string): CategoryIconResolution {

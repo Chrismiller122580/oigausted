@@ -56,6 +56,8 @@ export async function generateMetadata(): Promise<Metadata> {
       ],
       shortcut: "/icon.png",
     },
+    // PR3 note: premium AI custom category icons at /icons/<kebab-slug>.png (see icon-registry.ts + public/icons/*).
+    // No refined app icon or hero illustration was generated alongside the 22 category assets; root icons/logo remain.
     appleWebApp: {
       capable: true,
       title: siteName,

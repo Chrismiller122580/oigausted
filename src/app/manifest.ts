@@ -23,6 +23,8 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'maskable',
       },
     ],
+    // PR3: category premium icons integrated at /icons/<slug>.png (AI flat illos, 22 assets).
+    // App launcher uses existing /icon.png (refined variants possible in future; no new hero/refined app icon generated in this PR).
     orientation: 'portrait-primary',
     categories: ['business', 'lifestyle', 'productivity', 'shopping'],
     lang: 'es-CO',
