@@ -6,6 +6,7 @@ import SessionProviderWrapper from "@/components/providers/SessionProviderWrappe
 import MaintenanceBanner from "@/components/layout/MaintenanceBanner";
 import { Toaster } from "sonner"; // 2027-grade beautiful toasts
 import { ensurePlatformConfig } from "@/lib/prisma"; // one-off ensure of PlatformConfig singleton (maintenanceMode etc.) on first boot/request
+import { Analytics } from "@vercel/analytics/react"; // Vercel Analytics for the facelift landing + overall app
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -226,6 +227,7 @@ export default function RootLayout({
             {children}
           </NavbarWrapper>
           <Toaster position="top-center" richColors closeButton />
+          <Analytics /> {/* Vercel Analytics - tracks page views, custom events for the Oiga GiG facelift landing and app-wide usage */}
         </SessionProviderWrapper>
       </body>
     </html>
