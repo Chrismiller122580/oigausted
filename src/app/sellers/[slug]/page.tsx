@@ -1,9 +1,11 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import GigCard from '@/components/common/GigCard';
 import { Button } from '@/components/ui/button';
 import { devLog } from '@/lib/utils';
+import ProfileShare from './ProfileShare';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -155,6 +157,12 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
   // (to avoid "column does not exist" errors on drifted prod DBs). Slug path includes it.
   const sellerSlugOrId = (seller as any).slug || seller.id;
 
+  // Build the canonical public URL on the server (for the share client component)
+  const headersList = await headers();
+  const host = headersList.get('host') || 'oigagig.com';
+  const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
+  const publicUrl = `${protocol}://${host}/sellers/${sellerSlugOrId}`;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Premium Header / Profile Banner - facelift style */}
@@ -303,25 +311,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
         <div className="max-w-3xl mx-auto px-6 text-center">
           <p className="text-sm text-muted-foreground mb-2">¿Conoces a alguien que necesite estos servicios?</p>
           <div className="flex flex-wrap justify-center gap-3">
-            <a 
-              href={`https://wa.me/?text=${encodeURIComponent(`Mira los servicios de ${displayName} en OigaUsted: ${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
-              target="_blank"
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-2xl border bg-background text-sm font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 transition"
-            >
-              Compartir por WhatsApp
-            </a>
-            <button 
-              onClick={() => {
-                if (typeof navigator !== 'undefined') {
-                  navigator.clipboard.writeText(window.location.href);
-                  // Simple alert fallback if no toast in this context
-                  alert('Enlace del perfil copiado');
-                }
-              }}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-2xl border bg-background text-sm font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 transition"
-            >
-              Copiar enlace del perfil
-            </button>
+            <ProfileShare url={publicUrl} displayName={displayName} />
           </div>
         </div>
       </div>
