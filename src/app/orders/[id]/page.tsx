@@ -570,6 +570,21 @@ function OrderDetailClient() {
 
                         const checkoutData = data.checkoutData;
 
+                        // FORCE BEFORE Wompi script runs (Fix 2, orders page)
+                        if (data.publicKey) {
+                          (window as any).WOMPI_PUBLIC_KEY = data.publicKey;
+                          (window as any).$wompi = { publicKey: data.publicKey };
+
+                          console.log("✅ Wompi key forced (orders):", data.publicKey);
+
+                          // Retry initialize
+                          setTimeout(() => {
+                            if ((window as any).$wompi?.initialize) {
+                              (window as any).$wompi.initialize();
+                            }
+                          }, 200);
+                        }
+
                         // Loud client-side guard for the most common prod signature failure
                         const pubIsProd = /prod/i.test((window as any).WOMPI_PUBLIC_KEY || '');
                         if (pubIsProd && !data.hasIntegritySignature) {
