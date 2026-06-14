@@ -171,3 +171,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
   }
 }
+
+// Handle non-POST methods gracefully. Direct browser access (GET) or validation pings
+// previously resulted in ugly 405 error pages. Webhook providers may probe the endpoint.
+export async function GET() {
+  return NextResponse.json({
+    message: 'Wompi webhook endpoint is active. This URL only accepts POST requests containing signed transaction events from Wompi.',
+    publicKey: 'pub_prod_SZdbUpSGERKCIGAcJOaIax7ySu4w9tAN',
+    docs: 'See https://comercios.wompi.co for integration details. Use the admin Wompi tester with real events to validate your EVENTS_KEY.'
+  });
+}
+
+export async function HEAD() {
+  // Simple liveness for any health checks
+  return new NextResponse(null, { status: 200 });
+}
+
+export async function OPTIONS() {
+  return NextResponse.json({}, {
+    status: 204,
+    headers: {
+      Allow: 'POST, GET, HEAD, OPTIONS'
+    }
+  });
+}

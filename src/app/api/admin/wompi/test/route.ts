@@ -179,7 +179,7 @@ export async function POST(req: NextRequest) {
           summary.recommendations.push('CUSTOM KEY TEST: The provided testEventsKey did NOT validate the sample event (HMAC mismatch). Try a different "Llave para eventos" from the Wompi dashboard for this public key.');
         }
       } else if (!detail.ok) {
-        summary.recommendations.push('SAMPLE EVENT SIGNATURE FAILED — the checksum does not match using the current WOMPI_EVENTS_KEY. Common causes: 1) WOMPI_EVENTS_KEY not set or set to wrong value (copy the exact "Llave para eventos" / prod_events_... from comercios.wompi.co for this public key). 2) Key is for the wrong environment (test_events vs prod_events) compared to the event "environment": "' + (sampleEvent?.environment || '?') + '". 3) Properties resolver built a different concat than Wompi (check signedPayload above). Redeploy after fixing the env var in Vercel (Production scope).');
+        summary.recommendations.push('SAMPLE EVENT SIGNATURE FAILED — the checksum does not match using the current deployed WOMPI_EVENTS_KEY for pub_prod_SZdbUpSGERKCIGAcJOaIax7ySu4w9tAN. This is the direct cause of the 401 "Invalid signature". The basic test only proves a prod_events_ key is loaded and can compute sample HMACs. Paste a real event as "sampleEvent" (optionally with "testEventsKey") to test the actual secret against real Wompi checksums. Re-copy the exact "Eventos" secret for this public key from the Wompi dashboard and redeploy.');
       } else {
         summary.recommendations.push('Sample event signature VERIFIED OK with the current EVENTS key (good).');
       }

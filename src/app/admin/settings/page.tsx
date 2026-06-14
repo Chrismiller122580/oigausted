@@ -751,7 +751,7 @@ export default function AdminSettings() {
                 <div className="text-[10px] space-y-1">
                   <a href="/admin/payouts" className="text-orange-400 hover:underline block">→ Payouts Debugger (local marks + force check)</a>
                   <a href="/admin/audit?search=PAYMENT" className="text-orange-400 hover:underline block">→ Recent Payment Audit Logs</a>
-                  <span className="text-muted-foreground">Webhook: https://oigagig.com/api/webhooks/wompi</span>
+                  <span className="text-muted-foreground">Webhook: https://oigagig.com/api/webhooks/wompi</span> (direct GET returns status info; only POSTs from Wompi are processed)
                 </div>
               </div>
             )}
@@ -812,9 +812,9 @@ export default function AdminSettings() {
             )}
             <div className="text-[10px] text-muted-foreground mt-1">Ejecuta esto después de rotar llaves o para validar que el PRIVATE key puede leer transacciones.</div>
             <div className="text-[10px] text-amber-500 mt-2">
-              Advanced debugging for "Invalid signature" 401s: POST to /api/admin/wompi/test with JSON like:
-              {"{"}"sampleEvent": {paste full webhook event JSON}, "testEventsKey": "the-candidate-prod-events-...-from-dashboard", "replay": true{"}"}
-              This lets you try different "Llave para eventos" candidates from Wompi without changing Vercel env yet.
+              To validate your current deployed keys (or try a candidate) against a real Wompi event for this public key: POST to /api/admin/wompi/test with:
+              {"{"}"sampleEvent": {"paste the full event JSON from Wompi dashboard here"}, "replay": true{"}"}
+              (optionally add "testEventsKey" for a specific secret). This is the only way to prove the live EVENTS_KEY actually validates the checksums Wompi sends. The basic test only proves the key is loadable.
             </div>
           </div>
 
@@ -846,7 +846,7 @@ export default function AdminSettings() {
             <ol className="text-xs space-y-1.5 text-muted-foreground list-decimal list-inside">
               <li>Usa llaves <strong>LIVE</strong> (pub_live_...) en <code>NEXT_PUBLIC_WOMPI_PUBLIC_KEY</code> (no test_)</li>
               <li>Agrega <code>WOMPI_INTEGRITY_KEY</code> (para firmar el widget de forma segura)</li>
-              <li>Agrega <code>WOMPI_EVENTS_KEY</code> y registra el webhook en el dashboard de Wompi: <code>https://oigagig.com/api/webhooks/wompi</code></li>
+              <li>Add <code>WOMPI_EVENTS_KEY</code> and register the webhook in the Wompi dashboard: <code>https://oigagig.com/api/webhooks/wompi</code> (the endpoint returns friendly info on GET; only processes signed POSTs)</li>
               <li>En esta página, activa el toggle <strong>"Pagos reales con Wompi"</strong> de arriba</li>
               <li>El checkout en /checkout/[gigId] guardará campos dinámicos + ubicación antes de abrir Wompi</li>
               <li>La confirmación real llega solo por webhook (no por redirect del cliente)</li>
