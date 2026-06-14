@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
   let sampleEvent: any = null;
   let sampleChecksum = '';
   let replayRequested = false;
+  let testEventsKey: string | undefined = undefined;
   let parsedRequestBody: any = {};
   try {
     parsedRequestBody = await req.json().catch(() => ({}));
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest) {
     }
     sampleChecksum = parsedRequestBody?.sampleChecksum || parsedRequestBody?.checksum || (sampleEvent?.signature?.checksum || '');
     replayRequested = !!(parsedRequestBody?.replay === true || parsedRequestBody?.force === true || parsedRequestBody?.process === true);
+    testEventsKey = parsedRequestBody?.testEventsKey || parsedRequestBody?.customEventsKey || undefined;
   } catch {
     // no body or not json; proceed with env-only self test
   }
@@ -150,7 +152,7 @@ export async function POST(req: NextRequest) {
     eventVerification.attempted = true;
     eventVerification.usedChecksum = sampleChecksum ? (sampleChecksum.slice(0, 16) + '...') : (sampleEvent?.signature?.checksum ? (sampleEvent.signature.checksum.slice(0,16)+'...') : 'none-in-body');
     try {
-      const detail = verifyWompiSignatureDetailed(sampleEvent, sampleChecksum || sampleEvent?.signature?.checksum || '');
+      const detail = verifyWompiSignatureDetailed(sampleEvent, sampleChecksum || sampleEvent?.signature?.checksum || '', testEventsKey);
       const info = eventsInfo; // from shared
       eventVerification = {
         ...eventVerification,
@@ -169,7 +171,14 @@ export async function POST(req: NextRequest) {
         transactionId: sampleEvent?.data?.transaction?.id || null,
       };
 
-      if (!detail.ok) {
+      if (testEventsKey) {
+        eventVerification.testedWithCustomKey = testEventsKey.slice(0, 12) + '...' + testEventsKey.slice(-4);
+        if (detail.ok) {
+          summary.recommendations.push('CUSTOM KEY TEST: The provided testEventsKey SUCCESSFULLY validated the sample event. Use this exact value as WOMPI_EVENTS_KEY in Vercel Production and redeploy.');
+        } else {
+          summary.recommendations.push('CUSTOM KEY TEST: The provided testEventsKey did NOT validate the sample event (HMAC mismatch). Try a different "Llave para eventos" from the Wompi dashboard for this public key.');
+        }
+      } else if (!detail.ok) {
         summary.recommendations.push('SAMPLE EVENT SIGNATURE FAILED — the checksum does not match using the current WOMPI_EVENTS_KEY. Common causes: 1) WOMPI_EVENTS_KEY not set or set to wrong value (copy the exact "Llave para eventos" / prod_events_... from comercios.wompi.co for this public key). 2) Key is for the wrong environment (test_events vs prod_events) compared to the event "environment": "' + (sampleEvent?.environment || '?') + '". 3) Properties resolver built a different concat than Wompi (check signedPayload above). Redeploy after fixing the env var in Vercel (Production scope).');
       } else {
         summary.recommendations.push('Sample event signature VERIFIED OK with the current EVENTS key (good).');

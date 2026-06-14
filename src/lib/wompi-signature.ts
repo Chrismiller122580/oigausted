@@ -45,8 +45,8 @@ export function resolveWompiProperty(body: any, prop: string): string {
   return val == null ? '' : String(val)
 }
 
-export function verifyWompiSignature(body: any, receivedSignature: string): boolean {
-  const result = verifyWompiSignatureDetailed(body, receivedSignature)
+export function verifyWompiSignature(body: any, receivedSignature: string, customEventsKey?: string): boolean {
+  const result = verifyWompiSignatureDetailed(body, receivedSignature, customEventsKey)
   return result.ok
 }
 
@@ -63,7 +63,7 @@ export type VerifyResult = {
   computedHexLen: number
 }
 
-export function verifyWompiSignatureDetailed(body: any, receivedSignature: string): VerifyResult {
+export function verifyWompiSignatureDetailed(body: any, receivedSignature: string, customEventsKey?: string): VerifyResult {
   const sig = body?.signature || {}
   const properties: string[] = Array.isArray(sig.properties) ? sig.properties : []
 
@@ -78,10 +78,12 @@ export function verifyWompiSignatureDetailed(body: any, receivedSignature: strin
 
   const normalizedReceived = (receivedSignature || '').replace(/^sha256=/i, '').trim().toLowerCase()
 
-  if (!WOMPI_EVENTS_KEY) {
+  const keyToUse = customEventsKey || WOMPI_EVENTS_KEY
+
+  if (!keyToUse) {
     return {
       ok: false,
-      reason: 'WOMPI_EVENTS_KEY is not set in environment',
+      reason: 'No events key provided (neither env nor custom test key)',
       signedPayload,
       properties,
       keyPresent: false,
@@ -94,13 +96,13 @@ export function verifyWompiSignatureDetailed(body: any, receivedSignature: strin
   }
 
   const computedHex = crypto
-    .createHmac('sha256', WOMPI_EVENTS_KEY)
+    .createHmac('sha256', keyToUse)
     .update(signedPayload)
     .digest('hex')
 
-  const keyEnvHint: 'prod' | 'test' | 'unknown' = /prod/i.test(WOMPI_EVENTS_KEY)
+  const keyEnvHint: 'prod' | 'test' | 'unknown' = /prod/i.test(keyToUse)
     ? 'prod'
-    : (/test/i.test(WOMPI_EVENTS_KEY) ? 'test' : 'unknown')
+    : (/test/i.test(keyToUse) ? 'test' : 'unknown')
 
   if (!normalizedReceived || !computedHex) {
     return {

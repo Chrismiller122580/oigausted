@@ -811,6 +811,11 @@ export default function AdminSettings() {
               </div>
             )}
             <div className="text-[10px] text-muted-foreground mt-1">Ejecuta esto después de rotar llaves o para validar que el PRIVATE key puede leer transacciones.</div>
+            <div className="text-[10px] text-amber-500 mt-2">
+              Advanced debugging for "Invalid signature" 401s: POST to /api/admin/wompi/test with JSON like:
+              {"{"}"sampleEvent": {paste full webhook event JSON}, "testEventsKey": "the-candidate-prod-events-...-from-dashboard", "replay": true{"}"}
+              This lets you try different "Llave para eventos" candidates from Wompi without changing Vercel env yet.
+            </div>
           </div>
 
           <div className="mt-3 p-3 bg-muted/50 rounded-xl text-xs">
