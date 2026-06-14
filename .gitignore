@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+*.pub
+wompi_sftp_private_key*
 
 # debug
 npm-debug.log*
