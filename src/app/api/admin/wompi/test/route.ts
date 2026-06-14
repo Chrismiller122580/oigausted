@@ -13,62 +13,6 @@ import {
   resolveWompiProperty,
 } from '@/lib/wompi-signature';
 
-const verifyWompiEvent = (event: any, eventsKey: string) => {
-  const signature = event.signature;
-  if (!signature?.properties || !eventsKey) {
-    return { valid: false, payload: '', reason: "Missing signature or key" };
-  }
-
-  const propValues = signature.properties
-    .map((prop: string) => {
-      let val: any = null;
-
-      // Priority 1: data.transaction.xxx
-      if (prop.startsWith('transaction.')) {
-        const subProp = prop.replace('transaction.', '');
-        let temp = event?.data?.transaction;
-        subProp.split('.').forEach(k => temp = temp?.[k]);
-        if (temp !== undefined && temp !== null) val = temp;
-      }
-
-      // Priority 2: direct transaction.xxx
-      if (val === null) {
-        let temp = event?.transaction;
-        prop.split('.').forEach(k => temp = temp?.[k]);
-        if (temp !== undefined && temp !== null) val = temp;
-      }
-
-      // Priority 3: direct on root
-      if (val === null) {
-        let temp = event;
-        prop.split('.').forEach(k => temp = temp?.[k]);
-        if (temp !== undefined && temp !== null) val = temp;
-      }
-
-      return String(val ?? '');
-    })
-    .join('');
-
-  const timestamp = String(event.timestamp || '');
-
-  const fullPayload = `${propValues}${timestamp}${eventsKey}`;
-
-  const computed = crypto
-    .createHmac('sha256', eventsKey)
-    .update(fullPayload)
-    .digest('hex');
-
-  const isValid = computed === signature.checksum;
-
-  return { 
-    valid: isValid, 
-    computed, 
-    payload: fullPayload,
-    receivedChecksum: signature.checksum,
-    reason: isValid ? 'OK' : 'HMAC mismatch'
-  };
-};
-
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   const isAdmin = (session?.user as any)?.role === 'admin';
@@ -209,7 +153,14 @@ export async function POST(req: NextRequest) {
     eventVerification.usedChecksum = sampleChecksum ? (sampleChecksum.slice(0, 16) + '...') : (sampleEvent?.signature?.checksum ? (sampleEvent.signature.checksum.slice(0,16)+'...') : 'none-in-body');
     try {
       const eventsKeyForTest = testEventsKey || (process.env.WOMPI_EVENTS_KEY || process.env.WOMPI_EVENTS_SECRET || '');
-      const verification = verifyWompiEvent(sampleEvent, eventsKeyForTest);
+      const detailed = verifyWompiSignatureDetailed(sampleEvent, sampleChecksum || sampleEvent?.signature?.checksum || '', eventsKeyForTest || undefined);
+      const verification = {
+        valid: detailed.ok,
+        payload: detailed.signedPayload,
+        computed: detailed.computedHex,
+        receivedChecksum: detailed.receivedNormalized,
+        reason: detailed.reason,
+      };
       eventVerification = {
         ...eventVerification,
         matches: verification.valid,
@@ -221,6 +172,9 @@ export async function POST(req: NextRequest) {
         eventType: sampleEvent?.event || null,
         reference: sampleEvent?.data?.transaction?.reference || null,
         transactionId: sampleEvent?.data?.transaction?.id || null,
+        // extra from detailed
+        keyEnvHint: (detailed as any).keyEnvHint,
+        usedKeyAppendedVariant: (detailed as any).usedKeyAppendedVariant,
       };
 
       if (testEventsKey) {

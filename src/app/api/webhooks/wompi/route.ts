@@ -22,61 +22,6 @@ export async function POST(request: Request) {
       request.headers.get('x-wompi-signature') ||
       (body?.signature?.checksum || '') 
 
-    const verifyWompiEvent = (event: any, eventsKey: string) => {
-      const signature = event.signature;
-      if (!signature?.properties || !eventsKey) {
-        return { valid: false, payload: '', reason: "Missing signature or key" };
-      }
-
-      const propValues = signature.properties
-        .map((prop: string) => {
-          let val: any = null;
-
-          // Priority 1: data.transaction.xxx
-          if (prop.startsWith('transaction.')) {
-            const subProp = prop.replace('transaction.', '');
-            let temp = event?.data?.transaction;
-            subProp.split('.').forEach(k => temp = temp?.[k]);
-            if (temp !== undefined && temp !== null) val = temp;
-          }
-
-          // Priority 2: direct transaction.xxx
-          if (val === null) {
-            let temp = event?.transaction;
-            prop.split('.').forEach(k => temp = temp?.[k]);
-            if (temp !== undefined && temp !== null) val = temp;
-          }
-
-          // Priority 3: direct on root
-          if (val === null) {
-            let temp = event;
-            prop.split('.').forEach(k => temp = temp?.[k]);
-            if (temp !== undefined && temp !== null) val = temp;
-          }
-
-          return String(val ?? '');
-        })
-        .join('');
-
-      const timestamp = String(event.timestamp || '');
-
-      const fullPayload = `${propValues}${timestamp}${eventsKey}`;
-
-      const computed = crypto
-        .createHmac('sha256', eventsKey)
-        .update(fullPayload)
-        .digest('hex');
-
-      const isValid = computed === signature.checksum;
-
-      return { 
-        valid: isValid, 
-        computed, 
-        payload: fullPayload,
-        receivedChecksum: signature.checksum,
-        reason: isValid ? 'OK' : 'HMAC mismatch'
-      };
-    };
     const headerTimestamp = 
       request.headers.get('x-wompi-timestamp') ||
       request.headers.get('X-Wompi-Timestamp') ||
@@ -101,23 +46,33 @@ export async function POST(request: Request) {
     })
 
     // 1. Verify signature first (critical security check)
-    // Using the improved verifier with timestamp (user-provided Fix 1)
+    // Use the shared detailed verifier (properties + timestamp + eventsKey, robust resolver)
     const eventsKey = process.env.WOMPI_EVENTS_KEY || process.env.WOMPI_EVENTS_SECRET || '';
-    const verification = verifyWompiEvent(body, eventsKey);
+    const detailed = verifyWompiSignatureDetailed(body, receivedSignature || '', eventsKey || undefined);
+    const verification = {
+      valid: detailed.ok,
+      computed: detailed.computedHex,
+      payload: detailed.signedPayload,
+      receivedChecksum: detailed.receivedNormalized || receivedSignature,
+      reason: detailed.reason,
+    };
+
     if (!verification.valid) {
-      // Always emit to Vercel logs (devLog suppressed in prod). Include the exact payload for diagnosis.
+      // Always emit to Vercel logs. The signedPayload (when custom key in tester) shows the exact concat used.
       console.warn('[Wompi][Webhook] INVALID SIGNATURE — webhook rejected with 401', {
         receivedChecksumPrefix: (receivedSignature || '').slice(0, 16) + '...',
         computed: verification.computed,
         payload: verification.payload,
         receivedChecksum: verification.receivedChecksum,
+        reason: verification.reason,
         event: body?.event,
         reference: body?.data?.transaction?.reference,
         wompiTransactionId: body?.data?.transaction?.id,
         environment: body?.environment,
         eventsKeyPrefix: eventsKey.slice(0, 12) + '...',
+        usedTimestampVariant: (detailed as any).usedTimestampVariant,
       })
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+      return NextResponse.json({ error: 'Invalid signature', reason: verification.reason }, { status: 401 })
     }
 
     // 2. Basic replay attack protection (accept events from the last 10 minutes)
