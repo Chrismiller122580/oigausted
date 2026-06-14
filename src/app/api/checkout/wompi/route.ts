@@ -216,13 +216,20 @@ export async function POST(req: NextRequest) {
       console.warn('[Wompi][Prepare] ' + keyMismatchWarning);
     }
 
-    // Fix 3: Ensure Prepare Endpoint Returns Everything (top level for client forcing) + full for compat
+    // Return full server config for client (as specified for widget + strict useEffect)
     return NextResponse.json({
       reference,
-      amountInCents: Math.round((order.price || 0) * 100),
+      amountInCents,
       publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
       integrity: integritySignature,
-      // previous for compat
+      // add any other widget params you need
+      currency: 'COP',
+      redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/orders/${order.id}`,
+      customerData: {
+        email: order.buyer?.email || session?.user?.email || '',
+        fullName: order.buyer?.name || session?.user?.name || '',
+      },
+      // compat/debug
       checkoutData,
       success: true,
       hasIntegritySignature: !!integritySignature,
