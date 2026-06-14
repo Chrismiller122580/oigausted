@@ -32,7 +32,10 @@ export async function generateMetadata(): Promise<Metadata> {
       if (cfg.siteTagline) siteTagline = cfg.siteTagline;
       if (cfg._meta?.payment?.appUrl) appUrl = cfg._meta.payment.appUrl;
     }
-  } catch {}
+  } catch (e) {
+    // Log the error so it appears in Vercel logs with digest if this causes a render issue
+    console.error('generateMetadata config fetch failed:', e);
+  }
 
   const fullTitle = `${siteName} — ${siteTagline}`;
   const baseUrl = new URL(appUrl);
