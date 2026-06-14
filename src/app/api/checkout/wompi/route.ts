@@ -182,21 +182,38 @@ export async function POST(req: NextRequest) {
       console.warn('[Wompi][Prepare] ' + keyMismatchWarning);
     }
 
-    // Return exactly the server config shape requested (top-level fields the widget + client use)
-    return NextResponse.json({
+    // Return the clean top-level shape the latest client snippets expect,
+    // plus compat fields (hasIntegritySignature + checkoutData) so orders page
+    // and any older client code keep working without  "no integrity" false positives.
+    const response: any = {
       reference,
       amountInCents,
       publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
-      integrity: integritySignature,   // ← this is what the widget needs
-      // add any other widget params you need (handy for client)
+      integrity: integritySignature,   // ← this is what the widget needs (top level)
       currency: 'COP',
       redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/orders/${order.id}`,
       customerData: {
         email: order.buyer?.email || session?.user?.email || '',
         fullName: order.buyer?.name || session?.user?.name || '',
       },
-      debug // for debugging (matches the requested { integrityString, integritySignature })
-    });
+      hasIntegritySignature: !!integritySignature,
+      debug
+    };
+
+    // Legacy shape some client code (orders page) still reads
+    response.checkoutData = {
+      publicKey: response.publicKey,
+      currency: response.currency,
+      amountInCents: response.amountInCents,
+      reference: response.reference,
+      redirectUrl: response.redirectUrl,
+      customerData: response.customerData,
+    };
+    if (integritySignature) {
+      response.checkoutData.signature = { integrity: integritySignature };
+    }
+
+    return NextResponse.json(response);
 
   } catch (error: any) {
     console.error('Wompi checkout error:', error);

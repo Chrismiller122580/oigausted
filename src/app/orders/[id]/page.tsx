@@ -587,7 +587,8 @@ function OrderDetailClient() {
 
                         // Loud client-side guard for the most common prod signature failure
                         const pubIsProd = /prod/i.test((window as any).WOMPI_PUBLIC_KEY || '');
-                        if (pubIsProd && !data.hasIntegritySignature) {
+                        const hasSig = !!(data.hasIntegritySignature || data.integrity || data.checkoutData?.signature?.integrity);
+                        if (pubIsProd && !hasSig) {
                           toast.error(
                             "⚠️ Using PRODUCTION Wompi key (pub_prod_) but the server did not return an integrity signature. " +
                             "WOMPI_INTEGRITY_KEY (prod_integrity_...) is probably missing or scoped only to Production/Preview in Vercel. " +
@@ -660,8 +661,8 @@ function OrderDetailClient() {
 
                         const WidgetCheckoutClass = (window as any).WidgetCheckout || (window as any).WompiCheckout;
 
-                        if (WidgetCheckoutClass && checkoutData) {
-                          const pubKey = checkoutData.publicKey || (window as any).WOMPI_PUBLIC_KEY || '';
+                        if (WidgetCheckoutClass) {
+                          const pubKey = data.publicKey || checkoutData?.publicKey || (window as any).WOMPI_PUBLIC_KEY || '';
 
                           // Aggressively set globals from the *server* response (runtime truth).
                           // Prevents "merchants/undefined" and init 422 even across deploys with stale client bundles.
@@ -679,23 +680,21 @@ function OrderDetailClient() {
                             }
                           }
 
-                          const widgetConfig: any = {
-                            publicKey: pubKey,
-                            currency: checkoutData.currency,
-                            amountInCents: checkoutData.amountInCents,
-                            reference: checkoutData.reference,
-                            redirectUrl: checkoutData.redirectUrl,
-                            customerData: checkoutData.customerData,
-                          };
-                          if (checkoutData.signature?.integrity) {
-                            widgetConfig.signature = { integrity: checkoutData.signature.integrity };
-                          }
-                          console.log('[Wompi][Client] Opening Wompi widget', { reference: checkoutData.reference });
+                          const integrityForWidget = data.integrity || checkoutData?.signature?.integrity || responseIntegrity;
+
+                          console.log('[Wompi][Client] Opening Wompi widget (exact snippet shape)', { reference: data.reference || checkoutData?.reference, hasIntegrity: !!integrityForWidget });
 
                           // Small delay after forcing globals lets Wompi sub-bundles settle.
                           setTimeout(() => {
                             try {
-                              const checkout = new WidgetCheckoutClass(widgetConfig);
+                              // Exact construction per the latest targeted snippet the user provided
+                              const checkout = new WidgetCheckoutClass({
+                                publicKey: pubKey,
+                                amountInCents: data.amountInCents || checkoutData?.amountInCents,
+                                currency: 'COP',
+                                reference: data.reference || checkoutData?.reference,
+                                signature: integrityForWidget ? { integrity: integrityForWidget } : undefined,
+                              });
 
                               toast.info('Abriendo Wompi Checkout seguro. Ingresa los datos de pago allí.');
 
