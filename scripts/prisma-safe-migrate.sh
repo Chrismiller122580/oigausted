@@ -17,6 +17,7 @@ set -euo pipefail
 #   DIRECT_DATABASE_URL=...direct/migration... (build only, for this script)
 
 MIGRATION_NAME="20260604015327_enhance_audit_for_all_system_changes"
+NEW_PAYOUT_MIGRATION="20260614000000_add_seller_payout_bank_details_and_wompi_ref"
 
 DB_URL="${DIRECT_DATABASE_URL:-${DATABASE_URL:-}}"
 
@@ -52,6 +53,29 @@ fi
 
 # Print the log for visibility
 cat /tmp/migrate.log
+
+# General recovery for any "failed migrations in the target database" (covers old ones + our new payout migration)
+if grep -q "failed migrations in the target database" /tmp/migrate.log; then
+  echo "⚠️  Detected failed migration(s) (general recovery for recent migrations including $NEW_PAYOUT_MIGRATION)..."
+  # Resolve the known recent failed migrations so we can retry cleanly
+  DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$MIGRATION_NAME" || true
+  DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$NEW_PAYOUT_MIGRATION" || true
+
+  echo "    Retrying prisma migrate deploy after general resolve..."
+  if run_migrate; then
+    echo "✅ Migration recovered and applied successfully (after general resolve)."
+    cat /tmp/migrate.log
+
+    echo "🌱 Running seed to ensure PlatformConfig singleton + categories (idempotent, safe on every deploy)..."
+    npx tsx prisma/seed.ts || echo "⚠️  Seed step had non-fatal issues (continuing)"
+
+    exit 0
+  else
+    cat /tmp/migrate.log
+    echo "❌ Retry after general resolve also failed."
+    # fall through to final error message
+  fi
+fi
 
 # Special case: known recoverable migration failure
 if grep -q "failed migrations in the target database" /tmp/migrate.log && \

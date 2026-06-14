@@ -14,40 +14,87 @@
 DO $$
 BEGIN
   -- User bank/payout details (nullable; seller configures in /seller/earnings)
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'payoutBankCode') THEN
+  -- Use ILIKE + public schema for robustness across different Postgres casing behaviors
+  -- and after previous `db push` or manual adds.
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name ILIKE 'user' 
+      AND column_name ILIKE 'payoutbankcode'
+  ) THEN
     ALTER TABLE "User" ADD COLUMN "payoutBankCode" TEXT;
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'payoutAccountNumber') THEN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name ILIKE 'user' 
+      AND column_name ILIKE 'payoutaccountnumber'
+  ) THEN
     ALTER TABLE "User" ADD COLUMN "payoutAccountNumber" TEXT;
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'payoutAccountType') THEN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name ILIKE 'user' 
+      AND column_name ILIKE 'payoutaccounttype'
+  ) THEN
     ALTER TABLE "User" ADD COLUMN "payoutAccountType" TEXT;
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'payoutHolderName') THEN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name ILIKE 'user' 
+      AND column_name ILIKE 'payoutholdername'
+  ) THEN
     ALTER TABLE "User" ADD COLUMN "payoutHolderName" TEXT;
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'payoutDocumentType') THEN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name ILIKE 'user' 
+      AND column_name ILIKE 'payoutdocumenttype'
+  ) THEN
     ALTER TABLE "User" ADD COLUMN "payoutDocumentType" TEXT;
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'payoutDocumentNumber') THEN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name ILIKE 'user' 
+      AND column_name ILIKE 'payoutdocumentnumber'
+  ) THEN
     ALTER TABLE "User" ADD COLUMN "payoutDocumentNumber" TEXT;
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'payoutPhone') THEN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name ILIKE 'user' 
+      AND column_name ILIKE 'payoutphone'
+  ) THEN
     ALTER TABLE "User" ADD COLUMN "payoutPhone" TEXT;
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'payoutEmail') THEN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name ILIKE 'user' 
+      AND column_name ILIKE 'payoutemail'
+  ) THEN
     ALTER TABLE "User" ADD COLUMN "payoutEmail" TEXT;
   END IF;
 
   -- Order: Wompi-specific payout reference for the seller disbursement (nullable)
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Order' AND column_name = 'wompiPayoutRef') THEN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name ILIKE 'order' 
+      AND column_name ILIKE 'wompiPayoutRef'
+  ) THEN
     ALTER TABLE "Order" ADD COLUMN "wompiPayoutRef" TEXT;
   END IF;
 END $$;
