@@ -4,6 +4,11 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
 import crypto from 'crypto';
+import {
+  getEventsKeyInfo,
+  verifyWompiSignatureDetailed,
+  resolveWompiProperty,
+} from '@/lib/wompi-signature';
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -12,17 +17,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Admin only' }, { status: 403 });
   }
 
+  // Optional sample for live webhook signature debugging (paste a failing X-Event-Checksum event here)
+  let sampleEvent: any = null;
+  let sampleChecksum = '';
+  try {
+    const body = await req.json().catch(() => ({}));
+    if (body && (body.sampleWebhookEvent || body.sampleEvent)) {
+      sampleEvent = body.sampleWebhookEvent || body.sampleEvent;
+    }
+    sampleChecksum = body?.sampleChecksum || body?.checksum || (sampleEvent?.signature?.checksum || '');
+  } catch {
+    // no body or not json; proceed with env-only self test
+  }
+
   const pub = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '';
   const integ = process.env.WOMPI_INTEGRITY_KEY || process.env.WOMPI_INTEGRITY_SECRET || '';
-  const events = process.env.WOMPI_EVENTS_KEY || process.env.WOMPI_EVENTS_SECRET || '';
   const priv = process.env.WOMPI_PRIVATE_KEY || '';
 
   const pubLooks = pub.match(/pub_(test|prod)/i)?.[1] || 'unknown';
   const integLooks = integ.match(/(test|prod)_integrity/i)?.[1] || (integ ? 'unknown' : 'missing');
-  const eventsLooks = events.match(/(test|prod)_events/i)?.[1] || (events ? 'unknown' : 'missing');
   const privLooks = priv.match(/prv_(test|prod)/i)?.[1] || (priv ? 'unknown' : 'missing');
 
   const keyMismatch = integ && pub ? (/prod/i.test(pub) !== /prod/i.test(integ)) : false;
+
+  // Use the shared events key loader (centralized diagnostics + correct fallback)
+  const eventsInfo = getEventsKeyInfo();
+  const events = (process.env.WOMPI_EVENTS_KEY || process.env.WOMPI_EVENTS_SECRET || '');
+  const eventsLooks = events ? (events.match(/(test|prod)_events/i)?.[1] || 'unknown') : 'missing';
 
   // Sample integrity signature computation (proves the key material is loadable and HMAC works)
   let sampleSig: string | null = null;
@@ -92,7 +113,58 @@ export async function POST(req: NextRequest) {
   if (query.attempted && !query.ok) summary.recommendations.push('Wompi API query failed — verify the private (or public) key is valid for the chosen environment (sandbox vs production) and that the key belongs to the merchant of the public key.');
   if (query.ok) summary.recommendations.push('Query to Wompi API succeeded — keys look usable for status checks.');
 
-  devLog('[Wompi][test] self-test result', { pubLooks, integLooks, queryOk: query.ok, mismatch: keyMismatch });
+  // === Sample webhook event signature verification (for debugging 401 "Invalid signature" on /api/webhooks/wompi) ===
+  let eventVerification: any = { attempted: false };
+  if (sampleEvent && typeof sampleEvent === 'object') {
+    eventVerification.attempted = true;
+    eventVerification.usedChecksum = sampleChecksum ? (sampleChecksum.slice(0, 16) + '...') : (sampleEvent?.signature?.checksum ? (sampleEvent.signature.checksum.slice(0,16)+'...') : 'none-in-body');
+    try {
+      const detail = verifyWompiSignatureDetailed(sampleEvent, sampleChecksum || sampleEvent?.signature?.checksum || '');
+      const info = eventsInfo; // from shared
+      eventVerification = {
+        ...eventVerification,
+        matches: detail.ok,
+        reason: detail.reason,
+        signedPayload: detail.signedPayload,
+        properties: detail.properties,
+        receivedNormalizedPrefix: detail.receivedNormalized ? detail.receivedNormalized.slice(0, 16) + '...' : '',
+        computedHexPrefix: detail.computedHex ? detail.computedHex.slice(0, 16) + '...' : '',
+        keyPresent: detail.keyPresent,
+        keyEnvHint: detail.keyEnvHint,
+        hexLenMatch: detail.receivedHexLen === detail.computedHexLen,
+        eventEnvironment: sampleEvent?.environment || null,
+        eventType: sampleEvent?.event || null,
+        reference: sampleEvent?.data?.transaction?.reference || null,
+        transactionId: sampleEvent?.data?.transaction?.id || null,
+      };
+
+      if (!detail.ok) {
+        summary.recommendations.push('SAMPLE EVENT SIGNATURE FAILED — the checksum does not match using the current WOMPI_EVENTS_KEY. Common causes: 1) WOMPI_EVENTS_KEY not set or set to wrong value (copy the exact "Llave para eventos" / prod_events_... from comercios.wompi.co for this public key). 2) Key is for the wrong environment (test_events vs prod_events) compared to the event "environment": "' + (sampleEvent?.environment || '?') + '". 3) Properties resolver built a different concat than Wompi (check signedPayload above). Redeploy after fixing the env var in Vercel (Production scope).');
+      } else {
+        summary.recommendations.push('Sample event signature VERIFIED OK with the current EVENTS key (good).');
+      }
+    } catch (e: any) {
+      eventVerification.error = e?.message || String(e);
+    }
+  } else if (sampleChecksum || sampleEvent) {
+    eventVerification.note = 'sampleEvent must be a full webhook JSON body object; sampleChecksum optional (falls back to body.signature.checksum)';
+  }
+
+  // Attach to summary
+  (summary as any).eventVerification = eventVerification;
+  (summary as any).eventsKeyInfo = eventsInfo;
+
+  if (!eventsInfo.present) {
+    summary.recommendations.push('WOMPI_EVENTS_KEY is MISSING — webhooks from Wompi will be rejected with 401 "Invalid signature". Add the key (Llave para eventos) and redeploy.');
+  }
+  if (eventsInfo.isSandboxInProd) {
+    summary.recommendations.push('Using SANDBOX events key in production — live Wompi prod events will fail signature verification.');
+  }
+  if (eventsInfo.present && eventsInfo.envHint !== 'prod' && process.env.NODE_ENV === 'production') {
+    summary.recommendations.push('Events key does not look like prod_events_... while running in production. For live payments use the production "Llave para eventos".');
+  }
+
+  devLog('[Wompi][test] self-test result', { pubLooks, integLooks, queryOk: query.ok, mismatch: keyMismatch, events: eventsInfo });
 
   return NextResponse.json({ success: true, summary });
 }

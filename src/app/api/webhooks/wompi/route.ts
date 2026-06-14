@@ -1,93 +1,13 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import crypto from 'crypto'
 import { logAuditEvent } from '@/lib/audit'
 import { devLog } from '@/lib/utils'
 import { confirmWompiPayment } from '@/lib/server/confirm-wompi-payment'
-
-const WOMPI_EVENTS_KEY = process.env.WOMPI_EVENTS_KEY || process.env.WOMPI_EVENTS_SECRET;
-
-console.log('[Wompi] Events key loaded?', !!WOMPI_EVENTS_KEY, 'prefix:', (WOMPI_EVENTS_KEY || '').slice(0, 12) + '...');
-if (WOMPI_EVENTS_KEY) {
-  const eProd = /prod/i.test(WOMPI_EVENTS_KEY);
-  console.log('[Wompi] Events key environment hint:', eProd ? 'prod' : 'test/sandbox');
-}
-
-if (process.env.NODE_ENV === 'production' && WOMPI_EVENTS_KEY?.includes('test')) {
-  console.warn('⚠️  WARNING: Using Wompi SANDBOX keys in production! Webhook processing is in test mode.');
-}
-
-function getNestedValue(obj: any, path: string): any {
-  if (!obj || !path) return undefined
-  return path.split('.').reduce((current, key) => {
-    if (current == null) return undefined
-    return current[key]
-  }, obj)
-}
-
-function resolveWompiProperty(body: any, prop: string): string {
-  if (!prop) return ''
-  // Wompi properties are paths such as "transaction.id", "transaction.amount_in_cents", "timestamp", etc.
-  // They are resolved against the event root (body), which has data.transaction and top-level timestamp/signature.
-  let val = getNestedValue(body, prop)
-  if (val === undefined) {
-    // Try under data (common)
-    val = getNestedValue(body?.data, prop)
-  }
-  if (val === undefined && prop.startsWith('transaction.')) {
-    // Try relative under data.transaction
-    val = getNestedValue(body?.data?.transaction, prop.replace(/^transaction\./, ''))
-  }
-  if (val === undefined && prop === 'timestamp') {
-    val = body?.timestamp
-  }
-  return val == null ? '' : String(val)
-}
-
-function verifyWompiSignature(body: any, receivedSignature: string): boolean {
-  if (!WOMPI_EVENTS_KEY) {
-    console.error('[Wompi] WOMPI_EVENTS_KEY is not set in environment')
-    return false
-  }
-
-  // Per official Wompi Colombia Events docs:
-  // - Use signature.properties (array of paths) from the event body.
-  // - Concatenate the corresponding values (in listed order, no separators).
-  // - HMAC-SHA256 using the Events Secret (WOMPI_EVENTS_KEY).
-  // - Compare to X-Event-Checksum header or body.signature.checksum.
-  // Properties can vary per event; always read from the payload.
-  const sig = body?.signature || {}
-  const properties: string[] = Array.isArray(sig.properties) ? sig.properties : []
-
-  let signedPayload: string
-  if (properties.length > 0) {
-    signedPayload = properties.map((p: string) => resolveWompiProperty(body, p)).join('')
-  } else {
-    // Legacy fallback (older guidance / some events): timestamp + full body JSON
-    const timestamp = (body?.timestamp || '').toString()
-    signedPayload = `${timestamp}${JSON.stringify(body)}`
-  }
-
-  const expectedSignature = crypto
-    .createHmac('sha256', WOMPI_EVENTS_KEY)
-    .update(signedPayload)
-    .digest('hex')
-
-  const normalizedReceived = (receivedSignature || '').replace(/^sha256=/i, '').trim().toLowerCase()
-
-  if (!normalizedReceived || !expectedSignature) return false
-
-  // Use timing-safe comparison to prevent timing attacks
-  try {
-    return crypto.timingSafeEqual(
-      Buffer.from(normalizedReceived, 'hex'),
-      Buffer.from(expectedSignature, 'hex')
-    )
-  } catch (e) {
-    devLog('[Wompi] Signature comparison failed (likely invalid hex)', e)
-    return false
-  }
-}
+import {
+  verifyWompiSignature,
+  verifyWompiSignatureDetailed,
+  getEventsKeyInfo,
+} from '@/lib/wompi-signature'
 
 export async function POST(request: Request) {
   let body: any;
@@ -112,12 +32,22 @@ export async function POST(request: Request) {
 
     // 1. Verify signature first (critical security check)
     if (!verifyWompiSignature(body, receivedSignature)) {
-      devLog('[Wompi][Webhook] Invalid signature received', {
-        receivedHeader: receivedSignature ? receivedSignature.slice(0, 20) + '...' : 'none',
-        hasBodyTimestamp: !!body?.timestamp,
+      const info = getEventsKeyInfo()
+      const detail = verifyWompiSignatureDetailed(body, receivedSignature)
+      // Always emit to Vercel logs (devLog is suppressed in prod). Include safe diagnostics only.
+      console.warn('[Wompi][Webhook] INVALID SIGNATURE — webhook rejected with 401', {
+        receivedChecksumPrefix: (receivedSignature || '').slice(0, 16) + '...',
+        computedHexPrefix: detail.computedHex ? detail.computedHex.slice(0, 16) + '...' : 'n/a',
+        signedPayload: detail.signedPayload,
+        properties: detail.properties,
         event: body?.event,
         reference: body?.data?.transaction?.reference,
         wompiTransactionId: body?.data?.transaction?.id,
+        environment: body?.environment,
+        keyPresent: info.present,
+        keyEnvHint: info.envHint,
+        reason: detail.reason,
+        timestampDelta: body?.timestamp ? Math.abs(Math.floor(Date.now() / 1000) - (body.timestamp as number)) : null,
       })
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
