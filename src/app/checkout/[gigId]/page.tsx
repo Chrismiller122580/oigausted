@@ -266,7 +266,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const openWompiPayment = async (orderId: string) => {
+  const openWompiPayment = async () => {
     if (!order || !gig) return;
 
     if (realPaymentsEnabled === false) {
@@ -306,7 +306,7 @@ export default function CheckoutPage() {
       // 2. Prepare + ultra force + dynamic load AFTER key
       const res = await fetch('/api/checkout/wompi', {
         method: 'POST',
-        body: JSON.stringify({ orderId })
+        body: JSON.stringify({ orderId: order.id })
       });
       const data = await res.json();
 
