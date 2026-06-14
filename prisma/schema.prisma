@@ -95,6 +95,17 @@ model User {
   latitude      Float?
   longitude     Float?
   serviceRadiusKm Int?     // How far the seller is willing to travel (for sellers)
+
+  // Bank / payout details for receiving seller net payouts (admin "Pagos a vendedores" via Wompi Pagos a Terceros or manual transfer)
+  // Seller must fill these before admin can record a Wompi payout for their orders.
+  payoutBankCode        String?  // e.g. "BANCOLOMBIA", "DAVIVIENDA", "BBVA" (use values from Wompi bank catalog)
+  payoutAccountNumber   String?
+  payoutAccountType     String?  // "SAVINGS" | "CHECKING" | "CURRENT"
+  payoutHolderName      String?
+  payoutDocumentType    String?  // "CC" | "NIT" | "CE" | "PASSPORT"
+  payoutDocumentNumber  String?
+  payoutPhone           String?
+  payoutEmail           String?
 }
 
 model PasswordResetToken {
@@ -291,6 +302,8 @@ model Order {
 
   // Seller payout tracking for admin payouts page
   sellerPayoutAt   DateTime?
+  // When paying via Wompi (Pagos a Terceros / Payouts), store the Wompi payout/transfer reference or batch id for reconciliation + seller comms.
+  wompiPayoutRef   String?
 }
 
 model OrderMessage {

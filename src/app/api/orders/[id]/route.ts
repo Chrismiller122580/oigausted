@@ -71,7 +71,7 @@ export async function PATCH(
     const resolvedParams = await params
     const orderId = resolvedParams.id
     const body = await request.json()
-    const { status, price, customFields, serviceAddress, serviceLatitude, serviceLongitude } = body
+    const { status, price, customFields, serviceAddress, serviceLatitude, serviceLongitude, wompiPayoutRef } = body
 
     // Fetch order to enforce ownership (explicit select to avoid missing columns like sellerPayoutAt in prod DB)
     const existingOrder = await prisma.order.findUnique({ 
@@ -161,11 +161,15 @@ export async function PATCH(
       ? (body.sellerPayoutAt ? new Date(body.sellerPayoutAt) : null) 
       : undefined;
 
-    // sellerPayoutAt is intentionally never put into updateData (handled in best-effort block below)
+    const wompiPayoutRefUpdate = body.wompiPayoutRef !== undefined 
+      ? (body.wompiPayoutRef ? String(body.wompiPayoutRef).trim() : null) 
+      : undefined;
+
+    // sellerPayoutAt and wompiPayoutRef are intentionally never put into updateData (handled in best-effort blocks below to survive prod DB drift)
 
     let updatedOrder: any;
 
-    // Safe select for Order + needed relations (avoids selecting columns like sellerPayoutAt that may be missing in prod DB)
+    // Safe select for Order + needed relations (avoids selecting columns like sellerPayoutAt/wompiPayoutRef that may be missing in prod DB)
     const safeOrderSelect = {
       id: true,
       price: true,
@@ -275,6 +279,18 @@ export async function PATCH(
         });
       } catch (payoutErr) {
         devLog('sellerPayoutAt update skipped (column may be missing in prod DB)', payoutErr);
+      }
+    }
+
+    // Best-effort update for wompiPayoutRef (Wompi transfer id/ref for seller payouts via Pagos a Terceros)
+    if (wompiPayoutRefUpdate !== undefined) {
+      try {
+        await prisma.order.update({
+          where: { id: orderId },
+          data: { wompiPayoutRef: wompiPayoutRefUpdate } as any,
+        });
+      } catch (refErr) {
+        devLog('wompiPayoutRef update skipped (column may be missing in prod DB)', refErr);
       }
     }
 

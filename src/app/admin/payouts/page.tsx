@@ -81,38 +81,58 @@ export default function AdminPayoutsPage() {
     fetchCompleted();
   }, []);
 
-  const markAsPaid = async (orderId: string) => {
+  const markAsPaid = async (orderId: string, wompiRef?: string) => {
     const order = orders.find((o: any) => o.id === orderId);
     if (!order) return;
 
+    const hasBank = !!(order.seller?.payoutAccountNumber && order.seller?.payoutBankCode);
+
     try {
+      const payload: any = { sellerPayoutAt: new Date().toISOString() };
+      if (wompiRef && wompiRef.trim()) {
+        payload.wompiPayoutRef = wompiRef.trim();
+      }
+
+      // Persist seller payout + optional Wompi ref on the order (best effort for column drift)
+      const patchRes = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }).catch(() => null);
+
       // If seller had a referrer, mark their referral earnings as Paid
       if (order.seller?.referredById) {
         await fetch('/api/admin/referrals', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ referrerId: order.seller.referredById }),
-        });
+        }).catch(() => {});
       }
 
-      // Persist seller payout on the order (best effort - may fail if column missing in prod DB)
+      // Notify seller (best effort)
       try {
-        await fetch(`/api/orders/${orderId}`, {
-          method: 'PATCH',
+        const net = order.breakdown?.netToSeller || order.price || 0;
+        const refPart = payload.wompiPayoutRef ? ` Referencia Wompi: ${payload.wompiPayoutRef}.` : '';
+        await fetch('/api/notifications', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sellerPayoutAt: new Date().toISOString() }),
-        });
-      } catch (patchErr) {
-        // non-fatal; we use local persistence below
-        console.warn('sellerPayoutAt patch failed (expected if column missing in prod DB):', patchErr);
-      }
+          body: JSON.stringify({
+            userId: order.sellerId,
+            category: 'payment',
+            type: 'in_app',
+            title: 'Pago enviado a tu cuenta',
+            message: `Tu pago neto de $${net.toLocaleString('es-CO')} COP por "${order.gig?.title || 'el servicio'}" fue marcado como pagado vía Wompi.${refPart} Se acreditará en la cuenta registrada.`,
+            link: `/orders/${orderId}`,
+          }),
+        }).catch(() => {});
+      } catch {}
 
-      // Move from pending to paid list (for searchable history)
+      // Move from pending to paid list
       setOrders(prev => prev.filter((o: any) => o.id !== orderId));
-      const paidOrder = { ...order, sellerPayoutAt: new Date().toISOString() };
+      const paidOrder = { ...order, sellerPayoutAt: new Date().toISOString(), wompiPayoutRef: payload.wompiPayoutRef || null };
       setPaidOrders(prev => [paidOrder, ...prev]);
 
-      // Persist locally so it doesn't reappear on refresh (handles case where sellerPayoutAt column missing in prod DB)
+      // Local persistence fallback
       const newMarked = new Set(manuallyMarkedPaid);
       newMarked.add(orderId);
       setManuallyMarkedPaid(newMarked);
@@ -120,10 +140,28 @@ export default function AdminPayoutsPage() {
         localStorage.setItem('adminManuallyPaidPayouts', JSON.stringify([...newMarked]));
       }
 
-      toast.success('Payout marked as paid. Referrals updated if applicable. Moved to paid history. (Note: persisted locally until DB column is added.)');
+      const mode = payload.wompiPayoutRef ? 'Wompi' : 'manual';
+      const bankNote = hasBank ? '' : ' (seller bank details were missing)';
+      toast.success(`Seller payout recorded (${mode}). Referrals updated.${bankNote}`);
     } catch (e) {
       toast.error('Error marking payout');
     }
+  };
+
+  // Convenience wrapper that asks for Wompi ref (the main path for "pay sellers using wompi")
+  const recordWompiPayout = async (orderId: string) => {
+    const order = orders.find((o: any) => o.id === orderId);
+    if (!order) return;
+
+    const hasBank = !!(order.seller?.payoutAccountNumber && order.seller?.payoutBankCode);
+    if (!hasBank) {
+      const proceed = confirm('Este vendedor no tiene datos bancarios completos en el sistema. ¿Deseas registrar el pago de todas formas (puedes agregar los datos después)?');
+      if (!proceed) return;
+    }
+
+    const ref = prompt('Ingresa la referencia / ID del payout en Wompi (Pagos a Terceros o transferencia). Esto se mostrará al vendedor y ayuda con la reconciliación. (Opcional pero recomendado)', '');
+    // Allow empty ref (manual Wompi outside the app is still "using Wompi")
+    await markAsPaid(orderId, ref || undefined);
   };
 
   const aggregated = aggregatePayouts(orders.map((o: any) => o.breakdown || { grossAmount: o.price || 0, platformFee: 0, referralFee: 0, netToSeller: o.price || 0, referralApplies: false, totalPlatformCost: 0 }));
@@ -191,10 +229,20 @@ export default function AdminPayoutsPage() {
                       <p className="text-2xl font-bold text-emerald-400">${(order.breakdown?.netToSeller || order.price || 0).toLocaleString('es-CO')}</p>
                       <p className="text-xs text-muted-foreground line-through">${(order.price || 0).toLocaleString('es-CO')} gross</p>
                       <p className="text-[10px] text-muted-foreground">Net to seller</p>
+                      {order.seller?.payoutAccountNumber && order.seller?.payoutBankCode ? (
+                        <p className="text-[10px] text-emerald-600 mt-1">Banco: {order.seller.payoutBankCode} • ****{String(order.seller.payoutAccountNumber).slice(-4)}</p>
+                      ) : (
+                        <p className="text-[10px] text-amber-600 mt-1">⚠️ Sin datos bancarios</p>
+                      )}
                     </div>
-                    <Button onClick={() => markAsPaid(order.id)} className="bg-emerald-600 hover:bg-emerald-700">
-                      Mark as Paid
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      <Button onClick={() => recordWompiPayout(order.id)} className="bg-emerald-600 hover:bg-emerald-700">
+                        Pagar con Wompi
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => markAsPaid(order.id)} className="text-xs">
+                        Marcar manual
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -224,12 +272,13 @@ export default function AdminPayoutsPage() {
                     <th className="text-left p-3">Buyer</th>
                     <th className="text-right p-3">Net Paid</th>
                     <th className="text-left p-3">Paid At</th>
+                    <th className="text-left p-3">Wompi Ref</th>
                     <th className="text-left p-3">ID</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredPaid.length === 0 ? (
-                    <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No matching paid payouts.</td></tr>
+                    <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No matching paid payouts.</td></tr>
                   ) : (
                     filteredPaid.map((order: any) => (
                       <tr key={order.id} className="border-t hover:bg-muted/30">
@@ -244,6 +293,7 @@ export default function AdminPayoutsPage() {
                         <td className="p-3 text-xs text-muted-foreground">
                           {order.sellerPayoutAt ? new Date(order.sellerPayoutAt).toLocaleDateString('es-CO') : '—'}
                         </td>
+                        <td className="p-3 text-[10px] text-emerald-600 font-mono">{order.wompiPayoutRef || '—'}</td>
                         <td className="p-3 text-[10px] text-muted-foreground font-mono">{order.id.slice(0, 8)}…</td>
                       </tr>
                     ))

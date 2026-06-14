@@ -5,8 +5,9 @@ import { useEffect, useState } from 'react';
 import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, TrendingUp, Calendar, Download, Package, Users } from 'lucide-react';
+import { DollarSign, TrendingUp, Calendar, Download, Package, Users, Landmark } from 'lucide-react';
 import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG, aggregatePayouts } from '@/lib/payout';
+import { toast } from 'sonner';
 
 export default function SellerEarningsPage() {
   const { data: session } = useSession();
@@ -25,6 +26,20 @@ export default function SellerEarningsPage() {
   });
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Seller payout bank details (for Wompi seller payouts from admin)
+  const [bankForm, setBankForm] = useState({
+    payoutBankCode: '',
+    payoutAccountNumber: '',
+    payoutAccountType: 'SAVINGS',
+    payoutHolderName: '',
+    payoutDocumentType: 'CC',
+    payoutDocumentNumber: '',
+    payoutPhone: '',
+    payoutEmail: '',
+  });
+  const [bankLoading, setBankLoading] = useState(false);
+  const [bankSaved, setBankSaved] = useState(false);
 
   useEffect(() => {
     fetchEarnings();
@@ -102,6 +117,47 @@ export default function SellerEarningsPage() {
       setLoading(false);
     }
   };
+
+  // Load/save seller bank payout info (used by admin when paying via Wompi)
+  const loadBank = async () => {
+    try {
+      const res = await fetch('/api/seller/payout-bank');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.bank) {
+          setBankForm((prev) => ({ ...prev, ...json.bank }));
+          setBankSaved(!!json.bank.payoutAccountNumber);
+        }
+      }
+    } catch {}
+  };
+
+  const saveBank = async () => {
+    setBankLoading(true);
+    try {
+      const res = await fetch('/api/seller/payout-bank', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bankForm),
+      });
+      if (res.ok) {
+        setBankSaved(true);
+        toast.success('Datos bancarios guardados. El administrador podrá usarlos para pagarte vía Wompi.');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.error || 'No se pudieron guardar los datos bancarios');
+      }
+    } catch {
+      toast.error('Error de conexión al guardar');
+    } finally {
+      setBankLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Load bank after main earnings (non-blocking)
+    if (!loading) loadBank();
+  }, [loading]);
 
   if (loading) {
     return (
@@ -186,6 +242,71 @@ export default function SellerEarningsPage() {
           </Card>
         </div>
 
+        {/* Bank details for Wompi seller payouts (admin will use this when recording "Pagar con Wompi") */}
+        <Card className="mb-12 border-emerald-200">
+          <CardContent className="p-8">
+            <div className="flex items-center gap-3 mb-4">
+              <Landmark className="w-8 h-8 text-emerald-600" />
+              <div>
+                <h3 className="text-2xl font-semibold">Datos bancarios para cobros</h3>
+                <p className="text-sm text-muted-foreground">Completa esto para que el administrador pueda pagarte los giros netos vía Wompi (Pagos a Terceros). Se usan solo para payouts de vendedores.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label className="text-xs text-muted-foreground">Banco (código Wompi)</label>
+                <input value={bankForm.payoutBankCode} onChange={(e) => setBankForm({ ...bankForm, payoutBankCode: e.target.value })} placeholder="BANCOLOMBIA" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Número de cuenta</label>
+                <input value={bankForm.payoutAccountNumber} onChange={(e) => setBankForm({ ...bankForm, payoutAccountNumber: e.target.value })} placeholder="1234567890" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Tipo de cuenta</label>
+                <select value={bankForm.payoutAccountType} onChange={(e) => setBankForm({ ...bankForm, payoutAccountType: e.target.value })} className="w-full mt-1 px-3 py-2 border rounded-xl bg-background">
+                  <option value="SAVINGS">Ahorros (Savings)</option>
+                  <option value="CHECKING">Corriente (Checking)</option>
+                  <option value="CURRENT">Current</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Titular de la cuenta</label>
+                <input value={bankForm.payoutHolderName} onChange={(e) => setBankForm({ ...bankForm, payoutHolderName: e.target.value })} placeholder="Nombre completo como aparece en la cuenta" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Tipo documento</label>
+                <select value={bankForm.payoutDocumentType} onChange={(e) => setBankForm({ ...bankForm, payoutDocumentType: e.target.value })} className="w-full mt-1 px-3 py-2 border rounded-xl bg-background">
+                  <option value="CC">CC (Cédula)</option>
+                  <option value="NIT">NIT</option>
+                  <option value="CE">CE</option>
+                  <option value="PASSPORT">Pasaporte</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Número de documento</label>
+                <input value={bankForm.payoutDocumentNumber} onChange={(e) => setBankForm({ ...bankForm, payoutDocumentNumber: e.target.value })} placeholder="12345678" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Teléfono (opcional)</label>
+                <input value={bankForm.payoutPhone} onChange={(e) => setBankForm({ ...bankForm, payoutPhone: e.target.value })} placeholder="3001234567" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Email de la cuenta (opcional)</label>
+                <input value={bankForm.payoutEmail} onChange={(e) => setBankForm({ ...bankForm, payoutEmail: e.target.value })} placeholder="pago@tuempresa.com" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center gap-3">
+              <Button onClick={saveBank} disabled={bankLoading} className="bg-emerald-600 hover:bg-emerald-700">
+                {bankLoading ? 'Guardando...' : 'Guardar datos bancarios'}
+              </Button>
+              {bankSaved && <span className="text-emerald-600 text-sm">✓ Guardado. El admin lo verá al pagar vía Wompi.</span>}
+              <p className="text-[11px] text-muted-foreground ml-auto">Estos datos solo los usa el administrador para registrar tus pagos. Nunca se comparten públicamente.</p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Recent Transactions */}
         <Card>
           <CardContent className="p-10">
@@ -216,7 +337,7 @@ export default function SellerEarningsPage() {
         </Card>
 
         <div className="mt-12 text-center text-muted-foreground text-sm">
-          Los retiros a cuenta bancaria y reportes avanzados estarán disponibles próximamente.
+          Los pagos netos a vendedores se registran en el panel Admin (Payouts) usando Wompi. Completa tus datos bancarios arriba para agilizar el proceso. Reportes de SFTP de Wompi pueden usarse para reconciliación.
 
           <div className="mt-6 text-xs text-muted-foreground border-t pt-4">
             <strong>Nota sobre comisiones:</strong> Tus ganancias netas consideran la comisión de plataforma (12%) 

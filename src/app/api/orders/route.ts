@@ -189,12 +189,13 @@ export async function GET(request: Request) {
           gigId: true,
           customFields: true,
           sellerPayoutAt: true,
+          wompiPayoutRef: true,
           serviceLatitude: true,
           serviceLongitude: true,
           serviceAddress: true,
           gig: { select: { title: true, imageUrl: true } },
           buyer: { select: { id: true, name: true, email: true } },
-          seller: { select: { id: true, name: true, businessName: true, referredById: true } }
+          seller: { select: { id: true, name: true, businessName: true, referredById: true, payoutBankCode: true, payoutAccountNumber: true, payoutAccountType: true, payoutHolderName: true, payoutDocumentType: true, payoutDocumentNumber: true } }
         },
         orderBy: { createdAt: 'desc' }
       });
@@ -224,8 +225,13 @@ export async function GET(request: Request) {
         },
         orderBy: { createdAt: 'desc' }
       });
-      // attach null so client filters treat as unpaid (local persistence in payouts page handles "marked" ones)
-      orders = orders.map((o: any) => ({ ...o, sellerPayoutAt: null }));
+      // attach nulls for payout tracking fields (old DB / pre-migration); payouts UI falls back to localStorage for marked state
+      orders = orders.map((o: any) => ({
+        ...o,
+        sellerPayoutAt: null,
+        wompiPayoutRef: null,
+        // seller payout bank fields absent in this path (UI will treat as "no bank configured")
+      }));
     }
 
     return NextResponse.json(orders);  // sellerPayoutAt included when column present in DB; nulls + client localMarked otherwise (see admin/payouts)
