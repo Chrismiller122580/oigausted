@@ -13,6 +13,40 @@ import {
   resolveWompiProperty,
 } from '@/lib/wompi-signature';
 
+// Improved verifier with timestamp (Fix 1) - duplicated here for tester as requested
+const verifyWompiEvent = (event: any, eventsKey: string) => {
+  const signature = event.signature;
+  if (!signature?.properties || !eventsKey) return { valid: false, payload: '' };
+
+  // Properties concat (exact order)
+  const propValues = signature.properties
+    .map((prop: string) => {
+      let val: any = event;
+      prop.split('.').forEach(k => val = val?.[k]);
+      return String(val ?? '');
+    })
+    .join('');
+
+  // ✅ ADD TIMESTAMP (this was missing!)
+  const timestamp = String(event.timestamp || '');
+
+  const fullPayload = `${propValues}${timestamp}${eventsKey}`;
+
+  const computed = crypto
+    .createHmac('sha256', eventsKey)
+    .update(fullPayload)
+    .digest('hex');
+
+  const isValid = computed === signature.checksum;
+
+  return { 
+    valid: isValid, 
+    computed, 
+    payload: fullPayload,
+    receivedChecksum: signature.checksum 
+  };
+};
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   const isAdmin = (session?.user as any)?.role === 'admin';
@@ -152,27 +186,19 @@ export async function POST(req: NextRequest) {
     eventVerification.attempted = true;
     eventVerification.usedChecksum = sampleChecksum ? (sampleChecksum.slice(0, 16) + '...') : (sampleEvent?.signature?.checksum ? (sampleEvent.signature.checksum.slice(0,16)+'...') : 'none-in-body');
     try {
-      const detail = verifyWompiSignatureDetailed(sampleEvent, sampleChecksum || sampleEvent?.signature?.checksum || '', testEventsKey);
-      const info = eventsInfo; // from shared
-      const anyDetail = detail as any;
+      const eventsKeyForTest = testEventsKey || (process.env.WOMPI_EVENTS_KEY || process.env.WOMPI_EVENTS_SECRET || '');
+      const verification = verifyWompiEvent(sampleEvent, eventsKeyForTest);
       eventVerification = {
         ...eventVerification,
-        matches: detail.ok,
-        reason: detail.reason,
-        signedPayload: detail.signedPayload,   // will contain the full concat when using testEventsKey (properties+ts+key)
-        properties: detail.properties,
-        receivedNormalizedPrefix: detail.receivedNormalized ? detail.receivedNormalized.slice(0, 16) + '...' : '',
-        computedHexPrefix: detail.computedHex ? detail.computedHex.slice(0, 16) + '...' : '',
-        keyPresent: detail.keyPresent,
-        keyEnvHint: detail.keyEnvHint,
-        hexLenMatch: detail.receivedHexLen === detail.computedHexLen,
+        matches: verification.valid,
+        reason: verification.valid ? 'ok (using properties+timestamp+eventsKey)' : 'HMAC mismatch',
+        signedPayload: verification.payload,
+        computed: verification.computed,
+        receivedChecksum: verification.receivedChecksum,
         eventEnvironment: sampleEvent?.environment || null,
         eventType: sampleEvent?.event || null,
         reference: sampleEvent?.data?.transaction?.reference || null,
         transactionId: sampleEvent?.data?.transaction?.id || null,
-        // Using the exact user-provided verifier logic for Fix 1 (properties + timestamp + eventsKey)
-        usedKeyAppendedVariant: anyDetail.usedKeyAppendedVariant || true,
-        fullPayloadForDebug: anyDetail.signedPayload,  // the exact string that was HMACed (masked on live paths)
       };
 
       if (testEventsKey) {

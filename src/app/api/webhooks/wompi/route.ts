@@ -8,6 +8,7 @@ import {
   verifyWompiSignatureDetailed,
   getEventsKeyInfo,
 } from '@/lib/wompi-signature'
+import crypto from 'crypto'
 
 export async function POST(request: Request) {
   let body: any;
@@ -20,6 +21,40 @@ export async function POST(request: Request) {
       request.headers.get('X-Event-Checksum') ||
       request.headers.get('x-wompi-signature') ||
       (body?.signature?.checksum || '') 
+
+    // Improved verifier with timestamp (Fix 1)
+    const verifyWompiEvent = (event: any, eventsKey: string) => {
+      const signature = event.signature;
+      if (!signature?.properties || !eventsKey) return { valid: false, payload: '' };
+
+      // Properties concat (exact order)
+      const propValues = signature.properties
+        .map((prop: string) => {
+          let val: any = event;
+          prop.split('.').forEach(k => val = val?.[k]);
+          return String(val ?? '');
+        })
+        .join('');
+
+      // ✅ ADD TIMESTAMP (this was missing!)
+      const timestamp = String(event.timestamp || '');
+
+      const fullPayload = `${propValues}${timestamp}${eventsKey}`;
+
+      const computed = crypto
+        .createHmac('sha256', eventsKey)
+        .update(fullPayload)
+        .digest('hex');
+
+      const isValid = computed === signature.checksum;
+
+      return { 
+        valid: isValid, 
+        computed, 
+        payload: fullPayload,
+        receivedChecksum: signature.checksum 
+      };
+    };
     const headerTimestamp = 
       request.headers.get('x-wompi-timestamp') ||
       request.headers.get('X-Wompi-Timestamp') ||
@@ -44,25 +79,21 @@ export async function POST(request: Request) {
     })
 
     // 1. Verify signature first (critical security check)
-    // Using the corrected verifier (Fix 1) that does:
-    // properties (in order) + timestamp + eventsKey  → HMAC(eventsKey)
-    // This is applied as the primary to match user's provided exact requirement.
-    const verification = verifyWompiSignatureDetailed(body, receivedSignature)
-    if (!verification.ok) {
+    // Using the improved verifier with timestamp (user-provided Fix 1)
+    const eventsKey = process.env.WOMPI_EVENTS_KEY || process.env.WOMPI_EVENTS_SECRET || '';
+    const verification = verifyWompiEvent(body, eventsKey);
+    if (!verification.valid) {
       // Always emit to Vercel logs (devLog suppressed in prod). Include the exact payload for diagnosis.
       console.warn('[Wompi][Webhook] INVALID SIGNATURE — webhook rejected with 401', {
         receivedChecksumPrefix: (receivedSignature || '').slice(0, 16) + '...',
-        computedHexPrefix: verification.computedHex ? verification.computedHex.slice(0, 16) + '...' : 'n/a',
-        signedPayload: verification.signedPayload,   // will be masked for live
-        properties: verification.properties,
+        computed: verification.computed,
+        payload: verification.payload,
+        receivedChecksum: verification.receivedChecksum,
         event: body?.event,
         reference: body?.data?.transaction?.reference,
         wompiTransactionId: body?.data?.transaction?.id,
         environment: body?.environment,
-        keyPresent: keyInfo.present,
-        keyEnvHint: keyInfo.envHint,
-        reason: verification.reason,
-        timestampDelta: body?.timestamp ? Math.abs(Math.floor(Date.now() / 1000) - (body.timestamp as number)) : null,
+        eventsKeyPrefix: eventsKey.slice(0, 12) + '...',
       })
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
