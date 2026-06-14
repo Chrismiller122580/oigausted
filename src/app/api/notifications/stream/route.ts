@@ -14,17 +14,24 @@ export async function GET(req: NextRequest) {
   if (!userId) {
     return new Response('Unauthorized', { status: 401 });
   }
-  let lastChecked = new Date();
 
   const encoder = new TextEncoder();
+  let lastChecked = new Date();
+  let closed = false;
 
   const stream = new ReadableStream({
     async start(controller) {
       // Send initial connection message
       controller.enqueue(encoder.encode(`event: connected\ndata: ${JSON.stringify({ message: 'connected' })}\n\n`));
 
-      // Heartbeat + new notifications check every 3-5 seconds (much better than 45s client polling)
-      const interval = setInterval(async () => {
+      req.signal.addEventListener('abort', () => {
+        closed = true;
+        controller.close();
+      });
+
+      // Use a while loop with await to keep the async start() promise pending.
+      // This helps keep the streaming response alive in serverless runtimes (Vercel).
+      while (!closed) {
         try {
           const newNotifications = await prisma.notification.findMany({
             where: {
@@ -56,18 +63,16 @@ export async function GET(req: NextRequest) {
 
           // Heartbeat to keep connection alive
           controller.enqueue(encoder.encode(`event: heartbeat\ndata: ${JSON.stringify({ ts: Date.now() })}\n\n`));
+
+          // Wait before next check (keeps the promise pending)
+          await new Promise(resolve => setTimeout(resolve, 4000));
         } catch (err) {
           console.error('SSE error:', err);
-          clearInterval(interval);
-          controller.close();
+          closed = true;
+          controller.error(err);
+          break;
         }
-      }, 4000); // 4 seconds - excellent real-time feel
-
-      // Cleanup on disconnect
-      req.signal.addEventListener('abort', () => {
-        clearInterval(interval);
-        controller.close();
-      });
+      }
     },
   });
 
