@@ -4,6 +4,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
 import crypto from 'crypto';
+import { prisma } from '@/lib/prisma';
+import { logAuditEvent } from '@/lib/audit';
+import { confirmWompiPayment } from '@/lib/server/confirm-wompi-payment';
 import {
   getEventsKeyInfo,
   verifyWompiSignatureDetailed,
@@ -20,12 +23,15 @@ export async function POST(req: NextRequest) {
   // Optional sample for live webhook signature debugging (paste a failing X-Event-Checksum event here)
   let sampleEvent: any = null;
   let sampleChecksum = '';
+  let replayRequested = false;
+  let parsedRequestBody: any = {};
   try {
-    const body = await req.json().catch(() => ({}));
-    if (body && (body.sampleWebhookEvent || body.sampleEvent)) {
-      sampleEvent = body.sampleWebhookEvent || body.sampleEvent;
+    parsedRequestBody = await req.json().catch(() => ({}));
+    if (parsedRequestBody && (parsedRequestBody.sampleWebhookEvent || parsedRequestBody.sampleEvent)) {
+      sampleEvent = parsedRequestBody.sampleWebhookEvent || parsedRequestBody.sampleEvent;
     }
-    sampleChecksum = body?.sampleChecksum || body?.checksum || (sampleEvent?.signature?.checksum || '');
+    sampleChecksum = parsedRequestBody?.sampleChecksum || parsedRequestBody?.checksum || (sampleEvent?.signature?.checksum || '');
+    replayRequested = !!(parsedRequestBody?.replay === true || parsedRequestBody?.force === true || parsedRequestBody?.process === true);
   } catch {
     // no body or not json; proceed with env-only self test
   }
@@ -150,6 +156,10 @@ export async function POST(req: NextRequest) {
     eventVerification.note = 'sampleEvent must be a full webhook JSON body object; sampleChecksum optional (falls back to body.signature.checksum)';
   }
 
+  if (sampleEvent) {
+    summary.recommendations.push('TIP: To force-process this event (mark order Cancelled for ERROR/DECLINED, or confirm for APPROVED) even if signature currently fails, POST the same payload again with "replay": true (or "force": true). This is an admin-only recovery path.');
+  }
+
   // Attach to summary
   (summary as any).eventVerification = eventVerification;
   (summary as any).eventsKeyInfo = eventsInfo;
@@ -163,6 +173,79 @@ export async function POST(req: NextRequest) {
   if (eventsInfo.present && eventsInfo.envHint !== 'prod' && process.env.NODE_ENV === 'production') {
     summary.recommendations.push('Events key does not look like prod_events_... while running in production. For live payments use the production "Llave para eventos".');
   }
+
+  // === Replay / Force process the sample event (admin recovery tool) ===
+  // Useful when the live webhook is returning 401 because the EVENTS_KEY is not yet correct,
+  // or to re-apply side effects for a specific transaction (e.g. the one in this report).
+  let replayResult: any = { attempted: false };
+  const shouldReplay = !!(sampleEvent && replayRequested);
+  if (shouldReplay) {
+    replayResult.attempted = true;
+    const tx = sampleEvent?.data?.transaction;
+    const ref = tx?.reference || '';
+    const orderId = ref.replace(/^order_/, '');
+    const status = tx?.status;
+    const txId = tx?.id;
+
+    replayResult.orderId = orderId || null;
+    replayResult.wompiTransactionId = txId || null;
+    replayResult.status = status || null;
+
+    if (!orderId) {
+      replayResult.error = 'Could not extract orderId from reference (expected order_<uuid>)';
+    } else {
+      try {
+        if (status === 'APPROVED') {
+          const confirmRes = await confirmWompiPayment(orderId, {
+            wompiTransactionId: txId,
+            wompiStatus: status,
+            amount: tx?.amount_in_cents ? tx.amount_in_cents / 100 : undefined,
+            reference: ref,
+          });
+          replayResult.action = 'confirmed';
+          replayResult.confirmResult = confirmRes;
+          replayResult.success = confirmRes.success;
+        } else if (['DECLINED', 'ERROR', 'VOIDED'].includes(status)) {
+          await prisma.order.update({
+            where: { id: orderId },
+            data: { status: 'Cancelled', updatedAt: new Date() },
+          }).catch(() => {});
+
+          await logAuditEvent({
+            performedById: (session?.user as any)?.id || null,
+            action: `PAYMENT_${status}_REPLAY`,
+            targetType: 'Order',
+            targetId: orderId,
+            details: {
+              wompiTransactionId: txId,
+              status,
+              amount: tx?.amount_in_cents ? tx.amount_in_cents / 100 : undefined,
+              reference: ref,
+              replayedVia: 'admin/wompi/test',
+              originalStatusMessage: tx?.status_message || null,
+            },
+          }).catch(() => {});
+
+          replayResult.action = 'marked_cancelled';
+          replayResult.success = true;
+        } else {
+          replayResult.action = 'acknowledged_no_change';
+          replayResult.success = true;
+        }
+
+        replayResult.message = `Processed ${status} for order ${orderId} (replay)`;
+      } catch (e: any) {
+        replayResult.error = e?.message || String(e);
+        replayResult.success = false;
+      }
+    }
+
+    if (replayResult.success) {
+      summary.recommendations.push(`REPLAY DONE: order ${orderId} was processed for status ${status}. Check the order page and audit log.`);
+    }
+  }
+
+  (summary as any).replayResult = replayResult;
 
   devLog('[Wompi][test] self-test result', { pubLooks, integLooks, queryOk: query.ok, mismatch: keyMismatch, events: eventsInfo });
 
