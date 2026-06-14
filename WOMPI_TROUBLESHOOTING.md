@@ -145,7 +145,7 @@ The tools to diagnose and recover (advanced tester form on the admin page, repla
 
 ## Root Cause (What Is Actually Wrong)
 
-The **value** of the events secret (`prod_events_Es2BaJLBMq6acUzp7Eop6Bl0ORcvugTl` and any other candidate the user has tried so far) that is currently configured in Vercel does **not** match the secret Wompi is using right now to generate the `checksum` / `X-Event-Checksum` for events sent for this specific public key.
+The **value** of the events secret (`prod_events_jxa0Bz1S7uHmr1Nc3g4wL4u4i0DySop` and any other candidate) that is currently configured in Vercel must be validated using the real-event tester on /admin/settings until it reports matches:true. Use the exact keys provided by the user for this public key.
 
 - Wompi signs events with the current "Llave para eventos" registered for the public key + the webhook URL at the moment the event is sent.
 - The basic tester cannot detect this (it only runs dummy data on the server side).
