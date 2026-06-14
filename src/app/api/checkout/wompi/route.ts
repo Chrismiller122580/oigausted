@@ -216,25 +216,18 @@ export async function POST(req: NextRequest) {
       console.warn('[Wompi][Prepare] ' + keyMismatchWarning);
     }
 
-    // Fix 2: Return the key reliably at top level for client forcing (as specified)
-    const response: any = {
+    // Fix 3: Ensure Prepare Endpoint Returns Everything (top level for client forcing) + full for compat
+    return NextResponse.json({
       reference,
       amountInCents: Math.round((order.price || 0) * 100),
       publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
       integrity: integritySignature,
-      debug: {
-        pubKeyPrefix: (process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '').slice(0, 15),
-        hasIntegrity: !!integritySignature,
-      },
-      // Keep full data for backward compat
+      // previous for compat
       checkoutData,
       success: true,
       hasIntegritySignature: !!integritySignature,
-    };
-    if (keyMismatchWarning) {
-      response.keyMismatchWarning = keyMismatchWarning;
-    }
-    return NextResponse.json(response);
+      debug: debugInfo,
+    });
 
   } catch (error: any) {
     console.error('Wompi checkout error:', error);

@@ -332,41 +332,25 @@ export default function CheckoutPage() {
         );
       }
 
-      // Fix 2: Checkout / Widget Public Key (Critical for "firma inválida")
-      // Force everything from the prepare response (top level + fallback)
-      const responsePubKey = data.publicKey || checkoutData?.publicKey || WOMPI_PUBLIC_KEY;
-      const responseIntegrity = data.integrity || checkoutData?.signature?.integrity;
+      // Fix 1: Aggressive Widget Key Forcing (Critical – Do This First)
+      if (data.publicKey) {
+        console.log("🚀 Forcing Wompi key aggressively");
 
-      // FORCE GLOBALS BEFORE INITIALIZING (exact user-provided pattern + defensive logic)
-      if (responsePubKey) {
-        (window as any).WOMPI_PUBLIC_KEY = responsePubKey;
-        (window as any).$wompi = (window as any).$wompi || {};
-        (window as any).$wompi.publicKey = responsePubKey;
+        // Multiple ways to force
+        window.WOMPI_PUBLIC_KEY = data.publicKey;
+        (window as any).$wompi = { publicKey: data.publicKey };
+        (window as any).Wompi = { publicKey: data.publicKey };
 
-        console.log("[Wompi] Globals forced from prepare response:", responsePubKey?.slice(0, 20) + '...', {
-          source: data.publicKey ? 'top-level' : (checkoutData?.publicKey ? 'checkoutData' : 'env-fallback'),
-          hasIntegrity: !!responseIntegrity,
-        });
+        // Multiple init attempts with delays
+        const init = () => {
+          if ((window as any).$wompi?.initialize) (window as any).$wompi.initialize();
+          if ((window as any).Wompi?.initialize) (window as any).Wompi.initialize();
+        };
 
-        // Extra defensive re-force in case something overwrote it
-        setTimeout(() => {
-          if ((window as any).WOMPI_PUBLIC_KEY !== responsePubKey) {
-            (window as any).WOMPI_PUBLIC_KEY = responsePubKey;
-            (window as any).$wompi.publicKey = responsePubKey;
-            console.log("[Wompi] Re-forced globals (was overwritten)");
-          }
-        }, 50);
-
-        setTimeout(() => {
-          if ((window as any).$wompi?.initialize) {
-            try {
-              (window as any).$wompi.initialize({ publicKey: responsePubKey });
-              console.log("[Wompi] $wompi.initialize() called after force");
-            } catch (e) {
-              console.warn("[Wompi] initialize() threw (non-fatal):", e);
-            }
-          }
-        }, 100);
+        init();
+        setTimeout(init, 100);
+        setTimeout(init, 300);
+        setTimeout(init, 600);
       } else {
         console.warn("[Wompi] No publicKey received from prepare — falling back to env");
       }
@@ -376,9 +360,9 @@ export default function CheckoutPage() {
       const WidgetCheckoutClass = (window as any).WidgetCheckout || (window as any).WompiCheckout;
 
       if (WidgetCheckoutClass && checkoutData) {
-        const pubKey = responsePubKey;
+        const pubKey = data.publicKey || WOMPI_PUBLIC_KEY;
 
-        // Additional aggressive set (compatibility)
+        // Additional aggressive set (compatibility) - after the early forcing
         (window as any).WOMPI_PUBLIC_KEY = pubKey;
         (window as any).$wompi = (window as any).$wompi || {};
         (window as any).$wompi.publicKey = pubKey;
