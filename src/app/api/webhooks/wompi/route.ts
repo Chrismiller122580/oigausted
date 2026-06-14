@@ -30,9 +30,21 @@ export async function POST(request: Request) {
       ? parseInt(headerTimestamp) 
       : (body?.timestamp ? parseInt(body.timestamp) : null)
 
+    // Always log key state + basic event info on every webhook (helps diagnose when 401s happen)
+    const keyInfo = getEventsKeyInfo()
+    console.log('[Wompi][Webhook] Received event', {
+      event: body?.event,
+      wompiTransactionId: body?.data?.transaction?.id,
+      reference: body?.data?.transaction?.reference,
+      status: body?.data?.transaction?.status,
+      environment: body?.environment,
+      eventsKeyPresent: keyInfo.present,
+      eventsKeyHint: keyInfo.envHint,
+      eventsKeyPrefix: keyInfo.prefix,
+    })
+
     // 1. Verify signature first (critical security check)
     if (!verifyWompiSignature(body, receivedSignature)) {
-      const info = getEventsKeyInfo()
       const detail = verifyWompiSignatureDetailed(body, receivedSignature)
       // Always emit to Vercel logs (devLog is suppressed in prod). Include safe diagnostics only.
       console.warn('[Wompi][Webhook] INVALID SIGNATURE — webhook rejected with 401', {
@@ -44,8 +56,8 @@ export async function POST(request: Request) {
         reference: body?.data?.transaction?.reference,
         wompiTransactionId: body?.data?.transaction?.id,
         environment: body?.environment,
-        keyPresent: info.present,
-        keyEnvHint: info.envHint,
+        keyPresent: keyInfo.present,
+        keyEnvHint: keyInfo.envHint,
         reason: detail.reason,
         timestampDelta: body?.timestamp ? Math.abs(Math.floor(Date.now() / 1000) - (body.timestamp as number)) : null,
       })
