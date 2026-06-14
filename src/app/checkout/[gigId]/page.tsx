@@ -13,6 +13,7 @@ import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
 declare global {
   interface Window {
     WompiCheckout?: any;
+    WidgetCheckout?: any;
     WOMPI_PUBLIC_KEY?: string;
     $wompi?: any;
     Wompi?: any;
@@ -411,7 +412,7 @@ export default function CheckoutPage() {
             }
           });
 
-          checkout.open((result) => {
+          checkout.open((result: any) => {
             console.log('✅ Wompi result:', result);
             if (result?.transaction) {
               console.log('[Wompi] Transaction from callback:', {
