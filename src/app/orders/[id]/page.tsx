@@ -687,13 +687,15 @@ function OrderDetailClient() {
                           // Small delay after forcing globals lets Wompi sub-bundles settle.
                           setTimeout(() => {
                             try {
-                              // Exact construction per the latest targeted snippet the user provided
+                              // Exact construction per user request
                               const checkout = new WidgetCheckoutClass({
-                                publicKey: pubKey,
-                                amountInCents: data.amountInCents || checkoutData?.amountInCents,
+                                publicKey: data.publicKey,
+                                amountInCents: data.amountInCents,
                                 currency: 'COP',
-                                reference: data.reference || checkoutData?.reference,
-                                signature: integrityForWidget ? { integrity: integrityForWidget } : undefined,
+                                reference: data.reference,
+                                signature: {
+                                  integrity: data.integrity
+                                }
                               });
 
                               toast.info('Abriendo Wompi Checkout seguro. Ingresa los datos de pago allí.');
