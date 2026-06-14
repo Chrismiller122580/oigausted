@@ -311,144 +311,124 @@ export default function CheckoutPage() {
         throw new Error(errData.error || 'Failed to save your selections');
       }
 
-      // 2. Prepare Wompi checkout
-      const res = await fetch('/api/checkout/wompi', {
-        method: 'POST',
+      // 2. Prepare Wompi checkout + ultra aggressive key forcing + dynamic script load (to solve race)
+      const res = await fetch('/api/checkout/wompi', { 
+        method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: order.id })
+        body: JSON.stringify({ orderId: order.id }) 
       });
-
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
       setLastWompiPrepare(data);
-      const checkoutData = data.checkoutData;
 
-      // Loud client-side guard for the most common prod signature failure
-      const pubIsProd = /prod/i.test(WOMPI_PUBLIC_KEY);
-      if (pubIsProd && !data.hasIntegritySignature) {
-        toast.error(
-          "⚠️ Using PRODUCTION Wompi key (pub_prod_) but the server did not return an integrity signature. " +
-          "WOMPI_INTEGRITY_KEY (prod_integrity_...) is probably missing or scoped only to Production/Preview in Vercel. " +
-          "Add it for Development too (or to .env.local) and redeploy. This is the #1 cause of 'La firma es inválida'.",
-          { duration: 15000 }
-        );
-      }
+      // 🔥 ULTRA FORCE + DYNAMIC SCRIPT (this solves the race)
+      window.WOMPI_PUBLIC_KEY = data.publicKey;
+      (window as any).$wompi = { publicKey: data.publicKey };
+      (window as any).Wompi = { publicKey: data.publicKey };
 
-      // Fix 1: Aggressive Widget Key Forcing (Critical – Do This First)
-      if (data.publicKey) {
-        console.log("🔥 Ultra-forced Wompi key:", data.publicKey);
+      console.log("🔥 Dynamic Wompi load started with key:", data.publicKey);
 
-        // ULTRA AGGRESSIVE FORCING
-        window.WOMPI_PUBLIC_KEY = data.publicKey;
-        (window as any).$wompi = { publicKey: data.publicKey };
-        (window as any).Wompi = { publicKey: data.publicKey };
-        document.documentElement.setAttribute('data-wompi-pubkey', data.publicKey);
+      // Remove any old script
+      document.querySelectorAll('script[src*="checkout.wompi.co"]').forEach(s => s.remove());
 
-        // Force integrity if present
-        if (data.integrity) {
-          (window as any).WOMPI_INTEGRITY = data.integrity;
-        }
-
-        // Multiple init attempts
-        const tryInit = () => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.wompi.co/widget.js';
+      script.async = true;
+      script.onload = () => {
+        console.log("✅ Wompi script loaded AFTER key force");
+        setTimeout(() => {
           if ((window as any).$wompi?.initialize) (window as any).$wompi.initialize();
           if ((window as any).Wompi?.initialize) (window as any).Wompi.initialize();
-        };
 
-        tryInit();
-        setTimeout(tryInit, 50);
-        setTimeout(tryInit, 150);
-        setTimeout(tryInit, 400);
-        setTimeout(tryInit, 800);
-        setTimeout(tryInit, 1200);
-      } else {
-        console.warn("[Wompi] No publicKey received from prepare — falling back to env");
-      }
+          // Now open the widget (existing logic adapted)
+          const WidgetCheckoutClass = (window as any).WidgetCheckout || (window as any).WompiCheckout;
 
-      // 3. Open Wompi using server-provided config (amount comes from DB after we saved final price + extras)
-      // Aligned with official Wompi Colombia Widget docs (quick start + widget-checkout-web)
-      const WidgetCheckoutClass = (window as any).WidgetCheckout || (window as any).WompiCheckout;
+          if (WidgetCheckoutClass) {
+            const pubKey = data.publicKey || WOMPI_PUBLIC_KEY;
 
-      if (WidgetCheckoutClass && checkoutData) {
-        const pubKey = data.publicKey || WOMPI_PUBLIC_KEY;
+            (window as any).WOMPI_PUBLIC_KEY = pubKey;
+            (window as any).$wompi = (window as any).$wompi || {};
+            (window as any).$wompi.publicKey = pubKey;
 
-        // Additional aggressive set (compatibility) - after the ultra forcing
-        (window as any).WOMPI_PUBLIC_KEY = pubKey;
-        (window as any).$wompi = (window as any).$wompi || {};
-        (window as any).$wompi.publicKey = pubKey;
-
-        // Help Wompi's internal initialization (some code paths in their bundle read from window)
-        if (typeof (window as any).$wompi.initialize === 'function') {
-          try {
-            (window as any).$wompi.initialize({ publicKey: pubKey });
-            console.log('[Wompi][Client] Explicit $wompi.initialize called with', pubKey?.slice(0,12)+'...');
-          } catch (e) {
-            console.warn('[Wompi][Client] $wompi.initialize call failed (non-fatal):', e);
-          }
-        }
-
-        const widgetConfig: any = {
-          publicKey: pubKey,
-          currency: checkoutData.currency,
-          amountInCents: checkoutData.amountInCents || Math.round(finalPrice * 100),
-          reference: checkoutData.reference,
-          redirectUrl: checkoutData.redirectUrl,
-          customerData: checkoutData.customerData,
-        };
-
-        if (data.integrity || checkoutData.signature?.integrity) {
-          widgetConfig.signature = { integrity: data.integrity || checkoutData.signature.integrity };
-        }
-
-        // Small delay lets Wompi's internal bundles (v1.js etc) settle after we forced the globals.
-        // This dramatically reduces the "merchants/undefined" + init 422 races seen in prod keys.
-        setTimeout(() => {
-          try {
-            const checkout = new WidgetCheckoutClass(widgetConfig);
-
-            // Official pattern...
-            checkout.open((result: any) => {
-              console.log('[Wompi] Widget result (callback):', result);
-              if (result?.transaction) {
-                console.log('[Wompi] Transaction from callback:', {
-                  id: result.transaction.id,
-                  status: result.transaction.status,
-                  reference: result.transaction.reference,
-                });
+            if (typeof (window as any).$wompi.initialize === 'function') {
+              try {
+                (window as any).$wompi.initialize({ publicKey: pubKey });
+                console.log('[Wompi][Client] Explicit $wompi.initialize called with', pubKey?.slice(0,12)+'...');
+              } catch (e) {
+                console.warn('[Wompi][Client] $wompi.initialize call failed (non-fatal):', e);
               }
-              const err = result?.error || result?.transaction?.error || result?.transaction?.status_message;
-              if (err) {
-                const errText = typeof err === 'string' ? err : JSON.stringify(err);
-                toast.error(`Error Wompi en widget: ${errText}`);
-                setLastWompiPrepare((prev: any) => ({ ...(prev || {}), lastWidgetError: errText, lastWidgetResult: result }));
-              }
-              setTimeout(async () => {
-                try {
-                  await fetch(`/api/orders/${order.id}/check-wompi`, { method: 'POST' }).catch(() => {});
-                  const fresh = await fetch(`/api/orders/${order.id}`).then(r => r.json());
-                  if (fresh?.order?.status && fresh.order.status !== 'Pending') {
-                    toast.success(`Pago detectado: ${fresh.order.status}. Redirigiendo...`);
-                    router.push(`/orders/${order.id}?from=wompi`);
-                  } else {
+            }
+
+            const widgetConfig: any = {
+              publicKey: pubKey,
+              currency: data.currency || 'COP',
+              amountInCents: data.amountInCents || Math.round(finalPrice * 100),
+              reference: data.reference,
+              redirectUrl: data.redirectUrl || `${window.location.origin}/orders/${order.id}`,
+              customerData: data.customerData || {
+                email: session?.user?.email || '',
+                fullName: session?.user?.name || '',
+              },
+            };
+
+            if (data.integrity) {
+              widgetConfig.signature = { integrity: data.integrity };
+            }
+
+            try {
+              const checkout = new WidgetCheckoutClass(widgetConfig);
+
+              checkout.open((result: any) => {
+                console.log('[Wompi] Widget result (callback):', result);
+                if (result?.transaction) {
+                  console.log('[Wompi] Transaction from callback:', {
+                    id: result.transaction.id,
+                    status: result.transaction.status,
+                    reference: result.transaction.reference,
+                  });
+                }
+                const err = result?.error || result?.transaction?.error || result?.transaction?.status_message;
+                if (err) {
+                  const errText = typeof err === 'string' ? err : JSON.stringify(err);
+                  toast.error(`Error Wompi en widget: ${errText}`);
+                  setLastWompiPrepare((prev: any) => ({ ...(prev || {}), lastWidgetError: errText, lastWidgetResult: result }));
+                }
+                setTimeout(async () => {
+                  try {
+                    await fetch(`/api/orders/${order.id}/check-wompi`, { method: 'POST' }).catch(() => {});
+                    const fresh = await fetch(`/api/orders/${order.id}`).then(r => r.json());
+                    if (fresh?.order?.status && fresh.order.status !== 'Pending') {
+                      toast.success(`Pago detectado: ${fresh.order.status}. Redirigiendo...`);
+                      router.push(`/orders/${order.id}?from=wompi`);
+                    } else {
+                      router.push(`/orders/${order.id}?from=wompi`);
+                    }
+                  } catch {
                     router.push(`/orders/${order.id}?from=wompi`);
                   }
-                } catch {
-                  router.push(`/orders/${order.id}?from=wompi`);
-                }
-              }, 1200);
-            });
-          } catch (e: any) {
-            console.error('[Wompi][Client] Failed to instantiate WidgetCheckout', e);
-            toast.error('No se pudo inicializar el widget de Wompi. Revisa el Debugger.');
-            setLastWompiPrepare((prev: any) => ({ ...(prev || {}), lastWidgetError: 'Instantiation failed: ' + (e?.message || e) }));
+                }, 1200);
+              });
+            } catch (t: any) {
+              if (t && t.json) {
+                console.error("🔍 Wompi VALIDATION ERROR DETAILS:", JSON.stringify(t.json, null, 2));
+                alert("Wompi Error: " + JSON.stringify(t.json.error || t.json)); // temporary for debugging
+              } else {
+                console.error("Error during initialization:", t);
+              }
+              console.error('[Wompi][Client] Failed to instantiate WidgetCheckout', t);
+              toast.error('No se pudo inicializar el widget de Wompi. Revisa el Debugger.');
+              setLastWompiPrepare((prev: any) => ({ ...(prev || {}), lastWidgetError: 'Instantiation failed: ' + (t?.message || t) }));
+            }
           }
-        }, 120);
-      } else if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-      } else {
-        toast.error("No se pudo abrir Wompi. Verifica las llaves y que los pagos reales estén habilitados.");
-      }
+        }, 200);
+      };
+      script.onerror = () => {
+        console.error('Failed to load Wompi script');
+        toast.error('No se pudo cargar el script de Wompi.');
+        setOpening(false);
+      };
+      document.head.appendChild(script);
     } catch (err: any) {
       devLog('Wompi widget error:', err);
       toast.error(err.message || "No se pudo abrir Wompi. Por favor intenta de nuevo o contacta soporte.");
