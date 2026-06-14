@@ -28,10 +28,30 @@ export async function POST(request: Request) {
       if (!signature?.properties || !eventsKey) return { valid: false, payload: '' };
 
       // Properties concat (exact order)
+      // Enhanced resolver to handle real Wompi structure (data.transaction.xxx or root)
       const propValues = signature.properties
         .map((prop: string) => {
-          let val: any = event;
-          prop.split('.').forEach(k => val = val?.[k]);
+          let val: any = undefined;
+          // Try direct on event
+          let temp = event;
+          prop.split('.').forEach(k => temp = temp?.[k]);
+          if (temp !== undefined) val = temp;
+
+          // Try under data
+          if (val === undefined) {
+            temp = event?.data;
+            prop.split('.').forEach(k => temp = temp?.[k]);
+            if (temp !== undefined) val = temp;
+          }
+
+          // Special for transaction.* under data.transaction
+          if (val === undefined && prop.startsWith('transaction.')) {
+            temp = event?.data?.transaction;
+            const subProp = prop.replace(/^transaction\./, '');
+            subProp.split('.').forEach(k => temp = temp?.[k]);
+            if (temp !== undefined) val = temp;
+          }
+
           return String(val ?? '');
         })
         .join('');
