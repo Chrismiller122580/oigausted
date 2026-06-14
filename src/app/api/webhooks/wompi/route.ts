@@ -178,8 +178,8 @@ export async function GET() {
   return NextResponse.json({
     message: 'Wompi webhook endpoint is active. This URL only accepts POST requests containing signed transaction events from Wompi.',
     publicKey: 'pub_prod_SZdbUpSGERKCIGAcJOaIax7ySu4w9tAN',
-    eventsKey: 'prod_events_Es2BaJLBMq6acUzp7Eop6Bl0ORcvugTl (must be the exact one from Wompi for this pub key - validate with real events in admin tester)',
-    docs: 'See https://comercios.wompi.co for integration details. Use the admin Wompi tester with a real "Evento" JSON as sampleEvent (+ optional testEventsKey) until it reports matches:true.'
+    eventsKey: 'prod_events_Es2BaJLBMq6acUzp7Eop6Bl0ORcvugTl (must be the exact "secreto de eventos" / Llave para eventos from Wompi dashboard "Secretos para integración técnica" for this pub key - validate with real events in admin tester)',
+    docs: 'See https://docs.wompi.co/docs/colombia/inicio-rapido/ and https://docs.wompi.co/docs/colombia/eventos/ (and widget-checkout-web for integrity). The signature is the HMAC of the property values concatenated in the order listed in signature.properties, using the event secret. Use the admin Wompi tester with a real "Evento" JSON as sampleEvent (+ optional testEventsKey) until it reports matches:true. The basic samples are dummies only. After finding the correct one, set in Vercel and redeploy.'
   });
 }
 

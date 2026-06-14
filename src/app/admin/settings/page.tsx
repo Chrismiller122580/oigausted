@@ -822,15 +822,44 @@ export default function AdminSettings() {
             <div className="mt-3 pt-3 border-t border-border">
               <div className="text-sm font-medium mb-1">Probar evento real de Wompi (debug firma inválida / 401)</div>
               <div className="text-[10px] text-muted-foreground mb-2">
-                Copia el JSON completo del "Evento" desde el <a href="https://comercios.wompi.co/debugger" target="_blank" className="underline">Wompi Debugger</a> o Seguimiento de transacciones. 
-                Pega aquí y usa "testEventsKey" con un candidato de la sección "Eventos" del dashboard para probar sin cambiar Vercel todavía.
+                1. Ve a <a href="https://comercios.wompi.co/debugger" target="_blank" className="underline">Wompi Debugger</a> o "Seguimiento de transacciones" en tu cuenta Wompi.<br/>
+                2. Copia SOLO el objeto JSON completo del "Evento" (empieza con {`{"data":{...}}`}, termina con el } final del evento).<br/>
+                3. (Opcional) Pégalo primero en <a href="https://jsonlint.com" target="_blank" className="underline">jsonlint.com</a> para validar que sea JSON limpio.<br/>
+                4. Pégalo aquí abajo. Usa "testEventsKey" con un candidato de "Eventos" del dashboard de Wompi para esta llave pública. Marca "Replay" si quieres procesar la orden.<br/>
+                Ver docs oficiales: <a href="https://docs.wompi.co/docs/colombia/inicio-rapido/" target="_blank" className="underline">https://docs.wompi.co/docs/colombia/inicio-rapido/</a> y https://docs.wompi.co/docs/colombia/eventos/ para el método exacto de concatenación de propiedades y el "secreto de eventos".
+              </div>
+
+              <div className="flex gap-2 mb-1">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    const raw = advancedEventJson;
+                    const match = raw.match(/\{[\s\S]*\}$/);
+                    if (match) {
+                      try {
+                        // Validate it parses
+                        JSON.parse(match[0]);
+                        setAdvancedEventJson(match[0]);
+                        toast.success('JSON extraído y limpiado. Listo para probar.');
+                      } catch {
+                        toast.error('No se pudo extraer un JSON válido del texto pegado.');
+                      }
+                    } else {
+                      toast.error('No se encontró un objeto JSON ( { ... } ) en el texto.');
+                    }
+                  }}
+                >
+                  Limpiar / Extraer solo el JSON
+                </Button>
+                <div className="text-[10px] text-muted-foreground self-center">Úsalo si pegaste texto extra del debugger (incluyendo "Evento" o "Headers").</div>
               </div>
 
               <textarea
                 value={advancedEventJson}
                 onChange={(e) => setAdvancedEventJson(e.target.value)}
-                placeholder={`Pega aquí el objeto completo del Evento, ej:\n{\n  "data": { "transaction": { "id": "...", "status": "ERROR", ... } },\n  "event": "transaction.updated",\n  "signature": { "checksum": "...", "properties": [...] },\n  ...\n}`}
-                className="w-full text-xs font-mono border rounded p-2 h-32 bg-background"
+                placeholder={`Pega SOLO el JSON del evento aquí (sin "Evento", sin "Headers del evento", sin texto extra):\n\n{\n  "data": {\n    "transaction": {\n      "id": "1411569-...",\n      "status": "ERROR",\n      ...\n    }\n  },\n  "event": "transaction.updated",\n  "signature": {\n    "checksum": "...",\n    "properties": ["transaction.id", "transaction.status", "transaction.amount_in_cents"]\n  },\n  ...\n}`}
+                className="w-full text-xs font-mono border rounded p-2 h-40 bg-background"
               />
 
               <div className="flex gap-2 mt-2 items-end">
@@ -856,11 +885,25 @@ export default function AdminSettings() {
                     setAdvancedTestLoading(true);
                     try {
                       let sampleEvent: any;
+                      let raw = advancedEventJson.trim();
+
+                      // Try direct parse first
                       try {
-                        sampleEvent = JSON.parse(advancedEventJson);
+                        sampleEvent = JSON.parse(raw);
                       } catch {
-                        toast.error('JSON inválido del evento');
-                        return;
+                        // Try to extract the outermost JSON object (common when copying from Wompi debugger page)
+                        const match = raw.match(/\{[\s\S]*\}$/);
+                        if (match) {
+                          try {
+                            sampleEvent = JSON.parse(match[0]);
+                          } catch {
+                            toast.error('JSON inválido del evento. Usa el botón "Limpiar / Extraer solo el JSON" arriba, o copia solo el objeto que empieza con { "data": ... } (sin "Evento" ni "Headers").');
+                            return;
+                          }
+                        } else {
+                          toast.error('JSON inválido del evento. Usa el botón "Limpiar / Extraer solo el JSON" arriba, o copia solo el objeto que empieza con { "data": ... } (sin "Evento" ni "Headers").');
+                          return;
+                        }
                       }
                       const body: any = { sampleEvent, replay: advancedReplay };
                       if (advancedTestEventsKey.trim()) body.testEventsKey = advancedTestEventsKey.trim();
@@ -885,7 +928,7 @@ export default function AdminSettings() {
               </div>
 
               <div className="text-[10px] text-amber-600 mt-1">
-                Pega un evento real que esté dando 401. El test básico de arriba solo valida que las llaves cargan (no prueba los checksums reales de Wompi).
+                Pega un "Evento" real de Wompi (el que da 401). Si ves "JSON inválido", usa el botón "Limpiar / Extraer solo el JSON" de arriba. Copia SOLO desde el primer { hasta el último } del evento.
               </div>
             </div>
           </div>

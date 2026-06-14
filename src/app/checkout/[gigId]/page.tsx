@@ -711,6 +711,7 @@ export default function CheckoutPage() {
                         }
                       }
                     }
+                    if (extra <= 0) return null;
                     return (
                       <div key={idx} className="flex justify-between text-muted-foreground">
                         <span>
