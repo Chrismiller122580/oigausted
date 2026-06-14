@@ -13,6 +13,9 @@ import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
 declare global {
   interface Window {
     WompiCheckout?: any;
+    WOMPI_PUBLIC_KEY?: string;
+    $wompi?: any;
+    Wompi?: any;
   }
 }
 
