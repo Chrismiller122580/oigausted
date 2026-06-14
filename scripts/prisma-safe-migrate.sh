@@ -43,6 +43,10 @@ MIGRATE_EXIT=$?
 if [ $MIGRATE_EXIT -eq 0 ]; then
   echo "✅ prisma migrate deploy succeeded on first attempt."
   cat /tmp/migrate.log
+
+  echo "🌱 Running seed to ensure PlatformConfig singleton + categories (idempotent, safe on every deploy)..."
+  npx tsx prisma/seed.ts || echo "⚠️  Seed step had non-fatal issues (continuing)"
+
   exit 0
 fi
 
@@ -60,6 +64,10 @@ if grep -q "failed migrations in the target database" /tmp/migrate.log && \
   if run_migrate; then
     echo "✅ Migration recovered and applied successfully."
     cat /tmp/migrate.log
+
+    echo "🌱 Running seed to ensure PlatformConfig singleton + categories (idempotent, safe on every deploy)..."
+    npx tsx prisma/seed.ts || echo "⚠️  Seed step had non-fatal issues (continuing)"
+
     exit 0
   else
     cat /tmp/migrate.log
@@ -87,6 +95,10 @@ if grep -qi "too many connections" /tmp/migrate.log || \
     if run_migrate; then
       echo "✅ prisma migrate deploy succeeded on retry attempt $attempt."
       cat /tmp/migrate.log
+
+      echo "🌱 Running seed to ensure PlatformConfig singleton + categories (idempotent, safe on every deploy)..."
+      npx tsx prisma/seed.ts || echo "⚠️  Seed step had non-fatal issues (continuing)"
+
       exit 0
     else
       cat /tmp/migrate.log
