@@ -337,23 +337,31 @@ export default function CheckoutPage() {
 
       // Fix 1: Aggressive Widget Key Forcing (Critical – Do This First)
       if (data.publicKey) {
-        console.log("🚀 Forcing Wompi key aggressively");
+        console.log("🔥 Ultra-forced Wompi key:", data.publicKey);
 
-        // Multiple ways to force
+        // ULTRA AGGRESSIVE FORCING
         window.WOMPI_PUBLIC_KEY = data.publicKey;
         (window as any).$wompi = { publicKey: data.publicKey };
         (window as any).Wompi = { publicKey: data.publicKey };
+        document.documentElement.setAttribute('data-wompi-pubkey', data.publicKey);
 
-        // Multiple init attempts with delays
-        const init = () => {
+        // Force integrity if present
+        if (data.integrity) {
+          (window as any).WOMPI_INTEGRITY = data.integrity;
+        }
+
+        // Multiple init attempts
+        const tryInit = () => {
           if ((window as any).$wompi?.initialize) (window as any).$wompi.initialize();
           if ((window as any).Wompi?.initialize) (window as any).Wompi.initialize();
         };
 
-        init();
-        setTimeout(init, 100);
-        setTimeout(init, 300);
-        setTimeout(init, 600);
+        tryInit();
+        setTimeout(tryInit, 50);
+        setTimeout(tryInit, 150);
+        setTimeout(tryInit, 400);
+        setTimeout(tryInit, 800);
+        setTimeout(tryInit, 1200);
       } else {
         console.warn("[Wompi] No publicKey received from prepare — falling back to env");
       }
@@ -365,7 +373,7 @@ export default function CheckoutPage() {
       if (WidgetCheckoutClass && checkoutData) {
         const pubKey = data.publicKey || WOMPI_PUBLIC_KEY;
 
-        // Additional aggressive set (compatibility) - after the early forcing
+        // Additional aggressive set (compatibility) - after the ultra forcing
         (window as any).WOMPI_PUBLIC_KEY = pubKey;
         (window as any).$wompi = (window as any).$wompi || {};
         (window as any).$wompi.publicKey = pubKey;
@@ -389,8 +397,8 @@ export default function CheckoutPage() {
           customerData: checkoutData.customerData,
         };
 
-        if (checkoutData.signature?.integrity) {
-          widgetConfig.signature = { integrity: checkoutData.signature.integrity };
+        if (data.integrity || checkoutData.signature?.integrity) {
+          widgetConfig.signature = { integrity: data.integrity || checkoutData.signature.integrity };
         }
 
         // Small delay lets Wompi's internal bundles (v1.js etc) settle after we forced the globals.
