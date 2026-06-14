@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save, Users } from "lucide-react";
-import GrokAssistant from "@/components/common/GrokAssistant";
+// import GrokAssistant from "@/components/common/GrokAssistant"; // AI tool hidden per request (floating button disabled)
 import { toast } from 'sonner';
 import { slugify } from '@/lib/utils';
 
@@ -526,7 +526,7 @@ export default function MiNegocioPage() {
           </div>
         </div>
 
-        <GrokAssistant />
+        {/* GrokAssistant (AI tool) hidden per request */}
       </div>
     </div>
   );
