@@ -596,7 +596,24 @@ function OrderDetailClient() {
                           debug: data.debug,
                         });
 
-                        const pubKeyFromServer = checkoutData.publicKey || (window as any).WOMPI_PUBLIC_KEY || '';
+                        // Fix 1: Widget Public Key Loading (Critical) - force very early after prepare (same as checkout page)
+                        const { publicKey, integrity } = checkoutData || {};
+                        if (publicKey) {
+                          (window as any).WOMPI_PUBLIC_KEY = publicKey;           // Force global
+                          (window as any).$wompi = (window as any).$wompi || {};
+                          (window as any).$wompi.publicKey = publicKey;           // Force for bundle
+
+                          console.log('[Wompi] Forced globals from prepare response (orders page)', { pubKey: publicKey?.slice(0, 12) + '...' });
+
+                          // Small delay + retry for bundle load (user-requested)
+                          setTimeout(() => {
+                            if ((window as any).$wompi?.initialize) {
+                              try { (window as any).$wompi.initialize({ publicKey }); } catch {}
+                            }
+                          }, 300);
+                        }
+
+                        const pubKeyFromServer = publicKey || checkoutData.publicKey || (window as any).WOMPI_PUBLIC_KEY || '';
 
                         // Extra defensive set right here with the exact value from the server prepare response.
                         // Some Wompi internal paths seem to snapshot the key at unexpected times.

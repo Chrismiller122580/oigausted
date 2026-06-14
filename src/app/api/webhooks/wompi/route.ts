@@ -44,6 +44,8 @@ export async function POST(request: Request) {
     })
 
     // 1. Verify signature first (critical security check)
+    // Signature logic (in src/lib/wompi-signature.ts) supports the main properties concat + optional
+    // timestamp variants (including the explicit "properties + timestamp + eventsKey" structure for testing).
     if (!verifyWompiSignature(body, receivedSignature)) {
       const detail = verifyWompiSignatureDetailed(body, receivedSignature)
       // Always emit to Vercel logs (devLog is suppressed in prod). Include safe diagnostics only.

@@ -174,6 +174,10 @@ export async function POST(req: NextRequest) {
         usedTimestampVariant: anyDetail.usedTimestampVariant || false,
         altSignedPayloadWithTimestamp: anyDetail.altSignedPayloadWithTimestamp || undefined,
         altComputedHexPrefix: anyDetail.altComputedHex ? String(anyDetail.altComputedHex).slice(0, 16) + '...' : undefined,
+        // Support for explicit user "Fix 2" (properties + timestamp + eventsKey appended before HMAC)
+        usedKeyAppendedVariant: anyDetail.usedKeyAppendedVariant || false,
+        altWithKeyAppendedPrefix: anyDetail.altWithKeyAppended ? String(anyDetail.altWithKeyAppended).slice(0, 16) + '...' : undefined,
+        altWithKeyComputedHexPrefix: anyDetail.altWithKeyComputedHex ? String(anyDetail.altWithKeyComputedHex).slice(0, 16) + '...' : undefined,
       };
 
       if (testEventsKey) {

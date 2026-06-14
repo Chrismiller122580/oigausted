@@ -332,16 +332,33 @@ export default function CheckoutPage() {
         );
       }
 
+      // Fix 1: Widget Public Key Loading (Critical) - force very early and reliably after prepare response
+      const { publicKey, integrity } = checkoutData || {};
+      if (publicKey) {
+        (window as any).WOMPI_PUBLIC_KEY = publicKey;           // Force global
+        (window as any).$wompi = (window as any).$wompi || {};
+        (window as any).$wompi.publicKey = publicKey;           // Force for bundle
+
+        console.log('[Wompi] Forced globals from prepare response', { pubKey: publicKey?.slice(0, 12) + '...' });
+
+        // Small delay + retry for bundle load / initialize (user-requested pattern)
+        setTimeout(() => {
+          if ((window as any).$wompi?.initialize) {
+            try {
+              (window as any).$wompi.initialize({ publicKey });
+            } catch {}
+          }
+        }, 300);
+      }
+
       // 3. Open Wompi using server-provided config (amount comes from DB after we saved final price + extras)
       // Aligned with official Wompi Colombia Widget docs (quick start + widget-checkout-web)
       const WidgetCheckoutClass = (window as any).WidgetCheckout || (window as any).WompiCheckout;
 
       if (WidgetCheckoutClass && checkoutData) {
-        const pubKey = checkoutData.publicKey || WOMPI_PUBLIC_KEY;
+        const pubKey = publicKey || checkoutData.publicKey || WOMPI_PUBLIC_KEY;
 
-        // Aggressively set globals from the *server* response (the runtime source of truth).
-        // This prevents "merchants/undefined" and init 422 errors when the client bundle
-        // was built against a different/older NEXT_PUBLIC_WOMPI_PUBLIC_KEY value.
+        // Additional aggressive set (existing + compatibility)
         (window as any).WOMPI_PUBLIC_KEY = pubKey;
         (window as any).$wompi = (window as any).$wompi || {};
         (window as any).$wompi.publicKey = pubKey;

@@ -65,6 +65,10 @@ export type VerifyResult = {
   usedTimestampVariant?: boolean
   altSignedPayloadWithTimestamp?: string
   altComputedHex?: string
+  // Support for user's explicit "Fix 2" structure: properties + timestamp + eventsKey in the signed payload
+  usedKeyAppendedVariant?: boolean
+  altWithKeyAppended?: string
+  altWithKeyComputedHex?: string
 }
 
 export function verifyWompiSignatureDetailed(body: any, receivedSignature: string, customEventsKey?: string): VerifyResult {
@@ -81,19 +85,22 @@ export function verifyWompiSignatureDetailed(body: any, receivedSignature: strin
   let usedTimestampVariant = false
   let altSignedPayloadWithTimestamp = ''
 
+  // Declare at this scope so alt computations (including user's Fix 2 structure) can reference them
+  let propertiesValues = ''
+  let timestamp = ''
+
   if (properties.length > 0) {
-    const propertiesValues = properties
+    propertiesValues = properties
       .map((prop: string) => resolveWompiProperty(body, prop))
       .join('')
 
-    const timestamp = (body?.timestamp || (body as any)?.data?.timestamp || '').toString()
+    timestamp = (body?.timestamp || (body as any)?.data?.timestamp || '').toString()
 
-    // Primary signed payload: strictly the listed property values (matches official docs + examples)
+    // Primary signed payload: strictly the listed property values (matches official docs + examples from Wompi)
+    // Timestamp is only included if the event's signature.properties lists "timestamp".
     signedPayload = propertiesValues
 
-    // Diagnostic / compat alt: propertiesValues + timestamp (some implementations/docs interpretations include it)
-    // We compute it so the admin tester can report whether the received checksum matched the alt variant.
-    // If a real event's checksum matches only the alt (with a correct key), we will accept it (see below).
+    // Diagnostic / compat alt 1 (user requested for "Fix 2"): propertiesValues + timestamp
     if (timestamp) {
       altSignedPayloadWithTimestamp = `${propertiesValues}${timestamp}`
     }
@@ -136,6 +143,22 @@ export function verifyWompiSignatureDetailed(body: any, receivedSignature: strin
     altComputedHex = crypto
       .createHmac('sha256', keyToUse)
       .update(altSignedPayloadWithTimestamp)
+      .digest('hex')
+  }
+
+  // User's requested "Fix 2" structure for timestamp support in webhook signature:
+  // propertiesValues + timestamp + eventsKey  (then HMAC with eventsKey as the key)
+  // We support it as a 2nd alt variant so the admin tester can validate real events against this exact concat
+  // (even if it is non-standard for Wompi events -- the events secret is normally the HMAC key only,
+  // not part of the signed message; integrity signature does include the key in the message).
+  // When a custom testEventsKey is supplied we can safely surface it; for live webhook we mask.
+  let altWithKeyAppended = ''
+  let altWithKeyComputedHex = ''
+  if (timestamp && keyToUse) {
+    altWithKeyAppended = `${propertiesValues}${timestamp}${keyToUse}`
+    altWithKeyComputedHex = crypto
+      .createHmac('sha256', keyToUse)
+      .update(altWithKeyAppended)
       .digest('hex')
   }
 
@@ -196,6 +219,25 @@ export function verifyWompiSignatureDetailed(body: any, receivedSignature: strin
       }
     }
 
+    // Try the exact user-requested structure (properties + timestamp + eventsKey) as additional alt
+    let usedKeyAppendedVariant = false
+    if (!match && altWithKeyComputedHex && normalizedReceived.length === altWithKeyComputedHex.length) {
+      const keyAltMatch = crypto.timingSafeEqual(
+        Buffer.from(normalizedReceived, 'hex'),
+        Buffer.from(altWithKeyComputedHex, 'hex')
+      )
+      if (keyAltMatch) {
+        match = true
+        usedKeyAppendedVariant = true
+        // For live webhook (no custom key) never surface a payload containing the real secret.
+        // For tester with explicit testEventsKey the caller can display it.
+        signedPayload = keyToUse === (customEventsKey || '') 
+          ? altWithKeyAppended 
+          : '[properties+ts+key redacted - matched user Fix 2 structure]'
+        reason = 'ok (matched properties+timestamp+eventsKey variant per user Fix 2)'
+      }
+    }
+
     const base: VerifyResult = {
       ok: match,
       reason,
@@ -204,12 +246,17 @@ export function verifyWompiSignatureDetailed(body: any, receivedSignature: strin
       keyPresent: true,
       keyEnvHint,
       receivedNormalized: normalizedReceived,
-      computedHex: usedTimestampVariant ? altComputedHex : computedHex,
+      computedHex: usedTimestampVariant ? altComputedHex : (usedKeyAppendedVariant ? altWithKeyComputedHex : computedHex),
       receivedHexLen: normalizedReceived.length,
-      computedHexLen: (usedTimestampVariant ? altComputedHex : computedHex).length,
+      computedHexLen: (usedTimestampVariant ? altComputedHex : (usedKeyAppendedVariant ? altWithKeyComputedHex : computedHex)).length,
       usedTimestampVariant,
       altSignedPayloadWithTimestamp: altSignedPayloadWithTimestamp || undefined,
       altComputedHex: altComputedHex || undefined,
+      usedKeyAppendedVariant,
+      // Only surface the key-appended payload when the caller explicitly passed a custom/test key (admin tester form).
+      // In live webhook the real eventsKey is never included in any returned payload for security.
+      altWithKeyAppended: customEventsKey ? altWithKeyAppended || undefined : undefined,
+      altWithKeyComputedHex: (customEventsKey && usedKeyAppendedVariant) ? altWithKeyComputedHex : undefined,
     }
 
     return base
