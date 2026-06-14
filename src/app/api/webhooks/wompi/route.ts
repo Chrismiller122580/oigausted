@@ -178,7 +178,8 @@ export async function GET() {
   return NextResponse.json({
     message: 'Wompi webhook endpoint is active. This URL only accepts POST requests containing signed transaction events from Wompi.',
     publicKey: 'pub_prod_SZdbUpSGERKCIGAcJOaIax7ySu4w9tAN',
-    docs: 'See https://comercios.wompi.co for integration details. Use the admin Wompi tester with real events to validate your EVENTS_KEY.'
+    eventsKey: 'prod_events_Es2BaJLBMq6acUzp7Eop6Bl0ORcvugTl (must be the exact one from Wompi for this pub key - validate with real events in admin tester)',
+    docs: 'See https://comercios.wompi.co for integration details. Use the admin Wompi tester with a real "Evento" JSON as sampleEvent (+ optional testEventsKey) until it reports matches:true.'
   });
 }
 

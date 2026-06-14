@@ -179,7 +179,7 @@ export async function POST(req: NextRequest) {
           summary.recommendations.push('CUSTOM KEY TEST: The provided testEventsKey did NOT validate the sample event (HMAC mismatch). Try a different "Llave para eventos" from the Wompi dashboard for this public key.');
         }
       } else if (!detail.ok) {
-        summary.recommendations.push('SAMPLE EVENT SIGNATURE FAILED — the checksum does not match using the current deployed WOMPI_EVENTS_KEY for pub_prod_SZdbUpSGERKCIGAcJOaIax7ySu4w9tAN. This is the direct cause of the 401 "Invalid signature". The basic test only proves a prod_events_ key is loaded and can compute sample HMACs. Paste a real event as "sampleEvent" (optionally with "testEventsKey") to test the actual secret against real Wompi checksums. Re-copy the exact "Eventos" secret for this public key from the Wompi dashboard and redeploy.');
+        summary.recommendations.push('SAMPLE EVENT SIGNATURE FAILED — this real event does NOT validate with the current EVENTS_KEY for pub_prod_SZdbUpSGERKCIGAcJOaIax7ySu4w9tAN. Paste this exact full event JSON as sampleEvent + try your candidate "Llave para eventos" as testEventsKey until matches:true. Then set that exact value in Vercel Production as WOMPI_EVENTS_KEY and redeploy. The basic tester samples are only dummies — real events are the only proof.');
       } else {
         summary.recommendations.push('Sample event signature VERIFIED OK with the current EVENTS key (good).');
       }

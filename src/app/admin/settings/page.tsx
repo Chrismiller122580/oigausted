@@ -812,9 +812,7 @@ export default function AdminSettings() {
             )}
             <div className="text-[10px] text-muted-foreground mt-1">Ejecuta esto después de rotar llaves o para validar que el PRIVATE key puede leer transacciones.</div>
             <div className="text-[10px] text-amber-500 mt-2">
-              To validate your current deployed keys (or try a candidate) against a real Wompi event for this public key: POST to /api/admin/wompi/test with:
-              {"{"}"sampleEvent": {"paste the full event JSON from Wompi dashboard here"}, "replay": true{"}"}
-              (optionally add "testEventsKey" for a specific secret). This is the only way to prove the live EVENTS_KEY actually validates the checksums Wompi sends. The basic test only proves the key is loadable.
+              For pub_prod_SZdbUpSGERKCIGAcJOaIax7ySu4w9tAN: take a real failing "Evento" JSON from Wompi dashboard and POST it to /api/admin/wompi/test as sampleEvent (add "testEventsKey" with a candidate from the dashboard). The basic tester only does dummy samples — real events + testEventsKey is the only way to find the correct Eventos secret.
             </div>
           </div>
 
