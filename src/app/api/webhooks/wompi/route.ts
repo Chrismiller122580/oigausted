@@ -22,34 +22,34 @@ export async function POST(request: Request) {
       request.headers.get('x-wompi-signature') ||
       (body?.signature?.checksum || '') 
 
-    // Improved verifier with timestamp (Fix 1) - using user's latest robust resolver
     const verifyWompiEvent = (event: any, eventsKey: string) => {
-      const signature = event.signature || event.data?.signature;
+      const signature = event.signature;
       if (!signature?.properties || !eventsKey) {
         return { valid: false, payload: '', reason: "Missing signature or key" };
       }
 
       const propValues = signature.properties
         .map((prop: string) => {
-          // Robust resolver for Wompi's nested structure
-          let val: any = event;
+          let val: any = null;
 
-          // Try direct path (e.g. transaction.id)
-          let temp = event;
-          prop.split('.').forEach(k => temp = temp?.[k]);
-          if (temp !== undefined && temp !== null) val = temp;
-
-          // Try under data.transaction.*
-          if (val === undefined || val === null || typeof val === 'object') {
-            temp = event?.data?.transaction;
+          // Priority 1: data.transaction.xxx
+          if (prop.startsWith('transaction.')) {
             const subProp = prop.replace('transaction.', '');
+            let temp = event?.data?.transaction;
             subProp.split('.').forEach(k => temp = temp?.[k]);
             if (temp !== undefined && temp !== null) val = temp;
           }
 
-          // Fallback: try full data path
-          if (val === undefined || val === null || typeof val === 'object') {
-            temp = event?.data;
+          // Priority 2: direct transaction.xxx
+          if (val === null) {
+            let temp = event?.transaction;
+            prop.split('.').forEach(k => temp = temp?.[k]);
+            if (temp !== undefined && temp !== null) val = temp;
+          }
+
+          // Priority 3: direct on root
+          if (val === null) {
+            let temp = event;
             prop.split('.').forEach(k => temp = temp?.[k]);
             if (temp !== undefined && temp !== null) val = temp;
           }
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         })
         .join('');
 
-      const timestamp = String(event.timestamp || event.data?.timestamp || '');
+      const timestamp = String(event.timestamp || '');
 
       const fullPayload = `${propValues}${timestamp}${eventsKey}`;
 
