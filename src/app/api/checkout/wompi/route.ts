@@ -216,12 +216,21 @@ export async function POST(req: NextRequest) {
       console.warn('[Wompi][Prepare] ' + keyMismatchWarning);
     }
 
+    // Fix 2: Return publicKey and integrity at top level (plus existing checkoutData for compatibility)
+    // This makes client-side forcing trivial and explicit.
     const response: any = {
       success: true,
-      checkoutData,
       reference,
+      amountInCents,
+      publicKey: WOMPI_PUBLIC_KEY,
+      integrity: integritySignature || null,
+      checkoutData,
       hasIntegritySignature: !!integritySignature,
-      debug: debugInfo,
+      debug: {
+        ...debugInfo,
+        env: process.env.NODE_ENV,
+        pubKey: (WOMPI_PUBLIC_KEY || '').slice(0, 20) + '...',
+      },
     };
     if (keyMismatchWarning) {
       response.keyMismatchWarning = keyMismatchWarning;

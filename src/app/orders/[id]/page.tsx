@@ -596,24 +596,38 @@ function OrderDetailClient() {
                           debug: data.debug,
                         });
 
-                        // Fix 1: Widget Public Key Loading (Critical) - force very early after prepare (same as checkout page)
-                        const { publicKey, integrity } = checkoutData || {};
-                        if (publicKey) {
-                          (window as any).WOMPI_PUBLIC_KEY = publicKey;           // Force global
+                        // Fix 2 (orders page): Force globals from prepare response (top-level + defensive)
+                        const responsePubKey = data.publicKey || checkoutData?.publicKey || (window as any).WOMPI_PUBLIC_KEY || '';
+                        const responseIntegrity = data.integrity || checkoutData?.signature?.integrity;
+
+                        if (responsePubKey) {
+                          (window as any).WOMPI_PUBLIC_KEY = responsePubKey;
                           (window as any).$wompi = (window as any).$wompi || {};
-                          (window as any).$wompi.publicKey = publicKey;           // Force for bundle
+                          (window as any).$wompi.publicKey = responsePubKey;
 
-                          console.log('[Wompi] Forced globals from prepare response (orders page)', { pubKey: publicKey?.slice(0, 12) + '...' });
+                          console.log("[Wompi] Globals forced from prepare response (orders):", responsePubKey?.slice(0, 20) + '...', {
+                            source: data.publicKey ? 'top-level' : 'fallback',
+                            hasIntegrity: !!responseIntegrity,
+                          });
 
-                          // Small delay + retry for bundle load (user-requested)
+                          // Extra defensive re-force + initialize (prevents races that cause "firma inválida" or init errors)
                           setTimeout(() => {
-                            if ((window as any).$wompi?.initialize) {
-                              try { (window as any).$wompi.initialize({ publicKey }); } catch {}
+                            if ((window as any).WOMPI_PUBLIC_KEY !== responsePubKey) {
+                              (window as any).WOMPI_PUBLIC_KEY = responsePubKey;
+                              (window as any).$wompi.publicKey = responsePubKey;
+                              console.log("[Wompi] Re-forced globals on orders page (was overwritten)");
                             }
-                          }, 300);
+                            if ((window as any).$wompi?.initialize) {
+                              try {
+                                (window as any).$wompi.initialize({ publicKey: responsePubKey });
+                              } catch {}
+                            }
+                          }, 100);
+                        } else {
+                          console.warn("[Wompi] No publicKey from prepare on orders page — using env fallback");
                         }
 
-                        const pubKeyFromServer = publicKey || checkoutData.publicKey || (window as any).WOMPI_PUBLIC_KEY || '';
+                        const pubKeyFromServer = responsePubKey;
 
                         // Extra defensive set right here with the exact value from the server prepare response.
                         // Some Wompi internal paths seem to snapshot the key at unexpected times.

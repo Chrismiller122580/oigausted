@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
         ...eventVerification,
         matches: detail.ok,
         reason: detail.reason,
-        signedPayload: detail.signedPayload,
+        signedPayload: detail.signedPayload,   // will contain the full concat when using testEventsKey (properties+ts+key)
         properties: detail.properties,
         receivedNormalizedPrefix: detail.receivedNormalized ? detail.receivedNormalized.slice(0, 16) + '...' : '',
         computedHexPrefix: detail.computedHex ? detail.computedHex.slice(0, 16) + '...' : '',
@@ -170,14 +170,9 @@ export async function POST(req: NextRequest) {
         eventType: sampleEvent?.event || null,
         reference: sampleEvent?.data?.transaction?.reference || null,
         transactionId: sampleEvent?.data?.transaction?.id || null,
-        // New diagnostics from updated verification logic (properties + timestamp variant support)
-        usedTimestampVariant: anyDetail.usedTimestampVariant || false,
-        altSignedPayloadWithTimestamp: anyDetail.altSignedPayloadWithTimestamp || undefined,
-        altComputedHexPrefix: anyDetail.altComputedHex ? String(anyDetail.altComputedHex).slice(0, 16) + '...' : undefined,
-        // Support for explicit user "Fix 2" (properties + timestamp + eventsKey appended before HMAC)
-        usedKeyAppendedVariant: anyDetail.usedKeyAppendedVariant || false,
-        altWithKeyAppendedPrefix: anyDetail.altWithKeyAppended ? String(anyDetail.altWithKeyAppended).slice(0, 16) + '...' : undefined,
-        altWithKeyComputedHexPrefix: anyDetail.altWithKeyComputedHex ? String(anyDetail.altWithKeyComputedHex).slice(0, 16) + '...' : undefined,
+        // Using the exact user-provided verifier logic for Fix 1 (properties + timestamp + eventsKey)
+        usedKeyAppendedVariant: anyDetail.usedKeyAppendedVariant || true,
+        fullPayloadForDebug: anyDetail.signedPayload,  // the exact string that was HMACed (masked on live paths)
       };
 
       if (testEventsKey) {

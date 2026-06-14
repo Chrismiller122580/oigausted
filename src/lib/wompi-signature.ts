@@ -72,95 +72,44 @@ export type VerifyResult = {
 }
 
 export function verifyWompiSignatureDetailed(body: any, receivedSignature: string, customEventsKey?: string): VerifyResult {
-  const sig = body?.signature || {}
-  const properties: string[] = Array.isArray(sig.properties) ? sig.properties : []
-
-  // CORRECT Wompi signature (properties + optional timestamp when relevant)
-  // Primary: concatenate (no separators) the values for exactly the properties listed in signature.properties (in listed order).
-  // Use resolveWompiProperty (handles "transaction.xxx", top-level timestamp fallback when prop==='timestamp', data nesting).
-  // Timestamp is "important" for replay protection (done separately in webhook handler) and is auto-included
-  // only when "timestamp" appears in the event's signature.properties list.
-  // The eventsKey (Llave para eventos) is the HMAC key; it is NEVER concatenated into the signed payload.
-  let signedPayload: string
-  let usedTimestampVariant = false
-  let altSignedPayloadWithTimestamp = ''
-
-  // Declare at this scope so alt computations (including user's Fix 2 structure) can reference them
-  let propertiesValues = ''
-  let timestamp = ''
-
-  if (properties.length > 0) {
-    propertiesValues = properties
-      .map((prop: string) => resolveWompiProperty(body, prop))
-      .join('')
-
-    timestamp = (body?.timestamp || (body as any)?.data?.timestamp || '').toString()
-
-    // Primary signed payload: strictly the listed property values (matches official docs + examples from Wompi)
-    // Timestamp is only included if the event's signature.properties lists "timestamp".
-    signedPayload = propertiesValues
-
-    // Diagnostic / compat alt 1 (user requested for "Fix 2"): propertiesValues + timestamp
-    if (timestamp) {
-      altSignedPayloadWithTimestamp = `${propertiesValues}${timestamp}`
-    }
-
-    // If the primary does not look like it would include a timestamp value already (i.e. "timestamp" not listed),
-    // we will also try the alt during matching for forward-compat with "properties + timestamp" events.
-  } else {
-    // Legacy fallback (older guidance / some events): timestamp + full body JSON
-    const timestamp = (body?.timestamp || '').toString()
-    signedPayload = `${timestamp}${JSON.stringify(body)}`
-  }
-
-  const normalizedReceived = (receivedSignature || '').replace(/^sha256=/i, '').trim().toLowerCase()
+  const signature = body?.signature || body?.data?.signature || {}
+  const properties: string[] = Array.isArray(signature.properties) ? signature.properties : []
 
   const keyToUse = customEventsKey || WOMPI_EVENTS_KEY
 
-  if (!keyToUse) {
+  if (!properties.length || !keyToUse) {
     return {
       ok: false,
-      reason: 'No events key provided (neither env nor custom test key)',
-      signedPayload,
+      reason: 'No properties in signature or no events key provided',
+      signedPayload: '',
       properties,
-      keyPresent: false,
-      keyEnvHint: 'missing',
-      receivedNormalized: normalizedReceived,
+      keyPresent: !!keyToUse,
+      keyEnvHint: keyToUse ? (/prod/i.test(keyToUse) ? 'prod' : (/test/i.test(keyToUse) ? 'test' : 'unknown')) : 'missing',
+      receivedNormalized: (receivedSignature || '').replace(/^sha256=/i, '').trim().toLowerCase(),
       computedHex: '',
-      receivedHexLen: normalizedReceived.length,
+      receivedHexLen: (receivedSignature || '').length,
       computedHexLen: 0,
     }
   }
 
+  // User's exact requested logic for Fix 1 (properties + timestamp + eventsKey)
+  // Step 1: properties in exact order (using robust resolver for transaction.xxx, data nesting, timestamp, etc.)
+  const propertiesValues = properties
+    .map((prop: string) => resolveWompiProperty(body, prop))
+    .join('')
+
+  // Step 2: + timestamp (THIS WAS MISSING in some earlier versions)
+  const timestamp = String(body?.timestamp || body?.data?.timestamp || '')
+
+  // Step 3: + events secret (as provided by user for their tester / dashboard key)
+  const fullPayload = `${propertiesValues}${timestamp}${keyToUse}`
+
+  const normalizedReceived = (receivedSignature || '').replace(/^sha256=/i, '').trim().toLowerCase()
+
   const computedHex = crypto
     .createHmac('sha256', keyToUse)
-    .update(signedPayload)
+    .update(fullPayload)
     .digest('hex')
-
-  // Also compute alt (properties + timestamp) HMAC if we have an alt payload
-  let altComputedHex = ''
-  if (altSignedPayloadWithTimestamp) {
-    altComputedHex = crypto
-      .createHmac('sha256', keyToUse)
-      .update(altSignedPayloadWithTimestamp)
-      .digest('hex')
-  }
-
-  // User's requested "Fix 2" structure for timestamp support in webhook signature:
-  // propertiesValues + timestamp + eventsKey  (then HMAC with eventsKey as the key)
-  // We support it as a 2nd alt variant so the admin tester can validate real events against this exact concat
-  // (even if it is non-standard for Wompi events -- the events secret is normally the HMAC key only,
-  // not part of the signed message; integrity signature does include the key in the message).
-  // When a custom testEventsKey is supplied we can safely surface it; for live webhook we mask.
-  let altWithKeyAppended = ''
-  let altWithKeyComputedHex = ''
-  if (timestamp && keyToUse) {
-    altWithKeyAppended = `${propertiesValues}${timestamp}${keyToUse}`
-    altWithKeyComputedHex = crypto
-      .createHmac('sha256', keyToUse)
-      .update(altWithKeyAppended)
-      .digest('hex')
-  }
 
   const keyEnvHint: 'prod' | 'test' | 'unknown' = /prod/i.test(keyToUse)
     ? 'prod'
@@ -170,7 +119,7 @@ export function verifyWompiSignatureDetailed(body: any, receivedSignature: strin
     return {
       ok: false,
       reason: 'Missing received signature or computed signature',
-      signedPayload,
+      signedPayload: fullPayload,
       properties,
       keyPresent: true,
       keyEnvHint,
@@ -181,12 +130,12 @@ export function verifyWompiSignatureDetailed(body: any, receivedSignature: strin
     }
   }
 
-  // Lengths must match for timingSafeEqual (both should be 64 hex chars)
+  // Lengths must match for timingSafeEqual
   if (normalizedReceived.length !== computedHex.length) {
     return {
       ok: false,
       reason: `Hex length mismatch (received ${normalizedReceived.length} vs computed ${computedHex.length})`,
-      signedPayload,
+      signedPayload: fullPayload,
       properties,
       keyPresent: true,
       keyEnvHint,
@@ -198,74 +147,35 @@ export function verifyWompiSignatureDetailed(body: any, receivedSignature: strin
   }
 
   try {
-    const standardMatch = crypto.timingSafeEqual(
+    const match = crypto.timingSafeEqual(
       Buffer.from(normalizedReceived, 'hex'),
       Buffer.from(computedHex, 'hex')
     )
 
-    let match = standardMatch
-    let reason = standardMatch ? 'ok' : 'HMAC mismatch (keys differ or concat/properties produced different string)'
+    // For live paths we mask the secret in the returned payload for security.
+    // For admin tester (when customEventsKey is passed) we return the real payload so user can copy-paste the exact concat.
+    const isCustomTest = !!customEventsKey
+    const returnedPayload = isCustomTest ? fullPayload : fullPayload.replace(keyToUse, '***EVENTS_KEY***')
 
-    if (!standardMatch && altComputedHex && normalizedReceived.length === altComputedHex.length) {
-      const altMatch = crypto.timingSafeEqual(
-        Buffer.from(normalizedReceived, 'hex'),
-        Buffer.from(altComputedHex, 'hex')
-      )
-      if (altMatch) {
-        match = true
-        usedTimestampVariant = true
-        signedPayload = altSignedPayloadWithTimestamp // surface the one that worked
-        reason = 'ok (matched properties+timestamp variant)'
-      }
-    }
-
-    // Try the exact user-requested structure (properties + timestamp + eventsKey) as additional alt
-    let usedKeyAppendedVariant = false
-    if (!match && altWithKeyComputedHex && normalizedReceived.length === altWithKeyComputedHex.length) {
-      const keyAltMatch = crypto.timingSafeEqual(
-        Buffer.from(normalizedReceived, 'hex'),
-        Buffer.from(altWithKeyComputedHex, 'hex')
-      )
-      if (keyAltMatch) {
-        match = true
-        usedKeyAppendedVariant = true
-        // For live webhook (no custom key) never surface a payload containing the real secret.
-        // For tester with explicit testEventsKey the caller can display it.
-        signedPayload = keyToUse === (customEventsKey || '') 
-          ? altWithKeyAppended 
-          : '[properties+ts+key redacted - matched user Fix 2 structure]'
-        reason = 'ok (matched properties+timestamp+eventsKey variant per user Fix 2)'
-      }
-    }
-
-    const base: VerifyResult = {
+    return {
       ok: match,
-      reason,
-      signedPayload,
+      reason: match ? 'ok (using properties+timestamp+eventsKey per user Fix 1)' : 'HMAC mismatch (wrong events key or properties/timestamp concat mismatch)',
+      signedPayload: returnedPayload,
       properties,
       keyPresent: true,
       keyEnvHint,
       receivedNormalized: normalizedReceived,
-      computedHex: usedTimestampVariant ? altComputedHex : (usedKeyAppendedVariant ? altWithKeyComputedHex : computedHex),
+      computedHex,
       receivedHexLen: normalizedReceived.length,
-      computedHexLen: (usedTimestampVariant ? altComputedHex : (usedKeyAppendedVariant ? altWithKeyComputedHex : computedHex)).length,
-      usedTimestampVariant,
-      altSignedPayloadWithTimestamp: altSignedPayloadWithTimestamp || undefined,
-      altComputedHex: altComputedHex || undefined,
-      usedKeyAppendedVariant,
-      // Only surface the key-appended payload when the caller explicitly passed a custom/test key (admin tester form).
-      // In live webhook the real eventsKey is never included in any returned payload for security.
-      altWithKeyAppended: customEventsKey ? altWithKeyAppended || undefined : undefined,
-      altWithKeyComputedHex: (customEventsKey && usedKeyAppendedVariant) ? altWithKeyComputedHex : undefined,
+      computedHexLen: computedHex.length,
+      usedKeyAppendedVariant: true, // always true for this implementation
     }
-
-    return base
   } catch (e) {
     devLog('[Wompi] Signature comparison threw (invalid hex data?)', e)
     return {
       ok: false,
       reason: 'Comparison error (invalid hex in received or computed)',
-      signedPayload,
+      signedPayload: fullPayload,
       properties,
       keyPresent: true,
       keyEnvHint,

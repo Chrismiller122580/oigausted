@@ -44,23 +44,24 @@ export async function POST(request: Request) {
     })
 
     // 1. Verify signature first (critical security check)
-    // Signature logic (in src/lib/wompi-signature.ts) supports the main properties concat + optional
-    // timestamp variants (including the explicit "properties + timestamp + eventsKey" structure for testing).
-    if (!verifyWompiSignature(body, receivedSignature)) {
-      const detail = verifyWompiSignatureDetailed(body, receivedSignature)
-      // Always emit to Vercel logs (devLog is suppressed in prod). Include safe diagnostics only.
+    // Using the corrected verifier (Fix 1) that does:
+    // properties (in order) + timestamp + eventsKey  → HMAC(eventsKey)
+    // This is applied as the primary to match user's provided exact requirement.
+    const verification = verifyWompiSignatureDetailed(body, receivedSignature)
+    if (!verification.ok) {
+      // Always emit to Vercel logs (devLog suppressed in prod). Include the exact payload for diagnosis.
       console.warn('[Wompi][Webhook] INVALID SIGNATURE — webhook rejected with 401', {
         receivedChecksumPrefix: (receivedSignature || '').slice(0, 16) + '...',
-        computedHexPrefix: detail.computedHex ? detail.computedHex.slice(0, 16) + '...' : 'n/a',
-        signedPayload: detail.signedPayload,
-        properties: detail.properties,
+        computedHexPrefix: verification.computedHex ? verification.computedHex.slice(0, 16) + '...' : 'n/a',
+        signedPayload: verification.signedPayload,   // will be masked for live
+        properties: verification.properties,
         event: body?.event,
         reference: body?.data?.transaction?.reference,
         wompiTransactionId: body?.data?.transaction?.id,
         environment: body?.environment,
         keyPresent: keyInfo.present,
         keyEnvHint: keyInfo.envHint,
-        reason: detail.reason,
+        reason: verification.reason,
         timestampDelta: body?.timestamp ? Math.abs(Math.floor(Date.now() / 1000) - (body.timestamp as number)) : null,
       })
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })

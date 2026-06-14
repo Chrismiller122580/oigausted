@@ -332,23 +332,43 @@ export default function CheckoutPage() {
         );
       }
 
-      // Fix 1: Widget Public Key Loading (Critical) - force very early and reliably after prepare response
-      const { publicKey, integrity } = checkoutData || {};
-      if (publicKey) {
-        (window as any).WOMPI_PUBLIC_KEY = publicKey;           // Force global
+      // Fix 2: Checkout / Widget Public Key (Critical for "firma inválida")
+      // Force everything from the prepare response (top level + fallback)
+      const responsePubKey = data.publicKey || checkoutData?.publicKey || WOMPI_PUBLIC_KEY;
+      const responseIntegrity = data.integrity || checkoutData?.signature?.integrity;
+
+      // FORCE GLOBALS BEFORE INITIALIZING (exact user-provided pattern + defensive logic)
+      if (responsePubKey) {
+        (window as any).WOMPI_PUBLIC_KEY = responsePubKey;
         (window as any).$wompi = (window as any).$wompi || {};
-        (window as any).$wompi.publicKey = publicKey;           // Force for bundle
+        (window as any).$wompi.publicKey = responsePubKey;
 
-        console.log('[Wompi] Forced globals from prepare response', { pubKey: publicKey?.slice(0, 12) + '...' });
+        console.log("[Wompi] Globals forced from prepare response:", responsePubKey?.slice(0, 20) + '...', {
+          source: data.publicKey ? 'top-level' : (checkoutData?.publicKey ? 'checkoutData' : 'env-fallback'),
+          hasIntegrity: !!responseIntegrity,
+        });
 
-        // Small delay + retry for bundle load / initialize (user-requested pattern)
+        // Extra defensive re-force in case something overwrote it
+        setTimeout(() => {
+          if ((window as any).WOMPI_PUBLIC_KEY !== responsePubKey) {
+            (window as any).WOMPI_PUBLIC_KEY = responsePubKey;
+            (window as any).$wompi.publicKey = responsePubKey;
+            console.log("[Wompi] Re-forced globals (was overwritten)");
+          }
+        }, 50);
+
         setTimeout(() => {
           if ((window as any).$wompi?.initialize) {
             try {
-              (window as any).$wompi.initialize({ publicKey });
-            } catch {}
+              (window as any).$wompi.initialize({ publicKey: responsePubKey });
+              console.log("[Wompi] $wompi.initialize() called after force");
+            } catch (e) {
+              console.warn("[Wompi] initialize() threw (non-fatal):", e);
+            }
           }
-        }, 300);
+        }, 100);
+      } else {
+        console.warn("[Wompi] No publicKey received from prepare — falling back to env");
       }
 
       // 3. Open Wompi using server-provided config (amount comes from DB after we saved final price + extras)
@@ -356,9 +376,9 @@ export default function CheckoutPage() {
       const WidgetCheckoutClass = (window as any).WidgetCheckout || (window as any).WompiCheckout;
 
       if (WidgetCheckoutClass && checkoutData) {
-        const pubKey = publicKey || checkoutData.publicKey || WOMPI_PUBLIC_KEY;
+        const pubKey = responsePubKey;
 
-        // Additional aggressive set (existing + compatibility)
+        // Additional aggressive set (compatibility)
         (window as any).WOMPI_PUBLIC_KEY = pubKey;
         (window as any).$wompi = (window as any).$wompi || {};
         (window as any).$wompi.publicKey = pubKey;
