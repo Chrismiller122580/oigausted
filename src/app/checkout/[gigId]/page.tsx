@@ -266,20 +266,12 @@ export default function CheckoutPage() {
     }
   };
 
-  const openWompiWidget = async () => {
+  const openWompiPayment = async (orderId: string) => {
     if (!order || !gig) return;
 
     if (realPaymentsEnabled === false) {
       toast.error("Los pagos reales están desactivados en la configuración de administración. No se procesarán cobros.");
       return;
-    }
-
-    if (!wompiReady) {
-      const ready = await ensureWompiReady();
-      if (!ready) {
-        toast.error("El sistema de pagos aún está cargando. Intenta de nuevo en unos segundos.");
-        return;
-      }
     }
 
     // Address is recommended for non-remote gigs but not strictly required here.
@@ -311,37 +303,34 @@ export default function CheckoutPage() {
         throw new Error(errData.error || 'Failed to save your selections');
       }
 
-      // 2. Prepare Wompi checkout + ultra aggressive key forcing + dynamic script load (to solve race)
-      const res = await fetch('/api/checkout/wompi', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: order.id }) 
+      // 2. Prepare + ultra force + dynamic load AFTER key
+      const res = await fetch('/api/checkout/wompi', {
+        method: 'POST',
+        body: JSON.stringify({ orderId })
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
 
-      setLastWompiPrepare(data);
-
-      // 🔥 ULTRA FORCE + DYNAMIC SCRIPT (this solves the race)
+      // Force key in every possible place
       window.WOMPI_PUBLIC_KEY = data.publicKey;
       (window as any).$wompi = { publicKey: data.publicKey };
       (window as any).Wompi = { publicKey: data.publicKey };
 
-      console.log("🔥 Dynamic Wompi load started with key:", data.publicKey);
+      console.log("🔥 Key set BEFORE loading Wompi script:", data.publicKey);
 
       // Remove any old script
-      document.querySelectorAll('script[src*="checkout.wompi.co"]').forEach(s => s.remove());
+      document.querySelectorAll('script[src*="wompi"]').forEach(s => s.remove());
 
+      // Load Wompi script AFTER key is ready
       const script = document.createElement('script');
       script.src = 'https://checkout.wompi.co/widget.js';
       script.async = true;
       script.onload = () => {
-        console.log("✅ Wompi script loaded AFTER key force");
+        console.log("✅ Wompi script loaded AFTER key");
         setTimeout(() => {
           if ((window as any).$wompi?.initialize) (window as any).$wompi.initialize();
           if ((window as any).Wompi?.initialize) (window as any).Wompi.initialize();
 
-          // Now open the widget (existing logic adapted)
+          // your normal widget open call here (adapted from previous)
           const WidgetCheckoutClass = (window as any).WidgetCheckout || (window as any).WompiCheckout;
 
           if (WidgetCheckoutClass) {
@@ -421,7 +410,7 @@ export default function CheckoutPage() {
               setLastWompiPrepare((prev: any) => ({ ...(prev || {}), lastWidgetError: 'Instantiation failed: ' + (t?.message || t) }));
             }
           }
-        }, 200);
+        }, 300);
       };
       script.onerror = () => {
         console.error('Failed to load Wompi script');
@@ -784,7 +773,7 @@ export default function CheckoutPage() {
           {/* Optional immediate pay (still available for those who want to pay right after config) */}
           {realPaymentsEnabled === true && wompiReady && (
             <Button 
-              onClick={openWompiWidget} 
+              onClick={openWompiPayment} 
               disabled={opening || !order}
               variant="outline"
               className="w-full mt-3"
@@ -967,7 +956,7 @@ export default function CheckoutPage() {
                     size="sm" 
                     variant="default" 
                     className="text-xs h-7 bg-emerald-600 hover:bg-emerald-700"
-                    onClick={openWompiWidget}
+                    onClick={openWompiPayment}
                     disabled={opening || !realPaymentsEnabled}
                   >
                     Launch Wompi to Enter Payment
