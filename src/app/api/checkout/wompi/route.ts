@@ -23,27 +23,22 @@ if (process.env.NODE_ENV === 'production' && WOMPI_PUBLIC_KEY?.includes('test'))
   console.warn('⚠️  WARNING: Using Wompi SANDBOX keys in production! Real payments will not be processed.');
 }
 
+// Exact integrity per user-provided snippet (plain SHA256 of concatenated string, key appended, hardcoded COP)
 function generateIntegritySignature(
   amountInCents: number,
-  currency: string,
   reference: string
 ): string | null {
   if (!WOMPI_INTEGRITY_KEY) {
     return null;
   }
 
-  // Official Wompi Colombia (docs.wompi.co widget-checkout-web):
-  // Concat exactly (no separators, no public key): <reference><amountInCents><currency><integritySecret>
-  // Then HMAC-SHA256( integritySecret , thatString ).hex
-  // IMPORTANT: amountInCents must be integer (cents), reference exact, currency "COP".
-  // The secret used here must be the one associated with the *exact same* public key in the Wompi dashboard.
-  // User's physical location, IP, or browser has zero impact on this hash.
-  const stringToSign = `${reference}${amountInCents}${currency}${WOMPI_INTEGRITY_KEY}`;
-
-  return crypto
-    .createHmac('sha256', WOMPI_INTEGRITY_KEY)
-    .update(stringToSign)
+  const integrityString = `${reference}${amountInCents}COP${WOMPI_INTEGRITY_KEY}`;
+  const integritySignature = crypto
+    .createHash('sha256')
+    .update(integrityString)
     .digest('hex');
+
+  return integritySignature;
 }
 
 export async function POST(req: NextRequest) {
@@ -145,12 +140,10 @@ export async function POST(req: NextRequest) {
       amountInCents = 0; // Will surface clearly in debug + Wompi will reject; prevents "NaN" in signed string (which breaks signature)
     }
     const reference = `order_${order.id}`;
-    const currency = 'COP';
 
-    const integritySignature = generateIntegritySignature(amountInCents, currency, reference);
+    const integritySignature = generateIntegritySignature(amountInCents, reference);
 
     // Key environment consistency check (helps debug "firma inválida" when pub key and integrity secret don't match)
-    // Most common cause of "La firma es inválida" in the Wompi widget.
     const pubKey = WOMPI_PUBLIC_KEY || '';
     const integKey = WOMPI_INTEGRITY_KEY || '';
     const pubLooksProd = /prod/i.test(pubKey);
@@ -159,81 +152,50 @@ export async function POST(req: NextRequest) {
       ? `MISMATCH: NEXT_PUBLIC_WOMPI_PUBLIC_KEY looks ${pubLooksProd ? 'PROD' : 'TEST/sandbox'} but WOMPI_INTEGRITY_KEY looks ${integLooksProd ? 'PROD' : 'TEST/sandbox'}. The integrity secret MUST match the environment of the public key exactly (get the right "Llave de integridad" from https://comercios.wompi.co for this specific public key).`
       : null;
 
-    const checkoutData: any = {
-      publicKey: WOMPI_PUBLIC_KEY,
-      currency,
-      amountInCents,
-      reference,
-      redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/orders/${order.id}`,
-      customerData: {
-        email: order.buyer?.email || session.user.email || '',
-        fullName: order.buyer?.name || session.user.name || '',
-      },
-    };
-
-    // Add integrity signature when the key is available (recommended for production)
-    if (integritySignature) {
-      checkoutData.signature = {
-        integrity: integritySignature,
-      };
-    }
+    // Rebuild the exact string used for hash (for debug only; never leak secret in prod responses)
+    const integrityStringForDebug = WOMPI_INTEGRITY_KEY
+      ? `${reference}${amountInCents}COP***`
+      : `${reference}${amountInCents}COPMISSING`;
+    const fullIntegrityString = (process.env.NODE_ENV !== 'production' && WOMPI_INTEGRITY_KEY)
+      ? `${reference}${amountInCents}COP${WOMPI_INTEGRITY_KEY}`
+      : null;
 
     // Always log the exact data being sent for debugging (safe info only)
-    const stringToSignForDebug = `${reference}${amountInCents}${currency}${WOMPI_INTEGRITY_KEY ? '***' : 'MISSING'}`;
     devLog('[Wompi][Prepare] Checkout data prepared for widget', {
       orderId: order.id,
       reference,
       amountInCents,
-      currency,
       hasIntegrity: !!integritySignature,
       realPaymentsEnabled,
-      redirectUrl: checkoutData.redirectUrl,
-      stringToSignPreview: stringToSignForDebug,
       publicKeyPrefix: WOMPI_PUBLIC_KEY?.slice(0, 12),
+      integrityStringPreview: integrityStringForDebug,
     });
 
-    // Rich debug for the in-app Wompi Debugger so users can send exact data when signature errors happen.
-    // We never expose the raw secret in production responses.
-    const debugInfo: any = {
-      amountInCents,
-      reference,
-      currency,
-      publicKeyPrefix: WOMPI_PUBLIC_KEY?.slice(0, 12),
-      hasIntegrity: !!integritySignature,
-      // Safe preview of exactly what was fed into the HMAC (secret redacted)
-      signedStringPreview: `${reference}${amountInCents}${currency}***`,
-      integritySignaturePrefix: integritySignature ? integritySignature.slice(0, 10) + '...' + integritySignature.slice(-6) : null,
-      keyEnvironmentCheck: keyMismatchWarning || 'keys appear consistent (prod/pub vs integrity)',
-      // Always remind: the INTEGRITY_KEY secret must be the one from Wompi dashboard "Llave de integridad" for the exact public key above.
-      note: 'If you see "La firma es inválida" in Wompi: this is a cryptographic mismatch. 1) Confirm wompiRealPaymentsEnabled=true in Admin Settings. 2) In comercios.wompi.co get the EXACT "Llave de integridad" (not Events, not Private) that belongs to your current public key (pub_test_ vs pub_prod_). 3) Set it as WOMPI_INTEGRITY_KEY and redeploy. User location/IP or browser country has NO effect on the signature hash (it is computed server-side from ref + amountCents + COP + secret only).',
+    // Build the debug object in the exact shape requested by the snippet.
+    // full integrityString (containing secret) is only included for non-production.
+    const debug = {
+      integrityString: fullIntegrityString, // undefined / omitted in prod
+      integritySignature,
     };
-    if (process.env.NODE_ENV !== 'production') {
-      debugInfo.stringToSign = `${reference}${amountInCents}${currency}${WOMPI_INTEGRITY_KEY}`;
-      debugInfo.fullIntegrity = integritySignature;
-    }
+
     if (keyMismatchWarning) {
-      debugInfo.keyMismatch = keyMismatchWarning;
       console.warn('[Wompi][Prepare] ' + keyMismatchWarning);
     }
 
-    // Return full server config for client (as specified for widget + strict useEffect)
+    // Return exactly the server config shape requested (top-level fields the widget + client use)
     return NextResponse.json({
       reference,
       amountInCents,
       publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
-      integrity: integritySignature,
-      // add any other widget params you need
+      integrity: integritySignature,   // ← this is what the widget needs
+      // add any other widget params you need (handy for client)
       currency: 'COP',
       redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/orders/${order.id}`,
       customerData: {
         email: order.buyer?.email || session?.user?.email || '',
         fullName: order.buyer?.name || session?.user?.name || '',
       },
-      // compat/debug
-      checkoutData,
-      success: true,
-      hasIntegritySignature: !!integritySignature,
-      debug: debugInfo,
+      debug // for debugging (matches the requested { integrityString, integritySignature })
     });
 
   } catch (error: any) {

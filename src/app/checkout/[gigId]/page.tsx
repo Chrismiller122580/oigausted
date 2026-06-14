@@ -391,7 +391,7 @@ export default function CheckoutPage() {
 
         const pubKey = config.publicKey || (window as any).WOMPI_PUBLIC_KEY || WOMPI_PUBLIC_KEY;
 
-        // Re-force from the fresh config one more time right before constructing
+        // Re-force from the fresh config one more time right before constructing (from previous level-up)
         (window as any).WOMPI_PUBLIC_KEY = pubKey;
         (window as any).$wompi = (window as any).$wompi || {};
         (window as any).$wompi.publicKey = pubKey;
@@ -399,24 +399,18 @@ export default function CheckoutPage() {
           try { (window as any).$wompi.initialize({ publicKey: pubKey }); } catch {}
         }
 
-        const widgetConfig: any = {
-          publicKey: pubKey,
-          currency: config.currency || 'COP',
-          amountInCents: config.amountInCents,
-          reference: config.reference,
-          redirectUrl: config.redirectUrl || `${window.location.origin}/orders/${order?.id}`,
-          customerData: config.customerData || {
-            email: session?.user?.email || '',
-            fullName: session?.user?.name || '',
-          },
-        };
-
-        if (config.integrity) {
-          widgetConfig.signature = { integrity: config.integrity };
-        }
-
+        // Exact client construction per user snippet (using the server-returned config)
+        // const config = await prepareResponse.json();   // (happens in openPayment, stored to window.WOMPI_CONFIG, read here)
         try {
-          const checkout = new WidgetCheckoutClass(widgetConfig);
+          const checkout = new WidgetCheckoutClass({
+            publicKey: config.publicKey,
+            amountInCents: config.amountInCents,
+            currency: 'COP',
+            reference: config.reference,
+            signature: {
+              integrity: config.integrity
+            }
+          });
 
           checkout.open((result: any) => {
             console.log('[Wompi] Widget result (callback):', result);
