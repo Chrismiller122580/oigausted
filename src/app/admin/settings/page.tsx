@@ -823,7 +823,7 @@ export default function AdminSettings() {
               <div className="text-sm font-medium mb-1">Probar evento real de Wompi (debug firma inválida / 401)</div>
               <div className="text-[10px] text-muted-foreground mb-2">
                 1. Ve a <a href="https://comercios.wompi.co/debugger" target="_blank" className="underline">Wompi Debugger</a> o "Seguimiento de transacciones" en tu cuenta Wompi.<br/>
-                2. Copia SOLO el objeto JSON completo del "Evento" (empieza con {`{"data":{...}}`}, termina con el } final del evento).<br/>
+                2. Copia SOLO el objeto JSON completo del "Evento" (empieza con <code className="font-mono">{'{"data":{...}}'}</code>, termina con el {'}'} final del evento).<br/>
                 3. (Opcional) Pégalo primero en <a href="https://jsonlint.com" target="_blank" className="underline">jsonlint.com</a> para validar que sea JSON limpio.<br/>
                 4. Pégalo aquí abajo. Usa "testEventsKey" con un candidato de "Eventos" del dashboard de Wompi para esta llave pública. Marca "Replay" si quieres procesar la orden.<br/>
                 Ver docs oficiales: <a href="https://docs.wompi.co/docs/colombia/inicio-rapido/" target="_blank" className="underline">https://docs.wompi.co/docs/colombia/inicio-rapido/</a> y https://docs.wompi.co/docs/colombia/eventos/ para el método exacto de concatenación de propiedades y el "secreto de eventos".
@@ -928,7 +928,7 @@ export default function AdminSettings() {
               </div>
 
               <div className="text-[10px] text-amber-600 mt-1">
-                Pega un "Evento" real de Wompi (el que da 401). Si ves "JSON inválido", usa el botón "Limpiar / Extraer solo el JSON" de arriba. Copia SOLO desde el primer { hasta el último } del evento.
+                Pega un "Evento" real de Wompi (el que da 401). Si ves "JSON inválido", usa el botón "Limpiar / Extraer solo el JSON" de arriba. Copia SOLO desde el primer {'{'} hasta el último {'}'} del evento.
               </div>
             </div>
           </div>

@@ -154,6 +154,7 @@ export async function POST(req: NextRequest) {
     try {
       const detail = verifyWompiSignatureDetailed(sampleEvent, sampleChecksum || sampleEvent?.signature?.checksum || '', testEventsKey);
       const info = eventsInfo; // from shared
+      const anyDetail = detail as any;
       eventVerification = {
         ...eventVerification,
         matches: detail.ok,
@@ -169,6 +170,10 @@ export async function POST(req: NextRequest) {
         eventType: sampleEvent?.event || null,
         reference: sampleEvent?.data?.transaction?.reference || null,
         transactionId: sampleEvent?.data?.transaction?.id || null,
+        // New diagnostics from updated verification logic (properties + timestamp variant support)
+        usedTimestampVariant: anyDetail.usedTimestampVariant || false,
+        altSignedPayloadWithTimestamp: anyDetail.altSignedPayloadWithTimestamp || undefined,
+        altComputedHexPrefix: anyDetail.altComputedHex ? String(anyDetail.altComputedHex).slice(0, 16) + '...' : undefined,
       };
 
       if (testEventsKey) {

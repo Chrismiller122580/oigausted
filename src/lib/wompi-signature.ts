@@ -61,15 +61,45 @@ export type VerifyResult = {
   computedHex: string
   receivedHexLen: number
   computedHexLen: number
+  // Optional diagnostics added for timestamp variant support (propertiesValues + timestamp + eventsKey as HMAC key only)
+  usedTimestampVariant?: boolean
+  altSignedPayloadWithTimestamp?: string
+  altComputedHex?: string
 }
 
 export function verifyWompiSignatureDetailed(body: any, receivedSignature: string, customEventsKey?: string): VerifyResult {
   const sig = body?.signature || {}
   const properties: string[] = Array.isArray(sig.properties) ? sig.properties : []
 
+  // CORRECT Wompi signature (properties + optional timestamp when relevant)
+  // Primary: concatenate (no separators) the values for exactly the properties listed in signature.properties (in listed order).
+  // Use resolveWompiProperty (handles "transaction.xxx", top-level timestamp fallback when prop==='timestamp', data nesting).
+  // Timestamp is "important" for replay protection (done separately in webhook handler) and is auto-included
+  // only when "timestamp" appears in the event's signature.properties list.
+  // The eventsKey (Llave para eventos) is the HMAC key; it is NEVER concatenated into the signed payload.
   let signedPayload: string
+  let usedTimestampVariant = false
+  let altSignedPayloadWithTimestamp = ''
+
   if (properties.length > 0) {
-    signedPayload = properties.map((p: string) => resolveWompiProperty(body, p)).join('')
+    const propertiesValues = properties
+      .map((prop: string) => resolveWompiProperty(body, prop))
+      .join('')
+
+    const timestamp = (body?.timestamp || (body as any)?.data?.timestamp || '').toString()
+
+    // Primary signed payload: strictly the listed property values (matches official docs + examples)
+    signedPayload = propertiesValues
+
+    // Diagnostic / compat alt: propertiesValues + timestamp (some implementations/docs interpretations include it)
+    // We compute it so the admin tester can report whether the received checksum matched the alt variant.
+    // If a real event's checksum matches only the alt (with a correct key), we will accept it (see below).
+    if (timestamp) {
+      altSignedPayloadWithTimestamp = `${propertiesValues}${timestamp}`
+    }
+
+    // If the primary does not look like it would include a timestamp value already (i.e. "timestamp" not listed),
+    // we will also try the alt during matching for forward-compat with "properties + timestamp" events.
   } else {
     // Legacy fallback (older guidance / some events): timestamp + full body JSON
     const timestamp = (body?.timestamp || '').toString()
@@ -99,6 +129,15 @@ export function verifyWompiSignatureDetailed(body: any, receivedSignature: strin
     .createHmac('sha256', keyToUse)
     .update(signedPayload)
     .digest('hex')
+
+  // Also compute alt (properties + timestamp) HMAC if we have an alt payload
+  let altComputedHex = ''
+  if (altSignedPayloadWithTimestamp) {
+    altComputedHex = crypto
+      .createHmac('sha256', keyToUse)
+      .update(altSignedPayloadWithTimestamp)
+      .digest('hex')
+  }
 
   const keyEnvHint: 'prod' | 'test' | 'unknown' = /prod/i.test(keyToUse)
     ? 'prod'
@@ -136,22 +175,44 @@ export function verifyWompiSignatureDetailed(body: any, receivedSignature: strin
   }
 
   try {
-    const match = crypto.timingSafeEqual(
+    const standardMatch = crypto.timingSafeEqual(
       Buffer.from(normalizedReceived, 'hex'),
       Buffer.from(computedHex, 'hex')
     )
-    return {
+
+    let match = standardMatch
+    let reason = standardMatch ? 'ok' : 'HMAC mismatch (keys differ or concat/properties produced different string)'
+
+    if (!standardMatch && altComputedHex && normalizedReceived.length === altComputedHex.length) {
+      const altMatch = crypto.timingSafeEqual(
+        Buffer.from(normalizedReceived, 'hex'),
+        Buffer.from(altComputedHex, 'hex')
+      )
+      if (altMatch) {
+        match = true
+        usedTimestampVariant = true
+        signedPayload = altSignedPayloadWithTimestamp // surface the one that worked
+        reason = 'ok (matched properties+timestamp variant)'
+      }
+    }
+
+    const base: VerifyResult = {
       ok: match,
-      reason: match ? 'ok' : 'HMAC mismatch (keys differ or concat/properties produced different string)',
+      reason,
       signedPayload,
       properties,
       keyPresent: true,
       keyEnvHint,
       receivedNormalized: normalizedReceived,
-      computedHex,
+      computedHex: usedTimestampVariant ? altComputedHex : computedHex,
       receivedHexLen: normalizedReceived.length,
-      computedHexLen: computedHex.length,
+      computedHexLen: (usedTimestampVariant ? altComputedHex : computedHex).length,
+      usedTimestampVariant,
+      altSignedPayloadWithTimestamp: altSignedPayloadWithTimestamp || undefined,
+      altComputedHex: altComputedHex || undefined,
     }
+
+    return base
   } catch (e) {
     devLog('[Wompi] Signature comparison threw (invalid hex data?)', e)
     return {
