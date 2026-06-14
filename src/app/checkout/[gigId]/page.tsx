@@ -399,21 +399,20 @@ export default function CheckoutPage() {
           try { (window as any).$wompi.initialize({ publicKey: pubKey }); } catch {}
         }
 
-        // Exact client construction per user snippet (using the server-returned config)
-        // const config = await prepareResponse.json();   // (happens in openPayment, stored to window.WOMPI_CONFIG, read here)
+        // Exact match to user-provided snippet for signature.integrity
         try {
-          const checkout = new WidgetCheckoutClass({
+          const checkout = new WidgetCheckout({
             publicKey: config.publicKey,
             amountInCents: config.amountInCents,
             currency: 'COP',
             reference: config.reference,
             signature: {
-              integrity: config.integrity
+              integrity: config.integrity   // ← This line is the one missing or wrong
             }
           });
 
-          checkout.open((result: any) => {
-            console.log('[Wompi] Widget result (callback):', result);
+          checkout.open((result) => {
+            console.log('✅ Wompi result:', result);
             if (result?.transaction) {
               console.log('[Wompi] Transaction from callback:', {
                 id: result.transaction.id,
