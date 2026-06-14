@@ -231,7 +231,7 @@ export async function POST(req: NextRequest) {
           summary.recommendations.push('CUSTOM KEY TEST: The provided testEventsKey did NOT validate the sample event (HMAC mismatch). Try a different "Llave para eventos" from the Wompi dashboard for this public key.');
         }
       } else if (!eventVerification.matches) {
-        summary.recommendations.push('SAMPLE EVENT SIGNATURE FAILED — this real event does NOT validate with the current EVENTS_KEY for pub_prod_SZdbUpSGERKCIGAcJOaIax7ySu4w9tAN. Paste this exact full event JSON as sampleEvent + try your candidate "Llave para eventos" as testEventsKey until matches:true. Then set that exact value in Vercel Production as WOMPI_EVENTS_KEY and redeploy. The basic tester samples are only dummies — real events are the only proof.');
+        summary.recommendations.push(`SAMPLE EVENT SIGNATURE FAILED — this real event does NOT validate with the current EVENTS_KEY for ${process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || 'this pub key'}. Paste this exact full event JSON as sampleEvent + try your candidate "Llave para eventos" as testEventsKey until matches:true. Then set that exact value in Vercel Production as WOMPI_EVENTS_KEY and redeploy. The basic tester samples are only dummies — real events are the only proof.`);
       } else {
         summary.recommendations.push('Sample event signature VERIFIED OK with the current EVENTS key (good).');
       }
