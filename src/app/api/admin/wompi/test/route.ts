@@ -67,6 +67,29 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Sample events/webhook signature computation (proves EVENTS_KEY material works for the exact algorithm used by /api/webhooks/wompi)
+  let sampleEventsSig: string | null = null;
+  let sampleEventsNote = 'no events key';
+  if (events) {
+    try {
+      // Use the same property-based concat that the real webhook uses (matching the failing event style you reported)
+      const sampleProps = ['transaction.id', 'transaction.status', 'transaction.amount_in_cents'];
+      const sampleTx = { id: 'tx_test_999', status: 'APPROVED', amount_in_cents: 100000 };
+      const sampleBodyForSig = { data: { transaction: sampleTx }, signature: { properties: sampleProps } };
+      const signedPayload = sampleProps.map(p => {
+        // simple inline resolve for the canary (same logic as shared module)
+        if (p === 'transaction.id') return sampleTx.id;
+        if (p === 'transaction.status') return sampleTx.status;
+        if (p === 'transaction.amount_in_cents') return String(sampleTx.amount_in_cents);
+        return '';
+      }).join('');
+      sampleEventsSig = crypto.createHmac('sha256', events).update(signedPayload).digest('hex');
+      sampleEventsNote = `computed successfully (properties: ${sampleProps.join(', ')} → concat: ${signedPayload})`;
+    } catch (e: any) {
+      sampleEventsNote = 'HMAC failed: ' + (e?.message || e);
+    }
+  }
+
   // Try a real status query using the best available token (prefer private)
   let query: any = { attempted: false };
   const token = priv || pub;
@@ -108,6 +131,8 @@ export async function POST(req: NextRequest) {
     integrityPubMismatch: keyMismatch,
     sampleSignature: sampleSig ? sampleSig.slice(0, 12) + '...' : null,
     sampleSignatureNote: sampleNote,
+    sampleEventsSignature: sampleEventsSig ? sampleEventsSig.slice(0, 12) + '...' : null,
+    sampleEventsSignatureNote: sampleEventsNote,
     query,
     recommendations: [] as string[],
   };

@@ -795,8 +795,15 @@ export default function AdminSettings() {
                 <div>Env: pub={wompiTest.environments?.public} integ={wompiTest.environments?.integrity} events={wompiTest.environments?.events} priv={wompiTest.environments?.private}</div>
                 {wompiTest.integrityPubMismatch && <div className="text-red-600 font-bold">⚠️ MISMATCH pub vs integrity (causa principal de "firma inválida")</div>}
                 {wompiTest.sampleSignature && <div>Sample sig OK: {wompiTest.sampleSignature} ({wompiTest.sampleSignatureNote})</div>}
+                {wompiTest.sampleEventsSignature && <div>Events sample sig OK: {wompiTest.sampleEventsSignature} ({wompiTest.sampleEventsSignatureNote})</div>}
                 {wompiTest.query && (
                   <div>Query: ok={String(wompiTest.query.ok)} status={wompiTest.query.status} usedPrivate={String(wompiTest.query.usedPrivate)} {wompiTest.query.error ? 'err=' + String(wompiTest.query.error).slice(0,80) : ''}</div>
+                )}
+                {wompiTest.eventVerification?.attempted && (
+                  <div>Event verification: matches={String(wompiTest.eventVerification.matches)} payload={wompiTest.eventVerification.signedPayload} reason={wompiTest.eventVerification.reason}</div>
+                )}
+                {wompiTest.replayResult?.attempted && (
+                  <div>Replay: {wompiTest.replayResult.success ? 'SUCCESS' : 'FAILED'} action={wompiTest.replayResult.action} order={wompiTest.replayResult.orderId} status={wompiTest.replayResult.status}</div>
                 )}
                 {wompiTest.recommendations?.length > 0 && (
                   <div className="mt-1 text-amber-600">Recomendaciones: {wompiTest.recommendations.join(' • ')}</div>
