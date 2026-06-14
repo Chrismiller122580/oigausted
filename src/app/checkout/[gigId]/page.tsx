@@ -379,8 +379,8 @@ export default function CheckoutPage() {
       }
 
       const tryLaunchWidget = (attempt = 0) => {
-        const WidgetCheckoutClass = (window as any).WidgetCheckout || (window as any).WompiCheckout;
-        if (!WidgetCheckoutClass) {
+        const WidgetCheckout = (window as any).WidgetCheckout || (window as any).WompiCheckout;
+        if (!WidgetCheckout) {
           if (attempt < 15) {
             setTimeout(() => tryLaunchWidget(attempt + 1), 200);
           } else {
