@@ -271,6 +271,8 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
       es.onopen = () => {
         setIsConnected(true);
         console.log('[Notifications] SSE connected');
+        // Reset error log flag on successful reconnect
+        if (globalEventSource) (globalEventSource as any)._sseErrorLogged = false;
       };
 
       es.addEventListener('notification', (event) => {
@@ -295,12 +297,17 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
         // Connection alive
       });
 
-      es.onerror = () => {
+      es.onerror = (e) => {
         setIsConnected(false);
-        // Fallback to polling will handle it
-        console.warn('[Notifications] SSE error - falling back to polling');
-        es.close();
-        globalEventSource = null;
+        // Do not close the EventSource here - browser's EventSource automatically
+        // retries with backoff on errors. We keep the reference so reconnects
+        // can succeed and fire onopen again. Polling runs in parallel as reliable backup.
+        // Log only once per "drop" to avoid spam; transient errors are normal on Vercel/prod.
+        if (! (globalEventSource as any)?._sseErrorLogged) {
+          console.warn('[Notifications] SSE error - auto-retrying (polling as backup)');
+          (globalEventSource as any)._sseErrorLogged = true;
+        }
+        // Do NOT close or null here. Let browser retry. Cleanup on unmount will handle close.
       };
 
     } catch (err) {
