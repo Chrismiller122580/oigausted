@@ -15,40 +15,41 @@ import {
 
 // Improved verifier with timestamp (Fix 1) - duplicated here for tester as requested
 const verifyWompiEvent = (event: any, eventsKey: string) => {
-  const signature = event.signature;
-  if (!signature?.properties || !eventsKey) return { valid: false, payload: '' };
+  const signature = event.signature || event.data?.signature;
+  if (!signature?.properties || !eventsKey) {
+    return { valid: false, payload: '', reason: "Missing signature or key" };
+  }
 
-  // Properties concat (exact order)
   const propValues = signature.properties
     .map((prop: string) => {
+      // Robust resolver for Wompi's nested structure
       let val: any = event;
 
-      // Try direct
+      // Try direct path (e.g. transaction.id)
       let temp = event;
       prop.split('.').forEach(k => temp = temp?.[k]);
-      if (temp !== undefined) val = temp;
+      if (temp !== undefined && temp !== null) val = temp;
 
-      // Try under data
-      if (val === undefined || val === '') {
-        temp = event?.data;
-        prop.split('.').forEach(k => temp = temp?.[k]);
-        if (temp !== undefined) val = temp;
+      // Try under data.transaction.*
+      if (val === undefined || val === null || typeof val === 'object') {
+        temp = event?.data?.transaction;
+        const subProp = prop.replace('transaction.', '');
+        subProp.split('.').forEach(k => temp = temp?.[k]);
+        if (temp !== undefined && temp !== null) val = temp;
       }
 
-      // Explicit fallback for transaction.*
-      if ((val === undefined || val === '') && prop.startsWith('transaction.')) {
-        const subProp = prop.replace('transaction.', '');
-        temp = event?.data?.transaction;
-        subProp.split('.').forEach(k => temp = temp?.[k]);
-        if (temp !== undefined) val = temp;
+      // Fallback: try full data path
+      if (val === undefined || val === null || typeof val === 'object') {
+        temp = event?.data;
+        prop.split('.').forEach(k => temp = temp?.[k]);
+        if (temp !== undefined && temp !== null) val = temp;
       }
 
       return String(val ?? '');
     })
     .join('');
 
-  // ✅ ADD TIMESTAMP (this was missing!)
-  const timestamp = String(event.timestamp || '');
+  const timestamp = String(event.timestamp || event.data?.timestamp || '');
 
   const fullPayload = `${propValues}${timestamp}${eventsKey}`;
 
@@ -63,7 +64,8 @@ const verifyWompiEvent = (event: any, eventsKey: string) => {
     valid: isValid, 
     computed, 
     payload: fullPayload,
-    receivedChecksum: signature.checksum 
+    receivedChecksum: signature.checksum,
+    reason: isValid ? 'OK' : 'HMAC mismatch'
   };
 };
 
