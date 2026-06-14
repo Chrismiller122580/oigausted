@@ -208,6 +208,12 @@ export default function AdminSettings() {
   const [wompiTest, setWompiTest] = useState<any>(null);
   const [wompiTestLoading, setWompiTestLoading] = useState(false);
 
+  // Advanced real-event test for 401 signature debugging
+  const [advancedEventJson, setAdvancedEventJson] = useState('');
+  const [advancedTestEventsKey, setAdvancedTestEventsKey] = useState('');
+  const [advancedReplay, setAdvancedReplay] = useState(true);
+  const [advancedTestLoading, setAdvancedTestLoading] = useState(false);
+
   // Admin password change state
   const [adminPasswordForm, setAdminPasswordForm] = useState({
     currentPassword: '',
@@ -811,8 +817,76 @@ export default function AdminSettings() {
               </div>
             )}
             <div className="text-[10px] text-muted-foreground mt-1">Ejecuta esto después de rotar llaves o para validar que el PRIVATE key puede leer transacciones.</div>
-            <div className="text-[10px] text-amber-500 mt-2">
-              For pub_prod_SZdbUpSGERKCIGAcJOaIax7ySu4w9tAN: take a real failing "Evento" JSON from Wompi dashboard and POST it to /api/admin/wompi/test as sampleEvent (add "testEventsKey" with a candidate from the dashboard). The basic tester only does dummy samples — real events + testEventsKey is the only way to find the correct Eventos secret.
+
+            {/* Advanced real event tester - for the 401 "Invalid signature" cases */}
+            <div className="mt-3 pt-3 border-t border-border">
+              <div className="text-sm font-medium mb-1">Probar evento real de Wompi (debug firma inválida / 401)</div>
+              <div className="text-[10px] text-muted-foreground mb-2">
+                Copia el JSON completo del "Evento" desde el <a href="https://comercios.wompi.co/debugger" target="_blank" className="underline">Wompi Debugger</a> o Seguimiento de transacciones. 
+                Pega aquí y usa "testEventsKey" con un candidato de la sección "Eventos" del dashboard para probar sin cambiar Vercel todavía.
+              </div>
+
+              <textarea
+                value={advancedEventJson}
+                onChange={(e) => setAdvancedEventJson(e.target.value)}
+                placeholder={`Pega aquí el objeto completo del Evento, ej:\n{\n  "data": { "transaction": { "id": "...", "status": "ERROR", ... } },\n  "event": "transaction.updated",\n  "signature": { "checksum": "...", "properties": [...] },\n  ...\n}`}
+                className="w-full text-xs font-mono border rounded p-2 h-32 bg-background"
+              />
+
+              <div className="flex gap-2 mt-2 items-end">
+                <div className="flex-1">
+                  <div className="text-[10px] mb-0.5">testEventsKey (opcional - candidato "Llave para eventos")</div>
+                  <input
+                    type="text"
+                    value={advancedTestEventsKey}
+                    onChange={(e) => setAdvancedTestEventsKey(e.target.value)}
+                    placeholder="prod_events_xxxxxxxxxxxxxxxxxxxxxxxx"
+                    className="w-full text-xs font-mono border rounded px-2 py-1 bg-background"
+                  />
+                </div>
+                <label className="flex items-center gap-1 text-xs pb-1">
+                  <input type="checkbox" checked={advancedReplay} onChange={e => setAdvancedReplay(e.target.checked)} />
+                  Replay
+                </label>
+                <Button
+                  size="sm"
+                  variant="default"
+                  disabled={advancedTestLoading || !advancedEventJson.trim()}
+                  onClick={async () => {
+                    setAdvancedTestLoading(true);
+                    try {
+                      let sampleEvent: any;
+                      try {
+                        sampleEvent = JSON.parse(advancedEventJson);
+                      } catch {
+                        toast.error('JSON inválido del evento');
+                        return;
+                      }
+                      const body: any = { sampleEvent, replay: advancedReplay };
+                      if (advancedTestEventsKey.trim()) body.testEventsKey = advancedTestEventsKey.trim();
+                      const res = await fetch('/api/admin/wompi/test', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                      });
+                      const data = await res.json();
+                      setWompiTest(data?.summary || data);
+                      if (data?.success === false) toast.error(data.error || 'Test falló');
+                      else toast.success('Test de evento real completado - revisa eventVerification abajo');
+                    } catch (e: any) {
+                      toast.error('Error ejecutando test avanzado');
+                    } finally {
+                      setAdvancedTestLoading(false);
+                    }
+                  }}
+                >
+                  {advancedTestLoading ? 'Probando...' : 'Probar evento real'}
+                </Button>
+              </div>
+
+              <div className="text-[10px] text-amber-600 mt-1">
+                Pega un evento real que esté dando 401. El test básico de arriba solo valida que las llaves cargan (no prueba los checksums reales de Wompi).
+              </div>
             </div>
           </div>
 
