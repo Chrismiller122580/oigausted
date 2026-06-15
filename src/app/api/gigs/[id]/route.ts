@@ -15,14 +15,30 @@ export async function GET(
 
     const gig = await prisma.gig.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        price: true,
+        category: true,
+        completionTime: true,
+        imageUrl: true,
+        fields: true,
+        addons: true,
+        isActive: true,
+        createdAt: true,
+        sellerId: true,
+        city: true,
+        latitude: true,
+        longitude: true,
+        isRemote: true,
+        // deletedAt intentionally omitted until migration is applied everywhere
         seller: {
           select: {
             id: true,
             name: true,
             email: true,
             businessName: true,
-            // slug omitted for prod DB compatibility (add via prisma migrate deploy)
             profilePicture: true,
             rating: true,
             reviewCount: true,

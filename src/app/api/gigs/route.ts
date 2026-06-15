@@ -10,10 +10,20 @@ import { devLog } from '@/lib/utils';
 
 export async function GET() {
   try {
-    const gigs = await prisma.gig.findMany({
-      where: { isActive: true, deletedAt: null },
-      orderBy: { createdAt: 'desc' }
-    });
+    let gigs;
+    try {
+      gigs = await prisma.gig.findMany({
+        where: { isActive: true, deletedAt: null },
+        orderBy: { createdAt: 'desc' }
+      });
+    } catch (dbErr: any) {
+      // Fallback during migration rollout if deletedAt column not yet added to DB
+      console.warn('[Public Gigs] deletedAt filter failed (column may not exist yet), fetching without it', dbErr?.message);
+      gigs = await prisma.gig.findMany({
+        where: { isActive: true },
+        orderBy: { createdAt: 'desc' }
+      });
+    }
 
     // Attach seller info defensively (some old rows may have dangling sellerId)
     const sellerIds = [...new Set(gigs.map((g: any) => g.sellerId).filter((id: any): id is string => !!id))];

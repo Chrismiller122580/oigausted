@@ -30,24 +30,57 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    const gigs = await prisma.gig.findMany({
-      where,
-      include: {
-        seller: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            businessName: true
+    let gigs;
+    try {
+      gigs = await prisma.gig.findMany({
+        where,
+        include: {
+          seller: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              businessName: true
+            }
+          },
+          _count: {
+            select: { orders: true }
           }
         },
-        _count: {
-          select: { orders: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 100
-    });
+        orderBy: { createdAt: 'desc' },
+        take: 100
+      });
+    } catch (dbErr: any) {
+      // Defensive fallback: if the deletedAt column hasn't been migrated yet in the DB
+      // (e.g. during rollout), fall back to fetching without the deletedAt filter.
+      // This prevents the admin page from showing "no data".
+      console.warn('[Admin Gigs] deletedAt column not present yet, falling back to unfiltered query', dbErr?.message);
+      const fallbackWhere: any = search ? {
+        OR: [
+          { title: { contains: search } },
+          { seller: { name: { contains: search } } },
+          { seller: { email: { contains: search } } }
+        ]
+      } : {};
+      gigs = await prisma.gig.findMany({
+        where: fallbackWhere,
+        include: {
+          seller: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              businessName: true
+            }
+          },
+          _count: {
+            select: { orders: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 100
+      });
+    }
 
     const gigsWithStats = gigs.map((g: any) => ({
       ...g,

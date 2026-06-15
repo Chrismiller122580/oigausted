@@ -20,23 +20,62 @@ export async function GET() {
 
     const sellerId = uid;
 
-    const gigs = await prisma.gig.findMany({
-      where: { sellerId },
-      include: {
-        seller: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            businessName: true,
-            profilePicture: true,
-            rating: true,
-            reviewCount: true,
+    let gigs;
+    try {
+      gigs = await prisma.gig.findMany({
+        where: { sellerId },
+        include: {
+          seller: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              businessName: true,
+              profilePicture: true,
+              rating: true,
+              reviewCount: true,
+            }
           }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    } catch (dbErr: any) {
+      // Fallback if deletedAt column not migrated yet
+      console.warn('[Seller Gigs] query with full model failed (likely missing deletedAt column), retrying', dbErr?.message);
+      gigs = await prisma.gig.findMany({
+        where: { sellerId },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          price: true,
+          category: true,
+          completionTime: true,
+          imageUrl: true,
+          fields: true,
+          addons: true,
+          isActive: true,
+          createdAt: true,
+          sellerId: true,
+          city: true,
+          latitude: true,
+          longitude: true,
+          isRemote: true,
+          seller: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              businessName: true,
+              profilePicture: true,
+              rating: true,
+              reviewCount: true,
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    }
 
     // Compute performance stats per gig (orders + revenue)
     const gigIds = gigs.map((g: any) => g.id);
