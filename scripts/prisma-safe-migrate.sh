@@ -18,6 +18,7 @@ set -euo pipefail
 
 MIGRATION_NAME="20260604015327_enhance_audit_for_all_system_changes"
 NEW_PAYOUT_MIGRATION="20260614000000_add_seller_payout_bank_details_and_wompi_ref"
+DELETED_AT_MIGRATION="20260615000000_add_gig_deleted_at"
 
 DB_URL="${DIRECT_DATABASE_URL:-${DATABASE_URL:-}}"
 
@@ -54,12 +55,22 @@ fi
 # Print the log for visibility
 cat /tmp/migrate.log
 
-# General recovery for any "failed migrations in the target database" (covers old ones + our new payout migration)
+# General recovery for any "failed migrations in the target database" (covers old ones + our new payout migration + deletedAt)
 if grep -q "failed migrations in the target database" /tmp/migrate.log; then
-  echo "⚠️  Detected failed migration(s) (general recovery for recent migrations including $NEW_PAYOUT_MIGRATION)..."
+  echo "⚠️  Detected failed migration(s) (general recovery for recent migrations including $NEW_PAYOUT_MIGRATION and $DELETED_AT_MIGRATION)..."
   # Resolve the known recent failed migrations so we can retry cleanly
   DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$MIGRATION_NAME" || true
   DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$NEW_PAYOUT_MIGRATION" || true
+  DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$DELETED_AT_MIGRATION" || true
+
+  # Also attempt to resolve any other failed migrations that might be in the log
+  # (extract migration names that look like timestamps and try rolled-back)
+  grep -oE '[0-9]{14}_[a-z0-9_]+' /tmp/migrate.log | sort -u | while read -r mig; do
+    if [[ "$mig" != "$MIGRATION_NAME" && "$mig" != "$NEW_PAYOUT_MIGRATION" && "$mig" != "$DELETED_AT_MIGRATION" ]]; then
+      echo "    Also resolving potential failed migration: $mig"
+      DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$mig" || true
+    fi
+  done
 
   echo "    Retrying prisma migrate deploy after general resolve..."
   if run_migrate; then
@@ -79,7 +90,7 @@ fi
 
 # Special case: known recoverable migration failure
 if grep -q "failed migrations in the target database" /tmp/migrate.log && \
-   grep -q "$MIGRATION_NAME" /tmp/migrate.log; then
+   (grep -q "$MIGRATION_NAME" /tmp/migrate.log || grep -q "$DELETED_AT_MIGRATION" /tmp/migrate.log); then
   echo "⚠️  Detected previously failed migration: $MIGRATION_NAME"
   echo "    Running 'prisma migrate resolve --rolled-back' to clear the failure marker..."
   DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$MIGRATION_NAME" || true
