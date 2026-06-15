@@ -401,7 +401,7 @@ export default function MiNegocioPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Ubicación principal</label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <input
                         type="text"
                         value={formData.location}
@@ -432,7 +432,7 @@ export default function MiNegocioPage() {
                           );
                         }}
                         disabled={!isEditing}
-                        className="px-4 py-2 border rounded-xl text-sm hover:bg-muted disabled:opacity-50"
+                        className="px-4 py-5 border border-border rounded-2xl text-sm hover:bg-muted disabled:opacity-60 flex items-center justify-center whitespace-nowrap"
                         title="Usar mi ubicación actual"
                       >
                         📍 Mi ubicación

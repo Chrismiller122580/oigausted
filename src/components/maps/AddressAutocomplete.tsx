@@ -64,7 +64,7 @@ export default function AddressAutocomplete({
 
   return (
     <div className="space-y-2">
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
         <input
           type="text"
           value={value}
@@ -76,7 +76,7 @@ export default function AddressAutocomplete({
           type="button"
           onClick={handleBrowserLocation}
           disabled={useBrowserLocation}
-          className="px-4 py-2 border rounded-xl text-sm hover:bg-muted disabled:opacity-50"
+          className="px-4 py-5 border border-border rounded-2xl text-sm hover:bg-muted disabled:opacity-60 flex items-center justify-center whitespace-nowrap"
           title="Usar mi ubicación actual (solo coordenadas)"
         >
           {useBrowserLocation ? "..." : "📍 Mi ubicación"}

@@ -472,7 +472,7 @@ export default function ProfilePage() {
                   <Input name="whatsapp" value={formData.whatsapp} onChange={handleChange} placeholder="WhatsApp" />
                   <div>
                     <label className="text-sm font-medium mb-1 block">Ciudad / Dirección</label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <input
                         type="text"
                         value={formData.city || ""}
@@ -501,7 +501,7 @@ export default function ProfilePage() {
                             () => toast.error("No pudimos obtener tu ubicación.")
                           );
                         }}
-                        className="px-4 py-2 border rounded-xl text-sm hover:bg-muted"
+                        className="px-4 py-5 border border-border rounded-2xl text-sm hover:bg-muted flex items-center justify-center whitespace-nowrap"
                         title="Usar mi ubicación actual"
                       >
                         📍 Mi ubicación

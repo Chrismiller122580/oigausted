@@ -546,7 +546,7 @@ function CreateGigClient() {
               <>
                 <div>
                   <Label>Dirección o ciudad donde ofreces el servicio</Label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
                     <input
                       type="text"
                       value={gigLocation}
@@ -579,7 +579,7 @@ function CreateGigClient() {
                           () => toast.error("No se pudo obtener la ubicación")
                         );
                       }}
-                      className="px-4 py-2 border rounded-xl text-sm hover:bg-muted"
+                      className="px-4 py-5 border border-border rounded-2xl text-sm hover:bg-muted flex items-center justify-center whitespace-nowrap"
                     >
                       📍 Mi ubicación
                     </button>
