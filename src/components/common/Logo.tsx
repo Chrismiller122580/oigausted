@@ -20,7 +20,7 @@ export default function Logo({
     siteName: string;
     logoUrl: string | null;
   }>({
-    siteName: 'OigaUsted',
+    siteName: 'Oigagig',
     logoUrl: null,
   });
   const [loaded, setLoaded] = useState(false);
@@ -32,7 +32,7 @@ export default function Logo({
       .then((data) => {
         if (mounted && (data.siteName || data.logoUrl)) {
           setBranding({
-            siteName: data.siteName || 'OigaUsted',
+            siteName: data.siteName || 'Oigagig',
             logoUrl: data.logoUrl || null,
           });
         }
@@ -56,7 +56,7 @@ export default function Logo({
       style={{ width: iconSize, height: iconSize }} 
       className="bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-sm"
     >
-      OU
+      OG
     </div>
   );
 

@@ -93,7 +93,7 @@ export default function LoginPage() {
           <CardTitle className="text-2xl font-bold text-foreground">
             Welcome back
           </CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">Sign in to OigaUsted</p>
+          <p className="text-sm text-muted-foreground mt-1">Sign in to Oigagig</p>
         </CardHeader>
 
         <CardContent>

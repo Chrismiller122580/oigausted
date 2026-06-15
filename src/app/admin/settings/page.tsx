@@ -169,7 +169,7 @@ const DEFAULTS: Partial<PlatformConfig> = {
   referralsEnabled: true,
   allowNewSignups: true,
   maxUploadSizeMB: 10,
-  siteName: 'OigaUsted',
+  siteName: 'Oigagig',
   siteTagline: 'Conecta con profesionales locales en Colombia',
   logoUrl: null,
   globalPushNotificationsEnabled: true,
@@ -292,7 +292,7 @@ export default function AdminSettings() {
     referralsEnabled: c.referralsEnabled ?? true,
     allowNewSignups: c.allowNewSignups ?? true,
     maxUploadSizeMB: c.maxUploadSizeMB ?? 10,
-    siteName: c.siteName || 'OigaUsted',
+    siteName: c.siteName || 'Oigagig',
     siteTagline: c.siteTagline || 'Conecta con profesionales locales en Colombia',
     logoUrl: c.logoUrl || null,
     globalPushNotificationsEnabled: c.globalPushNotificationsEnabled ?? true,
@@ -1475,7 +1475,7 @@ export default function AdminSettings() {
                   value={config.siteName || ''}
                   onChange={(e) => updateField('siteName', e.target.value)}
                   className="mt-1.5 bg-background border-border text-lg font-semibold"
-                  placeholder="OigaUsted"
+                  placeholder="Oigagig"
                 />
               </div>
               <div>

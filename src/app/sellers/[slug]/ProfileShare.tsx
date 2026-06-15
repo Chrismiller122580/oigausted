@@ -22,7 +22,7 @@ export default function ProfileShare({ url, displayName }: ProfileShareProps) {
     }
   };
 
-  const shareText = `Mira los servicios de ${displayName} en OigaUsted: ${url}`;
+  const shareText = `Mira los servicios de ${displayName} en Oigagig: ${url}`;
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
   return (

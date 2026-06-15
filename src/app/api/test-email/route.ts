@@ -28,9 +28,9 @@ export async function POST(req: NextRequest) {
     // Hardened: only admins, audited, and in prod consider extra gates (e.g. feature flag).
     if (to && isAdmin && rawResend) {
       try {
-        const subject = emailType === 'welcome' ? '¡Bienvenido a OigaUsted! (TEST)' :
+        const subject = emailType === 'welcome' ? '¡Bienvenido a Oigagig! (TEST)' :
                         emailType === 'order' ? 'Nuevo pedido recibido (TEST)' :
-                        emailType === 'review' ? 'Nueva reseña recibida (TEST)' : 'Test email from OigaUsted';
+                        emailType === 'review' ? 'Nueva reseña recibida (TEST)' : 'Test email from Oigagig';
         const html = `<div style="font-family:system-ui;padding:24px;max-width:600px;margin:0 auto;">
           <h2>Test email: ${emailType}</h2>
           <p>This was sent via /api/test-email with direct recipient override.</p>
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         </div>`;
 
         const sendResult = await rawResend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'OigaUsted <support@support.oigagig.com>',
+          from: process.env.RESEND_FROM_EMAIL || 'Oigagig <support@support.oigagig.com>',
           to,
           subject,
           html,
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     if (emailType === 'welcome') {
       result = await notifications.sendEmail(
         userId,
-        '¡Bienvenido a OigaUsted!',
+        '¡Bienvenido a Oigagig!',
         'Gracias por registrarte. Ya puedes explorar y publicar servicios.'
       );
     } else if (emailType === 'order') {
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     } else if (emailType === 'password-reset') {
       result = await notifications.sendEmail(
         userId,
-        'Restablece tu contraseña en OigaUsted',
+        'Restablece tu contraseña en Oigagig',
         'Haz clic en el enlace del correo para crear una nueva contraseña. (Este es un correo de prueba)',
         undefined,
         { resetLink: 'https://oigagig.com/reset-password?token=test-123' }

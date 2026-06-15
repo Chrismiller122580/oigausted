@@ -50,7 +50,7 @@ async function main() {
       referralsEnabled: true,
       allowNewSignups: true,
       maxUploadSizeMB: 10,
-      siteName: 'OigaUsted',
+      siteName: 'Oigagig',
       siteTagline: 'Conecta con profesionales locales en Colombia',
       logoUrl: null,
       globalPushNotificationsEnabled: true,

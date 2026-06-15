@@ -28,7 +28,7 @@ function SignUpClient() {
   const [showPassword, setShowPassword] = useState(false)
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const [signupsEnabled, setSignupsEnabled] = useState(true);
-  const [siteName, setSiteName] = useState('OigaUsted');
+  const [siteName, setSiteName] = useState('Oigagig');
 
   // Check signup gate + Google OAuth + branding (from public admin config)
   useEffect(() => {
@@ -137,7 +137,7 @@ function SignUpClient() {
           <div className="flex justify-center mb-6">
             <Image 
               src="/logo.png" 
-              alt="Oiga Usted" 
+              alt="Oigagig" 
               width={100} 
               height={100} 
               className="drop-shadow-lg"

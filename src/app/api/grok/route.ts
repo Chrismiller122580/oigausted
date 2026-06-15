@@ -38,10 +38,10 @@ export async function POST(request: NextRequest) {
       : "Respond in English by default. Only switch to Spanish if the user explicitly asks in Spanish.";
 
     // Ultra-powerful system prompt for the smartest admin experience
-    let systemPrompt = `You are Grok Build, the most intelligent AI assistant integrated into OigaUsted. ${languageInstruction}`;
+    let systemPrompt = `You are Grok Build, the most intelligent AI assistant integrated into Oigagig. ${languageInstruction}`;
 
     if (mode === "admin_build") {
-      systemPrompt = `You are Grok Build — the most advanced agentic AI integrated into the OigaUsted admin panel.
+      systemPrompt = `You are Grok Build — the most advanced agentic AI integrated into the Oigagig admin panel.
 
 ${languageInstruction}
 

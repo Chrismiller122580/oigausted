@@ -12,7 +12,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 // Dynamic metadata powered by admin settings (branding)
 export async function generateMetadata(): Promise<Metadata> {
-  let siteName = "OigaUsted";
+  let siteName = "Oigagig";
   let siteTagline = "Conecta con profesionales locales en Colombia";
   let appUrl = "https://oigagig.com";
 

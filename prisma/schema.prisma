@@ -368,7 +368,7 @@ model PlatformConfig {
   maxUploadSizeMB         Int      @default(10)     // Max size for order/chat file uploads
 
   // Branding (editable from /admin/settings, feeds public pages + metadata)
-  siteName                String   @default("OigaUsted")
+  siteName                String   @default("Oigagig")
   siteTagline             String   @default("Conecta con profesionales locales en Colombia")
   logoUrl                 String?                     // Optional override logo (URL or /public path)
 

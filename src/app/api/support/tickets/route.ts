@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       const toList = Array.from(new Set([supportEmail, ...adminEmails]));
       if (resend && toList.length) {
         await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'OigaUsted <support@support.oigagig.com>',
+          from: process.env.RESEND_FROM_EMAIL || 'Oigagig <support@support.oigagig.com>',
           to: toList,
           subject: `Nuevo ticket de soporte: ${subject}`,
           html: `

@@ -80,7 +80,7 @@ export async function POST() {
         const toList = Array.from(new Set([config?.supportEmail || 'soporte@oigagig.com', ...adminEmails]))
         if (toList.length) {
           await resend.emails.send({
-            from: process.env.RESEND_FROM_EMAIL || 'OigaUsted <support@oigagig.com>',
+            from: process.env.RESEND_FROM_EMAIL || 'Oigagig <support@oigagig.com>',
             to: toList,
             subject: 'Nueva solicitud de pago por referidos',
             html: `

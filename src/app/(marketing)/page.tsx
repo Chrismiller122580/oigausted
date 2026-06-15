@@ -8,23 +8,23 @@ import { Search, MessageCircle, ShieldCheck } from 'lucide-react';
 import { AnimatedCategoryGrid, AnimatedTestimonials } from './LandingClient';
 
 export const metadata = {
-  title: 'OigaUsted - Gigs Colombia | Encuentra el servicio que necesitas',
-  description: 'Conecta directamente con profesionales locales en Colombia. Limpieza, reparaciones, belleza, marketing y más. ¡Oiga Usted!',
+  title: 'Oigagig - Gigs Colombia | Encuentra el servicio que necesitas',
+  description: 'Conecta directamente con profesionales locales en Colombia. Limpieza, reparaciones, belleza, marketing y más. ¡Oigagig!',
   openGraph: {
-    title: 'OigaUsted - Gigs Colombia',
+    title: 'Oigagig - Gigs Colombia',
     description: 'El marketplace de servicios locales más directo de Colombia. Encuentra freelancers de confianza en Bucaramanga, Bogotá, Medellín y más.',
     images: [{ 
       url: '/logo.png', 
       width: 1200, 
       height: 630, 
-      alt: 'OigaUsted - Servicios locales en Colombia' 
+      alt: 'Oigagig - Servicios locales en Colombia' 
     }],
     locale: 'es_CO',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'OigaUsted - Gigs Colombia',
+    title: 'Oigagig - Gigs Colombia',
     description: 'Conecta directamente con profesionales locales. Servicios confiables sin intermediarios.',
     images: ['/logo.png'],
   },
@@ -240,7 +240,7 @@ export default async function MarketingHomePage() {
       {/* CÓMO FUNCIONA - Visually upgraded with lucide icons and better polish */}
       <section className="max-w-7xl mx-auto px-6 py-16 bg-card dark:bg-card border-y">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">Así de fácil es usar OigaUsted</h2>
+          <h2 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">Así de fácil es usar Oigagig</h2>
           <p className="text-zinc-600 dark:text-zinc-400 mt-2 text-lg">En 3 pasos encuentras o publicas el servicio que necesitas</p>
         </div>
 
@@ -294,7 +294,7 @@ export default async function MarketingHomePage() {
       <footer className="border-t bg-card dark:bg-card py-10 text-sm">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between gap-6 text-zinc-500">
           <div>
-            <div className="font-semibold text-zinc-900 dark:text-white mb-1">OigaUsted</div>
+            <div className="font-semibold text-zinc-900 dark:text-white mb-1">Oigagig</div>
             <div>Conectando Colombia, un servicio a la vez.</div>
           </div>
           <div className="flex gap-8">
@@ -302,7 +302,7 @@ export default async function MarketingHomePage() {
             <Link href="/create-gig" className="hover:text-zinc-900 dark:hover:text-white transition-colors">Publicar</Link>
             <Link href="/login" className="hover:text-zinc-900 dark:hover:text-white transition-colors">Iniciar sesión</Link>
           </div>
-          <div>© {new Date().getFullYear()} OigaUsted</div>
+          <div>© {new Date().getFullYear()} Oigagig</div>
         </div>
       </footer>
     </div>

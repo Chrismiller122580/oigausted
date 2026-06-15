@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
         maintenanceMode: config.maintenanceMode,
         maintenanceMessage: config.maintenanceMessage,
         // Public branding
-        siteName: (config as any).siteName || 'OigaUsted',
+        siteName: (config as any).siteName || 'Oigagig',
         siteTagline: (config as any).siteTagline || 'Conecta con profesionales locales en Colombia',
         logoUrl: (config as any).logoUrl || null,
         // Public gates (clients can use these to hide/disable features)
@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
       referralsEnabled: (config as any).referralsEnabled ?? true,
       allowNewSignups: (config as any).allowNewSignups ?? true,
       maxUploadSizeMB: (config as any).maxUploadSizeMB ?? 10,
-      siteName: (config as any).siteName || 'OigaUsted',
+      siteName: (config as any).siteName || 'Oigagig',
       siteTagline: (config as any).siteTagline || 'Conecta con profesionales locales en Colombia',
       logoUrl: (config as any).logoUrl || null,
       globalPushNotificationsEnabled: (config as any).globalPushNotificationsEnabled ?? true,
@@ -135,7 +135,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         maintenanceMode: false,
         maintenanceMessage: "Estamos realizando mejoras. Volveremos pronto.",
-        siteName: 'OigaUsted',
+        siteName: 'Oigagig',
         siteTagline: 'Conecta con profesionales locales en Colombia',
         logoUrl: null,
         allowNewSignups: true,
@@ -147,7 +147,7 @@ export async function GET(req: NextRequest) {
       });
     } catch (finalErr) {
       console.error('Config GET ultimate fallback error (returning plain 200):', finalErr);
-      return new Response('{"maintenanceMode":false,"maintenanceMessage":"Estamos realizando mejoras. Volveremos pronto.","siteName":"OigaUsted","siteTagline":"Conecta con profesionales locales en Colombia","logoUrl":null,"allowNewSignups":true,"referralsEnabled":true,"globalPushNotificationsEnabled":true,"globalEmailNotificationsEnabled":true,"wompiRealPaymentsEnabled":false,"wompiSftpEnabled":false}', {
+      return new Response('{"maintenanceMode":false,"maintenanceMessage":"Estamos realizando mejoras. Volveremos pronto.","siteName":"Oigagig","siteTagline":"Conecta con profesionales locales en Colombia","logoUrl":null,"allowNewSignups":true,"referralsEnabled":true,"globalPushNotificationsEnabled":true,"globalEmailNotificationsEnabled":true,"wompiRealPaymentsEnabled":false,"wompiSftpEnabled":false}', {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -195,7 +195,7 @@ export async function PUT(request: NextRequest) {
           referralsEnabled: body.referralsEnabled ?? true,
           allowNewSignups: body.allowNewSignups ?? true,
           maxUploadSizeMB: body.maxUploadSizeMB ?? 10,
-          siteName: body.siteName ?? 'OigaUsted',
+          siteName: body.siteName ?? 'Oigagig',
           siteTagline: body.siteTagline ?? 'Conecta con profesionales locales en Colombia',
           logoUrl: body.logoUrl ?? null,
           globalPushNotificationsEnabled: body.globalPushNotificationsEnabled ?? true,

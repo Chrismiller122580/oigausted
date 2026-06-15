@@ -5,7 +5,7 @@ import { devLog, toPrismaJson, parseDeliveryLog } from './utils';
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'OigaUsted <support@support.oigagig.com>';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Oigagig <support@support.oigagig.com>';
 
 export interface NotificationPayload {
   userId: string;
@@ -267,7 +267,7 @@ export async function sendNotification(payload: NotificationPayload) {
               <h2 style="color: #f97316;">${title}</h2>
               <p style="font-size: 16px; line-height: 1.6; color: #333;">${message}</p>
               ${link ? `<p style="margin-top: 24px;"><a href="${appUrl}${link}" style="background:#f97316;color:white;padding:10px 20px;border-radius:6px;text-decoration:none;">Ver detalles →</a></p>` : ''}
-              <p style="margin-top: 32px; font-size: 12px; color: #888;">OigaUsted • Servicios locales de confianza</p>
+              <p style="margin-top: 32px; font-size: 12px; color: #888;">Oigagig • Servicios locales de confianza</p>
             </div>
           `
         };
@@ -386,7 +386,7 @@ export const notifications = {
   },
 
   async sendSMS(userId: string, message: string) {
-    return sendNotification({ userId, category: 'system', type: 'sms', title: 'OigaUsted', message });
+    return sendNotification({ userId, category: 'system', type: 'sms', title: 'Oigagig', message });
   },
 
   async sendPush(userId: string, title: string, message: string, data?: any) {

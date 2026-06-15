@@ -1,4 +1,4 @@
-// OigaUsted Notification Service Worker (2027-grade Web Push)
+// Oigagig Notification Service Worker (2027-grade Web Push)
 // Register this in the client when user enables push
 
 self.addEventListener('push', function(event) {
@@ -6,7 +6,7 @@ self.addEventListener('push', function(event) {
   try {
     data = event.data.json();
   } catch (e) {
-    data = { title: 'OigaUsted', body: event.data ? event.data.text() : 'Nueva notificación' };
+    data = { title: 'Oigagig', body: event.data ? event.data.text() : 'Nueva notificación' };
   }
 
   const options = {
@@ -35,7 +35,7 @@ self.addEventListener('push', function(event) {
   }
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'OigaUsted', options)
+    self.registration.showNotification(data.title || 'Oigagig', options)
   );
 });
 

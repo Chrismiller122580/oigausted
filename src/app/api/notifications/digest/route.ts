@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { resend } from '@/lib/notifications';
 import { toPrismaJson } from '@/lib/utils';
 
-// Vercel Cron + Digest Job for OigaUsted
+// Vercel Cron + Digest Job for Oigagig
 // Automatically called by Vercel Cron (see vercel.json)
 // Supports manual admin trigger too.
 
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
         <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 620px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #f1f1f1;">
           <!-- Header -->
           <div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 24px; color: white; text-align: center;">
-            <div style="font-size: 28px; font-weight: 700; margin-bottom: 4px;">OigaUsted</div>
+            <div style="font-size: 28px; font-weight: 700; margin-bottom: 4px;">Oigagig</div>
             <div style="font-size: 15px; opacity: 0.95;">${frequency === 'daily' ? 'Resumen diario' : 'Resumen semanal'}</div>
           </div>
 
@@ -136,14 +136,14 @@ export async function POST(req: NextRequest) {
           </div>
 
           <div style="background: #f8f8f8; padding: 14px; text-align: center; font-size: 11px; color: #888;">
-            OigaUsted • Servicios locales de confianza en Colombia
+            Oigagig • Servicios locales de confianza en Colombia
           </div>
         </div>
       `;
 
       try {
         const emailResult = await resend?.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'OigaUsted <support@support.oigagig.com>',
+          from: process.env.RESEND_FROM_EMAIL || 'Oigagig <support@support.oigagig.com>',
           to: pref.user.email,
           subject,
           html,

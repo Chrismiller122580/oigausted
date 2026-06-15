@@ -13,10 +13,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const displayName = user?.businessName || user?.name || 'Vendedor';
   return {
-    title: `${displayName} | OigaUsted`,
-    description: `Conoce los servicios de ${displayName} en OigaUsted. Servicios locales confiables en Colombia.`,
+    title: `${displayName} | Oigagig`,
+    description: `Conoce los servicios de ${displayName} en Oigagig. Servicios locales confiables en Colombia.`,
     openGraph: {
-      title: `${displayName} en OigaUsted`,
+      title: `${displayName} en Oigagig`,
       description: `Descubre gigs y servicios ofrecidos por ${displayName}. Profesionales locales en Colombia.`,
       images: [{ url: '/logo.png' }],
     },
@@ -319,7 +319,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
       {/* Footer CTA */}
       <div className="border-t py-8 bg-card">
         <div className="max-w-4xl mx-auto px-6 text-center text-sm text-muted-foreground">
-          ¿Te gusta lo que ves? <Link href="/gigs" className="text-orange-600 hover:underline">Explora más servicios locales</Link> o publica tu propia necesidad en OigaUsted.
+          ¿Te gusta lo que ves? <Link href="/gigs" className="text-orange-600 hover:underline">Explora más servicios locales</Link> o publica tu propia necesidad en Oigagig.
         </div>
       </div>
     </div>

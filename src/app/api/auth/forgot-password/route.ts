@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     // Send real password reset email (now uses rich passwordResetEmail template + full tracking/resendEmailId)
     await notifications.sendEmail(
       user.id,
-      'Restablece tu contraseña en OigaUsted',
+      'Restablece tu contraseña en Oigagig',
       `Recibimos una solicitud para restablecer tu contraseña. El enlace expira en 1 hora.`,
       resetLink,
       { resetLink }

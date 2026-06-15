@@ -349,7 +349,7 @@ export default function NotificationPreferences() {
                 if (perm === 'granted') {
                   toast.success('¡Notificaciones de escritorio activadas!');
                   // fire a test notification
-                  new Notification('OigaUsted', {
+                  new Notification('Oigagig', {
                     body: 'Notificaciones de escritorio listas ✅',
                     icon: '/logo.png'
                   });

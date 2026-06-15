@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   try {
     const body: GenerateRequest = await req.json();
     const {
-      goal = "Promocionar OigaUsted",
+      goal = "Promocionar Oigagig",
       prompt = "",
       channels = ["email", "instagram", "facebook"],
       segmentHint = "",
@@ -41,9 +41,9 @@ export async function POST(req: NextRequest) {
 
     const isSpanish = language === 'es';
 
-    const systemPrompt = `Eres el director creativo de marketing más inteligente y efectivo de Colombia para OigaUsted (oigagig.com).
+    const systemPrompt = `Eres el director creativo de marketing más inteligente y efectivo de Colombia para Oigagig (oigagig.com).
 
-OigaUsted es la plataforma colombiana #1 de gigs y servicios locales: conecta personas que necesitan servicios (compradores) con freelancers y negocios locales confiables (vendedores), con foco inicial en Bucaramanga y área metropolitana.
+Oigagig es la plataforma colombiana #1 de gigs y servicios locales: conecta personas que necesitan servicios (compradores) con freelancers y negocios locales confiables (vendedores), con foco inicial en Bucaramanga y área metropolitana.
 
 Tus fortalezas:
 - Escribes copy publicitario de alto rendimiento en español natural colombiano (profesional pero cercano, usa "vos", "parce", evita anglicismos innecesarios).
@@ -79,7 +79,7 @@ Estructura exacta esperada:
   "visualPrompts": [
     "string (prompts detallados en inglés para Midjourney/Flux/DALL-E, estilo fotorealista o ilustración moderna, con vibe colombiana local)"
   ] (3-5 prompts),
-  "hashtags": ["#OigaUsted", ...] (8-12 relevantes + branded),
+  "hashtags": ["#Oigagig", ...] (8-12 relevantes + branded),
   "bestTimes": "string (mejores horarios/días para enviar o publicar en Colombia, justificación breve)",
   "strategyNotes": "string (3-5 bullets accionables: por qué este enfoque funciona, qué medir, ideas de seguimiento)",
   "complianceTips": "string (breve recordatorio anti-spam y buenas prácticas)"
@@ -95,7 +95,7 @@ Contexto del pedido actual:
 
 Genera contenido de clase mundial, específico para servicios locales en Colombia. Sé creativo pero medible.`;
 
-    const userPrompt = `Genera una campaña completa de marketing para OigaUsted siguiendo exactamente la estructura JSON indicada.`;
+    const userPrompt = `Genera una campaña completa de marketing para Oigagig siguiendo exactamente la estructura JSON indicada.`;
 
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
@@ -149,7 +149,7 @@ Genera contenido de clase mundial, específico para servicios locales en Colombi
     
     // Always return something usable
     const fallback = createFallbackCampaign(
-      "Promocionar OigaUsted", 
+      "Promocionar Oigagig", 
       ["email", "instagram", "facebook"], 
       "cercano y confiable", 
       true
@@ -165,11 +165,11 @@ Genera contenido de clase mundial, específico para servicios locales en Colombi
 
 function createFallbackCampaign(goal: string, channels: string[], tone: string, isSpanish: boolean) {
   const subject = isSpanish 
-    ? "OigaUsted: Encuentra el servicio que necesitas hoy mismo" 
-    : "OigaUsted: Find trusted local services today";
+    ? "Oigagig: Encuentra el servicio que necesitas hoy mismo" 
+    : "Oigagig: Find trusted local services today";
 
   return {
-    campaignName: "Campaña OigaUsted - " + goal.slice(0, 40),
+    campaignName: "Campaña Oigagig - " + goal.slice(0, 40),
     objective: goal,
     recommendedSegment: "usuarios activos",
     segmentReason: "Mayor probabilidad de conversión y engagement.",
@@ -177,16 +177,16 @@ function createFallbackCampaign(goal: string, channels: string[], tone: string, 
       subject,
       previewText: "Servicios locales de confianza en Bucaramanga y más.",
       body: isSpanish 
-        ? `Hola,\n\nEn OigaUsted conectamos a personas con los mejores profesionales locales de Bucaramanga y el área metropolitana.\n\n¿Necesitas un plomero, electricista, estilista o servicio de limpieza? Encuentra opciones confiables con reseñas reales en segundos.\n\nExplora ahora: https://oigagig.com/gigs\n\n— El equipo de OigaUsted`
-        : `Hello,\n\nOigaUsted connects you with trusted local professionals in Bucaramanga.\n\nFind plumbers, electricians, cleaners and more with real reviews.\n\nBrowse now: https://oigagig.com/gigs`,
+        ? `Hola,\n\nEn Oigagig conectamos a personas con los mejores profesionales locales de Bucaramanga y el área metropolitana.\n\n¿Necesitas un plomero, electricista, estilista o servicio de limpieza? Encuentra opciones confiables con reseñas reales en segundos.\n\nExplora ahora: https://oigagig.com/gigs\n\n— El equipo de Oigagig`
+        : `Hello,\n\nOigagig connects you with trusted local professionals in Bucaramanga.\n\nFind plumbers, electricians, cleaners and more with real reviews.\n\nBrowse now: https://oigagig.com/gigs`,
       cta: "Explorar servicios"
     },
     social: {
-      instagram: "🔧 ¿Buscas un servicio de confianza en Bucaramanga? En OigaUsted encuentras profesionales verificados con reseñas reales. ¡Publica tu necesidad o ofrece tus servicios hoy! #OigaUsted #Bucaramanga #ServiciosLocales",
-      facebook: "OigaUsted: la forma más fácil de encontrar servicios locales confiables en Bucaramanga. Plomería, electricidad, belleza, mudanzas y mucho más. Con reseñas reales y contacto directo. ¡Únete gratis!",
-      x: "En Bucaramanga y necesitas un servicio confiable? OigaUsted te conecta con los mejores locales en minutos. Prueba gratis → oigagig.com",
-      whatsapp: "Hola! En OigaUsted encuentras servicios locales de confianza en Bucaramanga. ¿Qué necesitas hoy? Visita oigagig.com",
-      general: "OigaUsted — Servicios locales de confianza en Colombia. Conecta con profesionales verificados."
+      instagram: "🔧 ¿Buscas un servicio de confianza en Bucaramanga? En Oigagig encuentras profesionales verificados con reseñas reales. ¡Publica tu necesidad o ofrece tus servicios hoy! #Oigagig #Bucaramanga #ServiciosLocales",
+      facebook: "Oigagig: la forma más fácil de encontrar servicios locales confiables en Bucaramanga. Plomería, electricidad, belleza, mudanzas y mucho más. Con reseñas reales y contacto directo. ¡Únete gratis!",
+      x: "En Bucaramanga y necesitas un servicio confiable? Oigagig te conecta con los mejores locales en minutos. Prueba gratis → oigagig.com",
+      whatsapp: "Hola! En Oigagig encuentras servicios locales de confianza en Bucaramanga. ¿Qué necesitas hoy? Visita oigagig.com",
+      general: "Oigagig — Servicios locales de confianza en Colombia. Conecta con profesionales verificados."
     },
     adCopies: [
       { headline: "Servicios locales que sí cumplen", body: "Profesionales con reseñas reales en Bucaramanga. Rápido y confiable.", cta: "Buscar ahora" },
@@ -196,7 +196,7 @@ function createFallbackCampaign(goal: string, channels: string[], tone: string, 
       "Photorealistic photo of a friendly Colombian handyman smiling in a Bucaramanga neighborhood home, natural daylight, warm colors, modern Colombian home interior, trustworthy vibe",
       "Vibrant Colombian market scene with diverse people using a mobile app, modern lifestyle, Bucaramanga architecture in background, friendly and professional atmosphere"
     ],
-    hashtags: ["#OigaUsted", "#ServiciosLocales", "#Bucaramanga", "#EmprendedoresColombia", "#Confianza"],
+    hashtags: ["#Oigagig", "#ServiciosLocales", "#Bucaramanga", "#EmprendedoresColombia", "#Confianza"],
     bestTimes: "Martes a jueves entre 9am-11am y 6pm-8pm (hora Colombia). Alto engagement en redes y mejor apertura de email.",
     strategyNotes: "• Enfócate en el dolor del usuario (necesidad urgente de un servicio).\n• Usa testimonios y números de gigs activos.\n• Mide clics al /gigs y registros nuevos.",
     complianceTips: "Incluye opción clara de baja. No uses lenguaje engañoso. Sé transparente con los beneficios."
