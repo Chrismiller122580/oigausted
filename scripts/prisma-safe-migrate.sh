@@ -63,11 +63,31 @@ safe_resolve() {
 }
 
 # First attempt - try clean deploy first (avoids unnecessary resolve calls that waste the limited prisma_migration connections)
-run_migrate
-MIGRATE_EXIT=$?
+# Wrap initial attempt in retry loop for "too many connections" (the role has very low limits)
+echo "Attempting initial prisma migrate deploy (with connection retry for migration role)..."
+INITIAL_SUCCESS=false
+for attempt in 1 2 3 4 5; do
+  sleep_time=$(( (attempt-1) * 15 ))
+  if [ $attempt -gt 1 ]; then
+    echo "    Retry attempt $attempt/5 for initial deploy (sleeping ${sleep_time}s)..."
+    sleep $sleep_time
+  fi
+  run_migrate
+  MIGRATE_EXIT=$?
+  if [ $MIGRATE_EXIT -eq 0 ]; then
+    INITIAL_SUCCESS=true
+    break
+  else
+    cat /tmp/migrate.log
+    if ! grep -qi "too many connections" /tmp/migrate.log && ! grep -qi "connection" /tmp/migrate.log; then
+      # Not a connection error, no point retrying this loop
+      break
+    fi
+  fi
+done
 
-if [ $MIGRATE_EXIT -eq 0 ]; then
-  echo "✅ prisma migrate deploy succeeded on first attempt."
+if [ "$INITIAL_SUCCESS" = true ]; then
+  echo "✅ prisma migrate deploy succeeded on initial attempt."
   cat /tmp/migrate.log
 
   echo "🌱 Running seed to ensure PlatformConfig singleton + categories (idempotent, safe on every deploy)..."
@@ -76,7 +96,7 @@ if [ $MIGRATE_EXIT -eq 0 ]; then
   exit 0
 fi
 
-# Print the log for visibility
+# Print the log for visibility (last failure)
 cat /tmp/migrate.log
 
 # Only do resolve work if we actually saw a "failed migrations" error.
