@@ -6,26 +6,41 @@ import { getGigCategories } from '@/lib/categories';
 import { getCategoryIcon } from '@/lib/icon-registry';
 import { Search, MessageCircle, ShieldCheck } from 'lucide-react';
 import { AnimatedCategoryGrid, AnimatedTestimonials } from './LandingClient';
+import { LaunchPromoBanner } from './LaunchPromoBanner';
 
 export const metadata = {
-  title: 'Oigagig - Gigs Colombia | Encuentra el servicio que necesitas',
-  description: 'Conecta directamente con profesionales locales en Colombia. Limpieza, reparaciones, belleza, marketing y más. ¡Oigagig!',
+  title: 'OigaGig • Servicios entre colombianos • Acabamos de lanzar 🚀',
+  description:
+    'Conecta con gente de confianza en Colombia. Limpieza, transporte, diseño, comida y más. Pagos fáciles, chat directo y cero intermediarios. ¡Únete a la primera semana de OigaGig!',
+  keywords: [
+    'gigs colombia',
+    'servicios locales colombia',
+    'nequi',
+    'wompi',
+    'freelance colombia',
+    'oigagig',
+    'lanza tu negocio',
+  ],
   openGraph: {
-    title: 'Oigagig - Gigs Colombia',
-    description: 'El marketplace de servicios locales más directo de Colombia. Encuentra freelancers de confianza en Bucaramanga, Bogotá, Medellín y más.',
-    images: [{ 
-      url: '/logo.png', 
-      width: 1200, 
-      height: 630, 
-      alt: 'Oigagig - Servicios locales en Colombia' 
-    }],
+    title: 'OigaGig • Servicios entre colombianos • Acabamos de lanzar 🚀',
+    description:
+      'Conecta con gente de confianza en Colombia. Pagos fáciles, chat directo y cero intermediarios. ¡Únete a la primera semana de OigaGig!',
+    images: [
+      {
+        url: '/logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'OigaGig - Servicios locales en Colombia',
+      },
+    ],
     locale: 'es_CO',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Oigagig - Gigs Colombia',
-    description: 'Conecta directamente con profesionales locales. Servicios confiables sin intermediarios.',
+    title: 'OigaGig • Acabamos de lanzar 🚀',
+    description:
+      'Conecta con gente de confianza en Colombia. Pagos fáciles, chat directo y cero intermediarios.',
     images: ['/logo.png'],
   },
 };
@@ -145,9 +160,13 @@ export default async function MarketingHomePage() {
     },
   ];
 
+  const launchPromoMaxSlots = 50;
+
   return (
     <div className="min-h-screen bg-background">
-      {/* HERO - More premium with stronger visual pop and trust strip */}
+      <LaunchPromoBanner sellerCount={stats.sellers} maxSlots={launchPromoMaxSlots} />
+
+      {/* HERO - Warm Colombian welcome + launch energy */}
       <section className="relative bg-gradient-to-br from-orange-600 via-red-600 to-rose-600 text-white overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(#ffffff33_1px,transparent_1px)] [background-size:20px_20px]"></div>
         {/* Subtle brand accent overlay for depth */}
@@ -155,26 +174,27 @@ export default async function MarketingHomePage() {
 
         <div className="max-w-7xl mx-auto px-6 pt-20 pb-16 relative z-10">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm mb-6 border border-white/30">
-              🇨🇴 Hecho en Colombia • Conecta local
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-sm mb-6 border border-white/30">
+              🇨🇴 ¡Bienvenidos, familia! • OigaGig acaba de nacer y ya está listo para ti
             </div>
 
             <h1 className="text-5xl md:text-6xl font-bold leading-[1.05] tracking-tighter mb-6 drop-shadow-sm">
-              El servicio que necesitas,<br className="hidden md:block" /> con gente de confianza.
+              El servicio que necesitas,
+              <br />
+              <span className="text-yellow-200">hecho por paisas de confianza.</span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl">
-              Conecta directo con profesionales locales en Bucaramanga, Bogotá, Medellín, Cali y todo Colombia.<br className="hidden md:block" />
-              Sin intermediarios. Pagos seguros. Calificaciones reales.
+            <p className="text-xl md:text-2xl text-white/95 mb-8 max-w-2xl">
+              Conecta directamente con profesionales locales en Bogotá, Medellín, Cali, Bucaramanga y todo Colombia.
+              <br />
+              Sin intermediarios. Pagos seguros. Chat real. Y sobre todo… <strong>gente como tú.</strong>
             </p>
 
-            {/* Live stats strip in hero - more prominent */}
-            <div className="mb-8 inline-flex flex-wrap items-center gap-x-5 gap-y-1 rounded-full bg-white/10 px-5 py-2 text-sm text-white/85 backdrop-blur">
-              <span className="font-medium">{stats.gigs.toLocaleString('es-CO')} gigs activos</span>
-              <span className="opacity-50">•</span>
-              <span>{stats.reviews.toLocaleString('es-CO')} reseñas reales</span>
-              <span className="opacity-50">•</span>
-              <span>{stats.cities} ciudades</span>
+            <div className="mb-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-white/90 text-sm">
+              <span>⭐ Ya hay {stats.gigs.toLocaleString('es-CO')} gigs activos y creciendo</span>
+              <span>💬 Chat directo por WhatsApp</span>
+              <span>💳 Paga fácil con Wompi • Nequi • PSE</span>
+              <span className="font-semibold text-yellow-300">🎉 ¡Acabamos de lanzar!</span>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
@@ -182,20 +202,19 @@ export default async function MarketingHomePage() {
                 href="/gigs"
                 className="bg-white text-orange-600 hover:bg-white/95 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl active:scale-[0.985] transition-all"
               >
-                Ver todos los servicios
-                <span aria-hidden="true">→</span>
+                🔍 Ver todos los servicios disponibles →
               </Link>
 
               <Link
                 href="/create-gig"
                 className="border-2 border-white/70 hover:bg-white/10 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center transition-all backdrop-blur active:scale-[0.985]"
               >
-                Quiero ofrecer mis servicios
+                🚀 Quiero ofrecer mis servicios y empezar a ganar plata
               </Link>
             </div>
 
             <p className="mt-8 text-sm text-white/70 flex items-center gap-2">
-              ⭐ Calificaciones reales • 💬 Chat directo en órdenes • 💳 Pagos con Wompi
+              ❤️ Hecho con cariño por y para colombianos • Primera semana de lanzamiento • Únete a los primeros
             </p>
           </div>
         </div>
