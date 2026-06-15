@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import type { Prisma } from "@prisma/client"
 import type { DynamicFieldDef } from "@/types/gig-fields"
 import type { JsonObject, JsonValue } from "@/types/json"
 
@@ -92,11 +93,17 @@ export function devLog(...args: unknown[]) {
  * - In real Postgres (prod or direct pg dev), pass the native object so it stores as structured JSON.
  * This lets us use Json? in committed schema while keeping "npm run dev" working against sqlite.
  */
-export function toPrismaJson(value: unknown): string | JsonValue | undefined {
+export function toPrismaJson(value: unknown): string | Prisma.InputJsonValue | undefined {
   if (value == null) return undefined;
   if (isSqliteDatabase()) return JSON.stringify(value);
-  if (typeof value === 'object') return value as JsonValue;
-  return value as JsonValue;
+  return value as Prisma.InputJsonValue;
+}
+
+/** Assign to Prisma Json? (Postgres) or String? (sqlite dev shim) fields. */
+export function toPrismaJsonField(
+  value: unknown
+): Prisma.AuditLogUncheckedCreateInput['details'] {
+  return toPrismaJson(value) as Prisma.AuditLogUncheckedCreateInput['details'];
 }
 
 /**

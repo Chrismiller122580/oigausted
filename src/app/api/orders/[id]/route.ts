@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { notifications } from '@/lib/notifications'
 import { logAuditEvent } from '@/lib/audit'
-import { devLog, toPrismaJson } from '@/lib/utils'
+import { devLog, toPrismaJsonField } from '@/lib/utils'
 import { computeOrderPrice } from '@/lib/order-price'
 import { allowDevPaymentSimulate } from '@/lib/dev-flags'
 import {
@@ -246,12 +246,12 @@ export async function PATCH(
             action: status ? `ORDER_STATUS_${status.toUpperCase().replace(/\s+/g, '_')}` : 'ORDER_UPDATED',
             targetType: 'Order',
             targetId: orderId,
-            details: toPrismaJson({
+            details: toPrismaJsonField({
               previousStatus: existingOrder.status,
               newStatus: status || existingOrder.status,
               updatedFields: Object.keys(updateData),
               updatedByRole: session?.user?.role,
-            }) as string | null | undefined,
+            }),
             // ip/ua if available in context (omitted here for brevity)
           },
         });

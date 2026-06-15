@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { devLog, toPrismaJson } from '@/lib/utils'
+import { devLog, toPrismaJsonField } from '@/lib/utils'
 import type { Prisma } from '@prisma/client'
 
 export async function GET(request: Request) {
@@ -214,7 +214,7 @@ export async function PATCH(request: Request) {
           action: 'REFERRAL_PAYOUT_MARKED_PAID',
           targetType: 'User',
           targetId: referrerId,
-          details: toPrismaJson({ count: upd.count }) as string | null | undefined,
+          details: toPrismaJsonField({ count: upd.count }),
         },
       })
       return upd
