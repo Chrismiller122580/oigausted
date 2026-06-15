@@ -30,15 +30,24 @@ if [ -z "$DB_URL" ]; then
   exit 1
 fi
 
+if [[ "$DB_URL" == prisma+postgres://* ]]; then
+  echo "ERROR: prisma migrate deploy cannot run through Prisma Accelerate (prisma+postgres://)."
+  echo "Set DIRECT_DATABASE_URL to your direct postgres:// connection string in Vercel."
+  echo "Keep DATABASE_URL as the Accelerate/pooled URL for runtime only."
+  exit 1
+fi
+
+is_transient_db_error() {
+  local log_file=$1
+  grep -qiE 'too many connections|connection (refused|closed|terminated|reset)|reach database server|P100[01]|P1017|ECONNREFUSED|ETIMEDOUT|timed out' "$log_file"
+}
+
 echo "Running prisma migrate deploy (using direct URL if provided)..."
 
-# Helper to run migrate deploy with capture
+# Helper to run migrate deploy with capture.
+# Caller must use `set +e` before calling when exit code is handled manually.
 run_migrate() {
-  set +e
   DATABASE_URL="$DB_URL" npx prisma migrate deploy > /tmp/migrate.log 2>&1
-  local exit_code=$?
-  set -e
-  return $exit_code
 }
 
 # Helper for safe resolve that tolerates "not in failed state" (P3012) and retries on connection errors
@@ -75,15 +84,19 @@ for attempt in 1 2 3 4 5; do
     echo "    Retry attempt $attempt/5 for initial deploy (sleeping ${sleep_time}s)..."
     sleep $sleep_time
   fi
+  # run_migrate can return non-zero; with `set -e` a bare call would exit the script
+  # before we capture the code or print /tmp/migrate.log (the cause of silent Vercel failures).
+  set +e
   run_migrate
   MIGRATE_EXIT=$?
+  set -e
   if [ $MIGRATE_EXIT -eq 0 ]; then
     INITIAL_SUCCESS=true
     break
   else
     cat /tmp/migrate.log
-    if ! grep -qi "too many connections" /tmp/migrate.log && ! grep -qi "connection" /tmp/migrate.log; then
-      # Not a connection error, no point retrying this loop
+    if ! is_transient_db_error /tmp/migrate.log; then
+      # Not a transient DB error, no point retrying this loop
       break
     fi
   fi
@@ -123,7 +136,11 @@ if grep -q "failed migrations in the target database" /tmp/migrate.log; then
   done
 
   echo "    Retrying prisma migrate deploy after targeted resolves..."
-  if run_migrate; then
+  set +e
+  run_migrate
+  RETRY_AFTER_RESOLVE_EXIT=$?
+  set -e
+  if [ $RETRY_AFTER_RESOLVE_EXIT -eq 0 ]; then
     echo "✅ Migration recovered and applied successfully (after resolve)."
     cat /tmp/migrate.log
 
@@ -142,8 +159,7 @@ fi
 
 # Retry logic for transient "too many connections" on the migration role.
 # (We now do far fewer resolve calls unless a real "failed migrations" state was detected.)
-if grep -qi "too many connections" /tmp/migrate.log || \
-   grep -qi "connection" /tmp/migrate.log; then
+if is_transient_db_error /tmp/migrate.log; then
   echo "⚠️  Detected transient database connection error (too many connections for the migration role)."
   echo "    Retrying with backoff (up to 5 attempts)..."
 
@@ -152,7 +168,11 @@ if grep -qi "too many connections" /tmp/migrate.log || \
     echo "    Attempt $attempt/5 (sleeping ${sleep_time}s) ..."
     sleep $sleep_time
 
-    if run_migrate; then
+    set +e
+    run_migrate
+    RETRY_EXIT=$?
+    set -e
+    if [ $RETRY_EXIT -eq 0 ]; then
       echo "✅ prisma migrate deploy succeeded on retry attempt $attempt."
       cat /tmp/migrate.log
 
