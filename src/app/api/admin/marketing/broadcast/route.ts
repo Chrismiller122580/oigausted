@@ -15,6 +15,14 @@ interface BroadcastBody {
   testOnly?: boolean; // send only to the current admin for preview
 }
 
+function isMissingMarketingCampaignTable(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    msg.includes('MarketingCampaign') &&
+    (msg.includes('does not exist') || msg.includes('P2021'))
+  );
+}
+
 function parseSegment(segment: string | undefined, city?: string) {
   const where: Prisma.UserWhereInput = { email: { not: null }, isActive: true };
 
@@ -120,16 +128,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, sent: 0, message: 'No matching recipients after preference filters.' });
     }
 
-    // Record the campaign first (for history)
-    const campaign = await prisma.marketingCampaign.create({
-      data: {
-        subject,
-        message,
-        segment: testOnly ? 'test-only' : (city ? `${segment}+city:${city}` : segment),
-        recipientCount,
-        sentById: adminId,
-      },
-    });
+    // Record the campaign first (for history). Skip if table not migrated yet.
+    let campaign: { id: string; segment: string } | null = null;
+    try {
+      campaign = await prisma.marketingCampaign.create({
+        data: {
+          subject,
+          message,
+          segment: testOnly ? 'test-only' : (city ? `${segment}+city:${city}` : segment),
+          recipientCount,
+          sentById: adminId,
+        },
+      });
+    } catch (createErr) {
+      if (!isMissingMarketingCampaignTable(createErr)) throw createErr;
+      console.warn('MarketingCampaign table missing; broadcast will send without history record.');
+    }
 
     // Send loop (best effort).
     // We call the core sendNotification with category 'marketing' + high priority.
@@ -162,14 +176,15 @@ export async function POST(req: NextRequest) {
       adminId,
       action: 'ADMIN_MARKETING_BROADCAST',
       targetType: 'MarketingCampaign',
-      targetId: campaign.id,
+      targetId: campaign?.id ?? 'pending-migration',
       details: {
         subject,
-        segment: campaign.segment,
+        segment: campaign?.segment ?? (testOnly ? 'test-only' : (city ? `${segment}+city:${city}` : segment)),
         recipientCount,
         sent,
         failed,
         testOnly,
+        historyRecorded: Boolean(campaign),
       },
       ipAddress,
       userAgent,
@@ -177,7 +192,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      campaignId: campaign.id,
+      campaignId: campaign?.id ?? null,
       sent,
       failed,
       recipientCount,

@@ -3,6 +3,14 @@ import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+function isMissingMarketingCampaignTable(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    msg.includes('MarketingCampaign') &&
+    (msg.includes('does not exist') || msg.includes('P2021'))
+  );
+}
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!isAdmin(session)) {
@@ -40,6 +48,15 @@ export async function GET(req: NextRequest) {
       hasMore: offset + (campaigns?.length || 0) < (total || 0),
     });
   } catch (error) {
+    if (isMissingMarketingCampaignTable(error)) {
+      console.warn('MarketingCampaign table missing; returning empty history until migration deploys.');
+      return NextResponse.json({
+        campaigns: [],
+        total: 0,
+        hasMore: false,
+        tableMissing: true,
+      });
+    }
     console.error('Marketing campaigns list error:', error);
     return NextResponse.json({ error: 'Failed to load campaigns' }, { status: 500 });
   }
