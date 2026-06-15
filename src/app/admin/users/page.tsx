@@ -403,13 +403,15 @@ export default function AdminUsersPage() {
                         </span>
                       )}
                     </td>
-                    <td className="p-4 text-foreground">{user.businessName || '—'}</td>
                     <td className="p-4">
                       <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         user.isActive !== false ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
                       }`}>
                         {user.isActive !== false ? 'Active' : 'Inactive'}
                       </span>
+                    </td>
+                    <td className="p-4 text-foreground">
+                      {user.role === 'seller' ? (user.businessName || '—') : '—'}
                     </td>
                     <td className="p-4 text-center">
                       {user.customReferralRate != null ? (
@@ -419,13 +421,6 @@ export default function AdminUsersPage() {
                       ) : (
                         <span className="text-xs text-muted-foreground">default 5%</span>
                       )}
-                    </td>
-                    <td className="p-4">
-                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.isActive !== false ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
-                      }`}>
-                        {user.isActive !== false ? 'Active' : 'Inactive'}
-                      </span>
                     </td>
                     <td className="p-4 text-center font-mono">{user._count?.gigs || 0}</td>
                     <td className="p-4 text-right space-x-1">
