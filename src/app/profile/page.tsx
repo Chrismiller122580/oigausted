@@ -263,10 +263,18 @@ export default function ProfilePage() {
         // Optimistic update for smooth UX (no full reload)
         setCurrentRole('seller');
         setShowBecomeSeller(false);
+
+        // Clear tutorial flags so the seller tutorial automatically appears when they visit /seller
+        // (per requirement: when buyer becomes seller the tutorial re-appears for the newly unlocked features)
+        const uid = user?.id || (session?.user as any)?.id;
+        if (uid) {
+          localStorage.removeItem(`tutorial_buyer_${uid}`);
+          localStorage.removeItem(`tutorial_seller_${uid}`);
+        }
         
         // Show next steps message
         setTimeout(() => {
-          toast.success("¡Listo! Ya puedes publicar tu primer gig", { duration: 5000 });
+          toast.success("¡Listo! Ya puedes publicar tu primer gig. El tutorial de vendedor aparecerá en tu dashboard.", { duration: 6000 });
         }, 1200);
       } else {
         toast.error(data.error || "No se pudo completar el proceso");

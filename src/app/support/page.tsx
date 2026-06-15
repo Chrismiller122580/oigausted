@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import OnboardingTutorial from '@/components/common/OnboardingTutorial';
 
 interface Ticket {
   id: string;
@@ -54,6 +55,10 @@ export default function SupportPage() {
   const [message, setMessage] = useState('');
   const [category, setCategory] = useState('other');
   const [priority, setPriority] = useState('medium');
+
+  // Tutorial state
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialMode, setTutorialMode] = useState<'buyer' | 'seller'>('buyer');
 
   // Redirect if not logged in
   useEffect(() => {
@@ -274,10 +279,136 @@ export default function SupportPage() {
           )}
         </div>
 
+        {/* FAQ & How-To - Full training and self-service support */}
+        <div className="mt-12">
+          <h2 className="text-3xl font-bold mb-2">Centro de Ayuda y Capacitación</h2>
+          <p className="text-muted-foreground mb-6">Respuestas rápidas, guías paso a paso y tutoriales interactivos para que aproveches Oigagig al máximo.</p>
+
+          {/* FAQ */}
+          <div className="mb-10">
+            <h3 className="text-xl font-semibold mb-4">Preguntas Frecuentes (FAQ)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="bg-card border-border">
+                <CardContent className="p-5">
+                  <p className="font-semibold mb-1">¿Cómo pago con Nequi o PayU?</p>
+                  <p className="text-sm text-muted-foreground">En la página de checkout selecciona Nequi (recomendado para pagos instantáneos), PSE o PayU. El dinero se retiene seguro y se libera al vendedor solo cuando marques el pedido como completado.</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border">
+                <CardContent className="p-5">
+                  <p className="font-semibold mb-1">¿Cómo contacto al vendedor?</p>
+                  <p className="text-sm text-muted-foreground">Usa el botón "Contactar" en el gig o en la página del pedido. Abre WhatsApp directo con el número del vendedor. También hay chat interno en /orders/[id].</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border">
+                <CardContent className="p-5">
+                  <p className="font-semibold mb-1">¿Puedo cancelar un pedido?</p>
+                  <p className="text-sm text-muted-foreground">Solo los compradores pueden cancelar pedidos en estado "Pending" o "Paid". Los vendedores pueden actualizar a "In Progress" o "Completed". Una vez en progreso o completado no se puede cancelar unilateralmente.</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border">
+                <CardContent className="p-5">
+                  <p className="font-semibold mb-1">¿Cómo me convierto en vendedor?</p>
+                  <p className="text-sm text-muted-foreground">Ve a tu Perfil → "Convertirme en Vendedor", completa el nombre del negocio y confirma. Luego ve al Dashboard de Vendedor para crear tu primer gig y configurar tu perfil público.</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border">
+                <CardContent className="p-5">
+                  <p className="font-semibold mb-1">¿Dónde está mi perfil público?</p>
+                  <p className="text-sm text-muted-foreground">Para vendedores: /sellers/[tu-slug]. Compártelo en redes, WhatsApp o tarjetas. Los clientes pueden contactarte directamente sin pasar por el dashboard.</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border">
+                <CardContent className="p-5">
+                  <p className="font-semibold mb-1">¿Cómo funcionan las reseñas y reputación?</p>
+                  <p className="text-sm text-muted-foreground">Después de un pedido completado, el comprador puede dejar una reseña de 1-5 estrellas + comentario. Las reseñas aparecen en tu perfil público y ayudan a generar confianza (y más pedidos).</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* How-To Quick Guides */}
+          <div className="mb-6">
+            <h3 className="text-xl font-semibold mb-4">Guías Rápidas (Cómo hacerlo)</h3>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Buyer How-To */}
+              <Card className="border-orange-200 dark:border-orange-900/50">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="text-2xl">🛒</div>
+                    <div>
+                      <div className="font-semibold text-lg">Para Compradores (4 pasos)</div>
+                      <div className="text-xs text-muted-foreground">Nuevo en Oigagig</div>
+                    </div>
+                  </div>
+                  <ol className="list-decimal ml-5 space-y-2 text-sm">
+                    <li><strong>Explora gigs:</strong> Ve a /gigs, filtra por categoría, precio o cerca de ti usando ubicación.</li>
+                    <li><strong>Contacta:</strong> Lee reseñas, haz preguntas por WhatsApp o chat antes de pagar.</li>
+                    <li><strong>Paga seguro:</strong> Elige Nequi/PayU en checkout. Tu dinero está protegido hasta que confirmes el servicio.</li>
+                    <li><strong>Sigue y califica:</strong> Revisa estado en "Mis Pedidos". Al completar, deja una reseña honesta para ayudar a la comunidad.</li>
+                  </ol>
+                  <Button 
+                    onClick={() => { setTutorialMode('buyer'); setShowTutorial(true); }} 
+                    className="mt-5 w-full"
+                    variant="outline"
+                  >
+                    Abrir tutorial interactivo completo para Compradores
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Seller How-To */}
+              <Card className="border-orange-200 dark:border-orange-900/50">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="text-2xl">💼</div>
+                    <div>
+                      <div className="font-semibold text-lg">Para Vendedores (5 pasos)</div>
+                      <div className="text-xs text-muted-foreground">Al convertirte en vendedor desbloqueas estas herramientas</div>
+                    </div>
+                  </div>
+                  <ol className="list-decimal ml-5 space-y-2 text-sm">
+                    <li><strong>Configura tu negocio:</strong> En Perfil completa nombre del negocio, WhatsApp, ubicación y foto de portada. Tu slug público se genera automáticamente.</li>
+                    <li><strong>Crea gigs:</strong> Publica servicios con precio base + campos dinámicos (horas, habitaciones, etc.). Sube fotos atractivas.</li>
+                    <li><strong>Recibe y gestiona pedidos:</strong> Te notificamos. Acepta, chatea con el cliente y actualiza estado a "En Progreso" → "Completado".</li>
+                    <li><strong>Cobra:</strong> Al completar liberamos el pago a tu cuenta (Nequi configurado). Revisa ganancias y referidos.</li>
+                    <li><strong>Construye reputación:</strong> Comparte tu enlace público /sellers/tu-slug. Responde rápido y recolecta reseñas excelentes.</li>
+                  </ol>
+                  <Button 
+                    onClick={() => { setTutorialMode('seller'); setShowTutorial(true); }} 
+                    className="mt-5 w-full bg-orange-600 hover:bg-orange-700"
+                  >
+                    Abrir tutorial interactivo completo para Vendedores
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          <p className="text-xs text-center text-muted-foreground">¿Quieres ver el tutorial otra vez? Usa los botones de arriba en cualquier momento. Los tutoriales también aparecen automáticamente para usuarios nuevos y cuando un comprador se convierte en vendedor.</p>
+        </div>
+
         <div className="mt-8 text-center text-xs text-muted-foreground">
           Los tickets se responden generalmente en 24-48 horas hábiles. Para emergencias, contacta directamente al email de soporte.
         </div>
       </div>
+
+      {/* Tutorial Modal */}
+      {showTutorial && (
+        <OnboardingTutorial
+          mode={tutorialMode}
+          onComplete={() => {
+            const uid = (session?.user as any)?.id;
+            if (uid) {
+              localStorage.setItem(`tutorial_${tutorialMode}_${uid}`, 'true');
+            }
+            setShowTutorial(false);
+            toast.success('¡Gracias! Tutorial completado. ¡Éxito con Oigagig!');
+          }}
+          onClose={() => setShowTutorial(false)}
+        />
+      )}
     </div>
   );
 }

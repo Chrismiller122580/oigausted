@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DollarSign, Package, Star, Plus, TrendingUp, Clock } from 'lucide-react';
+import OnboardingTutorial from '@/components/common/OnboardingTutorial';
 
 export default function SellerDashboard() {
   const { data: session } = useSession();
@@ -14,6 +15,9 @@ export default function SellerDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Tutorial state: auto appears for new sellers and when buyer->seller role unlock (full training on new features)
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -43,6 +47,18 @@ export default function SellerDashboard() {
       fetchData();
     }
   }, [session]);
+
+  // Auto-launch seller tutorial for new users or freshly unlocked sellers (localStorage per user+role)
+  useEffect(() => {
+    const uid = (session?.user as any)?.id;
+    if (uid && !loading) {
+      const seenKey = `tutorial_seller_${uid}`;
+      if (!localStorage.getItem(seenKey)) {
+        const t = setTimeout(() => setShowTutorial(true), 1100);
+        return () => clearTimeout(t);
+      }
+    }
+  }, [session, loading]);
 
   const activeOrders = orders.filter(o => ['Pending', 'In Progress'].includes(o.status || ''));
   const completedOrders = orders.filter(o => o.status === 'Completed');
@@ -256,6 +272,19 @@ export default function SellerDashboard() {
           </Card>
         </div>
       </div>
+
+      {/* Seller tutorial modal - shows on first seller visit and re-appears after buyer->seller promotion */}
+      {showTutorial && (
+        <OnboardingTutorial
+          mode="seller"
+          onComplete={() => {
+            const uid = (session?.user as any)?.id;
+            if (uid) localStorage.setItem(`tutorial_seller_${uid}`, 'true');
+            setShowTutorial(false);
+          }}
+          onClose={() => setShowTutorial(false)}
+        />
+      )}
     </div>
   );
 }

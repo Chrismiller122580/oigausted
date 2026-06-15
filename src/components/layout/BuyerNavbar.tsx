@@ -75,11 +75,12 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
 
               <Link 
                 href="/support" 
-                className="hidden lg:inline text-muted-foreground hover:text-foreground transition p-2 rounded-md hover:bg-accent" 
-                title="Soporte" 
-                aria-label="Soporte"
+                className="hidden lg:inline text-muted-foreground hover:text-foreground transition p-2 rounded-md hover:bg-accent flex items-center gap-1.5" 
+                title="Soporte, FAQ y Tutoriales" 
+                aria-label="Soporte y Capacitación"
               >
                 <MessageCircle size={18} />
+                <span className="text-xs font-medium">Ayuda</span>
               </Link>
               <NotificationsBell />
               <ModeToggle />

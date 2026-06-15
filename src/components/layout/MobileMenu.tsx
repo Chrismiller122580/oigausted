@@ -71,7 +71,7 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
               <User size={22} /> Mi Perfil
             </Link>
             <Link href="/support" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <MessageCircle size={22} /> Soporte
+              <MessageCircle size={22} /> Soporte y Tutoriales
             </Link>
             <div className="pt-4">
               <Button 
@@ -112,7 +112,7 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
               <User size={22} /> Mi Perfil
             </Link>
             <Link href="/support" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <MessageCircle size={22} /> Soporte
+              <MessageCircle size={22} /> Soporte y Tutoriales
             </Link>
 
             <div className="pt-6">
@@ -163,7 +163,7 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
               <MessageCircle size={22} /> Notificaciones
             </Link>
             <Link href="/admin/support" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <MessageCircle size={22} /> Soporte
+              <MessageCircle size={22} /> Soporte y Tutoriales
             </Link>
             <Link href="/admin/settings" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Settings size={22} /> Ajustes

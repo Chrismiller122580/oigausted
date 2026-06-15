@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ShoppingBag, Package, MessageCircle, Star, Clock } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
+import OnboardingTutorial from "@/components/common/OnboardingTutorial"
 
 export default function BuyerDashboard() {
   const { data: session } = useSession()
@@ -17,6 +18,9 @@ export default function BuyerDashboard() {
   const [pendingReviewOrders, setPendingReviewOrders] = useState<any[]>([])
   const [recentOrders, setRecentOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Tutorial / onboarding for new buyers (full training)
+  const [showTutorial, setShowTutorial] = useState(false)
 
   const userName = session?.user?.name?.split(' ')[0] || 'Comprador'
 
@@ -55,6 +59,18 @@ export default function BuyerDashboard() {
     .catch(console.error)
     .finally(() => setLoading(false))
   }, [session])
+
+  // Auto-show buyer tutorial for first-time / new users (support request: new users go through tutorial)
+  useEffect(() => {
+    const uid = (session?.user as any)?.id
+    if (uid && !loading) {
+      const seenKey = `tutorial_buyer_${uid}`
+      if (!localStorage.getItem(seenKey)) {
+        const t = setTimeout(() => setShowTutorial(true), 900)
+        return () => clearTimeout(t)
+      }
+    }
+  }, [session, loading])
 
   if (loading) {
     return (
@@ -249,6 +265,19 @@ export default function BuyerDashboard() {
           </div>
         )}
       </div>
+
+      {/* Full onboarding tutorial modal for new users */}
+      {showTutorial && (
+        <OnboardingTutorial
+          mode="buyer"
+          onComplete={() => {
+            const uid = (session?.user as any)?.id
+            if (uid) localStorage.setItem(`tutorial_buyer_${uid}`, 'true')
+            setShowTutorial(false)
+          }}
+          onClose={() => setShowTutorial(false)}
+        />
+      )}
     </div>
   )
 }
