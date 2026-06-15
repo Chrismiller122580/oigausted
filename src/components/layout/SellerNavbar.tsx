@@ -3,7 +3,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LogOut, Plus, DollarSign, Menu, X, MessageCircle, Home, Briefcase, Users } from 'lucide-react';
+import { LogOut, DollarSign, Menu, X, MessageCircle, Home, Briefcase, Users } from 'lucide-react';
 import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { useState } from 'react';
@@ -70,11 +70,6 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
               className={`flex items-center gap-2 transition ${isActive('/referrals') ? 'text-foreground font-semibold border-b-2 border-orange-600 pb-1' : 'text-muted-foreground hover:text-foreground'}`}
             >
               <Users size={18} /> Referidos
-            </Link>
-            <Link href="/create-gig">
-              <Button className="bg-orange-600 hover:bg-orange-700 flex items-center gap-2">
-                <Plus size={18} /> Crear Gig
-              </Button>
             </Link>
           </div>
 
