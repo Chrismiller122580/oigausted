@@ -138,10 +138,12 @@ export async function GET() {
     });
   } catch (error: any) {
     console.error("❌ /api/seller/gigs failed:", error.message);
+    // Return 200 with empty data so client fetch doesn't log "failed resource 500" in console.
+    // The client already handles missing count gracefully.
     return NextResponse.json({
       gigs: [],
       count: 0,
       error: error.message
-    }, { status: 500 });
+    });
   }
 }

@@ -156,39 +156,54 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
         case 'mark_order_completed':
         case 'complete_order':
           if (orderId) {
-            await fetch(`/api/orders/${orderId}`, {
+            const res = await fetch(`/api/orders/${orderId}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ status: 'Completed' }),
             });
-            toast.success('Pedido marcado como completado');
-            window.location.href = `/orders/${orderId}`;
+            if (res.ok) {
+              toast.success('Pedido marcado como completado');
+              window.location.href = `/orders/${orderId}`;
+            } else {
+              const err = await res.json().catch(() => ({}));
+              toast.error(err.error || 'No se pudo completar el pedido');
+            }
           }
           break;
 
         case 'mark_as_shipped':
         case 'ship_order':
           if (orderId) {
-            await fetch(`/api/orders/${orderId}`, {
+            const res = await fetch(`/api/orders/${orderId}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ status: 'In Progress' }),
             });
-            toast.success('Pedido marcado como enviado');
-            window.location.href = `/orders/${orderId}`;
+            if (res.ok) {
+              toast.success('Pedido marcado como enviado');
+              window.location.href = `/orders/${orderId}`;
+            } else {
+              const err = await res.json().catch(() => ({}));
+              toast.error(err.error || 'No se pudo completar el pedido');
+            }
           }
           break;
 
         case 'start_order':
         case 'mark_in_progress':
           if (orderId) {
-            await fetch(`/api/orders/${orderId}`, {
+            const res = await fetch(`/api/orders/${orderId}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ status: 'In Progress' }),
             });
-            toast.success('Pedido iniciado');
-            window.location.href = `/orders/${orderId}`;
+            if (res.ok) {
+              toast.success('Pedido iniciado');
+              window.location.href = `/orders/${orderId}`;
+            } else {
+              const err = await res.json().catch(() => ({}));
+              toast.error(err.error || 'No se pudo completar el pedido');
+            }
           }
           break;
 

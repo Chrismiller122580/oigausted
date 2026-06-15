@@ -11,7 +11,20 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error('Global app error:', error);
-  }, [error]);
+
+    // Known benign React DOM error often caused by Google Maps / Places Autocomplete
+    // pollution or browser extensions mutating DOM outside React.
+    // We have nukes in layout/profile/address components, but it can still surface.
+    // Auto-reset the error boundary so the app doesn't stay in broken error screen.
+    const msg = error?.message || '';
+    if (msg.includes('removeChild') && msg.includes('not a child of this node')) {
+      console.warn('Auto-recovering from known removeChild error (maps/extension pollution).');
+      // Small delay to avoid tight loop
+      setTimeout(() => {
+        try { reset(); } catch {}
+      }, 50);
+    }
+  }, [error, reset]);
 
   return (
     <html>
