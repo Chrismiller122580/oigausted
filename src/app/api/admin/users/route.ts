@@ -302,14 +302,10 @@ export async function DELETE(req: NextRequest) {
       prisma.order.count({ where: { sellerId: userId } }),
     ]);
 
-    if (gigCount > 0 || buyerOrders > 0 || sellerOrders > 0) {
-      return NextResponse.json({ 
-        error: `Usuario tiene actividad: ${gigCount} gigs, ${buyerOrders} órdenes como comprador, ${sellerOrders} como vendedor. Desactívalo en su lugar.` 
-      }, { status: 400 });
-    }
+    const hasActivity = gigCount > 0 || buyerOrders > 0 || sellerOrders > 0;
 
     // Prevent deleting the last admin
-    const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, isActive: true } });
     if (target?.role === 'admin') {
       const adminCount = await prisma.user.count({ where: { role: 'admin' } });
       if (adminCount <= 1) {
@@ -317,6 +313,31 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
+    if (hasActivity) {
+      // Instead of hard delete, deactivate the user (soft delete)
+      await prisma.user.update({
+        where: { id: userId },
+        data: { isActive: false }
+      });
+
+      await logAuditEvent({
+        adminId,
+        action: 'USER_DEACTIVATED',
+        targetType: 'User',
+        targetId: userId,
+        details: { reason: 'delete_attempt_with_activity', gigCount, buyerOrders, sellerOrders },
+        ipAddress: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null,
+        userAgent: req.headers.get('user-agent') || null,
+      });
+
+      return NextResponse.json({ 
+        success: true, 
+        deactivatedInstead: true,
+        message: `Usuario tiene actividad: ${gigCount} gigs, ${buyerOrders} órdenes como comprador, ${sellerOrders} como vendedor. Fue desactivado en su lugar.` 
+      });
+    }
+
+    // No activity - safe to hard delete
     await prisma.user.delete({ where: { id: userId } });
 
     await logAuditEvent({

@@ -240,7 +240,7 @@ export default function AdminUsersPage() {
       toast.error('No puedes eliminarte a ti mismo');
       return;
     }
-    if (!confirm(`PERMANENTLY delete user ${user.email}? This cannot be undone and will fail if they have any gigs or orders.`)) return;
+    if (!confirm(`Eliminar usuario ${user.email}?\n\nSi tiene gigs u órdenes será DESACTIVADO en su lugar (recomendado para integridad de datos). Esto no se puede deshacer para eliminación permanente.`)) return;
 
     try {
       const res = await fetch('/api/admin/users', {
@@ -250,14 +250,19 @@ export default function AdminUsersPage() {
       });
 
       if (res.ok) {
-        toast.success('User permanently deleted');
+        const data = await res.json().catch(() => ({}));
+        if (data.deactivatedInstead) {
+          toast.success(data.message || 'Usuario desactivado en su lugar (tenía actividad).');
+        } else {
+          toast.success('Usuario eliminado permanentemente.');
+        }
         fetchUsers();
       } else {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error || 'Could not delete user (they may have activity - deactivate instead)');
+        toast.error(data.error || 'No se pudo eliminar el usuario (puede tener actividad - desactívalo en su lugar)');
       }
     } catch (e) {
-      toast.error('Error deleting user');
+      toast.error('Error al eliminar usuario');
     }
   };
 
@@ -478,9 +483,9 @@ export default function AdminUsersPage() {
                           variant="destructive"
                           onClick={() => deleteUser(user)}
                           className="text-xs"
-                          title="Permanently delete (blocked if user has gigs or orders)"
+                          title="Eliminar (si tiene actividad será desactivado en su lugar)"
                         >
-                          Delete
+                          Eliminar
                         </Button>
                       )}
 
