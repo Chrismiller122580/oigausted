@@ -74,7 +74,9 @@ export async function GET() {
             paymentAlerts: true,
             messageAlerts: true,
             systemAlerts: true,
-            marketingEmails: true,
+            // marketingEmails intentionally omitted here (and in select above)
+            // to avoid "column does not exist" Prisma errors on drifted prod DBs.
+            // The fallback object and JS layer always provide the default.
             desktopNotifications: true,
             soundEnabled: true,
             quietHoursEnabled: false,
@@ -158,7 +160,6 @@ export async function PUT(req: NextRequest) {
     try {
       updated = await prisma.notificationPreference.upsert({
         where: { userId },
-        // @ts-ignore - marketingEmails column is new in this change
         update: {
           inAppEnabled: body.inAppEnabled ?? undefined,
           emailEnabled: body.emailEnabled ?? undefined,
@@ -170,8 +171,7 @@ export async function PUT(req: NextRequest) {
           paymentAlerts: body.paymentAlerts ?? undefined,
           messageAlerts: body.messageAlerts ?? undefined,
           systemAlerts: body.systemAlerts ?? undefined,
-          // @ts-ignore new field
-          marketingEmails: body.marketingEmails ?? undefined,
+          // marketingEmails omitted from Prisma data (see GET for explanation)
           desktopNotifications: body.desktopNotifications ?? undefined,
           soundEnabled: body.soundEnabled ?? undefined,
           quietHoursEnabled: body.quietHoursEnabled ?? undefined,
@@ -181,7 +181,6 @@ export async function PUT(req: NextRequest) {
           digestFrequency: body.digestFrequency ?? undefined,
           maxNotificationsPerHour: body.maxNotificationsPerHour ?? undefined,
         },
-        // @ts-ignore - marketingEmails new field
         create: {
           userId,
           inAppEnabled: body.inAppEnabled ?? true,
@@ -194,8 +193,9 @@ export async function PUT(req: NextRequest) {
           paymentAlerts: body.paymentAlerts ?? true,
           messageAlerts: body.messageAlerts ?? true,
           systemAlerts: body.systemAlerts ?? true,
-          // @ts-ignore new field
-          marketingEmails: body.marketingEmails ?? true,
+          // marketingEmails omitted from Prisma create data to prevent column errors
+          // on prod DBs that haven't run the add_marketing_emails migration yet.
+          // Always provided in fallback objects below.
           desktopNotifications: body.desktopNotifications ?? true,
           soundEnabled: body.soundEnabled ?? true,
           quietHoursEnabled: body.quietHoursEnabled ?? false,
