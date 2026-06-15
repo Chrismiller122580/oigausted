@@ -23,7 +23,7 @@ export async function GET() {
     let gigs;
     try {
       gigs = await prisma.gig.findMany({
-        where: { sellerId },
+        where: { sellerId, deletedAt: null },
         include: {
           seller: {
             select: {
@@ -43,7 +43,7 @@ export async function GET() {
       // Fallback if deletedAt column not migrated yet
       console.warn('[Seller Gigs] query with full model failed (likely missing deletedAt column), retrying', dbErr?.message);
       gigs = await prisma.gig.findMany({
-        where: { sellerId },
+        where: { sellerId, deletedAt: null },
         select: {
           id: true,
           title: true,

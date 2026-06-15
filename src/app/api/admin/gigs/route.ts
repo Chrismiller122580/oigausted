@@ -167,7 +167,7 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
-// DELETE gig (admin moderation)
+// DELETE gig (admin moderation) - now performs soft delete to support restore
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -181,21 +181,22 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'gigId is required' }, { status: 400 });
     }
 
-    // Check for existing orders to prevent FK violation
-    const orderCount = await prisma.order.count({ where: { gigId } });
-    if (orderCount > 0) {
-      return NextResponse.json({ 
-        error: 'Cannot delete gig with existing orders. Consider deactivating/pausing it instead (via the pause button).' 
-      }, { status: 400 });
-    }
-
-    // Fetch gig before deleting for notification
+    // Fetch gig for notification and audit
     const gigToDelete = await prisma.gig.findUnique({
       where: { id: gigId },
       select: { sellerId: true, title: true }
     });
 
-    await prisma.gig.delete({ where: { id: gigId } });
+    if (!gigToDelete) {
+      return NextResponse.json({ error: 'Gig not found' }, { status: 404 });
+    }
+
+    const now = new Date();
+
+    const updated = await prisma.gig.update({
+      where: { id: gigId },
+      data: { deletedAt: now }
+    });
 
     const adminId = (session.user as any).id;
     const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
@@ -205,6 +206,7 @@ export async function DELETE(req: NextRequest) {
       action: 'GIG_DELETED',
       targetType: 'Gig',
       targetId: gigId,
+      details: { deletedAt: now.toISOString() },
       ipAddress,
       userAgent,
     });
@@ -219,7 +221,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, gig: updated });
   } catch (error) {
     console.error('Admin gig delete error:', error);
     return NextResponse.json({ error: 'Error deleting gig' }, { status: 500 });
