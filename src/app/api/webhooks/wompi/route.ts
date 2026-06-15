@@ -72,7 +72,37 @@ export async function POST(request: Request) {
         eventsKeyPrefix: eventsKey.slice(0, 12) + '...',
         usedTimestampVariant: (detailed as any).usedTimestampVariant,
       })
-      return NextResponse.json({ error: 'Invalid signature', reason: verification.reason }, { status: 401 })
+
+      // Fallback verification using private key (WOMPI_PRIVATE_KEY) when events key is not yet correct.
+      // This allows approved payments to be processed even during initial key setup (e.g. wrong "Llave para eventos").
+      // We query the real transaction status from Wompi API and only proceed if it matches the claimed data in the event.
+      // This is safe because it requires the private key (server secret) and cross-checks the tx ID + status + reference.
+      let processedViaApiFallback = false;
+      const privKey = process.env.WOMPI_PRIVATE_KEY || '';
+      const claimedTx = body?.data?.transaction;
+      if (privKey && claimedTx?.id) {
+        try {
+          const wompiBase = 'https://api.wompi.co';
+          const apiRes = await fetch(`${wompiBase}/v1/transactions/${encodeURIComponent(claimedTx.id)}`, {
+            headers: { 'Authorization': `Bearer ${privKey}` },
+          });
+          if (apiRes.ok) {
+            const apiJson = await apiRes.json();
+            const apiTx = apiJson?.data;
+            if (apiTx && apiTx.id === claimedTx.id && apiTx.status === claimedTx.status && apiTx.reference === claimedTx.reference) {
+              console.log('[Wompi][Webhook] Signature invalid but API query confirmed the transaction details — processing via private-key fallback');
+              processedViaApiFallback = true;
+            }
+          }
+        } catch (fbErr) {
+          devLog('[Wompi][Webhook] API fallback query failed', fbErr);
+        }
+      }
+
+      if (!processedViaApiFallback) {
+        return NextResponse.json({ error: 'Invalid signature', reason: verification.reason }, { status: 401 });
+      }
+      // If here, we proceed with processing despite bad events sig (logged above).
     }
 
     // 2. Basic replay attack protection (accept events from the last 10 minutes)
