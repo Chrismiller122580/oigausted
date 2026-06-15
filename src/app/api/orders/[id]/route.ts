@@ -358,3 +358,50 @@ export async function PATCH(
     return NextResponse.json({ error: 'Failed to update status' }, { status: 500 })
   }
 }
+
+// DELETE - Admin only: remove test orders (cascades to messages/files if configured)
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: orderId } = await params;
+    const session = await getServerSession(authOptions);
+    const isAdmin = (session?.user as any)?.role === 'admin';
+
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Only admins can delete orders' }, { status: 403 });
+    }
+
+    const existing = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, reference: true, status: true }
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    // Delete dependents first (in case no cascade)
+    await prisma.orderMessage.deleteMany({ where: { orderId } });
+    await prisma.orderFile.deleteMany({ where: { orderId } });
+    await prisma.review.deleteMany({ where: { orderId } });
+    await prisma.referralEarning.deleteMany({ where: { orderId } });
+
+    await prisma.order.delete({ where: { id: orderId } });
+
+    const adminId = (session.user as any).id;
+    await logAuditEvent({
+      performedById: adminId,
+      action: 'ORDER_DELETED',
+      targetType: 'Order',
+      targetId: orderId,
+      details: { reference: existing.reference, previousStatus: existing.status },
+    });
+
+    return NextResponse.json({ success: true, message: `Order ${orderId} deleted` });
+  } catch (error) {
+    devLog('Delete order error:', error);
+    return NextResponse.json({ error: 'Failed to delete order' }, { status: 500 });
+  }
+}

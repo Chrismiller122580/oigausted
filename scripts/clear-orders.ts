@@ -87,6 +87,18 @@ async function main() {
       // 5. Orders themselves
       const orders = await tx.order.deleteMany({});
       console.log(`   Deleted ${orders.count} orders`);
+
+      // Clear related audit logs for orders/payments (keeps system audits)
+      const audits = await tx.auditLog.deleteMany({
+        where: {
+          OR: [
+            { targetType: 'Order' },
+            { action: { contains: 'PAYMENT' } },
+            { action: { contains: 'ORDER' } },
+          ]
+        }
+      });
+      console.log(`   Deleted ${audits.count} order/payment audit logs`);
     });
 
     console.log('\n✅ Order data cleared successfully.');

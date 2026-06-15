@@ -26,6 +26,20 @@ export default function AdminPayoutsPage() {
     return new Set();
   });
 
+  const clearAllOrders = async () => {
+    if (!confirm('PERMANENTLY delete ALL orders (and related data)? This is for launch cleanup only. Cannot be undone.')) return;
+    const allOrders = [...orders, ...paidOrders];
+    let deleted = 0;
+    for (const o of allOrders) {
+      try {
+        const res = await fetch(`/api/orders/${o.id}`, { method: 'DELETE' });
+        if (res.ok) deleted++;
+      } catch {}
+    }
+    toast.success(`Cleared ${deleted} orders`);
+    fetchCompleted();
+  };
+
   const fetchCompleted = async () => {
     try {
       const res = await fetch('/api/orders?view=all'); // admin view: all orders
@@ -80,6 +94,22 @@ export default function AdminPayoutsPage() {
   useEffect(() => {
     fetchCompleted();
   }, []);
+
+  const deleteOrder = async (orderId: string, reference?: string) => {
+    if (!confirm(`Delete order ${orderId} (${reference || ''})? This will also remove related messages, files, reviews, and referral earnings. Cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Order deleted');
+        fetchCompleted();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Failed to delete order');
+      }
+    } catch (e) {
+      toast.error('Error deleting order');
+    }
+  };
 
   const markAsPaid = async (orderId: string, wompiRef?: string) => {
     const order = orders.find((o: any) => o.id === orderId);
@@ -242,6 +272,9 @@ export default function AdminPayoutsPage() {
                       <Button variant="outline" size="sm" onClick={() => markAsPaid(order.id)} className="text-xs">
                         Marcar manual
                       </Button>
+                      <Button variant="destructive" size="sm" onClick={() => deleteOrder(order.id, order.reference)} className="text-xs">
+                        Eliminar
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -254,7 +287,12 @@ export default function AdminPayoutsPage() {
         {/* Paid Payouts - Searchable Datatable */}
         {paidOrders.length > 0 && (
           <div className="mt-10">
-            <h2 className="text-2xl font-semibold mb-4">Paid Payouts History</h2>
+            <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold">Paid Payouts History</h2>
+            <Button variant="destructive" onClick={clearAllOrders} className="text-sm">
+              Clear ALL Orders (Launch Cleanup)
+            </Button>
+          </div>
             <div className="mb-4">
               <input
                 type="text"
