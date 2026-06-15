@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
+import { normalizeGeneratedCampaign } from '@/lib/marketing-campaign-types';
 
 interface GenerateRequest {
   goal: string;                    // e.g. "Adquirir más compradores en Bucaramanga", "Promocionar nueva categoría plomería"
@@ -135,7 +136,7 @@ Genera contenido de clase mundial, específico para servicios locales en Colombi
     }
 
     // Ensure minimum structure
-    parsed = normalizeCampaignResponse(parsed, goal, channels, variations, isSpanish);
+    parsed = normalizeGeneratedCampaign(parsed, goal, variations);
 
     return NextResponse.json({ 
       success: true, 
@@ -202,27 +203,4 @@ function createFallbackCampaign(goal: string, channels: string[], tone: string, 
   };
 }
 
-function normalizeCampaignResponse(raw: Record<string, unknown>, goal: string, channels: string[], variations: number, isSpanish: boolean) {
-  const base = createFallbackCampaign(goal, channels, "cercano", isSpanish);
 
-  return {
-    campaignName: raw.campaignName || base.campaignName,
-    objective: raw.objective || goal,
-    recommendedSegment: raw.recommendedSegment || base.recommendedSegment,
-    segmentReason: raw.segmentReason || base.segmentReason,
-    email: raw.email || base.email,
-    social: raw.social || base.social,
-    adCopies: Array.isArray(raw.adCopies) && raw.adCopies.length > 0 
-      ? raw.adCopies.slice(0, variations) 
-      : base.adCopies,
-    visualPrompts: Array.isArray(raw.visualPrompts) && raw.visualPrompts.length > 0 
-      ? raw.visualPrompts 
-      : base.visualPrompts,
-    hashtags: Array.isArray(raw.hashtags) && raw.hashtags.length > 0 
-      ? raw.hashtags 
-      : base.hashtags,
-    bestTimes: raw.bestTimes || base.bestTimes,
-    strategyNotes: raw.strategyNotes || base.strategyNotes,
-    complianceTips: raw.complianceTips || base.complianceTips,
-  };
-}

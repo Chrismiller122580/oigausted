@@ -22,6 +22,7 @@ DELETED_AT_MIGRATION="20260615000000_add_gig_deleted_at"
 TUTORIALS_FAQ_MIGRATION="20260616000000_add_tutorials_and_faqs"
 COVER_IMAGE_URL_MIGRATION="20260617000000_add_user_cover_image_url"
 MARKETING_EMAILS_MIGRATION="20260617010000_add_marketing_emails_to_prefs"
+MARKETING_CAMPAIGN_MIGRATION="20260619100000_add_marketing_campaign_table"
 
 DB_URL="${DIRECT_DATABASE_URL:-${DATABASE_URL:-}}"
 
@@ -121,7 +122,7 @@ if grep -q "failed migrations in the target database" /tmp/migrate.log; then
   echo "⚠️  Detected failed migration(s) in target database. Performing targeted resolve for known recent migrations..."
 
   # Resolve only the ones we care about, using safe_resolve (handles P3012 and connection retries)
-  for mig in "$MIGRATION_NAME" "$NEW_PAYOUT_MIGRATION" "$DELETED_AT_MIGRATION" "$TUTORIALS_FAQ_MIGRATION" "$COVER_IMAGE_URL_MIGRATION" "$MARKETING_EMAILS_MIGRATION"; do
+  for mig in "$MIGRATION_NAME" "$NEW_PAYOUT_MIGRATION" "$DELETED_AT_MIGRATION" "$TUTORIALS_FAQ_MIGRATION" "$COVER_IMAGE_URL_MIGRATION" "$MARKETING_EMAILS_MIGRATION" "$MARKETING_CAMPAIGN_MIGRATION"; do
     safe_resolve "$mig"
     sleep 4
   done
@@ -129,7 +130,7 @@ if grep -q "failed migrations in the target database" /tmp/migrate.log; then
   # Resolve any *other* timestamped migrations that the log explicitly complained about (only the ones that actually failed this time)
   echo "    Resolving any additional migrations mentioned in this specific failure log..."
   grep -oE '[0-9]{14}_[a-z0-9_]+' /tmp/migrate.log | sort -u | while read -r mig; do
-    if [[ "$mig" != "$MIGRATION_NAME" && "$mig" != "$NEW_PAYOUT_MIGRATION" && "$mig" != "$DELETED_AT_MIGRATION" && "$mig" != "$TUTORIALS_FAQ_MIGRATION" && "$mig" != "$COVER_IMAGE_URL_MIGRATION" && "$mig" != "$MARKETING_EMAILS_MIGRATION" ]]; then
+    if [[ "$mig" != "$MIGRATION_NAME" && "$mig" != "$NEW_PAYOUT_MIGRATION" && "$mig" != "$DELETED_AT_MIGRATION" && "$mig" != "$TUTORIALS_FAQ_MIGRATION" && "$mig" != "$COVER_IMAGE_URL_MIGRATION" && "$mig" != "$MARKETING_EMAILS_MIGRATION" && "$mig" != "$MARKETING_CAMPAIGN_MIGRATION" ]]; then
       safe_resolve "$mig"
       sleep 3
     fi

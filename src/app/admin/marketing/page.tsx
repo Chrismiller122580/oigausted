@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +10,8 @@ import {
   Twitter, MessageCircle, Image as ImageIcon, Clock, TrendingUp,
   RefreshCw, Check, Megaphone
 } from 'lucide-react';
+import type { GeneratedCampaign } from '@/lib/marketing-campaign-types';
+import { normalizeGeneratedCampaign } from '@/lib/marketing-campaign-types';
 
 interface AudienceUser {
   id: string;
@@ -29,33 +31,6 @@ interface Campaign {
   recipientCount: number;
   sentBy: string;
   createdAt: string;
-}
-
-// AI Generated Campaign (from /api/admin/marketing/ai-generate)
-interface GeneratedCampaign {
-  campaignName: string;
-  objective: string;
-  recommendedSegment: string;
-  segmentReason: string;
-  email: {
-    subject: string;
-    previewText?: string;
-    body: string;
-    cta?: string;
-  };
-  social: {
-    instagram: string;
-    facebook: string;
-    x: string;
-    whatsapp: string;
-    general: string;
-  };
-  adCopies: Array<{ headline: string; body: string; cta: string }>;
-  visualPrompts: string[];
-  hashtags: string[];
-  bestTimes: string;
-  strategyNotes: string;
-  complianceTips?: string;
 }
 
 const QUICK_GOALS = [
@@ -119,9 +94,13 @@ export default function AdminMarketingPage() {
   const [generatedCampaign, setGeneratedCampaign] = useState<GeneratedCampaign | null>(null);
   const [activeAiTab, setActiveAiTab] = useState<'email' | 'social' | 'ads' | 'visuals'>('email');
   const [refining, setRefining] = useState(false);
+  const [apiWarning, setApiWarning] = useState<string | null>(null);
+  const [, startCampaignTransition] = useTransition();
+  const generateRequestId = useRef(0);
 
   // ========== AI GENERATION ==========
   const generateWithAI = async (extraPrompt?: string) => {
+    const requestId = ++generateRequestId.current;
     setIsGenerating(true);
     try {
       const payload = {
@@ -142,15 +121,20 @@ export default function AdminMarketingPage() {
 
       const data = await res.json();
 
+      if (requestId !== generateRequestId.current) return;
+
       if (data.success && data.campaign) {
-        setGeneratedCampaign(data.campaign);
-        setActiveAiTab('email');
-        toast.success('Campaña generada con IA');
-        
-        // Auto-suggest the recommended segment if it's sensible
-        if (data.campaign.recommendedSegment) {
-          // We don't auto-change the main segment, but we can show it prominently
-        }
+        const normalized = normalizeGeneratedCampaign(
+          data.campaign as Record<string, unknown>,
+          aiGoal || aiCustomPrompt || 'Promocionar Oigagig',
+        );
+        startCampaignTransition(() => {
+          setGeneratedCampaign(normalized);
+          setActiveAiTab('email');
+        });
+        window.setTimeout(() => {
+          toast.success(data.fallback ? 'Campaña de respaldo generada' : 'Campaña generada con IA');
+        }, 0);
       } else {
         toast.error('No se pudo generar la campaña');
       }
@@ -164,8 +148,7 @@ export default function AdminMarketingPage() {
   const quickGenerate = (goal: string) => {
     setAiGoal(goal);
     setAiCustomPrompt('');
-    // Trigger generation shortly after state update
-    setTimeout(() => generateWithAI(), 50);
+    void generateWithAI();
   };
 
   const loadAiIntoComposer = () => {
@@ -221,11 +204,16 @@ export default function AdminMarketingPage() {
       params.set('limit', '80');
 
       const res = await fetch(`/api/admin/marketing/audience?${params.toString()}`);
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        const data = await res.json();
         setAudience(data.sample || []);
         setAudienceTotal(data.total || 0);
         setAudienceReachable(data.reachable || 0);
+        if (data.tableMissing) {
+          setApiWarning('La tabla de audiencia aún no está sincronizada en producción. Los envíos seguirán funcionando.');
+        }
+      } else {
+        setApiWarning(data.error || 'No se pudo cargar la audiencia.');
       }
     } catch (e) {
       console.error(e);
@@ -238,10 +226,15 @@ export default function AdminMarketingPage() {
     setHistoryLoading(true);
     try {
       const res = await fetch('/api/admin/marketing/campaigns?limit=30');
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        const data = await res.json();
         setCampaigns(data.campaigns || []);
         setCampaignsTotal(data.total || 0);
+        if (data.tableMissing) {
+          setApiWarning('El historial de campañas aún no está disponible hasta que termine la migración de base de datos.');
+        }
+      } else {
+        setApiWarning(data.error || 'No se pudo cargar el historial de campañas.');
       }
     } catch (e) {
       console.error(e);
@@ -432,6 +425,12 @@ export default function AdminMarketingPage() {
         </div>
       </div>
 
+      {apiWarning && (
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+          {apiWarning}
+        </div>
+      )}
+
       {/* ========== AI CAMPAIGN GENERATOR - THE STAR OF THE SHOW ========== */}
       <div className="bg-card border-2 border-orange-500/30 rounded-3xl p-6 md:p-8 shadow-sm">
         <div className="flex items-center gap-3 mb-6">
@@ -544,7 +543,10 @@ export default function AdminMarketingPage() {
 
         {/* GENERATED CAMPAIGN RESULTS - VERY RICH UI */}
         {generatedCampaign && (
-          <div className="mt-8 pt-6 border-t border-border">
+          <div
+            key={`${generatedCampaign.campaignName}-${generatedCampaign.email.subject}`}
+            className="mt-8 pt-6 border-t border-border"
+          >
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="uppercase text-[10px] tracking-[2px] text-orange-600 font-semibold">Campaña generada por IA</div>

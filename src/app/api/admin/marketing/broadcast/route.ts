@@ -4,7 +4,10 @@ import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
-import type { Prisma } from '@prisma/client';
+import {
+  buildAudienceWhere,
+  isMissingMarketingCampaignTable,
+} from '@/lib/marketing-audience';
 
 interface BroadcastBody {
   subject: string;
@@ -15,34 +18,12 @@ interface BroadcastBody {
   testOnly?: boolean; // send only to the current admin for preview
 }
 
-function isMissingMarketingCampaignTable(err: unknown): boolean {
-  const msg = err instanceof Error ? err.message : String(err);
-  return (
-    msg.includes('MarketingCampaign') &&
-    (msg.includes('does not exist') || msg.includes('P2021'))
-  );
-}
-
 function parseSegment(segment: string | undefined, city?: string) {
-  const where: Prisma.UserWhereInput = { email: { not: null }, isActive: true };
-
   const seg = (segment || 'all').toLowerCase();
-
-  if (seg === 'buyers') where.role = 'buyer';
-  if (seg === 'sellers') where.role = 'seller';
-  if (seg === 'admins') where.role = 'admin';
-  if (seg === 'inactive') {
-    where.isActive = false;
+  if (!city && seg.startsWith('city:')) {
+    return buildAudienceWhere('all', seg.replace('city:', ''));
   }
-
-  if (city) {
-    where.city = { contains: city, mode: 'insensitive' } as Prisma.StringNullableFilter;
-  } else if (seg.startsWith('city:')) {
-    const c = seg.replace('city:', '');
-    where.city = { contains: c, mode: 'insensitive' } as Prisma.StringNullableFilter;
-  }
-
-  return where;
+  return buildAudienceWhere(segment || 'all', city);
 }
 
 export async function POST(req: NextRequest) {
