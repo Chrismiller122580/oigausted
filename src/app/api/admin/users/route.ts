@@ -71,6 +71,7 @@ export async function PATCH(req: NextRequest) {
       userId, 
       role, 
       name, 
+      email,
       tagline,
       businessName, 
       phone, 
@@ -91,6 +92,17 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'userId requerido' }, { status: 400 });
     }
 
+    // Email uniqueness check if changing email
+    if (email) {
+      const existing = await prisma.user.findUnique({ 
+        where: { email: email.toLowerCase().trim() },
+        select: { id: true }
+      });
+      if (existing && existing.id !== userId) {
+        return NextResponse.json({ error: 'Ese email ya está en uso por otro usuario' }, { status: 400 });
+      }
+    }
+
     // Prevent removing the last admin (would lock out admin access)
     if (role && role !== 'admin') {
       const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
@@ -105,6 +117,7 @@ export async function PATCH(req: NextRequest) {
     const updateData: any = {
       ...(role && { role }),
       ...(name !== undefined && { name }),
+      ...(email !== undefined && { email: email.toLowerCase().trim() }),
       ...(tagline !== undefined && { tagline }),
       ...(phone !== undefined && { phone }),
       ...(whatsapp !== undefined && { whatsapp }),
@@ -260,5 +273,64 @@ export async function PATCH(req: NextRequest) {
   } catch (error) {
     devLog('Admin user update error:', error);
     return NextResponse.json({ error: 'Error actualizando usuario' }, { status: 500 });
+  }
+}
+
+// DELETE user (admin only, with safeguards)
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!isAdmin(session)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    }
+
+    const { userId } = await req.json();
+    if (!userId) {
+      return NextResponse.json({ error: 'userId requerido' }, { status: 400 });
+    }
+
+    // Don't allow self-delete
+    const adminId = (session.user as any).id;
+    if (userId === adminId) {
+      return NextResponse.json({ error: 'No puedes eliminarte a ti mismo' }, { status: 400 });
+    }
+
+    // Check for activity
+    const [gigCount, buyerOrders, sellerOrders] = await Promise.all([
+      prisma.gig.count({ where: { sellerId: userId } }),
+      prisma.order.count({ where: { buyerId: userId } }),
+      prisma.order.count({ where: { sellerId: userId } }),
+    ]);
+
+    if (gigCount > 0 || buyerOrders > 0 || sellerOrders > 0) {
+      return NextResponse.json({ 
+        error: `Usuario tiene actividad: ${gigCount} gigs, ${buyerOrders} órdenes como comprador, ${sellerOrders} como vendedor. Desactívalo en su lugar.` 
+      }, { status: 400 });
+    }
+
+    // Prevent deleting the last admin
+    const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    if (target?.role === 'admin') {
+      const adminCount = await prisma.user.count({ where: { role: 'admin' } });
+      if (adminCount <= 1) {
+        return NextResponse.json({ error: 'No se puede eliminar el último administrador' }, { status: 400 });
+      }
+    }
+
+    await prisma.user.delete({ where: { id: userId } });
+
+    await logAuditEvent({
+      adminId,
+      action: 'USER_DELETED',
+      targetType: 'User',
+      targetId: userId,
+      ipAddress: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null,
+      userAgent: req.headers.get('user-agent') || null,
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    devLog('Admin user delete error:', error);
+    return NextResponse.json({ error: 'Error eliminando usuario' }, { status: 500 });
   }
 }

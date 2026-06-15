@@ -115,12 +115,14 @@ export default function AdminUsersPage() {
     setEditingUser(user);
     setEditForm({
       name: user.name || '',
+      email: user.email || '',
       businessName: user.businessName || '',
       phone: user.phone || '',
       whatsapp: (user as any).whatsapp || '',
 
       bio: (user as any).bio || '',
       nit: (user as any).nit || '',
+      isActive: user.isActive !== false,
       customReferralRate: user.customReferralRate ?? '',
     });
   };
@@ -230,6 +232,32 @@ export default function AdminUsersPage() {
       }
     } catch (e) {
       toast.error('Error impersonating user');
+    }
+  };
+
+  const deleteUser = async (user: User) => {
+    if (user.id === currentUserId) {
+      toast.error('No puedes eliminarte a ti mismo');
+      return;
+    }
+    if (!confirm(`PERMANENTLY delete user ${user.email}? This cannot be undone and will fail if they have any gigs or orders.`)) return;
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      });
+
+      if (res.ok) {
+        toast.success('User permanently deleted');
+        fetchUsers();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Could not delete user (they may have activity - deactivate instead)');
+      }
+    } catch (e) {
+      toast.error('Error deleting user');
     }
   };
 
@@ -376,6 +404,13 @@ export default function AdminUsersPage() {
                       )}
                     </td>
                     <td className="p-4 text-foreground">{user.businessName || '—'}</td>
+                    <td className="p-4">
+                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        user.isActive !== false ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
+                      }`}>
+                        {user.isActive !== false ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
                     <td className="p-4 text-center">
                       {user.customReferralRate != null ? (
                         <span className="inline-block px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-semibold">
@@ -438,6 +473,18 @@ export default function AdminUsersPage() {
                         </Button>
                       )}
 
+                      {user.id !== currentUserId && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deleteUser(user)}
+                          className="text-xs"
+                          title="Permanently delete (blocked if user has gigs or orders)"
+                        >
+                          Delete
+                        </Button>
+                      )}
+
                       {roleEditingId === user.id ? (
                         <div className="inline-flex gap-1">
                           <select
@@ -497,6 +544,14 @@ export default function AdminUsersPage() {
                   />
                 </div>
                 <div>
+                  <Label>Email</Label>
+                  <Input 
+                    type="email"
+                    value={editForm.email} 
+                    onChange={(e) => setEditForm({...editForm, email: e.target.value})}
+                  />
+                </div>
+                <div>
                   <Label>Business Name</Label>
                   <Input 
                     value={editForm.businessName} 
@@ -524,6 +579,15 @@ export default function AdminUsersPage() {
                     value={editForm.nit} 
                     onChange={(e) => setEditForm({...editForm, nit: e.target.value})}
                   />
+                </div>
+                <div className="flex items-center gap-2 mt-6">
+                  <input 
+                    type="checkbox" 
+                    checked={editForm.isActive !== false}
+                    onChange={(e) => setEditForm({...editForm, isActive: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <Label className="mb-0">Account Active (uncheck to deactivate user)</Label>
                 </div>
 
                 {/* Special admin field for per-referrer custom commission */}
