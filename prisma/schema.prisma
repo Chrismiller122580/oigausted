@@ -393,6 +393,9 @@ model PlatformConfig {
   wompiSftpPrivateKey String? @db.Text // for key-based auth
   wompiSftpRemotePath String? @default("/")
 
+  // Tutorials & Onboarding (admin can globally enable/disable auto + manual training flows)
+  tutorialsEnabled Boolean @default(true)
+
   updatedAt               DateTime @updatedAt
 }
 
@@ -451,4 +454,16 @@ model MarketingCampaign {
 
   @@index([createdAt])
   @@index([sentById])
+}
+
+// Manageable, toggleable FAQs shown on the public /support page (admin can turn on/off individual items + create via AI)
+model FaqItem {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String   @db.Text
+  category  String?  @default("general")
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

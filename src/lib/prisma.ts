@@ -90,6 +90,7 @@ export async function ensurePlatformConfig(): Promise<void> {
         globalEmailNotificationsEnabled: true,
         maintenanceBypassIps: '',
         wompiRealPaymentsEnabled: false,
+        tutorialsEnabled: true,
         // SFTP fields use their own @default / best-effort handling
       },
       // Safe select (core columns only) so this upsert does not fail with "column does not exist"
@@ -115,6 +116,7 @@ export async function ensurePlatformConfig(): Promise<void> {
         globalEmailNotificationsEnabled: true,
         maintenanceBypassIps: true,
         wompiRealPaymentsEnabled: true,
+        tutorialsEnabled: true,
         // wompiSftp* included now that migration is expected
         wompiSftpEnabled: true,
         wompiSftpHost: true,
@@ -163,6 +165,7 @@ export async function getPlatformConfig(force = false) {
         globalEmailNotificationsEnabled: true,
         maintenanceBypassIps: true,
         wompiRealPaymentsEnabled: true,
+        tutorialsEnabled: true,
         // wompiSftp* now included (safe select updated after sftp migration)
         wompiSftpEnabled: true,
         wompiSftpHost: true,
@@ -208,6 +211,7 @@ export async function getPlatformConfig(force = false) {
         globalEmailNotificationsEnabled: true,
         maintenanceBypassIps: true,
         wompiRealPaymentsEnabled: true,
+        tutorialsEnabled: true,
         // wompiSftp* now included
         wompiSftpEnabled: true,
         wompiSftpHost: true,
@@ -259,6 +263,7 @@ export async function getPlatformConfig(force = false) {
     wompiSftpPassword: null,
     wompiSftpPrivateKey: null,
     wompiSftpRemotePath: '/',
+    tutorialsEnabled: true,
     updatedAt: new Date(),
     createdAt: new Date(),
   } as any

@@ -60,6 +60,9 @@ export default function SupportPage() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialMode, setTutorialMode] = useState<'buyer' | 'seller'>('buyer');
 
+  // Dynamic FAQs (controlled from Admin > Settings)
+  const [faqs, setFaqs] = useState<any[]>([]);
+
   // Redirect if not logged in
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -87,6 +90,14 @@ export default function SupportPage() {
       fetchMyTickets();
     }
   }, [session]);
+
+  // Load active FAQs (managed in admin)
+  useEffect(() => {
+    fetch('/api/faqs')
+      .then(r => r.json())
+      .then(d => setFaqs(d.faqs || []))
+      .catch(() => setFaqs([]));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -288,43 +299,47 @@ export default function SupportPage() {
           <div className="mb-10">
             <h3 className="text-xl font-semibold mb-4">Preguntas Frecuentes (FAQ)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="bg-card border-border">
-                <CardContent className="p-5">
-                  <p className="font-semibold mb-1">¿Cómo pago con Nequi o PayU?</p>
-                  <p className="text-sm text-muted-foreground">En la página de checkout selecciona Nequi (recomendado para pagos instantáneos), PSE o PayU. El dinero se retiene seguro y se libera al vendedor solo cuando marques el pedido como completado.</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-5">
-                  <p className="font-semibold mb-1">¿Cómo contacto al vendedor?</p>
-                  <p className="text-sm text-muted-foreground">Usa el botón "Contactar" en el gig o en la página del pedido. Abre WhatsApp directo con el número del vendedor. También hay chat interno en /orders/[id].</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-5">
-                  <p className="font-semibold mb-1">¿Puedo cancelar un pedido?</p>
-                  <p className="text-sm text-muted-foreground">Solo los compradores pueden cancelar pedidos en estado "Pending" o "Paid". Los vendedores pueden actualizar a "In Progress" o "Completed". Una vez en progreso o completado no se puede cancelar unilateralmente.</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-5">
-                  <p className="font-semibold mb-1">¿Cómo me convierto en vendedor?</p>
-                  <p className="text-sm text-muted-foreground">Ve a tu Perfil → "Convertirme en Vendedor", completa el nombre del negocio y confirma. Luego ve al Dashboard de Vendedor para crear tu primer gig y configurar tu perfil público.</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-5">
-                  <p className="font-semibold mb-1">¿Dónde está mi perfil público?</p>
-                  <p className="text-sm text-muted-foreground">Para vendedores: /sellers/[tu-slug]. Compártelo en redes, WhatsApp o tarjetas. Los clientes pueden contactarte directamente sin pasar por el dashboard.</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-5">
-                  <p className="font-semibold mb-1">¿Cómo funcionan las reseñas y reputación?</p>
-                  <p className="text-sm text-muted-foreground">Después de un pedido completado, el comprador puede dejar una reseña de 1-5 estrellas + comentario. Las reseñas aparecen en tu perfil público y ayudan a generar confianza (y más pedidos).</p>
-                </CardContent>
-              </Card>
+              {faqs.length > 0 ? (
+                faqs.map((f: any) => (
+                  <Card key={f.id} className="bg-card border-border">
+                    <CardContent className="p-5">
+                      <p className="font-semibold mb-1">{f.question}</p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{f.answer}</p>
+                      {f.category && <span className="text-[10px] text-muted-foreground mt-2 inline-block">Categoría: {f.category}</span>}
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                // Fallback static (in case API empty or during first load before admin seeds)
+                <>
+                  <Card className="bg-card border-border">
+                    <CardContent className="p-5">
+                      <p className="font-semibold mb-1">¿Cómo pago con Nequi o PayU?</p>
+                      <p className="text-sm text-muted-foreground">En la página de checkout selecciona Nequi (recomendado para pagos instantáneos), PSE o PayU. El dinero se retiene seguro y se libera al vendedor solo cuando marques el pedido como completado.</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-card border-border">
+                    <CardContent className="p-5">
+                      <p className="font-semibold mb-1">¿Cómo contacto al vendedor?</p>
+                      <p className="text-sm text-muted-foreground">Usa el botón "Contactar" en el gig o en la página del pedido. Abre WhatsApp directo con el número del vendedor. También hay chat interno en /orders/[id].</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-card border-border">
+                    <CardContent className="p-5">
+                      <p className="font-semibold mb-1">¿Puedo cancelar un pedido?</p>
+                      <p className="text-sm text-muted-foreground">Solo los compradores pueden cancelar pedidos en estado "Pending" o "Paid". Los vendedores pueden actualizar a "In Progress" o "Completed". Una vez en progreso o completado no se puede cancelar unilateralmente.</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-card border-border">
+                    <CardContent className="p-5">
+                      <p className="font-semibold mb-1">¿Cómo me convierto en vendedor?</p>
+                      <p className="text-sm text-muted-foreground">Ve a tu Perfil → "Convertirme en Vendedor", completa el nombre del negocio y confirma. Luego ve al Dashboard de Vendedor para crear tu primer gig y configurar tu perfil público.</p>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
             </div>
+            <p className="text-xs text-muted-foreground mt-2">Las FAQs son gestionadas por el equipo en Admin → Settings. ¿Falta alguna? Envía un ticket o usa el centro de ayuda.</p>
           </div>
 
           {/* How-To Quick Guides */}

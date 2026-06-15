@@ -92,12 +92,25 @@ interface PlatformConfig {
   wompiSftpPrivateKey?: string; // sensitive
   wompiSftpRemotePath?: string;
 
+  // Tutorials master toggle (controls auto-show for new users + buyer->seller + support launchers)
+  tutorialsEnabled?: boolean;
+
   // Admin-only meta (from enhanced API)
   _meta?: {
     lastUpdated?: string;
     payment?: PaymentStatus;
     environment?: string;
   };
+}
+
+interface FaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  category: string | null;
+  isActive: boolean;
+  order: number;
+  createdAt?: string;
 }
 
 // Small widget to show recent PLATFORM_CONFIG_UPDATED events
@@ -179,6 +192,7 @@ const DEFAULTS: Partial<PlatformConfig> = {
   wompiSftpEnabled: false,
   wompiSftpPort: 22,
   wompiSftpRemotePath: '/',
+  tutorialsEnabled: true,
 };
 
 export default function AdminSettings() {
@@ -213,6 +227,19 @@ export default function AdminSettings() {
   const [advancedTestEventsKey, setAdvancedTestEventsKey] = useState('');
   const [advancedReplay, setAdvancedReplay] = useState(true);
   const [advancedTestLoading, setAdvancedTestLoading] = useState(false);
+
+  // === Tutorials + FAQ Management state (new admin tools) ===
+  const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  const [faqsLoading, setFaqsLoading] = useState(false);
+  const [aiTopic, setAiTopic] = useState('');
+  const [generatingAi, setGeneratingAi] = useState(false);
+
+  // Simple inline new-FAQ form
+  const [newFaq, setNewFaq] = useState({ question: '', answer: '', category: 'general' });
+
+  // Inline editing
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ question: '', answer: '', category: 'general' });
 
   // Admin password change state
   const [adminPasswordForm, setAdminPasswordForm] = useState({
@@ -253,6 +280,7 @@ export default function AdminSettings() {
     wompiSftpPassword: config.wompiSftpPassword || '',
     wompiSftpPrivateKey: config.wompiSftpPrivateKey || '',
     wompiSftpRemotePath: config.wompiSftpRemotePath || '/',
+    tutorialsEnabled: config.tutorialsEnabled ?? true,
   }) !== JSON.stringify({
     commissionRate: originalConfig.commissionRate,
     referralCommissionRate: originalConfig.referralCommissionRate,
@@ -280,6 +308,7 @@ export default function AdminSettings() {
     wompiSftpPassword: originalConfig.wompiSftpPassword || '',
     wompiSftpPrivateKey: originalConfig.wompiSftpPrivateKey || '',
     wompiSftpRemotePath: originalConfig.wompiSftpRemotePath || '/',
+    tutorialsEnabled: originalConfig.tutorialsEnabled ?? true,
   });
 
   const payment = config?._meta?.payment;
@@ -306,6 +335,7 @@ export default function AdminSettings() {
     wompiSftpPassword: c.wompiSftpPassword || '',
     wompiSftpPrivateKey: c.wompiSftpPrivateKey || '',
     wompiSftpRemotePath: c.wompiSftpRemotePath || '/',
+    tutorialsEnabled: c.tutorialsEnabled ?? true,
   });
 
   const fetchConfig = async (fresh = false) => {
@@ -319,6 +349,7 @@ export default function AdminSettings() {
         setOriginalConfig(JSON.parse(JSON.stringify(normalized))); // deep clone
         // Auto load Wompi logs when config loads
         loadWompiLogs();
+        loadFaqs();
       } else {
         toast.error('Could not load configuration');
       }
@@ -416,6 +447,7 @@ export default function AdminSettings() {
         wompiSftpPassword: config.wompiSftpPassword || '',
         wompiSftpPrivateKey: config.wompiSftpPrivateKey || '',
         wompiSftpRemotePath: config.wompiSftpRemotePath || '/',
+        tutorialsEnabled: config.tutorialsEnabled ?? true,
       };
 
       const res = await fetch('/api/admin/config', {
@@ -476,7 +508,7 @@ export default function AdminSettings() {
     finally { setLoadingTestHistory(false); }
   };
 
-  const resetSection = (section: 'fees' | 'features' | 'maintenance' | 'growth' | 'support' | 'branding' | 'notifications') => {
+  const resetSection = (section: 'fees' | 'features' | 'maintenance' | 'growth' | 'support' | 'branding' | 'notifications' | 'training') => {
     if (!config) return;
     let patch: Partial<PlatformConfig> = {};
 
@@ -502,9 +534,193 @@ export default function AdminSettings() {
       case 'notifications':
         patch = { globalPushNotificationsEnabled: DEFAULTS.globalPushNotificationsEnabled!, globalEmailNotificationsEnabled: DEFAULTS.globalEmailNotificationsEnabled! };
         break;
+      case 'training':
+        patch = { tutorialsEnabled: DEFAULTS.tutorialsEnabled! };
+        break;
     }
     setConfig({ ...config, ...patch });
     toast.info(`Section ${section} restored to defaults (save to apply)`);
+  };
+
+  // ========== FAQ + Tutorials helpers ==========
+  const loadFaqs = async () => {
+    setFaqsLoading(true);
+    try {
+      const res = await fetch('/api/admin/faqs');
+      if (res.ok) {
+        const data = await res.json();
+        setFaqs(data.faqs || []);
+      }
+    } catch (e) {
+      // silent for now
+    } finally {
+      setFaqsLoading(false);
+    }
+  };
+
+  const toggleFaqActive = async (faq: FaqItem) => {
+    try {
+      const res = await fetch('/api/admin/faqs', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: faq.id, isActive: !faq.isActive }),
+      });
+      if (res.ok) {
+        setFaqs(prev => prev.map(f => f.id === faq.id ? { ...f, isActive: !f.isActive } : f));
+        toast.success(faq.isActive ? 'FAQ desactivada' : 'FAQ activada');
+      } else {
+        toast.error('No se pudo cambiar el estado');
+      }
+    } catch {
+      toast.error('Error al actualizar FAQ');
+    }
+  };
+
+  const deleteFaq = async (id: string) => {
+    if (!confirm('¿Eliminar esta FAQ permanentemente?')) return;
+    try {
+      const res = await fetch(`/api/admin/faqs?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setFaqs(prev => prev.filter(f => f.id !== id));
+        toast.success('FAQ eliminada');
+      } else {
+        toast.error('No se pudo eliminar');
+      }
+    } catch {
+      toast.error('Error al eliminar');
+    }
+  };
+
+  const startEdit = (faq: FaqItem) => {
+    setEditingId(faq.id);
+    setEditForm({
+      question: faq.question,
+      answer: faq.answer,
+      category: faq.category || 'general',
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm({ question: '', answer: '', category: 'general' });
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    try {
+      const res = await fetch('/api/admin/faqs', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingId,
+          question: editForm.question,
+          answer: editForm.answer,
+          category: editForm.category,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFaqs(prev => prev.map(f => f.id === editingId ? data.faq : f));
+        toast.success('FAQ actualizada');
+        cancelEdit();
+      } else {
+        toast.error('Error guardando cambios');
+      }
+    } catch {
+      toast.error('Error de red');
+    }
+  };
+
+  const createFaqFromForm = async () => {
+    if (!newFaq.question.trim() || !newFaq.answer.trim()) {
+      toast.error('Pregunta y respuesta son obligatorias');
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/faqs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: newFaq.question.trim(),
+          answer: newFaq.answer.trim(),
+          category: newFaq.category || 'general',
+          isActive: true,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFaqs(prev => [data.faq, ...prev]);
+        setNewFaq({ question: '', answer: '', category: 'general' });
+        toast.success('FAQ creada');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'No se pudo crear la FAQ');
+      }
+    } catch {
+      toast.error('Error creando FAQ');
+    }
+  };
+
+  const generateFaqWithAI = async () => {
+    if (!aiTopic.trim()) {
+      toast.error('Escribe un tema o idea para la FAQ (ej: "Pagos con Nequi" o "Cancelar pedido")');
+      return;
+    }
+    setGeneratingAi(true);
+    try {
+      const res = await fetch('/api/grok/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: aiTopic.trim(),
+          category: 'Soporte y Ayuda',
+          type: 'faq',
+        }),
+      });
+      const data = await res.json();
+      if (data.question && data.answer) {
+        setNewFaq({
+          question: data.question,
+          answer: data.answer,
+          category: 'soporte',
+        });
+        toast.success('FAQ sugerida por IA. Revisa y pulsa "Agregar FAQ".');
+        setAiTopic('');
+      } else {
+        toast.error(data.error || 'La IA no devolvió una FAQ estructurada. Intenta de nuevo o edita manualmente.');
+      }
+    } catch (e) {
+      toast.error('Error llamando a la IA para generar FAQ');
+    } finally {
+      setGeneratingAi(false);
+    }
+  };
+
+  const loadDefaultFaqs = async () => {
+    const defaults = [
+      { question: '¿Cómo pago con Nequi o PayU?', answer: 'En la página de checkout selecciona Nequi (recomendado para pagos instantáneos), PSE o PayU. El dinero se retiene seguro y se libera al vendedor solo cuando marques el pedido como completado.', category: 'pagos' },
+      { question: '¿Cómo contacto al vendedor?', answer: 'Usa el botón "Contactar" en el gig o en la página del pedido. Abre WhatsApp directo con el número del vendedor. También hay chat interno en /orders/[id].', category: 'general' },
+      { question: '¿Puedo cancelar un pedido?', answer: 'Solo los compradores pueden cancelar pedidos en estado "Pending" o "Paid". Los vendedores pueden actualizar a "In Progress" o "Completed". Una vez en progreso o completado no se puede cancelar unilateralmente.', category: 'pedidos' },
+      { question: '¿Cómo me convierto en vendedor?', answer: 'Ve a tu Perfil → "Convertirme en Vendedor", completa el nombre del negocio y confirma. Luego ve al Dashboard de Vendedor para crear tu primer gig y configurar tu perfil público.', category: 'vendedores' },
+      { question: '¿Dónde está mi perfil público?', answer: 'Para vendedores: /sellers/[tu-slug]. Compártelo en redes, WhatsApp o tarjetas. Los clientes pueden contactarte directamente sin pasar por el dashboard.', category: 'vendedores' },
+      { question: '¿Cómo funcionan las reseñas y reputación?', answer: 'Después de un pedido completado, el comprador puede dejar una reseña de 1-5 estrellas + comentario. Las reseñas aparecen en tu perfil público y ayudan a generar confianza (y más pedidos).', category: 'general' },
+    ];
+    let created = 0;
+    for (const d of defaults) {
+      try {
+        const res = await fetch('/api/admin/faqs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...d, isActive: true }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setFaqs(prev => [data.faq, ...prev.filter(p => p.question !== d.question)]);
+          created++;
+        }
+      } catch {}
+    }
+    toast.success(`Cargadas ${created} FAQs por defecto`);
   };
 
   const updateField = (field: keyof PlatformConfig, value: any) => {
@@ -683,6 +899,162 @@ export default function AdminSettings() {
             You have unsaved changes. Settings will not take effect until you click "Save Changes".
           </div>
         )}
+
+        {/* ========== NEW: Tutorials + FAQ Management Tools ========== */}
+        <div className="mb-8 bg-card border border-border rounded-3xl p-8">
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-orange-500/10 flex items-center justify-center">
+                🎓
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold">Capacitación de Usuarios, Tutoriales y FAQ</h2>
+                <p className="text-sm text-muted-foreground">Control global de los tutoriales interactivos + lista de FAQs editables con creación por IA. Los cambios en FAQs aparecen inmediatamente en /support.</p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={loadFaqs} disabled={faqsLoading}>
+              <RefreshCw className="w-4 h-4 mr-1" /> Recargar FAQs
+            </Button>
+          </div>
+
+          {/* Tutorials Master Toggle */}
+          <div className="mb-8 p-5 border border-orange-200/60 dark:border-orange-900/40 rounded-2xl bg-orange-50/30 dark:bg-orange-950/20">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <div className="font-semibold flex items-center gap-2">
+                  Habilitar Tutoriales y Capacitación
+                  {config?.tutorialsEnabled ? (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600">ACTIVO</span>
+                  ) : (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-red-500/10 text-red-600">DESACTIVADO</span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 max-w-prose">
+                  Interruptor maestro. Cuando está apagado, los tutoriales automáticos (nuevos compradores, nuevos vendedores y al convertirse de buyer → seller) no se muestran. Los botones manuales en /support también se pueden ocultar. Úsalo para pausas de entrenamiento o lanzamientos graduales.
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => resetSection('training')}>Restaurar default</Button>
+                  <Button size="sm" variant="outline" onClick={() => updateField('tutorialsEnabled', true)}>Activar ahora</Button>
+                  <Button size="sm" variant="outline" onClick={() => updateField('tutorialsEnabled', false)}>Desactivar ahora</Button>
+                </div>
+              </div>
+              <Switch
+                checked={!!config?.tutorialsEnabled}
+                onCheckedChange={(v) => updateField('tutorialsEnabled', v)}
+              />
+            </div>
+          </div>
+
+          {/* FAQ Management */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-semibold">Lista de FAQs (activa / inactiva)</div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={loadDefaultFaqs} disabled={faqsLoading}>
+                  Cargar FAQs por defecto
+                </Button>
+              </div>
+            </div>
+
+            {/* AI Generator Tool */}
+            <div className="mb-4 p-4 border rounded-2xl bg-background">
+              <div className="text-sm font-medium mb-2">Crear FAQ con IA (Grok)</div>
+              <div className="flex flex-col md:flex-row gap-2">
+                <Input
+                  value={aiTopic}
+                  onChange={(e) => setAiTopic(e.target.value)}
+                  placeholder='Tema o idea (ej: "Cómo cancelar un pedido", "Nequi no funciona", "Ver mi perfil público")'
+                  className="flex-1"
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !generatingAi) generateFaqWithAI(); }}
+                />
+                <Button onClick={generateFaqWithAI} disabled={generatingAi || !aiTopic.trim()} className="whitespace-nowrap">
+                  {generatingAi ? 'Generando con Grok...' : '✨ Generar con IA'}
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">La IA sugiere pregunta + respuesta. Se precarga en el formulario de "Nueva FAQ" para que la revises y guardes.</p>
+            </div>
+
+            {/* Current FAQs list */}
+            <div className="border rounded-2xl overflow-hidden mb-4">
+              {faqsLoading && faqs.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">Cargando FAQs...</div>
+              ) : faqs.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">
+                  Aún no hay FAQs. Usa el generador de IA arriba o el botón "Cargar FAQs por defecto".
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {faqs.map((faq) => (
+                    <div key={faq.id} className="p-4 flex flex-col md:flex-row md:items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        {editingId === faq.id ? (
+                          <div className="space-y-2">
+                            <Input value={editForm.question} onChange={(e) => setEditForm({ ...editForm, question: e.target.value })} placeholder="Pregunta" />
+                            <Textarea value={editForm.answer} onChange={(e) => setEditForm({ ...editForm, answer: e.target.value })} rows={3} placeholder="Respuesta" />
+                            <Input value={editForm.category} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} placeholder="Categoría (general, pagos, vendedores...)" />
+                          </div>
+                        ) : (
+                          <>
+                            <div className="font-medium text-foreground">{faq.question}</div>
+                            <div className="text-sm text-muted-foreground whitespace-pre-wrap mt-1">{faq.answer}</div>
+                            <div className="text-[10px] text-muted-foreground mt-1">Categoría: {faq.category || 'general'} • {faq.isActive ? 'Visible en /support' : 'Oculta'}</div>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="flex md:flex-col gap-2 items-start md:items-end shrink-0">
+                        {editingId === faq.id ? (
+                          <>
+                            <Button size="sm" onClick={saveEdit}>Guardar</Button>
+                            <Button size="sm" variant="outline" onClick={cancelEdit}>Cancelar</Button>
+                          </>
+                        ) : (
+                          <>
+                            <Switch checked={faq.isActive} onCheckedChange={() => toggleFaqActive(faq)} />
+                            <Button size="sm" variant="outline" onClick={() => startEdit(faq)}>Editar</Button>
+                            <Button size="sm" variant="ghost" className="text-red-600" onClick={() => deleteFaq(faq.id)}>Eliminar</Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Add new FAQ form */}
+            <div className="border rounded-2xl p-4 bg-background">
+              <div className="font-medium mb-2 text-sm">Agregar nueva FAQ manualmente</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Input
+                  value={newFaq.question}
+                  onChange={(e) => setNewFaq({ ...newFaq, question: e.target.value })}
+                  placeholder="Pregunta (ej: ¿Cómo dejo una reseña?)"
+                />
+                <Input
+                  value={newFaq.category}
+                  onChange={(e) => setNewFaq({ ...newFaq, category: e.target.value })}
+                  placeholder="Categoría (pagos, pedidos, vendedores, general)"
+                />
+              </div>
+              <Textarea
+                className="mt-2"
+                value={newFaq.answer}
+                onChange={(e) => setNewFaq({ ...newFaq, answer: e.target.value })}
+                rows={3}
+                placeholder="Respuesta clara y útil..."
+              />
+              <div className="mt-3">
+                <Button onClick={createFaqFromForm} disabled={!newFaq.question.trim() || !newFaq.answer.trim()}>
+                  Agregar FAQ
+                </Button>
+                <span className="ml-3 text-xs text-muted-foreground">Se crea como activa y visible inmediatamente en la página de soporte de usuarios.</span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-[10px] text-muted-foreground mt-4">Nota: El estado de "visto el tutorial" de cada usuario se guarda en su navegador (localStorage). El interruptor global previene que aparezcan automáticamente. Para forzar re-mostrar, el usuario puede borrar caché o el admin puede desactivar/reactivar el toggle.</p>
+        </div>
 
         {/* === NEW: Payment Gateway Status (Wompi) === */}
         <div className="mb-6 bg-card border border-border rounded-3xl p-8">

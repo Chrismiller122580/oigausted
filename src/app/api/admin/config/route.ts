@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
         wompiRealPaymentsEnabled: (config as any).wompiRealPaymentsEnabled ?? false,
         // SFTP status (public for admin UI indicators)
         wompiSftpEnabled: (config as any).wompiSftpEnabled ?? false,
+        tutorialsEnabled: (config as any).tutorialsEnabled ?? true,
       });
     }
 
@@ -117,6 +118,7 @@ export async function GET(req: NextRequest) {
       // Secrets are returned for the edit form (they are stored in DB; in high-security setups move to env/secret manager)
       wompiSftpPassword: (config as any).wompiSftpPassword || '',
       wompiSftpPrivateKey: (config as any).wompiSftpPrivateKey || '',
+      tutorialsEnabled: (config as any).tutorialsEnabled ?? true,
     };
 
     return NextResponse.json({
@@ -144,10 +146,11 @@ export async function GET(req: NextRequest) {
         globalEmailNotificationsEnabled: true,
         wompiRealPaymentsEnabled: false,
         wompiSftpEnabled: false,
+        tutorialsEnabled: true,
       });
     } catch (finalErr) {
       console.error('Config GET ultimate fallback error (returning plain 200):', finalErr);
-      return new Response('{"maintenanceMode":false,"maintenanceMessage":"Estamos realizando mejoras. Volveremos pronto.","siteName":"Oigagig","siteTagline":"Conecta con profesionales locales en Colombia","logoUrl":null,"allowNewSignups":true,"referralsEnabled":true,"globalPushNotificationsEnabled":true,"globalEmailNotificationsEnabled":true,"wompiRealPaymentsEnabled":false,"wompiSftpEnabled":false}', {
+      return new Response('{"maintenanceMode":false,"maintenanceMessage":"Estamos realizando mejoras. Volveremos pronto.","siteName":"Oigagig","siteTagline":"Conecta con profesionales locales en Colombia","logoUrl":null,"allowNewSignups":true,"referralsEnabled":true,"globalPushNotificationsEnabled":true,"globalEmailNotificationsEnabled":true,"wompiRealPaymentsEnabled":false,"wompiSftpEnabled":false,"tutorialsEnabled":true}', {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -202,6 +205,7 @@ export async function PUT(request: NextRequest) {
           globalEmailNotificationsEnabled: body.globalEmailNotificationsEnabled ?? true,
           maintenanceBypassIps: body.maintenanceBypassIps ?? '',
           wompiRealPaymentsEnabled: body.wompiRealPaymentsEnabled ?? false,
+          tutorialsEnabled: body.tutorialsEnabled ?? true,
           // SFTP defaults are supplied in the best-effort block below (or left to schema @default)
         },
         update: {
@@ -229,6 +233,7 @@ export async function PUT(request: NextRequest) {
           maintenanceBypassIps: body.maintenanceBypassIps ?? '',
           // Wompi real payments master switch
           wompiRealPaymentsEnabled: body.wompiRealPaymentsEnabled ?? false,
+          tutorialsEnabled: body.tutorialsEnabled,
         },
         // Select now includes wompiSftp* (safe selects in prisma.ts + here were updated).
         // The previous omit was causing SFTP values to disappear after save + reload.
@@ -261,6 +266,7 @@ export async function PUT(request: NextRequest) {
           wompiSftpPassword: true,
           wompiSftpPrivateKey: true,
           wompiSftpRemotePath: true,
+          tutorialsEnabled: true,
           updatedAt: true,
         },
       });

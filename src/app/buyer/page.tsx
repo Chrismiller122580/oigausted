@@ -61,14 +61,22 @@ export default function BuyerDashboard() {
   }, [session])
 
   // Auto-show buyer tutorial for first-time / new users (support request: new users go through tutorial)
+  // Respects global admin toggle from PlatformConfig.tutorialsEnabled
   useEffect(() => {
     const uid = (session?.user as any)?.id
     if (uid && !loading) {
-      const seenKey = `tutorial_buyer_${uid}`
-      if (!localStorage.getItem(seenKey)) {
-        const t = setTimeout(() => setShowTutorial(true), 900)
-        return () => clearTimeout(t)
-      }
+      (async () => {
+        try {
+          const res = await fetch('/api/admin/config')
+          const cfg = await res.json()
+          if (cfg.tutorialsEnabled === false) return
+        } catch {}
+        const seenKey = `tutorial_buyer_${uid}`
+        if (!localStorage.getItem(seenKey)) {
+          const t = setTimeout(() => setShowTutorial(true), 900)
+          return () => clearTimeout(t)
+        }
+      })()
     }
   }, [session, loading])
 

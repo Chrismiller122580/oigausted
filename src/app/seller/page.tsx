@@ -49,14 +49,22 @@ export default function SellerDashboard() {
   }, [session]);
 
   // Auto-launch seller tutorial for new users or freshly unlocked sellers (localStorage per user+role)
+  // Respects global admin toggle from PlatformConfig.tutorialsEnabled (buyer->seller unlock will re-trigger when enabled)
   useEffect(() => {
     const uid = (session?.user as any)?.id;
     if (uid && !loading) {
-      const seenKey = `tutorial_seller_${uid}`;
-      if (!localStorage.getItem(seenKey)) {
-        const t = setTimeout(() => setShowTutorial(true), 1100);
-        return () => clearTimeout(t);
-      }
+      (async () => {
+        try {
+          const res = await fetch('/api/admin/config');
+          const cfg = await res.json();
+          if (cfg.tutorialsEnabled === false) return;
+        } catch {}
+        const seenKey = `tutorial_seller_${uid}`;
+        if (!localStorage.getItem(seenKey)) {
+          const t = setTimeout(() => setShowTutorial(true), 1100);
+          return () => clearTimeout(t);
+        }
+      })();
     }
   }, [session, loading]);
 
