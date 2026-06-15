@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock, Tag, BarChart3, MessageCircle, Megaphone } from 'lucide-react';
+import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock, Tag, BarChart3, MessageCircle, Megaphone, RefreshCw } from 'lucide-react';
+import { useRealtimeNotifications } from '@/lib/useRealtimeNotifications';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -11,13 +12,22 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [lastActivityUpdate, setLastActivityUpdate] = useState<Date | null>(null);
 
+  // Real-time updates via notifications SSE (instant refresh on relevant events)
+  // + polling fallback every 10s for true real-time feel on admin dashboard
+  useRealtimeNotifications({
+    enableToasts: false, // avoid duplicate toasts in admin; we just want the trigger
+    onNewNotification: () => {
+      fetchStats(true); // background refresh on any new notification
+    },
+  });
+
   useEffect(() => {
     fetchStats();
   }, []);
 
-  // Light auto-refresh for recent activity on dashboard (every 30s)
+  // Poll every 10s for real-time data (lightweight background updates)
   useEffect(() => {
-    const iv = setInterval(() => fetchStats(true), 30000);
+    const iv = setInterval(() => fetchStats(true), 10000);
     return () => clearInterval(iv);
   }, []);
 
@@ -56,9 +66,24 @@ export default function AdminDashboard() {
   return (
     <div className="bg-background text-foreground">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-10">
-          <h1 className="text-5xl font-bold tracking-tight">Admin Dashboard</h1>
-          <p className="text-muted-foreground mt-2 text-xl">Platform overview • Real-time data</p>
+        <div className="mb-10 flex items-center justify-between">
+          <div>
+            <h1 className="text-5xl font-bold tracking-tight">Admin Dashboard</h1>
+            <p className="text-muted-foreground mt-2 text-xl">
+              Platform overview • Real-time data (updates every ~10s + instant on events)
+              {lastActivityUpdate && (
+                <span className="ml-2 text-xs">• Last updated {lastActivityUpdate.toLocaleTimeString('es-CO')}</span>
+              )}
+            </p>
+          </div>
+          <button
+            onClick={() => fetchStats()}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card hover:bg-muted text-sm"
+            disabled={loading}
+          >
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            Refresh now
+          </button>
         </div>
 
         {/* Stats Grid - Clickable tiles wired to data pages */}
