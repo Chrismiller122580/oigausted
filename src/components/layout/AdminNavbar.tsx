@@ -60,7 +60,7 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Top Header - always visible, compact */}
       <header className="bg-background border-b border-border sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             {/* Logo - links to public homepage */}
             <div className="flex items-center gap-2">
@@ -95,15 +95,11 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
               variant="ghost"
               size="icon"
               onClick={handleSignOut}
-              className="text-muted-foreground hover:text-red-500"
+              className="hidden sm:flex text-muted-foreground hover:text-red-500"
             >
               <LogOut size={18} />
             </Button>
 
-            {/* Mobile controls */}
-            <div className="md:hidden">
-              <ModeToggle />
-            </div>
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-2 text-muted-foreground hover:text-foreground"

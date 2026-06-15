@@ -406,17 +406,17 @@ export default function AdminMarketingPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-12">
+    <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 pb-12 overflow-x-hidden">
       {/* HERO HEADER */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 text-white">
-              <Sparkles className="h-7 w-7" />
+        <div className="min-w-0">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 text-white shrink-0">
+              <Sparkles className="h-6 w-6 sm:h-7 sm:w-7" />
             </div>
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight">AI Marketing Studio</h1>
-              <p className="text-lg text-muted-foreground">El centro de comando más inteligente para promocionar Oigagig</p>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight">AI Marketing Studio</h1>
+              <p className="text-sm sm:text-lg text-muted-foreground">El centro de comando más inteligente para promocionar Oigagig</p>
             </div>
           </div>
         </div>
@@ -432,11 +432,11 @@ export default function AdminMarketingPage() {
       )}
 
       {/* ========== AI CAMPAIGN GENERATOR - THE STAR OF THE SHOW ========== */}
-      <div className="bg-card border-2 border-orange-500/30 rounded-3xl p-6 md:p-8 shadow-sm">
-        <div className="flex items-center gap-3 mb-6">
-          <Sparkles className="h-6 w-6 text-orange-500" />
-          <div>
-            <h2 className="text-2xl font-semibold">Generador de Campañas con IA</h2>
+      <div className="bg-card border-2 border-orange-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-sm">
+        <div className="flex items-start sm:items-center gap-3 mb-6">
+          <Sparkles className="h-6 w-6 text-orange-500 shrink-0" />
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-semibold">Generador de Campañas con IA</h2>
             <p className="text-sm text-muted-foreground">Crea en segundos copy para email, Instagram, Facebook, WhatsApp, X y más — optimizado para servicios locales en Colombia</p>
           </div>
         </div>
@@ -547,13 +547,13 @@ export default function AdminMarketingPage() {
             key={`${generatedCampaign.campaignName}-${generatedCampaign.email.subject}`}
             className="mt-8 pt-6 border-t border-border"
           >
-            <div className="flex items-center justify-between mb-4">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+              <div className="min-w-0">
                 <div className="uppercase text-[10px] tracking-[2px] text-orange-600 font-semibold">Campaña generada por IA</div>
-                <h3 className="text-2xl font-semibold">{generatedCampaign.campaignName}</h3>
+                <h3 className="text-xl sm:text-2xl font-semibold break-words">{generatedCampaign.campaignName}</h3>
                 <p className="text-sm text-muted-foreground">{generatedCampaign.objective}</p>
               </div>
-              <div className="text-right text-xs">
+              <div className="text-left sm:text-right text-xs shrink-0">
                 <div className="font-medium">Segmento recomendado</div>
                 <div className="text-orange-600 font-semibold">{generatedCampaign.recommendedSegment}</div>
               </div>
@@ -564,17 +564,17 @@ export default function AdminMarketingPage() {
             </div>
 
             {/* Tabs for the generated content */}
-            <div className="flex border-b mb-4 text-sm">
+            <div className="flex overflow-x-auto border-b mb-4 text-sm -mx-1 px-1 scrollbar-none">
               {(['email', 'social', 'ads', 'visuals'] as const).map(tab => (
                 <button 
                   key={tab} 
                   onClick={() => setActiveAiTab(tab)}
-                  className={`px-4 py-2 border-b-2 transition ${activeAiTab === tab ? 'border-orange-600 text-orange-600 font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                  className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 border-b-2 transition ${activeAiTab === tab ? 'border-orange-600 text-orange-600 font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                 >
-                  {tab === 'email' && 'Email / In-app'}
-                  {tab === 'social' && 'Redes Sociales'}
-                  {tab === 'ads' && 'Variaciones de Anuncios'}
-                  {tab === 'visuals' && 'Prompts Visuales + Estrategia'}
+                  {tab === 'email' && <><span className="sm:hidden">Email</span><span className="hidden sm:inline">Email / In-app</span></>}
+                  {tab === 'social' && <><span className="sm:hidden">Social</span><span className="hidden sm:inline">Redes Sociales</span></>}
+                  {tab === 'ads' && <><span className="sm:hidden">Anuncios</span><span className="hidden sm:inline">Variaciones de Anuncios</span></>}
+                  {tab === 'visuals' && <><span className="sm:hidden">Visuales</span><span className="hidden sm:inline">Prompts Visuales + Estrategia</span></>}
                 </button>
               ))}
             </div>
@@ -582,16 +582,16 @@ export default function AdminMarketingPage() {
             {/* EMAIL TAB */}
             {activeAiTab === 'email' && (
               <div className="space-y-4">
-                <div className="bg-background border rounded-2xl p-5">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
+                <div className="bg-background border rounded-2xl p-4 sm:p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start mb-2">
+                    <div className="min-w-0">
                       <div className="text-xs text-muted-foreground">ASUNTO</div>
-                      <div className="font-semibold text-lg">{generatedCampaign.email.subject}</div>
-                      {generatedCampaign.email.previewText && <div className="text-xs text-muted-foreground">Preview: {generatedCampaign.email.previewText}</div>}
+                      <div className="font-semibold text-base sm:text-lg break-words">{generatedCampaign.email.subject}</div>
+                      {generatedCampaign.email.previewText && <div className="text-xs text-muted-foreground break-words">Preview: {generatedCampaign.email.previewText}</div>}
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => copyText(generatedCampaign.email.subject, 'Asunto')}><Copy className="h-3.5 w-3.5 mr-1" /> Copiar</Button>
-                      <Button size="sm" onClick={loadAiIntoComposer}><Send className="h-3.5 w-3.5 mr-1" /> Usar en Broadcast</Button>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
+                      <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => copyText(generatedCampaign.email.subject, 'Asunto')}><Copy className="h-3.5 w-3.5 mr-1" /> Copiar</Button>
+                      <Button size="sm" className="w-full sm:w-auto" onClick={loadAiIntoComposer}><Send className="h-3.5 w-3.5 mr-1" /> Usar en Broadcast</Button>
                     </div>
                   </div>
                   <div className="prose prose-sm max-w-none text-sm whitespace-pre-wrap border-t pt-3 mt-2 text-foreground/90">
@@ -691,13 +691,13 @@ export default function AdminMarketingPage() {
       </div>
 
       {/* ========== MANUAL BROADCAST + AUDIENCE (existing power, now enhanced) ========== */}
-      <div id="broadcast-composer" className="bg-card border border-border rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-semibold flex items-center gap-2">Envío Manual + Audiencia <span className="text-xs px-2 py-0.5 rounded bg-muted font-normal">Clásico</span></h2>
+      <div id="broadcast-composer" className="bg-card border border-border rounded-2xl p-4 sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-4">
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-semibold flex flex-wrap items-center gap-2">Envío Manual + Audiencia <span className="text-xs px-2 py-0.5 rounded bg-muted font-normal">Clásico</span></h2>
             <p className="text-sm text-muted-foreground">Control total. También puedes cargar contenido desde el generador de IA de arriba.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 shrink-0">
             <Button variant="outline" size="sm" onClick={() => presetMessage('update')}>Actualización sistema</Button>
             <Button variant="outline" size="sm" onClick={() => presetMessage('promo')}>Promo</Button>
             <Button variant="outline" size="sm" onClick={() => presetMessage('info')}>Info cuenta</Button>
@@ -773,20 +773,22 @@ export default function AdminMarketingPage() {
 
       {/* MAILING LIST */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h2 className="text-xl font-semibold">Lista de Correo / Audiencia Objetivo</h2>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-3">
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl font-semibold">Lista de Correo / Audiencia Objetivo</h2>
             <p className="text-sm text-muted-foreground">{audienceTotal} coincidencias • {audienceReachable} con email marketing activo</p>
           </div>
-          <div className="flex gap-2">
-            <Input placeholder="Buscar nombre, email..." value={audienceSearch} onChange={e => setAudienceSearch(e.target.value)} className="w-60" />
-            <Button variant="outline" size="sm" onClick={exportAudienceCSV}>Exportar CSV</Button>
-            <Button variant="outline" size="sm" onClick={() => fetchAudience(true)} disabled={audienceLoading}>Actualizar</Button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Input placeholder="Buscar nombre, email..." value={audienceSearch} onChange={e => setAudienceSearch(e.target.value)} className="w-full sm:w-60" />
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={exportAudienceCSV}>Exportar CSV</Button>
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => fetchAudience(true)} disabled={audienceLoading}>Actualizar</Button>
+            </div>
           </div>
         </div>
 
-        <div className="border rounded-2xl overflow-hidden bg-card">
-          <table className="w-full text-sm">
+        <div className="border rounded-2xl overflow-x-auto bg-card">
+          <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-muted/60">
               <tr>
                 <th className="p-3 text-left font-medium">Usuario</th>
@@ -816,8 +818,8 @@ export default function AdminMarketingPage() {
           <h2 className="text-xl font-semibold">Historial de Campañas ({campaignsTotal})</h2>
           <Button variant="outline" size="sm" onClick={fetchHistory} disabled={historyLoading}>Refrescar</Button>
         </div>
-        <div className="border rounded-2xl overflow-hidden bg-card text-sm">
-          <table className="w-full">
+        <div className="border rounded-2xl overflow-x-auto bg-card text-sm">
+          <table className="w-full min-w-[720px]">
             <thead className="bg-muted/60">
               <tr>
                 <th className="p-3 text-left">Fecha</th>

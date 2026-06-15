@@ -10,6 +10,40 @@ import {
   unsubscribeFromPushNotifications 
 } from '@/lib/useRealtimeNotifications';
 
+function PreferenceRow({
+  label,
+  description,
+  checked,
+  onChange,
+  disabled = false,
+  bordered = false,
+}: {
+  label: string;
+  description?: string;
+  checked: boolean;
+  onChange: () => void;
+  disabled?: boolean;
+  bordered?: boolean;
+}) {
+  return (
+    <div className={`flex items-start justify-between gap-4 ${bordered ? 'pt-1 border-t border-border/60' : ''}`}>
+      <div className="min-w-0 flex-1">
+        <div className="font-medium leading-snug">{label}</div>
+        {description && (
+          <div className="text-sm text-muted-foreground mt-0.5 leading-snug">{description}</div>
+        )}
+      </div>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        disabled={disabled}
+        className="w-5 h-5 shrink-0 mt-0.5 accent-orange-600"
+      />
+    </div>
+  );
+}
+
 interface Preferences {
   inAppEnabled: boolean;
   emailEnabled: boolean;
@@ -176,8 +210,8 @@ export default function NotificationPreferences() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-2">Preferencias de Notificaciones</h1>
+    <div className="max-w-2xl mx-auto px-4 py-6 sm:p-8">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-2">Preferencias de Notificaciones</h1>
       <p className="text-muted-foreground mb-8">
         Controla cómo y cuándo quieres recibir notificaciones.
       </p>
@@ -187,70 +221,38 @@ export default function NotificationPreferences() {
           <CardTitle>Canales de entrega</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium">Notificaciones en la app</div>
-              <div className="text-sm text-muted-foreground">Campana en la barra superior + historial</div>
-            </div>
-            <input 
-              type="checkbox" 
-              checked={prefs.inAppEnabled} 
-              onChange={() => handleToggle('inAppEnabled')}
-              className="w-5 h-5 accent-orange-600"
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium">Email</div>
-              <div className="text-sm text-muted-foreground">Recibe actualizaciones por correo electrónico</div>
-            </div>
-            <input 
-              type="checkbox" 
-              checked={prefs.emailEnabled} 
-              onChange={() => handleToggle('emailEnabled')}
-              className="w-5 h-5 accent-orange-600"
-            />
-          </div>
-
-          <div className="flex items-center justify-between opacity-60">
-            <div>
-              <div className="font-medium">SMS (próximamente)</div>
-            </div>
-            <input 
-              type="checkbox" 
-              checked={prefs.smsEnabled} 
+          <PreferenceRow
+            label="Notificaciones en la app"
+            description="Campana en la barra superior + historial"
+            checked={prefs.inAppEnabled}
+            onChange={() => handleToggle('inAppEnabled')}
+          />
+          <PreferenceRow
+            label="Email"
+            description="Recibe actualizaciones por correo electrónico"
+            checked={prefs.emailEnabled}
+            onChange={() => handleToggle('emailEnabled')}
+          />
+          <div className="opacity-60">
+            <PreferenceRow
+              label="SMS (próximamente)"
+              checked={prefs.smsEnabled}
               onChange={() => handleToggle('smsEnabled')}
               disabled
-              className="w-5 h-5 accent-orange-600"
             />
           </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium">Push del navegador</div>
-              <div className="text-sm text-muted-foreground">Notificaciones nativas del escritorio (usa el polling actual)</div>
-            </div>
-            <input 
-              type="checkbox" 
-              checked={prefs.desktopNotifications} 
-              onChange={() => handleToggle('desktopNotifications')}
-              className="w-5 h-5 accent-orange-600"
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium">Sonido de alerta</div>
-              <div className="text-sm text-muted-foreground">Reproduce un tono cuando llega una notificación nueva</div>
-            </div>
-            <input 
-              type="checkbox" 
-              checked={prefs.soundEnabled} 
-              onChange={() => handleToggle('soundEnabled')}
-              className="w-5 h-5 accent-orange-600"
-            />
-          </div>
+          <PreferenceRow
+            label="Push del navegador"
+            description="Notificaciones nativas del escritorio (usa el polling actual)"
+            checked={prefs.desktopNotifications}
+            onChange={() => handleToggle('desktopNotifications')}
+          />
+          <PreferenceRow
+            label="Sonido de alerta"
+            description="Reproduce un tono cuando llega una notificación nueva"
+            checked={prefs.soundEnabled}
+            onChange={() => handleToggle('soundEnabled')}
+          />
         </CardContent>
       </Card>
 
@@ -259,72 +261,19 @@ export default function NotificationPreferences() {
           <CardTitle>Tipos de notificaciones</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>Actualizaciones de pedidos</div>
-            <input 
-              type="checkbox" 
-              checked={prefs.orderUpdates} 
-              onChange={() => handleToggle('orderUpdates')}
-              className="w-5 h-5 accent-orange-600"
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>Actualizaciones de gigs</div>
-            <input 
-              type="checkbox" 
-              checked={prefs.gigUpdates} 
-              onChange={() => handleToggle('gigUpdates')}
-              className="w-5 h-5 accent-orange-600"
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>Alertas de reseñas</div>
-            <input 
-              type="checkbox" 
-              checked={prefs.reviewAlerts} 
-              onChange={() => handleToggle('reviewAlerts')}
-              className="w-5 h-5 accent-orange-600"
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>Alertas de pagos</div>
-            <input 
-              type="checkbox" 
-              checked={prefs.paymentAlerts} 
-              onChange={() => handleToggle('paymentAlerts')}
-              className="w-5 h-5 accent-orange-600"
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>Mensajes de chat</div>
-            <input 
-              type="checkbox" 
-              checked={prefs.messageAlerts} 
-              onChange={() => handleToggle('messageAlerts')}
-              className="w-5 h-5 accent-orange-600"
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>Notificaciones del sistema</div>
-            <input 
-              type="checkbox" 
-              checked={prefs.systemAlerts} 
-              onChange={() => handleToggle('systemAlerts')}
-              className="w-5 h-5 accent-orange-600"
-            />
-          </div>
-          <div className="flex items-center justify-between pt-1 border-t border-border/60">
-            <div>
-              <div>Correos de marketing y actualizaciones</div>
-              <div className="text-[11px] text-muted-foreground -mt-0.5">Promociones, novedades de la plataforma y anuncios importantes</div>
-            </div>
-            <input 
-              type="checkbox" 
-              checked={prefs.marketingEmails} 
-              onChange={() => handleToggle('marketingEmails')}
-              className="w-5 h-5 accent-orange-600"
-            />
-          </div>
+          <PreferenceRow label="Actualizaciones de pedidos" checked={prefs.orderUpdates} onChange={() => handleToggle('orderUpdates')} />
+          <PreferenceRow label="Actualizaciones de gigs" checked={prefs.gigUpdates} onChange={() => handleToggle('gigUpdates')} />
+          <PreferenceRow label="Alertas de reseñas" checked={prefs.reviewAlerts} onChange={() => handleToggle('reviewAlerts')} />
+          <PreferenceRow label="Alertas de pagos" checked={prefs.paymentAlerts} onChange={() => handleToggle('paymentAlerts')} />
+          <PreferenceRow label="Mensajes de chat" checked={prefs.messageAlerts} onChange={() => handleToggle('messageAlerts')} />
+          <PreferenceRow label="Notificaciones del sistema" checked={prefs.systemAlerts} onChange={() => handleToggle('systemAlerts')} />
+          <PreferenceRow
+            label="Correos de marketing y actualizaciones"
+            description="Promociones, novedades de la plataforma y anuncios importantes"
+            checked={prefs.marketingEmails}
+            onChange={() => handleToggle('marketingEmails')}
+            bordered
+          />
         </CardContent>
       </Card>
 
@@ -405,25 +354,16 @@ export default function NotificationPreferences() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <div className="font-medium flex items-center gap-2">
-                  Horario silencioso
-                  {prefs.quietHoursEnabled && isQuietNow && (
-                    <span className="text-[10px] px-2 py-0.5 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded-full font-normal">
-                      ACTIVO AHORA
-                    </span>
-                  )}
-                </div>
-                <div className="text-sm text-muted-foreground">No enviar emails ni push durante estas horas (solo in-app)</div>
-              </div>
-              <input 
-                type="checkbox" 
-                checked={prefs.quietHoursEnabled} 
-                onChange={() => handleToggle('quietHoursEnabled')}
-                className="w-5 h-5 accent-orange-600"
-              />
-            </div>
+            <PreferenceRow
+              label={
+                prefs.quietHoursEnabled && isQuietNow
+                  ? 'Horario silencioso (ACTIVO AHORA)'
+                  : 'Horario silencioso'
+              }
+              description="No enviar emails ni push durante estas horas (solo in-app)"
+              checked={prefs.quietHoursEnabled}
+              onChange={() => handleToggle('quietHoursEnabled')}
+            />
 
             {prefs.quietHoursEnabled && (
               <>
@@ -468,18 +408,12 @@ export default function NotificationPreferences() {
           </div>
 
           <div className="pt-4 border-t">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <div className="font-medium">Resúmenes (Digest)</div>
-                <div className="text-sm text-muted-foreground">Recibe un resumen en vez de notificaciones individuales</div>
-              </div>
-              <input 
-                type="checkbox" 
-                checked={prefs.digestEnabled} 
-                onChange={() => handleToggle('digestEnabled')}
-                className="w-5 h-5 accent-orange-600"
-              />
-            </div>
+            <PreferenceRow
+              label="Resúmenes (Digest)"
+              description="Recibe un resumen en vez de notificaciones individuales"
+              checked={prefs.digestEnabled}
+              onChange={() => handleToggle('digestEnabled')}
+            />
 
             {prefs.digestEnabled && (
               <select 
