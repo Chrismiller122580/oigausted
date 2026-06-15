@@ -315,7 +315,15 @@ function OrderDetailClient() {
         const updatedOrder = await fetch(`/api/orders/${orderId}`).then(r => r.json());
         setOrder(updatedOrder.order || updatedOrder);
       } else {
-        toast.error('Error actualizando estado');
+        if (res.status === 403) {
+          const err = await res.json().catch(() => ({}));
+          toast.error(err.error || 'No tienes permiso para esta acción en este pedido');
+          // Refetch in case of stale data
+          const fresh = await fetch(`/api/orders/${orderId}`).then(r => r.json()).catch(() => ({}));
+          if (fresh.order) setOrder(fresh.order);
+        } else {
+          toast.error('Error actualizando estado');
+        }
       }
     } catch {
       toast.error('Error actualizando');
@@ -534,12 +542,14 @@ function OrderDetailClient() {
                     {['Pending', 'In Progress'].includes(order.status) && (
                       <Button onClick={() => updateStatus('Completed')} className="w-full">✅ Marcar como Completado</Button>
                     )}
-                    {order.status !== 'Completed' && order.status !== 'Cancelled' && (
-                      <Button onClick={() => updateStatus('Cancelled')} variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">Cancelar Pedido</Button>
-                    )}
                   </>
                 )}
-                {!isSeller && !isCompleted && (
+
+                {isBuyer && !isCompleted && order.status !== 'Cancelled' && ['Pending', 'Paid'].includes(order.status) && (
+                  <Button onClick={() => updateStatus('Cancelled')} variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">Cancelar Pedido</Button>
+                )}
+
+                {!isSeller && !isCompleted && ! (isBuyer && ['Pending', 'Paid'].includes(order.status)) && (
                   <p className="text-sm text-muted-foreground text-center py-2">El vendedor actualizará el progreso aquí.</p>
                 )}
 
@@ -1125,9 +1135,6 @@ function OrderDetailClient() {
                 )}
                 {order.status !== 'Completed' && (
                   <Button onClick={() => updateStatus('Completed')} size="lg">✅ Marcar Completado</Button>
-                )}
-                {order.status !== 'Cancelled' && order.status !== 'Completed' && (
-                  <Button onClick={() => updateStatus('Cancelled')} size="lg" variant="outline" className="text-red-600">Cancelar</Button>
                 )}
               </div>
             )}

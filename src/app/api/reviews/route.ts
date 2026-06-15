@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ reviews });
   } catch (error) {
     console.error('Error fetching reviews:', error);
-    return NextResponse.json({ error: 'Failed to load reviews' }, { status: 500 });
+    // Return empty list on error (e.g. schema drift, bad relations after rollback) to avoid breaking UIs that call this
+    return NextResponse.json({ reviews: [] });
   }
 }

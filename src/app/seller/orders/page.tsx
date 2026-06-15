@@ -61,7 +61,16 @@ export default function SellerOrdersPage() {
         body: JSON.stringify({ status: newStatus }),
       });
 
-      if (!res.ok) throw new Error('Error actualizando estado');
+      if (!res.ok) {
+        if (res.status === 403) {
+          toast.error('No tienes permiso para actualizar este pedido');
+          // Refetch to remove any stale orders from previous sessions
+          fetchOrders();
+        } else {
+          throw new Error('Error actualizando estado');
+        }
+        return;
+      }
 
       // Refresh the list
       const updatedOrders = orders.map(o =>
@@ -187,21 +196,12 @@ export default function SellerOrdersPage() {
                 <div className="flex flex-col gap-3 w-full md:w-52 pt-4">
                   {/* Quick Status Actions */}
                   {order.status === 'Pending' && (
-                    <>
-                      <Button 
-                        onClick={() => updateOrderStatus(order.id, 'In Progress')}
-                        className="w-full bg-purple-600 hover:bg-purple-700"
-                      >
-                        Aceptar y Comenzar
-                      </Button>
-                      <Button 
-                        onClick={() => updateOrderStatus(order.id, 'Cancelled')}
-                        variant="outline"
-                        className="w-full text-red-600 border-red-200 hover:bg-red-50"
-                      >
-                        Cancelar Pedido
-                      </Button>
-                    </>
+                    <Button 
+                      onClick={() => updateOrderStatus(order.id, 'In Progress')}
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                    >
+                      Aceptar y Comenzar
+                    </Button>
                   )}
 
                   {order.status === 'In Progress' && (
