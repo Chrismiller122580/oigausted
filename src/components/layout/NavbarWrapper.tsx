@@ -68,6 +68,15 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
             <Logo size={36} />
 
             <div className="hidden md:flex items-center gap-4">
+              <Link href="/gigs" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Servicios
+              </Link>
+              <Link href="/faq" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                FAQ
+              </Link>
+              <Link href="/about" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Nosotros
+              </Link>
               <Link href="/login"><Button variant="outline">Iniciar Sesión</Button></Link>
               <Link href="/signup"><Button className="bg-orange-600">Registrarse</Button></Link>
               {!isAuthPage && <ModeToggle />}

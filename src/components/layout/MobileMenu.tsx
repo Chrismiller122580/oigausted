@@ -40,10 +40,21 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
       <div className="px-6 py-8 space-y-2 text-lg overflow-y-auto h-[calc(100vh-5rem)]">
         {role === 'public' && (
           <>
-            <Link href="/notifications" onClick={onClose} className="block py-4 border-b border-border">
-              Notificaciones
+            <Link href="/gigs" onClick={onClose} className="block py-4 border-b border-border">
+              Explorar servicios
             </Link>
-
+            <Link href="/faq" onClick={onClose} className="block py-4 border-b border-border">
+              Preguntas frecuentes
+            </Link>
+            <Link href="/about" onClick={onClose} className="block py-4 border-b border-border">
+              Nosotros
+            </Link>
+            <Link href="/privacy" onClick={onClose} className="block py-4 border-b border-border">
+              Privacidad
+            </Link>
+            <Link href="/terms" onClick={onClose} className="block py-4 border-b border-border">
+              Términos
+            </Link>
             <Link href="/login" onClick={onClose} className="block py-4 border-b border-border">
               Iniciar Sesión
             </Link>

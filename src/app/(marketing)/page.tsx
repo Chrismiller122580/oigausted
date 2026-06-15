@@ -7,6 +7,7 @@ import { getCategoryIcon } from '@/lib/icon-registry';
 import { Search, MessageCircle, ShieldCheck } from 'lucide-react';
 import { AnimatedCategoryGrid, AnimatedTestimonials } from './LandingClient';
 import { LaunchPromoBanner } from './LaunchPromoBanner';
+import { PublicFooter } from '@/components/marketing/PublicFooter';
 
 export const metadata = {
   title: 'OigaGig • Servicios entre colombianos • Acabamos de lanzar 🚀',
@@ -325,21 +326,7 @@ export default async function MarketingHomePage() {
         </div>
       </section>
 
-      {/* FOOTER - Slightly refined */}
-      <footer className="border-t bg-card dark:bg-card py-10 text-sm">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between gap-6 text-zinc-500">
-          <div>
-            <div className="font-semibold text-zinc-900 dark:text-white mb-1">Oigagig</div>
-            <div>Conectando Colombia, un servicio a la vez.</div>
-          </div>
-          <div className="flex gap-8">
-            <Link href="/gigs" className="hover:text-zinc-900 dark:hover:text-white transition-colors">Explorar</Link>
-            <Link href="/create-gig" className="hover:text-zinc-900 dark:hover:text-white transition-colors">Publicar</Link>
-            <Link href="/login" className="hover:text-zinc-900 dark:hover:text-white transition-colors">Iniciar sesión</Link>
-          </div>
-          <div>© {new Date().getFullYear()} Oigagig</div>
-        </div>
-      </footer>
+      <PublicFooter siteName="OigaGig" />
     </div>
   );
 }
