@@ -404,11 +404,13 @@ export default function AdminUsersPage() {
                       )}
                     </td>
                     <td className="p-4">
-                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.isActive !== false ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
-                      }`}>
-                        {user.isActive !== false ? 'Active' : 'Inactive'}
-                      </span>
+                      {user.role === 'seller' ? (
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          user.isActive !== false ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
+                        }`}>
+                          {user.isActive !== false ? 'Active' : 'Inactive'}
+                        </span>
+                      ) : '—'}
                     </td>
                     <td className="p-4 text-foreground">
                       {user.role === 'seller' ? (user.businessName || '—') : '—'}
@@ -442,13 +444,15 @@ export default function AdminUsersPage() {
                         Reset Pass
                       </Button>
 
-                      <a 
-                        href={`/seller/gigs?userId=${user.id}`} 
-                        target="_blank"
-                        className="text-xs px-2 py-1 border border-border rounded hover:bg-muted inline-block"
-                      >
-                        Gigs
-                      </a>
+                      {user.role === 'seller' && (
+                        <a 
+                          href={`/seller/gigs?userId=${user.id}`} 
+                          target="_blank"
+                          className="text-xs px-2 py-1 border border-border rounded hover:bg-muted inline-block"
+                        >
+                          Gigs
+                        </a>
+                      )}
                       <a 
                         href={`/orders?userId=${user.id}`} 
                         target="_blank"

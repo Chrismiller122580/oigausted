@@ -182,10 +182,7 @@ export default function MiNegocioPage() {
     }
   };
 
-  const rating = 4.8;
-  const reviewCount = 47;
-  const totalGigs = 18;
-  const totalEarnings = "12.450.000";
+  // Use real data from session + fetched stats (removed hardcoded demo values for launch)
 
   return (
     <div className="min-h-screen bg-background pb-12">
@@ -357,9 +354,11 @@ export default function MiNegocioPage() {
               <div className="flex-shrink-0">
                 <div className="w-52 h-52 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/40 dark:to-amber-900/40 rounded-3xl overflow-hidden border-4 border-border dark:border-zinc-700 shadow-inner">
                   {formData.profilePicture ? (
-                    <img src={formData.profilePicture} alt="Logo" className="w-full h-full object-cover" />
+                    <img src={formData.profilePicture} alt="Logo del Negocio" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-8xl">🏪</div>
+                    <div className="w-full h-full flex items-center justify-center bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 text-7xl font-bold tracking-tight">
+                      {formData.businessName ? formData.businessName.trim()[0].toUpperCase() : '🏪'}
+                    </div>
                   )}
                 </div>
                 {isEditing && (
