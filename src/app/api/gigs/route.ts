@@ -11,7 +11,7 @@ import { devLog } from '@/lib/utils';
 export async function GET() {
   try {
     const gigs = await prisma.gig.findMany({
-      where: { isActive: true },
+      where: { isActive: true, deletedAt: null },
       orderBy: { createdAt: 'desc' }
     });
 

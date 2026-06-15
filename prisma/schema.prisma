@@ -252,6 +252,7 @@ model Gig {
   addons          String?
   isActive        Boolean   @default(true)
   createdAt       DateTime @default(now())
+  deletedAt       DateTime? // soft delete for admin moderation / restore
   sellerId        String
   seller          User     @relation(fields: [sellerId], references: [id])
   orders          Order[]

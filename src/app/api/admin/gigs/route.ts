@@ -16,17 +16,22 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';
+    const includeDeleted = searchParams.get('includeDeleted') === 'true';
+
+    const where: any = {};
+    if (!includeDeleted) {
+      where.deletedAt = null;
+    }
+    if (search) {
+      where.OR = [
+        { title: { contains: search } },
+        { seller: { name: { contains: search } } },
+        { seller: { email: { contains: search } } }
+      ];
+    }
 
     const gigs = await prisma.gig.findMany({
-      where: search
-        ? {
-            OR: [
-              { title: { contains: search } },
-              { seller: { name: { contains: search } } },
-              { seller: { email: { contains: search } } }
-            ]
-          }
-        : {},
+      where,
       include: {
         seller: {
           select: {
@@ -56,7 +61,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// PATCH for moderation actions (isActive toggle, etc.)
+// PATCH for moderation actions (full edit, isActive toggle, soft delete/restore)
 export async function PATCH(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -64,41 +69,63 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { gigId, isActive } = await req.json();
+    const body = await req.json();
+    const { gigId, isActive, deletedAt, title, price, description, category, completionTime, imageUrl, fields, addons, city, latitude, longitude, isRemote } = body;
 
     if (!gigId) {
       return NextResponse.json({ error: 'gigId is required' }, { status: 400 });
     }
 
+    const data: any = {};
+    if (isActive !== undefined) data.isActive = Boolean(isActive);
+    if (deletedAt !== undefined) data.deletedAt = deletedAt ? new Date(deletedAt) : null;
+    if (title !== undefined) data.title = title;
+    if (price !== undefined) data.price = Number(price);
+    if (description !== undefined) data.description = description || null;
+    if (category !== undefined) data.category = category || null;
+    if (completionTime !== undefined) data.completionTime = completionTime || null;
+    if (imageUrl !== undefined) data.imageUrl = imageUrl || null;
+    if (fields !== undefined) data.fields = fields ? (typeof fields === 'string' ? fields : JSON.stringify(fields)) : null;
+    if (addons !== undefined) data.addons = addons ? (typeof addons === 'string' ? addons : JSON.stringify(addons)) : null;
+    if (city !== undefined) data.city = city || null;
+    if (latitude !== undefined) data.latitude = latitude != null ? Number(latitude) : null;
+    if (longitude !== undefined) data.longitude = longitude != null ? Number(longitude) : null;
+    if (isRemote !== undefined) data.isRemote = Boolean(isRemote);
+
     const updated = await prisma.gig.update({
       where: { id: gigId },
-      data: {
-        ...(isActive !== undefined && { isActive: Boolean(isActive) })
-      }
+      data
     });
 
-    // Log moderation action (capture request metadata for audit)
+    // Log moderation action
     const adminId = (session.user as any).id;
     const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
     const userAgent = req.headers.get('user-agent') || null;
+
+    let action = 'GIG_UPDATED';
+    if (deletedAt !== undefined) action = deletedAt ? 'GIG_DELETED' : 'GIG_RESTORED';
+    else if (isActive !== undefined) action = isActive ? 'GIG_ACTIVATED' : 'GIG_DEACTIVATED';
+
     await logAuditEvent({
       adminId,
-      action: isActive ? 'GIG_ACTIVATED' : 'GIG_DEACTIVATED',
+      action,
       targetType: 'Gig',
       targetId: gigId,
-      details: { isActive: Boolean(isActive) },
+      details: { ...data },
       ipAddress,
       userAgent,
     });
 
-    // Send in-app notification to seller
-    await notifications.sendInApp(
-      updated.sellerId,
-      'gig',
-      isActive ? 'Tu gig ha sido activado' : 'Tu gig ha sido pausado',
-      `El servicio "${updated.title}" ha cambiado de estado.`,
-      `/seller/gigs`
-    );
+    // Send in-app notification to seller for key actions
+    if (deletedAt !== undefined || isActive !== undefined) {
+      await notifications.sendInApp(
+        updated.sellerId,
+        'gig',
+        deletedAt ? 'Tu gig ha sido eliminado' : (isActive ? 'Tu gig ha sido activado' : 'Tu gig ha sido pausado'),
+        deletedAt ? `El servicio "${updated.title}" ha sido eliminado por un administrador.` : `El servicio "${updated.title}" ha cambiado de estado.`,
+        `/seller/gigs`
+      );
+    }
 
     return NextResponse.json({ success: true, gig: updated });
   } catch (error) {
