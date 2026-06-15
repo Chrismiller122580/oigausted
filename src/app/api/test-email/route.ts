@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         </div>`;
 
         const sendResult = await rawResend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'Oigagig <support@support.oigagig.com>',
+          from: process.env.RESEND_FROM_EMAIL || 'Oigagig <support@oigagig.com>',
           to,
           subject,
           html,

@@ -90,7 +90,7 @@ async function main() {
       commissionRate: 0.12,
       referralCommissionRate: 0.05,
       minPayoutAmount: 50000,
-      supportEmail: 'support@support.oigagig.com',
+      supportEmail: 'support@oigagig.com',
       enableReviews: true,
       enableChat: true,
       referralsEnabled: true,
@@ -145,7 +145,7 @@ async function main() {
         // minimal other fields
         referralCommissionRate: 0.05,
         minPayoutAmount: 50000,
-        supportEmail: 'support@support.oigagig.com',
+        supportEmail: 'support@oigagig.com',
         enableReviews: true,
         enableChat: true,
         referralsEnabled: true,

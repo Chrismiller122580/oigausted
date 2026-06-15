@@ -408,7 +408,7 @@ export default function AdminMarketingPage() {
     }
     if (type === 'info') {
       setSubject('Actualización de información de tu cuenta');
-      setMessage('Hola,\n\nTe recordamos que puedes actualizar tu información de perfil, número de WhatsApp y datos de negocio en cualquier momento desde tu configuración de cuenta.\n\nMantener tus datos actualizados ayuda a que compradores y vendedores puedan contactarte fácilmente.\n\nSi necesitas ayuda, escríbenos a support@support.oigagig.com.\n\n— Equipo Oigagig');
+      setMessage('Hola,\n\nTe recordamos que puedes actualizar tu información de perfil, número de WhatsApp y datos de negocio en cualquier momento desde tu configuración de cuenta.\n\nMantener tus datos actualizados ayuda a que compradores y vendedores puedan contactarte fácilmente.\n\nSi necesitas ayuda, escríbenos a support@oigagig.com.\n\n— Equipo Oigagig');
     }
   };
 

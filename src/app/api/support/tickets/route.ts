@@ -72,12 +72,12 @@ export async function POST(request: NextRequest) {
       const { resend } = await import('@/lib/notifications');
       const { getPlatformConfig } = await import('@/lib/prisma');
       const config = await getPlatformConfig();
-      const supportEmail = config?.supportEmail || 'support@support.oigagig.com';
+      const supportEmail = config?.supportEmail || 'support@oigagig.com';
       const adminEmails = admins.map((a: any) => a.email).filter(Boolean) as string[];
       const toList = Array.from(new Set([supportEmail, ...adminEmails]));
       if (resend && toList.length) {
         await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'Oigagig <support@support.oigagig.com>',
+          from: process.env.RESEND_FROM_EMAIL || 'Oigagig <support@oigagig.com>',
           to: toList,
           subject: `Nuevo ticket de soporte: ${subject}`,
           html: `

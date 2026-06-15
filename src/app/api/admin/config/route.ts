@@ -189,7 +189,7 @@ export async function PUT(request: NextRequest) {
           commissionRate: body.commissionRate ?? 0.12,
           referralCommissionRate: body.referralCommissionRate ?? 0.05,
           minPayoutAmount: body.minPayoutAmount ?? 50000,
-          supportEmail: body.supportEmail ?? 'support@support.oigagig.com',
+          supportEmail: body.supportEmail ?? 'support@oigagig.com',
           supportPhone: body.supportPhone ?? '',
           enableReviews: body.enableReviews ?? true,
           enableChat: body.enableChat ?? true,

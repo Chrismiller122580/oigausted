@@ -100,7 +100,7 @@ export default function ForgotPasswordPage() {
           )}
 
           <div className="mt-8 pt-6 border-t text-xs text-center text-gray-500">
-            Password reset by email is in beta. Contact support@support.oigagig.com for immediate help.
+            Password reset by email is in beta. Contact support@oigagig.com for immediate help.
           </div>
         </CardContent>
       </Card>

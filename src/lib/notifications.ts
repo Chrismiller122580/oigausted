@@ -5,7 +5,7 @@ import { devLog, toPrismaJson, parseDeliveryLog } from './utils';
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Oigagig <support@support.oigagig.com>';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Oigagig <support@oigagig.com>';
 
 export interface NotificationPayload {
   userId: string;
@@ -460,7 +460,7 @@ async function sendWebPushIfEnabled(
   }
 
   webpush.setVapidDetails(
-    'mailto:support@support.oigagig.com',
+    'mailto:support@oigagig.com',
     publicKey,
     privateKey
   );

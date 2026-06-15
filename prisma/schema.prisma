@@ -354,7 +354,7 @@ model PlatformConfig {
   commissionRate          Float    @default(0.12)   // Plataforma (sobre el pedido)
   referralCommissionRate  Float    @default(0.05)   // Comisión por referidos (ej: 5%)
   minPayoutAmount         Float    @default(50000)
-  supportEmail            String   @default("support@support.oigagig.com")
+  supportEmail            String   @default("support@oigagig.com")
   supportPhone            String?  // Optional public support phone / WhatsApp
   enableReviews           Boolean  @default(true)
   enableChat              Boolean  @default(true)
