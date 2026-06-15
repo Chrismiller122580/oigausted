@@ -12,6 +12,7 @@ import {
 import { useState } from 'react';
 import MobileMenu from './MobileMenu';
 import { NotificationsBell } from './NotificationsBell';
+import MobileBottomNav from './MobileBottomNav';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import Logo from '@/components/common/Logo';
 
@@ -79,7 +80,7 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
           </div>
 
           {/* Right side - user + actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 md:gap-3">
             <div className="hidden md:flex items-center gap-3 text-sm">
               <div className="text-right">
                 <p className="font-medium text-foreground">{session?.user?.name || 'Admin'}</p>
@@ -88,7 +89,11 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
             </div>
 
             <NotificationsBell />
-            <ModeToggle />
+
+            {/* Desktop-only mode toggle */}
+            <div className="hidden md:block">
+              <ModeToggle />
+            </div>
 
             <Button
               variant="ghost"
@@ -99,7 +104,7 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
               <LogOut size={18} />
             </Button>
 
-            {/* Mobile controls */}
+            {/* Mobile-only mode toggle (keep one visible instance on mobile) */}
             <div className="md:hidden">
               <ModeToggle />
             </div>
@@ -157,7 +162,7 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
 
         {/* Main Content Area */}
         <div className="flex-1 min-w-0">
-          <main className="p-4 sm:p-6 lg:p-8">
+          <main className="p-4 sm:p-6 lg:p-8 pb-20 md:pb-8">
             {children}
           </main>
         </div>
@@ -169,6 +174,9 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
         onClose={() => setIsMobileMenuOpen(false)} 
         role="admin" 
       />
+
+      {/* Mobile bottom nav (consistent with buyer/seller) */}
+      <MobileBottomNav role="admin" />
     </div>
   );
 }

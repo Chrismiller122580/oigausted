@@ -5,6 +5,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+// GET: return current push subscription count for the user (for UI)
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    const userId = (session?.user as any)?.id;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const count = await prisma.pushSubscription.count({ where: { userId } });
+    return NextResponse.json({ count, subscribed: count > 0 });
+  } catch (error) {
+    return NextResponse.json({ count: 0, subscribed: false });
+  }
+}
+
 // Subscribe to real Web Push notifications (2027 standard)
 export async function POST(req: NextRequest) {
   try {

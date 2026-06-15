@@ -94,6 +94,14 @@ export async function POST(req: NextRequest) {
         undefined,
         { resetLink: 'https://oigagig.com/reset-password?token=test-123' }
       );
+    } else if (emailType === 'push-test') {
+      // Real Web Push test (works even when the tab/app is closed)
+      result = await notifications.sendPush(
+        userId,
+        '🔔 Prueba de Push - OigaUsted',
+        'Si recibes esto, las notificaciones push reales están funcionando correctamente.',
+        { link: '/notifications', test: true }
+      );
     } else {
       return NextResponse.json({ error: 'Invalid emailType' }, { status: 400 });
     }

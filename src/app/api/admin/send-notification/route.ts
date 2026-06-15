@@ -32,6 +32,8 @@ export async function POST(req: NextRequest) {
       result = await notifications.sendInApp(userId, category, title, message);
     } else if (type === 'email') {
       result = await notifications.sendEmail(userId, title, message);
+    } else if (type === 'push') {
+      result = await notifications.sendNotification({ userId, category, type: 'push', title, message, data: { category } });
     } else {
       result = await notifications.sendInApp(userId, category, title, message);
     }
