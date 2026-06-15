@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 // @ts-ignore
 import { getServerSession } from 'next-auth'
@@ -365,7 +365,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: orderId } = await params;
+    const resolvedParams = await params
+    const orderId = resolvedParams.id
     const session = await getServerSession(authOptions);
     const isAdmin = (session?.user as any)?.role === 'admin';
 
