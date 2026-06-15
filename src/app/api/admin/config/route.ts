@@ -79,6 +79,10 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const resendApiKey = process.env.RESEND_API_KEY || '';
+    const resendFrom = process.env.RESEND_FROM_EMAIL || '';
+    const resendFromLooksValid = /@/.test(resendFrom) && !resendFrom.startsWith('re_');
+
     const paymentStatus = {
       wompi: {
         configured: !!wompiPublic && !!wompiIntegrity,
@@ -92,6 +96,12 @@ export async function GET(req: NextRequest) {
         enabled: config.wompiSftpEnabled ?? false,
         configured: !!config.wompiSftpHost && !!config.wompiSftpUsername,
         host: config.wompiSftpHost || null,
+      },
+      resend: {
+        configured: !!resendApiKey && resendApiKey.startsWith('re_'),
+        fromEmail: resendFromLooksValid ? resendFrom : null,
+        fromMisconfigured: !!resendFrom && !resendFromLooksValid,
+        hasWebhookSecret: !!process.env.RESEND_WEBHOOK_SECRET,
       },
       appUrl: process.env.NEXT_PUBLIC_APP_URL || null,
     };

@@ -51,6 +51,12 @@ interface PaymentStatus {
     configured?: boolean;
     host?: string | null;
   };
+  resend?: {
+    configured?: boolean;
+    fromEmail?: string | null;
+    fromMisconfigured?: boolean;
+    hasWebhookSecret?: boolean;
+  };
   appUrl: string | null;
 }
 
@@ -1522,10 +1528,19 @@ export default function AdminSettings() {
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
                 <Mail className="w-3.5 h-3.5" /> Resend (Emails)
               </div>
-              <div className={process.env.NEXT_PUBLIC_APP_URL ? 'text-emerald-400' : 'text-amber-400'}>
-                {process.env.RESEND_API_KEY || typeof window === 'undefined' ? '✓ Clave detectada (server)' : '⚠ Clave no visible en cliente'}
+              {config._meta?.payment?.resend?.fromMisconfigured ? (
+                <div className="text-red-400 text-sm">⚠ RESEND_FROM_EMAIL inválido (parece API key)</div>
+              ) : config._meta?.payment?.resend?.configured ? (
+                <div className="text-emerald-400 text-sm">✓ Configurado</div>
+              ) : (
+                <div className="text-amber-400 text-sm">⚠ Falta RESEND_API_KEY</div>
+              )}
+              <div className="text-[10px] text-muted-foreground mt-1">
+                From: {config._meta?.payment?.resend?.fromEmail || 'no configurado'}
               </div>
-              <div className="text-[10px] text-muted-foreground mt-1">From: {process.env.RESEND_FROM_EMAIL || 'configurado en env'}</div>
+              {!config._meta?.payment?.resend?.hasWebhookSecret && (
+                <div className="text-[10px] text-muted-foreground mt-0.5">Webhook secret: opcional</div>
+              )}
             </div>
 
             <div className="rounded-2xl border border-border bg-background p-4">
