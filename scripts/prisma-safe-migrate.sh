@@ -38,6 +38,30 @@ run_migrate() {
   return $exit_code
 }
 
+# Helper for safe resolve that tolerates "not in failed state" (P3012) and retries on connection errors
+safe_resolve() {
+  local mig=$1
+  for attempt in 1 2 3; do
+    echo "    Attempting resolve --rolled-back for $mig (attempt $attempt)..."
+    local resolve_log
+    resolve_log=$(DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$mig" 2>&1)
+    echo "$resolve_log"
+    if echo "$resolve_log" | grep -q "P3012"; then
+      echo "    $mig is not in a failed state (P3012) - skipping."
+      return 0
+    fi
+    if echo "$resolve_log" | grep -qi "too many connections"; then
+      echo "    Connection error during resolve, will retry after sleep..."
+      sleep $((attempt * 5))
+      continue
+    fi
+    echo "    Resolve completed for $mig (or already clean)."
+    return 0
+  done
+  echo "    Resolve for $mig failed after retries (non-fatal, continuing)."
+  return 0
+}
+
 # First attempt - try clean deploy first (avoids unnecessary resolve calls that waste the limited prisma_migration connections)
 run_migrate
 MIGRATE_EXIT=$?
@@ -60,14 +84,9 @@ cat /tmp/migrate.log
 if grep -q "failed migrations in the target database" /tmp/migrate.log; then
   echo "⚠️  Detected failed migration(s) in target database. Performing targeted resolve for known recent migrations..."
 
-  # Resolve only the ones we care about (with sleeps to respect the low connection limit on prisma_migration role)
+  # Resolve only the ones we care about, using safe_resolve (handles P3012 and connection retries)
   for mig in "$MIGRATION_NAME" "$NEW_PAYOUT_MIGRATION" "$DELETED_AT_MIGRATION"; do
-    echo "    Attempting resolve --rolled-back for $mig ..."
-    if DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$mig" 2>&1 | grep -q "P3012"; then
-      echo "    $mig is not in a failed state (P3012) - skipping."
-    else
-      echo "    Resolve command completed for $mig (or already clean)."
-    fi
+    safe_resolve "$mig"
     sleep 4
   done
 
@@ -75,10 +94,7 @@ if grep -q "failed migrations in the target database" /tmp/migrate.log; then
   echo "    Resolving any additional migrations mentioned in this specific failure log..."
   grep -oE '[0-9]{14}_[a-z0-9_]+' /tmp/migrate.log | sort -u | while read -r mig; do
     if [[ "$mig" != "$MIGRATION_NAME" && "$mig" != "$NEW_PAYOUT_MIGRATION" && "$mig" != "$DELETED_AT_MIGRATION" ]]; then
-      echo "      Resolving $mig (from this log) ..."
-      if DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$mig" 2>&1 | grep -q "P3012"; then
-        echo "      $mig not in failed state - skipping."
-      fi
+      safe_resolve "$mig"
       sleep 3
     fi
   done
