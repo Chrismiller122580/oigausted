@@ -121,10 +121,29 @@ export default async function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">7. Cookies</h2>
+          <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">7. Cookies y analíticas</h2>
           <p>
             Usamos cookies y almacenamiento local para mantener tu sesión, recordar preferencias
-            (tema, tutoriales) y medir uso anónimo del sitio. Puedes gestionar cookies desde tu
+            (tema, tutoriales) y, si lo aceptas en el banner de cookies, medir el uso del sitio con
+            herramientas de analítica.
+          </p>
+          <ul className="list-disc pl-6 mt-3 space-y-2 text-sm">
+            <li>
+              <strong>Cookies esenciales:</strong> autenticación, seguridad y preferencias básicas.
+            </li>
+            <li>
+              <strong>Vercel Web Analytics:</strong> métricas agregadas de páginas visitadas, sin cookies
+              de marketing y sin identificar personas individualmente.
+            </li>
+            <li>
+              <strong>Google Analytics (opcional):</strong> solo si eliges &quot;Aceptar analíticas&quot;.
+              Google puede usar cookies para entender tráfico, campañas y mejoras del producto. Consulta la
+              política de Google para más detalle.
+            </li>
+          </ul>
+          <p className="mt-3">
+            Puedes elegir &quot;Solo esenciales&quot; en cualquier momento desde el banner de cookies (al
+            borrar el almacenamiento local del sitio volverá a mostrarse) o gestionar cookies desde tu
             navegador.
           </p>
         </section>

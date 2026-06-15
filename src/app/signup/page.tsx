@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl"
 import { Eye, EyeOff } from "lucide-react"
 import { usePlatformConfig } from "@/components/providers/PlatformConfigProvider"
+import { trackEvent } from "@/lib/analytics"
 
 function SignUpClient() {
   const router = useRouter()
@@ -88,6 +89,10 @@ function SignUpClient() {
       })
 
       if (loginResult?.ok) {
+        trackEvent('signup_completed', {
+          role: formData.role,
+          has_referral: Boolean(refCode),
+        })
         // Route based on chosen role (use helper for dev resilience)
         if (formData.role === "seller") {
           router.push(getAuthCallbackUrl("/seller"))

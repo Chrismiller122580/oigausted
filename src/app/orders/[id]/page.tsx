@@ -17,6 +17,7 @@ import type { WompiClientDebugState, WompiPrepareResponse, WompiWidgetResult } f
 import type { GigCategory } from '@/lib/useGigCategories';
 import type { ChangeEvent } from 'react';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
+import { trackEvent } from '@/lib/analytics';
 
 function OrderDetailClient() {
   const params = useParams();
@@ -206,6 +207,7 @@ function OrderDetailClient() {
             clearInterval(paymentPollRef.current);
             paymentPollRef.current = null;
           }
+          trackEvent('payment_completed', { order_status: fresh.status });
           toast.success(`Pago confirmado: ${fresh.status}`);
           // Refresh other data like messages if needed
         }

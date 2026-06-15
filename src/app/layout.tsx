@@ -6,7 +6,10 @@ import SessionProviderWrapper from "@/components/providers/SessionProviderWrappe
 import MaintenanceBanner from "@/components/layout/MaintenanceBanner";
 import { Toaster } from "sonner"; // 2027-grade beautiful toasts
 import { ensurePlatformConfig } from "@/lib/prisma"; // one-off ensure of PlatformConfig singleton (maintenanceMode etc.) on first boot/request
-import { Analytics } from "@vercel/analytics/react"; // Vercel Analytics for the facelift landing + overall app
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import ConsentedGoogleAnalytics from "@/components/analytics/ConsentedGoogleAnalytics";
+import CookieConsent from "@/components/common/CookieConsent";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -230,7 +233,10 @@ export default function RootLayout({
             {children}
           </NavbarWrapper>
           <Toaster position="top-center" richColors closeButton />
-          <Analytics /> {/* Vercel Analytics - tracks page views, custom events for the Oiga GiG facelift landing and app-wide usage */}
+          <CookieConsent />
+          <Analytics />
+          <SpeedInsights />
+          <ConsentedGoogleAnalytics />
         </SessionProviderWrapper>
       </body>
     </html>

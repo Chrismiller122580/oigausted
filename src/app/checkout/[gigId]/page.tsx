@@ -13,6 +13,7 @@ import type { CheckoutFormData, CheckoutGig, DynamicFieldDef, DynamicFieldOption
 import type { OrderDetail } from '@/types/order';
 import type { WompiClientDebugState, WompiPrepareResponse, WompiWidgetResult } from '@/types/wompi';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
+import { trackEvent } from '@/lib/analytics';
 
 export default function CheckoutPage() {
   const params = useParams();
@@ -245,7 +246,11 @@ export default function CheckoutPage() {
       const orderResponse = await orderRes.json();
       if (!orderRes.ok) throw new Error(orderResponse.error || "Failed to create order");
       
-      setOrder(orderResponse.order || orderResponse);
+      const createdOrder = orderResponse.order || orderResponse;
+      setOrder(createdOrder);
+      trackEvent('checkout_started', {
+        gig_category: gigData.category || 'unknown',
+      });
     } catch (err: unknown) {
       devLog('Checkout load error:', err);
       toast.error(err instanceof Error ? err.message : "No se pudo cargar el checkout. ¿Estás logueado?");
@@ -398,6 +403,8 @@ export default function CheckoutPage() {
             }
           });
 
+          trackEvent('payment_initiated', { payment_method: 'wompi' });
+
           checkout.open((result: WompiWidgetResult) => {
             console.log('✅ Wompi result:', result);
             if (result?.transaction) {
@@ -421,6 +428,7 @@ export default function CheckoutPage() {
                   await fetch(`/api/orders/${targetOrderId}/check-wompi`, { method: 'POST' }).catch(() => {});
                   const fresh = await fetch(`/api/orders/${targetOrderId}`).then(r => r.json());
                   if (fresh?.order?.status && fresh.order.status !== 'Pending') {
+                    trackEvent('payment_completed', { order_status: fresh.order.status });
                     toast.success(`Pago detectado: ${fresh.order.status}. Redirigiendo...`);
                     router.push(`/orders/${targetOrderId}?from=wompi`);
                   } else {

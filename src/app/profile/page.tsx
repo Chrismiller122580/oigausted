@@ -12,6 +12,7 @@ import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink, Eye
 import { toast } from 'sonner';
 import MapsPollutionNuke from "@/components/maps/MapsPollutionNuke";
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
+import { trackEvent } from '@/lib/analytics';
 
 export default function ProfilePage() {
   const { data: session, update } = useSession();
@@ -267,6 +268,7 @@ export default function ProfilePage() {
       const data = await res.json();
 
       if (res.ok) {
+        trackEvent('become_seller');
         toast.success("¡Felicidades! Ahora eres vendedor");
         await update({
           role: 'seller',

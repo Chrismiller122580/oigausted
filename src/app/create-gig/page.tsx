@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useGigCategories } from '@/lib/useGigCategories';
 import { toast } from 'sonner';
+import { trackEvent } from '@/lib/analytics';
 import { MapPin } from 'lucide-react';
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 import type { CheckoutFormData, DynamicFieldDef, DynamicFieldOption, GigAddonOption } from '@/types/gig-fields';
@@ -235,6 +236,9 @@ function CreateGigClient() {
       });
 
       if (res.ok) {
+        if (!isEditing) {
+          trackEvent('gig_created', { category });
+        }
         toast.success(isEditing ? "¡Servicio actualizado exitosamente!" : "¡Servicio publicado exitosamente!");
         router.push('/seller/gigs'); // Go to the new management page
       } else {
