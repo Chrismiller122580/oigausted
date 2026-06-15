@@ -163,6 +163,7 @@ export const authOptions = {
               name: true,
               tagline: true,
               profilePicture: true,
+              coverImageUrl: true,
               businessName: true,
               bio: true,
               phone: true,
@@ -182,6 +183,7 @@ export const authOptions = {
             const t = token as any
             t.name = dbUser.name
             t.profilePicture = dbUser.profilePicture
+            t.coverImageUrl = dbUser.coverImageUrl
             t.businessName = dbUser.businessName
             t.bio = dbUser.bio
             t.phone = dbUser.phone
@@ -212,6 +214,7 @@ export const authOptions = {
         if (pic !== undefined) {
           t.profilePicture = pic
         }
+        if (session.coverImageUrl !== undefined) t.coverImageUrl = session.coverImageUrl
         if (session.businessName !== undefined) t.businessName = session.businessName
         if (session.bio !== undefined) t.bio = session.bio
         if (session.phone !== undefined) t.phone = session.phone

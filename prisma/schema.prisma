@@ -56,6 +56,7 @@ model User {
   nit           String?
   bio           String?
   profilePicture String?
+  coverImageUrl  String?
   rating        Float?    @default(0)
   reviewCount   Int       @default(0)
   isActive      Boolean   @default(true)

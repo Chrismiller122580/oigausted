@@ -44,6 +44,7 @@ export default function ProfilePage() {
     instagram: "",
     facebook: "",
     imageUrl: "",
+    coverImageUrl: "",
     latitude: null as number | null,
     longitude: null as number | null,
   });
@@ -61,6 +62,7 @@ export default function ProfilePage() {
         instagram: user.instagram || "",
         facebook: user.facebook || "",
         imageUrl: user.image || user.profilePicture || "",
+        coverImageUrl: user.coverImageUrl || "",
         latitude: user.latitude || null,
         longitude: user.longitude || null,
       });
@@ -124,6 +126,33 @@ export default function ProfilePage() {
     }
   };
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: formDataUpload });
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.uploadDisabled) {
+          toast.error("Subida de archivos no disponible en este entorno. Usa el campo 'URL de imagen de fondo' abajo.");
+        } else {
+          throw new Error(data.error || 'Upload failed');
+        }
+      } else if (data.url) {
+        setFormData({ ...formData, coverImageUrl: data.url });
+        toast.success("Foto de fondo subida correctamente");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Error subiendo la foto de fondo.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const generateBio = async () => {
     if (!formData.name) return toast.error("Escribe tu nombre primero");
     try {
@@ -171,6 +200,7 @@ export default function ProfilePage() {
           ...formData,
           image: formData.imageUrl,
           profilePicture: formData.imageUrl,
+          coverImageUrl: formData.coverImageUrl,
         });
         setIsEditing(false);
         toast.success("Perfil actualizado correctamente");
@@ -322,7 +352,18 @@ export default function ProfilePage() {
         </div>
 
         <Card className="overflow-hidden shadow-2xl">
-          <div className="h-64 bg-gradient-to-r from-orange-600 via-red-600 to-rose-600 relative">
+          <div 
+            className="h-64 bg-gradient-to-r from-orange-600 via-red-600 to-rose-600 relative bg-cover bg-center"
+            style={formData.coverImageUrl ? { backgroundImage: `url(${formData.coverImageUrl})` } : {}}
+          >
+            {/* Background photo upload overlay (camera in top right) */}
+            <label className="absolute top-4 right-4 cursor-pointer z-10">
+              <div className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition">
+                <Camera size={18} />
+              </div>
+              <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+            </label>
+
             <div className="absolute -bottom-16 left-10">
               <label className="cursor-pointer">
                 <div className="w-32 h-32 bg-card rounded-3xl overflow-hidden border-4 border-white shadow-xl relative group">

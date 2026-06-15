@@ -20,6 +20,7 @@ export async function PATCH(request: Request) {
       name: data.name || undefined,
       tagline: data.tagline !== undefined ? (data.tagline || null) : undefined,
       profilePicture: data.imageUrl || undefined,
+      coverImageUrl: data.coverImageUrl || undefined,
       bio: data.bio || null,
       phone: data.phone || null,
       whatsapp: data.whatsapp || null,
