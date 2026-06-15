@@ -11,6 +11,7 @@ import Image from "next/image"
 import { toast } from 'sonner'
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl"
 import { Eye, EyeOff } from "lucide-react"
+import { usePlatformConfig } from "@/components/providers/PlatformConfigProvider"
 
 function SignUpClient() {
   const router = useRouter()
@@ -27,27 +28,15 @@ function SignUpClient() {
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [googleEnabled, setGoogleEnabled] = useState(false);
-  const [signupsEnabled, setSignupsEnabled] = useState(true);
-  const [siteName, setSiteName] = useState('Oigagig');
+  const { config: platformConfig } = usePlatformConfig();
+  const signupsEnabled = platformConfig?.allowNewSignups ?? true;
+  const siteName = platformConfig?.siteName || 'Oigagig';
 
-  // Check signup gate + Google OAuth + branding (from public admin config)
   useEffect(() => {
-    fetch('/api/admin/config')
-      .then(res => res.json())
-      .then(data => {
-        if (typeof data.allowNewSignups === 'boolean') {
-          setSignupsEnabled(data.allowNewSignups);
-        }
-        if (data.siteName) setSiteName(data.siteName);
-        // Also load Google config
-        fetch('/api/auth/config')
-          .then(r => r.json())
-          .then(g => setGoogleEnabled(g.googleEnabled ?? false))
-          .catch(() => setGoogleEnabled(false));
-      })
-      .catch(() => {
-        setSignupsEnabled(true); // fail open
-      });
+    fetch('/api/auth/config')
+      .then(r => r.json())
+      .then(g => setGoogleEnabled(g.googleEnabled ?? false))
+      .catch(() => setGoogleEnabled(false));
   }, []);
 
   // Handle NextAuth error redirects (e.g. ?error=OAuthSignin) also on signup

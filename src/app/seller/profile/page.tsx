@@ -9,6 +9,7 @@ import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save, Users } from "
 // import GrokAssistant from "@/components/common/GrokAssistant"; // AI tool hidden per request (floating button disabled)
 import { toast } from 'sonner';
 import { slugify } from '@/lib/utils';
+import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 
 function slugifyForPreview(name?: string) {
   return slugify(name || '');
@@ -83,7 +84,8 @@ export default function MiNegocioPage() {
     reviewCount: 0,
     gigCount: 0,
   });
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const { config: platformConfig } = usePlatformConfig();
+  const maintenanceMode = !!platformConfig?.maintenanceMode;
 
   const applyProfileToForm = (user: {
     businessName?: string | null
@@ -147,10 +149,6 @@ export default function MiNegocioPage() {
       })
       .catch(() => {})
 
-    fetch('/api/admin/config')
-      .then(r => r.json())
-      .then(data => setMaintenanceMode(!!data.maintenanceMode))
-      .catch(() => {})
   }, [session?.user?.id, isEditing])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

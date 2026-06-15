@@ -16,6 +16,7 @@ import type { OrderDetail, OrderMessage, OrderReview, OrderTab } from '@/types/o
 import type { WompiClientDebugState, WompiPrepareResponse, WompiWidgetResult } from '@/types/wompi';
 import type { GigCategory } from '@/lib/useGigCategories';
 import type { ChangeEvent } from 'react';
+import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 
 function OrderDetailClient() {
   const params = useParams();
@@ -44,7 +45,8 @@ function OrderDetailClient() {
   // Robust Wompi script readiness (mirrors checkout page to avoid "cargando" / silent fail to open payment UI)
   const [wompiReady, setWompiReady] = useState(false);
   const [wompiLoadFailed, setWompiLoadFailed] = useState(false);
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const { config: platformConfig } = usePlatformConfig();
+  const maintenanceMode = !!platformConfig?.maintenanceMode;
 
   const ensureWompiReady = async (): Promise<boolean> => {
     if (wompiReady) return true;
@@ -126,11 +128,6 @@ function OrderDetailClient() {
       setMessages(msgData.messages || []);
       setExistingReview(reviewData.review || null);
 
-      // Fetch maintenance mode to gate debug tools
-      fetch('/api/admin/config')
-        .then(r => r.json())
-        .then(data => setMaintenanceMode(!!data.maintenanceMode))
-        .catch(() => {});
       if (reviewData.review) {
         setReviewRating(reviewData.review.rating);
         setReviewText(reviewData.review.comment || '');

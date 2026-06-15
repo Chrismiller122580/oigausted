@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DollarSign, Package, Star, Plus, TrendingUp, Clock } from 'lucide-react';
 import OnboardingTutorial from '@/components/common/OnboardingTutorial';
+import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 
 export default function SellerDashboard() {
   const { data: session } = useSession();
+  const { config: platformConfig } = usePlatformConfig();
   const [gigs, setGigs] = useState<Array<{ id: string; title: string; price: number; isActive?: boolean; stats?: { orderCount?: number; completedCount?: number; completedRevenue?: number } }>>([]);
   const [orders, setOrders] = useState<import('@/types/order').OrderDetail[]>([]);
   const [reviews, setReviews] = useState<import('@/types/order').OrderReview[]>([]);
@@ -52,21 +54,14 @@ export default function SellerDashboard() {
   // Respects global admin toggle from PlatformConfig.tutorialsEnabled (buyer->seller unlock will re-trigger when enabled)
   useEffect(() => {
     const uid = session?.user?.id;
-    if (uid && !loading) {
-      (async () => {
-        try {
-          const res = await fetch('/api/admin/config');
-          const cfg = await res.json();
-          if (cfg.tutorialsEnabled === false) return;
-        } catch {}
-        const seenKey = `tutorial_seller_${uid}`;
-        if (!localStorage.getItem(seenKey)) {
-          const t = setTimeout(() => setShowTutorial(true), 1100);
-          return () => clearTimeout(t);
-        }
-      })();
+    if (uid && !loading && platformConfig?.tutorialsEnabled !== false) {
+      const seenKey = `tutorial_seller_${uid}`;
+      if (!localStorage.getItem(seenKey)) {
+        const t = setTimeout(() => setShowTutorial(true), 1100);
+        return () => clearTimeout(t);
+      }
     }
-  }, [session, loading]);
+  }, [session, loading, platformConfig?.tutorialsEnabled]);
 
   const activeOrders = orders.filter(o => ['Pending', 'In Progress'].includes(o.status || ''));
   const completedOrders = orders.filter(o => o.status === 'Completed');

@@ -7,6 +7,7 @@ import { devLog } from '@/lib/utils';
 import { isSecretUnchanged, maskSecretConfigured } from '@/lib/secrets';
 import type { PublicPlatformConfig } from '@/types/platform-config';
 import type { JsonObject } from '@/types/json';
+import { sanitizeLogoUrl } from '@/lib/logo-url';
 
 function errMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
@@ -25,6 +26,13 @@ export async function GET(req: NextRequest) {
     // Each serverless invocation was previously opening a fresh connection for this singleton query.
     const config = await getPlatformConfig(forceFresh);
 
+    if (config.logoUrl && !sanitizeLogoUrl(config.logoUrl)) {
+      prisma.platformConfig.update({
+        where: { id: 'singleton' },
+        data: { logoUrl: null },
+      }).catch((e: unknown) => console.warn('Could not clear invalid logoUrl:', e));
+    }
+
     // getPlatformConfig() (see src/lib/prisma.ts) now centrally does a lazy
     // ensurePlatformConfig() (idempotent upsert) the first time the row is absent.
     // This provides "one-off on first use / app boot / after DB reset" for the
@@ -41,7 +49,7 @@ export async function GET(req: NextRequest) {
         maintenanceMessage: config.maintenanceMessage,
         siteName: config.siteName || 'Oigagig',
         siteTagline: config.siteTagline || 'Conecta con profesionales locales en Colombia',
-        logoUrl: config.logoUrl || null,
+        logoUrl: sanitizeLogoUrl(config.logoUrl),
         allowNewSignups: config.allowNewSignups ?? true,
         referralsEnabled: config.referralsEnabled ?? true,
         globalPushNotificationsEnabled: config.globalPushNotificationsEnabled ?? true,
@@ -50,7 +58,11 @@ export async function GET(req: NextRequest) {
         wompiSftpEnabled: config.wompiSftpEnabled ?? false,
         tutorialsEnabled: config.tutorialsEnabled ?? true,
       };
-      return NextResponse.json(publicConfig);
+      return NextResponse.json(publicConfig, {
+        headers: {
+          'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+        },
+      });
     }
 
     // Admin-only rich response: include payment status derived from env (no secrets)
@@ -115,7 +127,7 @@ export async function GET(req: NextRequest) {
       maxUploadSizeMB: config.maxUploadSizeMB ?? 10,
       siteName: config.siteName || 'Oigagig',
       siteTagline: config.siteTagline || 'Conecta con profesionales locales en Colombia',
-      logoUrl: config.logoUrl || null,
+      logoUrl: sanitizeLogoUrl(config.logoUrl),
       globalPushNotificationsEnabled: config.globalPushNotificationsEnabled ?? true,
       globalEmailNotificationsEnabled: config.globalEmailNotificationsEnabled ?? true,
       maintenanceBypassIps: config.maintenanceBypassIps || '',
@@ -211,7 +223,7 @@ export async function PUT(request: NextRequest) {
           maxUploadSizeMB: body.maxUploadSizeMB ?? 10,
           siteName: body.siteName ?? 'Oigagig',
           siteTagline: body.siteTagline ?? 'Conecta con profesionales locales en Colombia',
-          logoUrl: body.logoUrl ?? null,
+          logoUrl: sanitizeLogoUrl(body.logoUrl),
           globalPushNotificationsEnabled: body.globalPushNotificationsEnabled ?? true,
           globalEmailNotificationsEnabled: body.globalEmailNotificationsEnabled ?? true,
           maintenanceBypassIps: body.maintenanceBypassIps ?? '',
@@ -236,7 +248,7 @@ export async function PUT(request: NextRequest) {
           // Branding
           siteName: body.siteName,
           siteTagline: body.siteTagline,
-          logoUrl: body.logoUrl ?? null,
+          logoUrl: sanitizeLogoUrl(body.logoUrl),
           // Global notifs
           globalPushNotificationsEnabled: body.globalPushNotificationsEnabled,
           globalEmailNotificationsEnabled: body.globalEmailNotificationsEnabled,

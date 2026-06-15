@@ -11,8 +11,8 @@ import { parseJsonArrayField, devLog } from '@/lib/utils';
 import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
 import type { CheckoutFormData, CheckoutGig, DynamicFieldDef, DynamicFieldOption } from '@/types/gig-fields';
 import type { OrderDetail } from '@/types/order';
-import type { PublicPlatformConfig } from '@/types/platform-config';
 import type { WompiClientDebugState, WompiPrepareResponse, WompiWidgetResult } from '@/types/wompi';
+import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 
 export default function CheckoutPage() {
   const params = useParams();
@@ -26,8 +26,9 @@ export default function CheckoutPage() {
   const [opening, setOpening] = useState(false);
   const [wompiReady, setWompiReady] = useState(false);
   const [wompiLoadFailed, setWompiLoadFailed] = useState(false);
-  const [realPaymentsEnabled, setRealPaymentsEnabled] = useState<boolean | null>(null);
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const { config: platformConfig } = usePlatformConfig();
+  const realPaymentsEnabled = platformConfig?.wompiRealPaymentsEnabled ?? null;
+  const maintenanceMode = !!platformConfig?.maintenanceMode;
 
   const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '';
 
@@ -221,14 +222,6 @@ export default function CheckoutPage() {
 
     // User is authenticated → proceed to create order
     loadGigAndCreateOrder();
-    // Also fetch public payment gate status and maintenance mode (for gating debug tools)
-    fetch('/api/admin/config')
-      .then(r => r.json())
-      .then(data => {
-        setRealPaymentsEnabled(!!data.wompiRealPaymentsEnabled);
-        setMaintenanceMode(!!data.maintenanceMode);
-      })
-      .catch(() => setRealPaymentsEnabled(false));
   }, [gigId, sessionStatus, session?.user, router]);
 
   const loadGigAndCreateOrder = async () => {

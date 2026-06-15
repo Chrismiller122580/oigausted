@@ -1851,7 +1851,7 @@ export default function AdminSettings() {
                   className="mt-1.5 bg-background border-border font-mono text-xs"
                   placeholder="/logo.png or https://..."
                 />
-                <p className="text-[10px] text-muted-foreground mt-1">Used in navs, metadata, and public pages where supported. Leave empty for default icon.</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Site path (e.g. /logo.png, /icon.png) or HTTPS URL. Local dev paths like /workspaces/... are ignored. Leave empty for the default OG icon.</p>
               </div>
             </div>
           </div>

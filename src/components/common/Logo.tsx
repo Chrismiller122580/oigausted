@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
+import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
+import { sanitizeLogoUrl } from '@/lib/logo-url';
 
 interface LogoProps {
   size?: number;
@@ -16,38 +18,15 @@ export default function Logo({
   className = '', 
   linkClassName = '' 
 }: LogoProps) {
-  const [branding, setBranding] = useState<{
-    siteName: string;
-    logoUrl: string | null;
-  }>({
-    siteName: 'Oigagig',
-    logoUrl: null,
-  });
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    fetch('/api/admin/config')
-      .then((r) => r.json())
-      .then((data) => {
-        if (mounted && (data.siteName || data.logoUrl)) {
-          setBranding({
-            siteName: data.siteName || 'Oigagig',
-            logoUrl: data.logoUrl || null,
-          });
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoaded(true));
-
-    return () => { mounted = false; };
-  }, []);
+  const { config } = usePlatformConfig();
+  const siteName = config?.siteName || 'Oigagig';
+  const logoUrl = sanitizeLogoUrl(config?.logoUrl);
 
   const iconSize = size;
-  const icon = branding.logoUrl ? (
+  const icon = logoUrl ? (
     <img 
-      src={branding.logoUrl} 
-      alt={branding.siteName} 
+      src={logoUrl} 
+      alt={siteName} 
       style={{ width: iconSize, height: iconSize }} 
       className="rounded-xl object-contain shadow-sm" 
     />
@@ -63,12 +42,12 @@ export default function Logo({
   return (
     <Link 
       href="/" 
-      className={`flex items-center gap-2.5 text-muted-foreground hover:text-foreground transition ${linkClassName}`}
+      className={`flex items-center gap-2.5 text-muted-foreground hover:text-foreground transition ${linkClassName} ${className}`}
     >
       {icon}
       {showText && (
         <span className="font-semibold tracking-tight text-base">
-          {branding.siteName}
+          {siteName}
         </span>
       )}
     </Link>

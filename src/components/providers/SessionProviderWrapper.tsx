@@ -3,6 +3,7 @@
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import SessionExpiryHandler from "./SessionExpiryHandler";
+import { PlatformConfigProvider } from "./PlatformConfigProvider";
 
 export default function SessionProviderWrapper({ 
   children 
@@ -12,9 +13,11 @@ export default function SessionProviderWrapper({
   return (
     <ThemeProvider>
       <SessionProvider refetchInterval={5 * 60} refetchOnWindowFocus>
-        <SessionExpiryHandler>
-          {children}
-        </SessionExpiryHandler>
+        <PlatformConfigProvider>
+          <SessionExpiryHandler>
+            {children}
+          </SessionExpiryHandler>
+        </PlatformConfigProvider>
       </SessionProvider>
     </ThemeProvider>
   );

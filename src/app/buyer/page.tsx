@@ -6,9 +6,11 @@ import { ShoppingBag, Package, MessageCircle, Star, Clock } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import OnboardingTutorial from "@/components/common/OnboardingTutorial"
+import { usePlatformConfig } from "@/components/providers/PlatformConfigProvider"
 
 export default function BuyerDashboard() {
   const { data: session } = useSession()
+  const { config: platformConfig } = usePlatformConfig()
   const [stats, setStats] = useState({ 
     orders: 0, 
     inProgress: 0, 
@@ -64,21 +66,14 @@ export default function BuyerDashboard() {
   // Respects global admin toggle from PlatformConfig.tutorialsEnabled
   useEffect(() => {
     const uid = session?.user?.id
-    if (uid && !loading) {
-      (async () => {
-        try {
-          const res = await fetch('/api/admin/config')
-          const cfg = await res.json()
-          if (cfg.tutorialsEnabled === false) return
-        } catch {}
-        const seenKey = `tutorial_buyer_${uid}`
-        if (!localStorage.getItem(seenKey)) {
-          const t = setTimeout(() => setShowTutorial(true), 900)
-          return () => clearTimeout(t)
-        }
-      })()
+    if (uid && !loading && platformConfig?.tutorialsEnabled !== false) {
+      const seenKey = `tutorial_buyer_${uid}`
+      if (!localStorage.getItem(seenKey)) {
+        const t = setTimeout(() => setShowTutorial(true), 900)
+        return () => clearTimeout(t)
+      }
     }
-  }, [session, loading])
+  }, [session, loading, platformConfig?.tutorialsEnabled])
 
   if (loading) {
     return (

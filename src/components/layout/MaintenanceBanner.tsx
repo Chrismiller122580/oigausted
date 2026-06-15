@@ -1,46 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 
 export default function MaintenanceBanner() {
-  const [maintenance, setMaintenance] = useState<{ active: boolean; message: string; bypassIps?: string } | null>(null);
+  const { config } = usePlatformConfig();
 
-  useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const res = await fetch('/api/admin/config');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.maintenanceMode) {
-            setMaintenance({
-              active: true,
-              message: data.maintenanceMessage || 'Estamos realizando mejoras. Volveremos pronto.',
-              bypassIps: data.maintenanceBypassIps || '',
-            });
-          } else {
-            setMaintenance(null);
-          }
-        } else if (res.status === 403) {
-          setMaintenance(null);
-        }
-      } catch (e) {
-        // silently ignore
-      }
-    };
+  if (!config?.maintenanceMode) return null;
 
-    fetchConfig();
-    // Poll less aggressively in prod to reduce load on /api/admin/config (which is called from banner, middleware, and pages)
-    const interval = setInterval(fetchConfig, process.env.NODE_ENV === 'production' ? 120000 : 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (!maintenance?.active) return null;
+  const message = config.maintenanceMessage || 'Estamos realizando mejoras. Volveremos pronto.';
 
   return (
     <div className="bg-red-600 text-white px-4 py-3 text-center font-semibold flex items-center justify-center gap-3 text-sm sticky top-0 z-[100] shadow-lg">
       <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-      <span>{maintenance.message}</span>
+      <span>{message}</span>
       <AlertTriangle className="h-5 w-5 flex-shrink-0" />
     </div>
   );
