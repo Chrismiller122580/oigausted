@@ -17,8 +17,7 @@ export default function SellerOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('All');
 
-  useEffect(() => {
-    if (status === "loading") return;
+  const loadOrders = async () => {
     if (!session?.user) {
       setLoading(false);
       return;
@@ -26,16 +25,28 @@ export default function SellerOrdersPage() {
 
     const sellerId = (session.user as any)?.id;
 
-    Promise.all([
-      fetch('/api/orders?role=seller').then(res => res.json()),
-      fetch(`/api/reviews?sellerId=${sellerId}&limit=100`).then(res => res.json()).catch(() => ({ reviews: [] }))
-    ])
-    .then(([ordersData, reviewsData]) => {
+    try {
+      const [ordersRes, reviewsRes] = await Promise.all([
+        fetch('/api/orders?role=seller'),
+        fetch(`/api/reviews?sellerId=${sellerId}&limit=100`).catch(() => ({ ok: true, json: async () => ({ reviews: [] }) }))
+      ]);
+
+      const ordersData = await ordersRes.json();
+      const reviewsData = await (reviewsRes.json ? reviewsRes.json() : reviewsRes);
+
       setOrders(Array.isArray(ordersData) ? ordersData : []);
       setReviews(reviewsData.reviews || []);
+    } catch {
+      // ignore
+    } finally {
       setLoading(false);
-    })
-    .catch(() => setLoading(false));
+    }
+  };
+
+  useEffect(() => {
+    if (status === "loading") return;
+    setLoading(true);
+    loadOrders();
   }, [session, status]);
 
   const getStatusColor = (status: string) => {
@@ -65,7 +76,8 @@ export default function SellerOrdersPage() {
         if (res.status === 403) {
           toast.error('No tienes permiso para actualizar este pedido');
           // Refetch to remove any stale orders from previous sessions
-          fetchOrders();
+          setLoading(true);
+          loadOrders();
         } else {
           throw new Error('Error actualizando estado');
         }
