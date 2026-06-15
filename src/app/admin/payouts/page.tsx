@@ -27,17 +27,24 @@ export default function AdminPayoutsPage() {
   });
 
   const clearAllOrders = async () => {
-    if (!confirm('PERMANENTLY delete ALL orders (and related data)? This is for launch cleanup only. Cannot be undone.')) return;
-    const allOrders = [...orders, ...paidOrders];
-    let deleted = 0;
-    for (const o of allOrders) {
-      try {
-        const res = await fetch(`/api/orders/${o.id}`, { method: 'DELETE' });
-        if (res.ok) deleted++;
-      } catch {}
+    if (!confirm('PERMANENTLY delete ALL orders (and related data like messages, files, reviews, referral earnings)? This is for launch cleanup only. Cannot be undone.')) return;
+    try {
+      // Fetch ALL orders for admin cleanup (not just completed)
+      const res = await fetch('/api/orders?view=all');
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : (data.orders || []);
+      let deleted = 0;
+      for (const o of list) {
+        try {
+          const delRes = await fetch(`/api/orders/${o.id}`, { method: 'DELETE' });
+          if (delRes.ok) deleted++;
+        } catch {}
+      }
+      toast.success(`Cleared ${deleted} orders and related data`);
+      fetchCompleted();
+    } catch (e) {
+      toast.error('Error clearing orders');
     }
-    toast.success(`Cleared ${deleted} orders`);
-    fetchCompleted();
   };
 
   const fetchCompleted = async () => {

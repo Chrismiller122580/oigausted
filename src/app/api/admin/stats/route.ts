@@ -26,8 +26,23 @@ export async function GET() {
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { role: 'seller' } }),
-      prisma.gig.count(),
-      prisma.gig.count({ where: { isActive: true } }),
+      // Use deletedAt filter for soft-deleted gigs (with fallback if column missing in DB)
+      (async () => {
+        try {
+          return await prisma.gig.count({ where: { deletedAt: null } });
+        } catch (e) {
+          devLog('deletedAt filter in stats failed, falling back (column may be missing)');
+          return await prisma.gig.count();
+        }
+      })(),
+      (async () => {
+        try {
+          return await prisma.gig.count({ where: { isActive: true, deletedAt: null } });
+        } catch (e) {
+          devLog('deletedAt filter in stats failed, falling back (column may be missing)');
+          return await prisma.gig.count({ where: { isActive: true } });
+        }
+      })(),
       prisma.order.count(),
       prisma.order.count({ where: { status: 'Completed' } }),
       prisma.order.aggregate({
