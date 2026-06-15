@@ -38,19 +38,24 @@ export default async function MarketingHomePage() {
   const topCategoryNames = allCategories.slice(0, 12).map((c) => c.name);
 
   // Ratings for top categories (for badges on cards)
-  const gigsWithRatings = await prisma.gig.findMany({
-    where: {
-      isActive: true,
-      category: { in: topCategoryNames as any }
-    },
-    select: {
-      category: true,
-      seller: {
-        select: { rating: true }
-      }
-    },
-    take: 200
-  });
+  let gigsWithRatings: any[] = [];
+  try {
+    gigsWithRatings = await prisma.gig.findMany({
+      where: {
+        isActive: true,
+        category: { in: topCategoryNames as any }
+      },
+      select: {
+        category: true,
+        seller: {
+          select: { rating: true }
+        }
+      },
+      take: 200
+    });
+  } catch (e) {
+    console.error('Failed to load gig ratings for homepage categories (possible schema/DB drift after rollback):', e);
+  }
 
   const ratingMap: Record<string, { total: number; count: number }> = {};
   for (const g of gigsWithRatings) {
@@ -77,25 +82,36 @@ export default async function MarketingHomePage() {
   });
 
   // Live stats for social proof (lightweight server queries)
-  const [totalGigs, totalReviews, cityAgg, totalSellers] = await Promise.all([
-    prisma.gig.count({ where: { isActive: true } }),
-    prisma.review.count(),
-    prisma.gig.findMany({
-      where: { isActive: true, city: { not: null } },
-      select: { city: true },
-      distinct: ['city'],
-    }),
-    prisma.user.count({ where: { role: 'SELLER' } }),
-  ]);
-
-  const totalCities = cityAgg.length;
-
-  const stats = {
-    gigs: totalGigs || 0,
-    reviews: totalReviews || 0,
-    cities: totalCities || 0,
-    sellers: totalSellers || 0,
+  let stats = {
+    gigs: 0,
+    reviews: 0,
+    cities: 0,
+    sellers: 0,
   };
+  try {
+    const [totalGigs, totalReviews, cityAgg, totalSellers] = await Promise.all([
+      prisma.gig.count({ where: { isActive: true } }),
+      prisma.review.count(),
+      prisma.gig.findMany({
+        where: { isActive: true, city: { not: null } },
+        select: { city: true },
+        distinct: ['city'],
+      }),
+      prisma.user.count({ where: { role: 'seller' } }),  // lowercase to match DB/role usage everywhere else
+    ]);
+
+    const totalCities = cityAgg.length;
+
+    stats = {
+      gigs: totalGigs || 0,
+      reviews: totalReviews || 0,
+      cities: totalCities || 0,
+      sellers: totalSellers || 0,
+    };
+  } catch (e) {
+    console.error('Failed to load homepage live stats (possible missing column like isActive on Gig after rollback or DB drift):', e);
+    // Page will render with 0s instead of crashing the Server Component
+  }
 
   // Curated Colombian-flavored testimonials (trust proof)
   const testimonials = [
