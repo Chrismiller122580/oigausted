@@ -36,7 +36,7 @@ const resend = new Resend(resendApiKey);
 // Parse CLI args
 const rawArgs = process.argv.slice(2);
 const toEmail = rawArgs[0];
-let emailType = rawArgs[1] || 'welcome';
+const emailType = rawArgs[1] || 'welcome';
 let fromOverride: string | undefined;
 
 // Support --from "Oigagig <...>"
@@ -178,9 +178,9 @@ async function send() {
     console.log('   To:', toEmail);
     console.log('   Resend ID:', result.data?.id);
     console.log('\nCheck your inbox (and spam folder).');
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Unexpected error while sending email:');
-    console.error(error?.message || error);
+    console.error(error instanceof Error ? error.message : error);
     process.exit(1);
   }
 }

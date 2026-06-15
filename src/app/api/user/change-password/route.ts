@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -10,8 +8,8 @@ import { logAuditEvent } from '@/lib/audit';
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const currentUserId = (session?.user as any)?.id;
-    const isAdmin = (session?.user as any)?.role === 'admin';
+    const currentUserId = session?.user?.id;
+    const isAdmin = session?.user?.role === 'admin';
 
     if (!currentUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

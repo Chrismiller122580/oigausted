@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
 import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -63,7 +62,7 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!isAdmin(session)) {
+    if (!isAdmin(session) || !session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -114,7 +113,7 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    const updateData: any = {
+    const updateData: import('@prisma/client').Prisma.UserUpdateInput = {
       ...(role && { role }),
       ...(name !== undefined && { name }),
       ...(email !== undefined && { email: email.toLowerCase().trim() }),
@@ -204,8 +203,8 @@ export async function PATCH(req: NextRequest) {
           customReferralRate: true
         }
       });
-    } catch (updateErr: any) {
-      const msg = String(updateErr?.message || updateErr);
+    } catch (updateErr: unknown) {
+      const msg = updateErr instanceof Error ? updateErr.message : String(updateErr);
       if (msg.includes('slug') && updateData.slug !== undefined) {
         devLog('Retrying admin user update without slug field (prod DB missing column)');
         delete updateData.slug;
@@ -225,7 +224,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Log the action (with request metadata + smarter action type)
-    const adminId = (session.user as any).id;
+    const adminId = session.user.id;
     const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
     const userAgent = req.headers.get('user-agent') || null;
 
@@ -280,7 +279,7 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!isAdmin(session)) {
+    if (!isAdmin(session) || !session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -290,7 +289,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Don't allow self-delete
-    const adminId = (session.user as any).id;
+    const adminId = session.user.id;
     if (userId === adminId) {
       return NextResponse.json({ error: 'No puedes eliminarte a ti mismo' }, { status: 400 });
     }

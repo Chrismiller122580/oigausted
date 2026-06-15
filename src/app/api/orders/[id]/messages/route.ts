@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
 import { put } from '@vercel/blob';
+import { validateUploadFile } from '@/lib/upload-validation';
 
 export async function GET(
   request: Request,
@@ -14,7 +13,7 @@ export async function GET(
   try {
     const { id: orderId } = await params;
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
@@ -55,7 +54,7 @@ export async function POST(
   try {
     const { id: orderId } = await params;
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
@@ -79,10 +78,23 @@ export async function POST(
       const file = formData.get('file') as File | null;
 
       if (file) {
+        const validation = await validateUploadFile(file)
+        if (!validation.ok) {
+          return NextResponse.json({ error: validation.error }, { status: validation.status })
+        }
+
+        const token = process.env.BLOB_READ_WRITE_TOKEN
+        if (!token) {
+          return NextResponse.json({
+            error: 'File upload not available in this environment',
+            uploadDisabled: true,
+          }, { status: 400 })
+        }
+
         fileName = file.name;
 
-        // Upload to Vercel Blob (same as /api/upload)
         const blob = await put(file.name, file, {
+          token,
           access: 'public',
           addRandomSuffix: true,
         });

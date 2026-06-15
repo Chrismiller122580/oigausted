@@ -1,61 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { notifications } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    let gigs;
+    const url = new URL(req.url)
+    const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1)
+    const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '50', 10) || 50))
+    const skip = (page - 1) * limit
+
+    const activeWhere = { isActive: true, deletedAt: null as null }
+    let total = 0
+    let gigs: Awaited<ReturnType<typeof prisma.gig.findMany>> = []
+
     try {
+      total = await prisma.gig.count({ where: activeWhere })
       gigs = await prisma.gig.findMany({
-        where: { isActive: true, deletedAt: null },
-        orderBy: { createdAt: 'desc' }
-      });
-    } catch (dbErr: any) {
+        where: activeWhere,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      })
+    } catch (dbErr: unknown) {
       // Fallback during migration rollout if deletedAt column not yet added to DB
-      console.warn('[Public Gigs] deletedAt filter failed (column may not exist yet), fetching without it', dbErr?.message);
+      const errMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+      console.warn('[Public Gigs] deletedAt filter failed (column may not exist yet), fetching without it', errMsg);
+      const fallbackWhere = { isActive: true }
+      total = await prisma.gig.count({ where: fallbackWhere })
       gigs = await prisma.gig.findMany({
-        where: { isActive: true },
-        orderBy: { createdAt: 'desc' }
-      });
+        where: fallbackWhere,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      })
     }
 
     // Attach seller info defensively (some old rows may have dangling sellerId)
-    const sellerIds = [...new Set(gigs.map((g: any) => g.sellerId).filter((id: any): id is string => !!id))];
+    const sellerIds = [...new Set(gigs.map((g: { sellerId: string }) => g.sellerId).filter((id: string | null | undefined): id is string => !!id))];
     const sellers = await prisma.user.findMany({
       where: { id: { in: sellerIds } },
       select: { 
-        id: true, name: true, email: true, businessName: true, 
-        // slug omitted temporarily due to prod DB schema drift (add via migration)
+        id: true, name: true, businessName: true,
         profilePicture: true, rating: true, reviewCount: true,
         latitude: true, longitude: true, serviceRadiusKm: true, city: true
       }
     });
 
-    const sellerMap = Object.fromEntries(sellers.map((s: any) => [s.id, s]));
+    const sellerMap = Object.fromEntries(sellers.map((s: { id: string }) => [s.id, s]));
 
-    const gigsWithSeller = gigs.map((gig: any) => ({
+    const gigsWithSeller = gigs.map((gig: (typeof gigs)[number]) => ({
       ...gig,
       seller: sellerMap[gig.sellerId] || null
     }));
 
-    devLog(`📦 /api/gigs returned ${gigs.length} gigs with full seller info`);
+    devLog(`📦 /api/gigs returned ${gigs.length}/${total} gigs (page ${page})`);
 
     return NextResponse.json({
       gigs: gigsWithSeller || [],
-      count: gigsWithSeller.length
+      count: gigsWithSeller.length,
+      total,
+      page,
+      limit,
+      hasMore: skip + gigs.length < total,
     });
-  } catch (error: any) {
-    devLog("/api/gigs failed:", error.message);
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    devLog("/api/gigs failed:", errMsg);
     return NextResponse.json({
       gigs: [],
       count: 0,
-      error: error.message
+      error: errMsg
     }, { status: 500 });
   }
 }
@@ -64,12 +82,12 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: "Debes iniciar sesión" }, { status: 401 });
     }
 
-    const role = (session?.user as any)?.role;
+    const role = session?.user?.role;
     if (role !== 'seller' && role !== 'admin') {
       return NextResponse.json({ error: "Solo vendedores pueden crear gigs" }, { status: 403 });
     }
@@ -147,11 +165,12 @@ export async function POST(req: NextRequest) {
       message: "Servicio publicado correctamente" 
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     devLog("Error creating gig:", error);
+    const details = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ 
       error: "Error al guardar en la base de datos", 
-      details: error.message 
+      details
     }, { status: 500 });
   }
 }

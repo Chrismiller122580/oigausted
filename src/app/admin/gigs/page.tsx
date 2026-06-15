@@ -38,7 +38,7 @@ export default function AdminGigsPage() {
   // Edit modal state
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingGig, setEditingGig] = useState<Gig | null>(null);
-  const [editForm, setEditForm] = useState<any>({});
+  const [editForm, setEditForm] = useState<Record<string, unknown>>({});
 
   const fetchGigs = async (search = '', withDeleted = includeDeleted) => {
     setLoading(true);
@@ -177,7 +177,7 @@ export default function AdminGigsPage() {
         body: JSON.stringify({
           gigId: editingGig.id,
           ...editForm,
-          price: parseFloat(editForm.price) || 0,
+          price: parseFloat(String(editForm.price ?? '')) || 0,
         })
       });
       if (res.ok) {
@@ -330,31 +330,31 @@ export default function AdminGigsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm block mb-1">Title</label>
-                <Input value={editForm.title || ''} onChange={e => setEditForm({ ...editForm, title: e.target.value })} />
+                <Input value={String(editForm.title ?? '')} onChange={e => setEditForm({ ...editForm, title: e.target.value })} />
               </div>
               <div>
                 <label className="text-sm block mb-1">Price (COP)</label>
-                <Input type="number" value={editForm.price || ''} onChange={e => setEditForm({ ...editForm, price: e.target.value })} />
+                <Input type="number" value={String(editForm.price ?? '')} onChange={e => setEditForm({ ...editForm, price: e.target.value })} />
               </div>
               <div className="md:col-span-2">
                 <label className="text-sm block mb-1">Description</label>
                 <textarea
                   className="w-full bg-background border border-border rounded p-2 min-h-[100px]"
-                  value={editForm.description || ''}
+                  value={String(editForm.description ?? '')}
                   onChange={e => setEditForm({ ...editForm, description: e.target.value })}
                 />
               </div>
               <div>
                 <label className="text-sm block mb-1">Category</label>
-                <Input value={editForm.category || ''} onChange={e => setEditForm({ ...editForm, category: e.target.value })} />
+                <Input value={String(editForm.category ?? '')} onChange={e => setEditForm({ ...editForm, category: e.target.value })} />
               </div>
               <div>
                 <label className="text-sm block mb-1">Completion Time</label>
-                <Input value={editForm.completionTime || ''} onChange={e => setEditForm({ ...editForm, completionTime: e.target.value })} placeholder="e.g. 2-3 days" />
+                <Input value={String(editForm.completionTime ?? '')} onChange={e => setEditForm({ ...editForm, completionTime: e.target.value })} placeholder="e.g. 2-3 days" />
               </div>
               <div>
                 <label className="text-sm block mb-1">City / Location</label>
-                <Input value={editForm.city || ''} onChange={e => setEditForm({ ...editForm, city: e.target.value })} />
+                <Input value={String(editForm.city ?? '')} onChange={e => setEditForm({ ...editForm, city: e.target.value })} />
               </div>
               <div className="flex items-center gap-2 mt-6">
                 <input type="checkbox" checked={!!editForm.isRemote} onChange={e => setEditForm({ ...editForm, isRemote: e.target.checked })} />

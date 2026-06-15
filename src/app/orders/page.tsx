@@ -8,11 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { parseCustomFields } from '@/lib/utils';
+import type { OrderDetail } from '@/types/order';
+import type { OrderReview } from '@/types/order';
 
 export default function BuyerOrdersPage() {
   const { data: session, status } = useSession();
-  const [orders, setOrders] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [orders, setOrders] = useState<OrderDetail[]>([]);
+  const [reviews, setReviews] = useState<(OrderReview & { orderId?: string })[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,7 +24,7 @@ export default function BuyerOrdersPage() {
       return;
     }
 
-    const userId = (session.user as any)?.id;
+    const userId = session.user.id;
 
     Promise.all([
       fetch('/api/orders?role=buyer').then(res => res.json()),
@@ -38,7 +40,7 @@ export default function BuyerOrdersPage() {
 
   // Orders that are completed but have no review yet
   const reviewedOrderIds = new Set(reviews.map(r => r.orderId));
-  const needsReview = (order: any) =>
+  const needsReview = (order: OrderDetail) =>
     order.status === 'Completed' && !reviewedOrderIds.has(order.id);
 
   const getProgress = (status: string) => {

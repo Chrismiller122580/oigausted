@@ -33,8 +33,8 @@ export default function AdminReports() {
       if (!res.ok) throw new Error('Error loading reports');
       const json = await res.json();
       setData(json);
-    } catch (e: any) {
-      setError(e.message || 'Error loading reports');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error loading reports');
       console.error(e);
     } finally {
       setLoading(false);

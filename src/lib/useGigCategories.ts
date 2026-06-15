@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { DynamicFieldDef } from '@/types/gig-fields';
 
 export interface GigCategory {
   name: string;
   icon: string;
-  fields: any[];
+  fields: DynamicFieldDef[];
   description?: string;
 }
 
@@ -31,9 +32,9 @@ export function useGigCategories() {
         if (!cancelled) {
           setCategories(data.categories || []);
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (!cancelled) {
-          setError(e?.message || 'Error loading categories');
+          setError(e instanceof Error ? e.message : 'Error loading categories');
           // graceful fallback to empty; UIs should handle
           setCategories([]);
         }

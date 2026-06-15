@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
@@ -9,11 +7,11 @@ import { devLog } from '@/lib/utils';
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    const uid = (session?.user as any)?.id;
+    const uid = session?.user?.id;
     if (!uid) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
     }
-    const role = (session?.user as any)?.role;
+    const role = session?.user?.role;
     if (role !== 'seller' && role !== 'admin') {
       return NextResponse.json({ error: 'Solo vendedores pueden acceder' }, { status: 403 });
     }
@@ -39,9 +37,9 @@ export async function GET() {
         },
         orderBy: { createdAt: 'desc' }
       });
-    } catch (dbErr: any) {
-      // Fallback if deletedAt column not migrated yet
-      console.warn('[Seller Gigs] query with full model failed (likely missing deletedAt column), retrying', dbErr?.message);
+    } catch (dbErr: unknown) {
+      const errMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+      console.warn('[Seller Gigs] query with full model failed (likely missing deletedAt column), retrying', errMsg);
       gigs = await prisma.gig.findMany({
         where: { sellerId, deletedAt: null },
         select: {
@@ -78,7 +76,7 @@ export async function GET() {
     }
 
     // Compute performance stats per gig (orders + revenue)
-    const gigIds = gigs.map((g: any) => g.id);
+    const gigIds = gigs.map((g: { id: string }) => g.id);
 
     const orderAggregates = await prisma.order.groupBy({
       by: ['gigId'],
@@ -102,7 +100,7 @@ export async function GET() {
       _sum: { price: true }
     });
 
-    const statsMap = new Map<string, any>();
+    const statsMap = new Map<string, { orderCount: number; totalRevenue: number; completedCount: number; completedRevenue: number }>();
     for (const agg of orderAggregates) {
       statsMap.set(agg.gigId, {
         orderCount: agg._count._all || 0,
@@ -112,7 +110,7 @@ export async function GET() {
       });
     }
     for (const agg of completedAggregates) {
-      const existing = statsMap.get(agg.gigId) || {};
+      const existing = statsMap.get(agg.gigId) || { orderCount: 0, totalRevenue: 0, completedCount: 0, completedRevenue: 0 };
       statsMap.set(agg.gigId, {
         ...existing,
         completedCount: agg._count._all || 0,
@@ -120,7 +118,7 @@ export async function GET() {
       });
     }
 
-    const gigsWithStats = gigs.map((gig: any) => ({
+    const gigsWithStats = gigs.map((gig: (typeof gigs)[number]) => ({
       ...gig,
       stats: statsMap.get(gig.id) || {
         orderCount: 0,
@@ -136,12 +134,13 @@ export async function GET() {
       gigs: gigsWithStats,
       count: gigsWithStats.length
     });
-  } catch (error: any) {
-    console.error("❌ /api/seller/gigs failed:", error.message);
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("❌ /api/seller/gigs failed:", errMsg);
     return NextResponse.json({
       gigs: [],
       count: 0,
-      error: error.message
+      error: errMsg
     }, { status: 500 });
   }
 }

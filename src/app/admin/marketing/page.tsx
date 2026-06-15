@@ -93,7 +93,7 @@ export default function AdminMarketingPage() {
   const [segment, setSegment] = useState('all');
   const [cityFilter, setCityFilter] = useState('');
   const [sending, setSending] = useState(false);
-  const [lastResult, setLastResult] = useState<any>(null);
+  const [lastResult, setLastResult] = useState<Record<string, unknown> | null>(null);
 
   // Audience / mailing list
   const [audience, setAudience] = useState<AudienceUser[]>([]);
@@ -108,7 +108,7 @@ export default function AdminMarketingPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
 
   // Dry run preview
-  const [dryRunResult, setDryRunResult] = useState<any>(null);
+  const [dryRunResult, setDryRunResult] = useState<Record<string, unknown> | null>(null);
 
   // ========== AI MARKETING STUDIO STATE ==========
   const [aiGoal, setAiGoal] = useState('');
@@ -747,8 +747,8 @@ export default function AdminMarketingPage() {
               </Button>
             </div>
 
-            {dryRunResult && <div className="text-xs p-3 bg-muted rounded border">Dry run: <strong>{dryRunResult.recipientCount}</strong> destinatarios para el segmento actual.</div>}
-            {lastResult && <div className="text-xs text-green-600">Última acción: {lastResult.message}</div>}
+            {dryRunResult && <div className="text-xs p-3 bg-muted rounded border">Dry run: <strong>{String(dryRunResult.recipientCount ?? 0)}</strong> destinatarios para el segmento actual.</div>}
+            {lastResult && <div className="text-xs text-green-600">Última acción: {String(lastResult.message ?? '')}</div>}
           </div>
 
           {/* Audience summary */}

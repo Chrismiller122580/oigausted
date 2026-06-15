@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
@@ -10,26 +9,103 @@ import { confirmWompiPayment } from '@/lib/server/confirm-wompi-payment';
 import {
   getEventsKeyInfo,
   verifyWompiSignatureDetailed,
-  resolveWompiProperty,
+  type VerifyResult,
 } from '@/lib/wompi-signature';
+import type { WompiWebhookEvent } from '@/types/wompi';
+
+interface WompiTestRequestBody {
+  sampleWebhookEvent?: WompiWebhookEvent;
+  sampleEvent?: WompiWebhookEvent;
+  sampleChecksum?: string;
+  checksum?: string;
+  replay?: boolean;
+  force?: boolean;
+  process?: boolean;
+  testEventsKey?: string;
+  customEventsKey?: string;
+}
+
+interface WompiQueryResult {
+  attempted: boolean;
+  base?: string;
+  usedPrivate?: boolean;
+  status?: number;
+  ok?: boolean;
+  dataEmpty?: boolean;
+  sampleResponseKeys?: string[];
+  error?: string;
+  skipped?: string;
+}
+
+interface WompiEventVerification {
+  attempted: boolean;
+  usedChecksum?: string;
+  matches?: boolean;
+  reason?: string;
+  signedPayload?: string;
+  computed?: string;
+  receivedChecksum?: string;
+  eventEnvironment?: string | null;
+  eventType?: string | null;
+  reference?: string | null;
+  transactionId?: string | null;
+  keyEnvHint?: VerifyResult['keyEnvHint'];
+  usedKeyAppendedVariant?: boolean;
+  testedWithCustomKey?: string;
+  error?: string;
+  note?: string;
+}
+
+interface WompiReplayResult {
+  attempted: boolean;
+  orderId?: string | null;
+  wompiTransactionId?: string | null;
+  status?: string | null;
+  action?: string;
+  confirmResult?: unknown;
+  success?: boolean;
+  error?: string;
+  message?: string;
+}
+
+interface WompiTestSummary {
+  publicKeyPrefix: string;
+  integrityKeyPrefix: string;
+  eventsKeyPrefix: string;
+  privateKeyPrefix: string;
+  environments: { public: string; integrity: string; events: string; private: string };
+  integrityPubMismatch: boolean;
+  sampleSignature: string | null;
+  sampleSignatureNote: string;
+  sampleEventsSignature: string | null;
+  sampleEventsSignatureNote: string;
+  query: WompiQueryResult;
+  recommendations: string[];
+  eventVerification?: WompiEventVerification;
+  eventsKeyInfo?: ReturnType<typeof getEventsKeyInfo>;
+  replayResult?: WompiReplayResult;
+}
+
+function errMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  const isAdmin = (session?.user as any)?.role === 'admin';
+  const isAdmin = session?.user?.role === 'admin';
   if (!isAdmin) {
     return NextResponse.json({ error: 'Admin only' }, { status: 403 });
   }
 
-  // Optional sample for live webhook signature debugging (paste a failing X-Event-Checksum event here)
-  let sampleEvent: any = null;
+  let sampleEvent: WompiWebhookEvent | null = null;
   let sampleChecksum = '';
   let replayRequested = false;
   let testEventsKey: string | undefined = undefined;
-  let parsedRequestBody: any = {};
+  let parsedRequestBody: WompiTestRequestBody = {};
   try {
-    parsedRequestBody = await req.json().catch(() => ({}));
+    parsedRequestBody = await req.json().catch(() => ({})) as WompiTestRequestBody;
     if (parsedRequestBody && (parsedRequestBody.sampleWebhookEvent || parsedRequestBody.sampleEvent)) {
-      sampleEvent = parsedRequestBody.sampleWebhookEvent || parsedRequestBody.sampleEvent;
+      sampleEvent = parsedRequestBody.sampleWebhookEvent || parsedRequestBody.sampleEvent || null;
     }
     sampleChecksum = parsedRequestBody?.sampleChecksum || parsedRequestBody?.checksum || (sampleEvent?.signature?.checksum || '');
     replayRequested = !!(parsedRequestBody?.replay === true || parsedRequestBody?.force === true || parsedRequestBody?.process === true);
@@ -48,12 +124,10 @@ export async function POST(req: NextRequest) {
 
   const keyMismatch = integ && pub ? (/prod/i.test(pub) !== /prod/i.test(integ)) : false;
 
-  // Use the shared events key loader (centralized diagnostics + correct fallback)
   const eventsInfo = getEventsKeyInfo();
   const events = (process.env.WOMPI_EVENTS_KEY || process.env.WOMPI_EVENTS_SECRET || '');
   const eventsLooks = events ? (events.match(/(test|prod)_events/i)?.[1] || 'unknown') : 'missing';
 
-  // Sample integrity signature computation (proves the key material is loadable and HMAC works)
   let sampleSig: string | null = null;
   let sampleNote = 'no integrity key';
   if (integ) {
@@ -64,22 +138,18 @@ export async function POST(req: NextRequest) {
       const toSign = `${sampleRef}${sampleCents}${sampleCur}${integ}`;
       sampleSig = crypto.createHmac('sha256', integ).update(toSign).digest('hex');
       sampleNote = 'computed successfully (exact concat: ref + cents + COP + secret)';
-    } catch (e: any) {
-      sampleNote = 'HMAC failed: ' + (e?.message || e);
+    } catch (e: unknown) {
+      sampleNote = 'HMAC failed: ' + errMessage(e);
     }
   }
 
-  // Sample events/webhook signature computation (proves EVENTS_KEY material works for the exact algorithm used by /api/webhooks/wompi)
   let sampleEventsSig: string | null = null;
   let sampleEventsNote = 'no events key';
   if (events) {
     try {
-      // Use the same property-based concat that the real webhook uses (matching the failing event style you reported)
       const sampleProps = ['transaction.id', 'transaction.status', 'transaction.amount_in_cents'];
       const sampleTx = { id: 'tx_test_999', status: 'APPROVED', amount_in_cents: 100000 };
-      const sampleBodyForSig = { data: { transaction: sampleTx }, signature: { properties: sampleProps } };
       const signedPayload = sampleProps.map(p => {
-        // simple inline resolve for the canary (same logic as shared module)
         if (p === 'transaction.id') return sampleTx.id;
         if (p === 'transaction.status') return sampleTx.status;
         if (p === 'transaction.amount_in_cents') return String(sampleTx.amount_in_cents);
@@ -87,13 +157,12 @@ export async function POST(req: NextRequest) {
       }).join('');
       sampleEventsSig = crypto.createHmac('sha256', events).update(signedPayload).digest('hex');
       sampleEventsNote = `computed successfully (properties: ${sampleProps.join(', ')} → concat: ${signedPayload})`;
-    } catch (e: any) {
-      sampleEventsNote = 'HMAC failed: ' + (e?.message || e);
+    } catch (e: unknown) {
+      sampleEventsNote = 'HMAC failed: ' + errMessage(e);
     }
   }
 
-  // Try a real status query using the best available token (prefer private)
-  let query: any = { attempted: false };
+  const query: WompiQueryResult = { attempted: false };
   const token = priv || pub;
   const isSandbox = /test|sandbox|_test_/i.test(pub);
   const base = isSandbox ? 'https://sandbox.wompi.co' : 'https://production.wompi.co';
@@ -103,28 +172,30 @@ export async function POST(req: NextRequest) {
     query.base = base;
     query.usedPrivate = !!priv;
     try {
-      // Use a reference that almost certainly won't exist — we just want 200 + no auth error
       const url = `${base}/v1/transactions?reference=${encodeURIComponent('order_wompi_selftest_' + Date.now())}`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
-        // short timeout not directly supported in fetch; rely on platform
       });
       query.status = res.status;
-      const body = await res.json().catch(() => ({}));
+      const body = await res.json().catch(() => ({})) as { data?: unknown[]; error?: { reason?: string; message?: string } | string };
       query.ok = res.ok;
       query.dataEmpty = Array.isArray(body?.data) ? body.data.length === 0 : !body?.data;
       query.sampleResponseKeys = body ? Object.keys(body).slice(0, 6) : [];
       if (!res.ok) {
-        query.error = (body?.error?.reason || body?.error?.message || body?.error || await res.text().catch(() => 'unknown')).toString().slice(0, 200);
+        const errBody = body?.error;
+        const errText = typeof errBody === 'object' && errBody
+          ? (errBody.reason || errBody.message || 'unknown')
+          : (errBody || await res.text().catch(() => 'unknown'));
+        query.error = String(errText).slice(0, 200);
       }
-    } catch (e: any) {
-      query.error = e?.message || String(e);
+    } catch (e: unknown) {
+      query.error = errMessage(e);
     }
   } else {
     query.skipped = 'no token';
   }
 
-  const summary = {
+  const summary: WompiTestSummary = {
     publicKeyPrefix: pub ? pub.slice(0, 12) + '...' : 'MISSING',
     integrityKeyPrefix: integ ? integ.slice(0, 12) + '...' : 'MISSING',
     eventsKeyPrefix: events ? events.slice(0, 12) + '...' : 'MISSING',
@@ -136,7 +207,7 @@ export async function POST(req: NextRequest) {
     sampleEventsSignature: sampleEventsSig ? sampleEventsSig.slice(0, 12) + '...' : null,
     sampleEventsSignatureNote: sampleEventsNote,
     query,
-    recommendations: [] as string[],
+    recommendations: [],
   };
 
   if (!pub) summary.recommendations.push('Set NEXT_PUBLIC_WOMPI_PUBLIC_KEY (pub_test_ or pub_prod_)');
@@ -146,35 +217,26 @@ export async function POST(req: NextRequest) {
   if (query.attempted && !query.ok) summary.recommendations.push('Wompi API query failed — verify the private (or public) key is valid for the chosen environment (sandbox vs production) and that the key belongs to the merchant of the public key.');
   if (query.ok) summary.recommendations.push('Query to Wompi API succeeded — keys look usable for status checks.');
 
-  // === Sample webhook event signature verification (for debugging 401 "Invalid signature" on /api/webhooks/wompi) ===
-  let eventVerification: any = { attempted: false };
+  let eventVerification: WompiEventVerification = { attempted: false };
   if (sampleEvent && typeof sampleEvent === 'object') {
     eventVerification.attempted = true;
     eventVerification.usedChecksum = sampleChecksum ? (sampleChecksum.slice(0, 16) + '...') : (sampleEvent?.signature?.checksum ? (sampleEvent.signature.checksum.slice(0,16)+'...') : 'none-in-body');
     try {
       const eventsKeyForTest = testEventsKey || (process.env.WOMPI_EVENTS_KEY || process.env.WOMPI_EVENTS_SECRET || '');
       const detailed = verifyWompiSignatureDetailed(sampleEvent, sampleChecksum || sampleEvent?.signature?.checksum || '', eventsKeyForTest || undefined);
-      const verification = {
-        valid: detailed.ok,
-        payload: detailed.signedPayload,
-        computed: detailed.computedHex,
-        receivedChecksum: detailed.receivedNormalized,
-        reason: detailed.reason,
-      };
       eventVerification = {
         ...eventVerification,
-        matches: verification.valid,
-        reason: verification.valid ? 'ok (using properties+timestamp+eventsKey)' : 'HMAC mismatch',
-        signedPayload: verification.payload,
-        computed: verification.computed,
-        receivedChecksum: verification.receivedChecksum,
+        matches: detailed.ok,
+        reason: detailed.ok ? 'ok (using properties+timestamp+eventsKey)' : 'HMAC mismatch',
+        signedPayload: detailed.signedPayload,
+        computed: detailed.computedHex,
+        receivedChecksum: detailed.receivedNormalized,
         eventEnvironment: sampleEvent?.environment || null,
         eventType: sampleEvent?.event || null,
         reference: sampleEvent?.data?.transaction?.reference || null,
         transactionId: sampleEvent?.data?.transaction?.id || null,
-        // extra from detailed
-        keyEnvHint: (detailed as any).keyEnvHint,
-        usedKeyAppendedVariant: (detailed as any).usedKeyAppendedVariant,
+        keyEnvHint: detailed.keyEnvHint,
+        usedKeyAppendedVariant: detailed.usedKeyAppendedVariant,
       };
 
       if (testEventsKey) {
@@ -189,8 +251,8 @@ export async function POST(req: NextRequest) {
       } else {
         summary.recommendations.push('Sample event signature VERIFIED OK with the current EVENTS key (good).');
       }
-    } catch (e: any) {
-      eventVerification.error = e?.message || String(e);
+    } catch (e: unknown) {
+      eventVerification.error = errMessage(e);
     }
   } else if (sampleChecksum || sampleEvent) {
     eventVerification.note = 'sampleEvent must be a full webhook JSON body object; sampleChecksum optional (falls back to body.signature.checksum)';
@@ -200,9 +262,8 @@ export async function POST(req: NextRequest) {
     summary.recommendations.push('TIP: To force-process this event (mark order Cancelled for ERROR/DECLINED, or confirm for APPROVED) even if signature currently fails, POST the same payload again with "replay": true (or "force": true). This is an admin-only recovery path.');
   }
 
-  // Attach to summary
-  (summary as any).eventVerification = eventVerification;
-  (summary as any).eventsKeyInfo = eventsInfo;
+  summary.eventVerification = eventVerification;
+  summary.eventsKeyInfo = eventsInfo;
 
   if (!eventsInfo.present) {
     summary.recommendations.push('WOMPI_EVENTS_KEY is MISSING — webhooks from Wompi will be rejected with 401 "Invalid signature". Add the key (Llave para eventos) and redeploy.');
@@ -214,10 +275,7 @@ export async function POST(req: NextRequest) {
     summary.recommendations.push('Events key does not look like prod_events_... while running in production. For live payments use the production "Llave para eventos".');
   }
 
-  // === Replay / Force process the sample event (admin recovery tool) ===
-  // Useful when the live webhook is returning 401 because the EVENTS_KEY is not yet correct,
-  // or to re-apply side effects for a specific transaction (e.g. the one in this report).
-  let replayResult: any = { attempted: false };
+  const replayResult: WompiReplayResult = { attempted: false };
   const shouldReplay = !!(sampleEvent && replayRequested);
   if (shouldReplay) {
     replayResult.attempted = true;
@@ -245,22 +303,22 @@ export async function POST(req: NextRequest) {
           replayResult.action = 'confirmed';
           replayResult.confirmResult = confirmRes;
           replayResult.success = confirmRes.success;
-        } else if (['DECLINED', 'ERROR', 'VOIDED'].includes(status)) {
+        } else if (['DECLINED', 'ERROR', 'VOIDED'].includes(status || '')) {
           await prisma.order.update({
             where: { id: orderId },
             data: { status: 'Cancelled', updatedAt: new Date() },
           }).catch(() => {});
 
           await logAuditEvent({
-            performedById: (session?.user as any)?.id || null,
+            performedById: session?.user?.id || null,
             action: `PAYMENT_${status}_REPLAY`,
             targetType: 'Order',
             targetId: orderId,
             details: {
-              wompiTransactionId: txId,
-              status,
-              amount: tx?.amount_in_cents ? tx.amount_in_cents / 100 : undefined,
-              reference: ref,
+              wompiTransactionId: txId ?? null,
+              status: status ?? null,
+              amount: tx?.amount_in_cents ? tx.amount_in_cents / 100 : null,
+              reference: ref ?? null,
               replayedVia: 'admin/wompi/test',
               originalStatusMessage: tx?.status_message || null,
             },
@@ -274,8 +332,8 @@ export async function POST(req: NextRequest) {
         }
 
         replayResult.message = `Processed ${status} for order ${orderId} (replay)`;
-      } catch (e: any) {
-        replayResult.error = e?.message || String(e);
+      } catch (e: unknown) {
+        replayResult.error = errMessage(e);
         replayResult.success = false;
       }
     }
@@ -285,7 +343,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  (summary as any).replayResult = replayResult;
+  summary.replayResult = replayResult;
 
   devLog('[Wompi][test] self-test result', { pubLooks, integLooks, queryOk: query.ok, mismatch: keyMismatch, events: eventsInfo });
 

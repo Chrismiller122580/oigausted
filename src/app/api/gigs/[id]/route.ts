@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
@@ -37,7 +35,6 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            email: true,
             businessName: true,
             profilePicture: true,
             rating: true,
@@ -66,8 +63,8 @@ export async function PUT(
   try {
     const { id } = await params;
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
-    const isAdmin = (session?.user as any)?.role === 'admin';
+    const userId = session?.user?.id;
+    const isAdmin = session?.user?.role === 'admin';
 
     if (!userId) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
@@ -132,7 +129,7 @@ export async function PUT(
       message: "Servicio actualizado correctamente" 
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     devLog('PUT gig error:', error);
     return NextResponse.json({ error: 'Error al actualizar el gig' }, { status: 500 });
   }
@@ -146,8 +143,8 @@ export async function DELETE(
   try {
     const { id } = await params;
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
-    const isAdmin = (session?.user as any)?.role === 'admin';
+    const userId = session?.user?.id;
+    const isAdmin = session?.user?.role === 'admin';
 
     if (!userId) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
@@ -189,7 +186,7 @@ export async function DELETE(
       message: "Servicio eliminado correctamente" 
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     devLog('DELETE gig error:', error);
     return NextResponse.json({ error: 'Error al eliminar el gig' }, { status: 500 });
   }

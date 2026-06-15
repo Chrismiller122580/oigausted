@@ -14,12 +14,14 @@ import { useGigCategories } from '@/lib/useGigCategories';
 import { toast } from 'sonner';
 import { MapPin } from 'lucide-react';
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
+import type { CheckoutFormData, DynamicFieldDef, DynamicFieldOption, GigAddonOption } from '@/types/gig-fields';
+import type { ChangeEvent, FormEvent } from 'react';
 
 function CreateGigClient() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const role = String((session?.user as any)?.role || '').toLowerCase().trim();
+  const role = String(session?.user?.role || '').toLowerCase().trim();
   const canPublish = !!session && ['seller', 'admin'].includes(role);
 
   // Global + per-page nuke component handles Maps pollution defense.
@@ -31,10 +33,10 @@ function CreateGigClient() {
   const [category, setCategory] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [customOptions, setCustomOptions] = useState<any[]>([]);
+  const [customOptions, setCustomOptions] = useState<GigAddonOption[]>([]);
   const [generating, setGenerating] = useState(false);
 
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<CheckoutFormData>({});
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
@@ -59,7 +61,7 @@ function CreateGigClient() {
   const calculateTotal = () => {
     let total = basePrice || 0;
     if (selectedCategory) {
-      selectedCategory.fields.forEach((field: any) => {
+      selectedCategory.fields.forEach((field: DynamicFieldDef) => {
         const val = formData[field.key];
         if (!val) return;
 
@@ -69,7 +71,7 @@ function CreateGigClient() {
           total += field.extraPrice || 0;
         } else if (field.type === 'select' && field.options) {
           // Support both string options and {label, extraPrice} objects
-          const chosen = field.options.find((o: any) => (typeof o === 'string' ? o === val : o.label === val));
+          const chosen = field.options?.find((o: DynamicFieldOption) => (typeof o === 'string' ? o === val : o.label === val));
           if (chosen && typeof chosen === 'object' && chosen.extraPrice) {
             total += chosen.extraPrice;
           }
@@ -143,12 +145,12 @@ function CreateGigClient() {
     }
   };
 
-  const handleSmartFieldChange = (key: string, value: any) => {
+  const handleSmartFieldChange = (key: string, value: string | number | boolean) => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleImageUpload = async (e: any) => {
-    const file = e.target.files[0];
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     const formData = new FormData();
@@ -195,7 +197,7 @@ function CreateGigClient() {
 
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!session) return toast.error("Debes iniciar sesión");
@@ -330,13 +332,13 @@ function CreateGigClient() {
               <CardTitle>Detalles específicos de {selectedCategory.name}</CardTitle>
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-6">
-              {selectedCategory.fields.map((field: any, i: number) => (
+              {selectedCategory.fields.map((field: DynamicFieldDef, i: number) => (
                 <div key={i}>
                   <Label>{field.label} {field.extraPrice ? `(+$${field.extraPrice})` : ''}</Label>
                   {field.type === 'number' && (
                     <Input 
                       type="number" 
-                      value={formData[field.key] || ''} 
+                      value={String(formData[field.key] ?? '')} 
                       onChange={(e) => handleSmartFieldChange(field.key, e.target.value)}
                       className="mt-1"
                     />
@@ -354,12 +356,12 @@ function CreateGigClient() {
                   )}
                   {field.type === 'select' && field.options && (
                     <select 
-                      value={formData[field.key] || ''} 
+                      value={String(formData[field.key] ?? '')} 
                       onChange={(e) => handleSmartFieldChange(field.key, e.target.value)}
                       className="mt-1 w-full border rounded-md p-2"
                     >
                       <option value="">Seleccionar...</option>
-                      {field.options.map((opt: any, idx: number) => {
+                      {field.options?.map((opt: DynamicFieldOption, idx: number) => {
                         const label = typeof opt === 'string' ? opt : opt.label;
                         const price = typeof opt === 'object' && opt.extraPrice ? ` (+$${opt.extraPrice})` : '';
                         return <option key={idx} value={label}>{label}{price}</option>;

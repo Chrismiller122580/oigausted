@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-// @ts-ignore
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -7,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    const userId = (session?.user as any)?.id
+    const userId = session?.user?.id
     if (!userId) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
@@ -57,7 +56,7 @@ export async function GET() {
       include: { order: { select: { sellerId: true } } }
     })
 
-    referralEarnings.forEach((earning: any) => {
+    referralEarnings.forEach((earning: { amount: number; order: { sellerId: string } | null }) => {
       const sellerId = earning.order?.sellerId
       if (sellerId) {
         earningsBySeller[sellerId] = (earningsBySeller[sellerId] || 0) + earning.amount
@@ -71,7 +70,7 @@ export async function GET() {
 
     // Basic earnings calculation (placeholder - can be improved later)
     // For now we just count referred sellers and estimate
-    const activeSellers = referredUsers.filter((u: any) => u.role === 'seller').length
+    const activeSellers = referredUsers.filter((u: { role: string }) => u.role === 'seller').length
     const totalReferred = referredUsers.length
 
     // Real earnings from ReferralEarning records
@@ -80,12 +79,12 @@ export async function GET() {
     })
 
     const totalEarned = earnings
-      .filter((e: any) => e.status === 'Paid' || e.status === 'Pending' || e.status === 'Requested')
-      .reduce((sum: any, e: any) => sum + e.amount, 0)
+      .filter((e: { status: string }) => e.status === 'Paid' || e.status === 'Pending' || e.status === 'Requested')
+      .reduce((sum: number, e: { amount: number }) => sum + e.amount, 0)
 
     const pendingEarnings = earnings
-      .filter((e: any) => e.status === 'Pending' || e.status === 'Requested')
-      .reduce((sum: any, e: any) => sum + e.amount, 0)
+      .filter((e: { status: string }) => e.status === 'Pending' || e.status === 'Requested')
+      .reduce((sum: number, e: { amount: number }) => sum + e.amount, 0)
 
     const referralLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/signup?ref=${referralCode}`
 
@@ -99,13 +98,13 @@ export async function GET() {
         pendingEarnings,
         referralRate,
       },
-      referredUsers: referredUsers.map((u: any) => ({
+      referredUsers: referredUsers.map((u: (typeof referredUsers)[number]) => ({
         id: u.id,
         name: u.name || u.email,
         businessName: u.businessName,
         joined: u.createdAt,
         status: u.role === 'seller' ? 'Active Seller' : 'Buyer',
-        earnings: earningsBySeller[(u as any).id] || 0,
+        earnings: earningsBySeller[u.id] || 0,
       }))
     })
   } catch (error) {
@@ -118,7 +117,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions)
-    const userId = (session?.user as any)?.id
+    const userId = session?.user?.id
     if (!userId) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
@@ -133,6 +132,15 @@ export async function POST(req: Request) {
 
     if (user.referredById) {
       return NextResponse.json({ error: 'Ya estás vinculado a un referidor' }, { status: 400 })
+    }
+
+    const REFERRAL_BIND_WINDOW_DAYS = 7
+    const bindDeadline = new Date(user.createdAt)
+    bindDeadline.setDate(bindDeadline.getDate() + REFERRAL_BIND_WINDOW_DAYS)
+    if (new Date() > bindDeadline) {
+      return NextResponse.json({
+        error: `Solo puedes vincular un código de referido durante los primeros ${REFERRAL_BIND_WINDOW_DAYS} días después de registrarte`,
+      }, { status: 400 })
     }
 
     const referrer = await prisma.user.findUnique({

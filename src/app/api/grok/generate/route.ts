@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authOptions, isAdmin } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
 
 export async function POST(req: NextRequest) {
-  let parsedBody: any = {};
+  let parsedBody: { title?: string; category?: string; type?: string } = {};
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
+    }
+    if (!isAdmin(session)) {
+      return NextResponse.json({ error: 'Solo administradores pueden usar la generación con Grok' }, { status: 403 });
     }
 
     parsedBody = await req.json();
@@ -74,7 +76,7 @@ Responde SOLO con la descripción, sin introducciones.`;
 
     if (type === 'faq') {
       // Try to parse JSON from the model
-      let parsedFaq: any = null;
+      let parsedFaq: { question: string; answer: string } | null = null;
       try {
         // The model sometimes wraps in ```json ... ```
         const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -87,8 +89,8 @@ Responde SOLO con la descripción, sin introducciones.`;
         };
       }
       return NextResponse.json({ 
-        question: parsedFaq.question || title, 
-        answer: parsedFaq.answer || content 
+        question: parsedFaq?.question || title, 
+        answer: parsedFaq?.answer || content 
       });
     }
 

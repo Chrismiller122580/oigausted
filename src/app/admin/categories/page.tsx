@@ -105,7 +105,7 @@ export default function AdminCategoriesPage() {
     const field: FieldDef = {
       key: newField.key.trim(),
       label: newField.label.trim(),
-      type: (newField.type as any) || 'number',
+      type: (newField.type as FieldDef['type']) || 'number',
       extraPrice: newField.type !== 'select' ? (newField.extraPrice || 0) : undefined,
       options: newField.type === 'select' ? [] : undefined,
     };
@@ -363,7 +363,7 @@ export default function AdminCategoriesPage() {
                   <select
                     className="border rounded h-10 px-2 bg-background"
                     value={newField.type}
-                    onChange={(e) => setNewField({ ...newField, type: e.target.value as any })}
+                    onChange={(e) => setNewField({ ...newField, type: e.target.value as FieldDef['type'] })}
                   >
                     <option value="number">Número (ej: cantidad)</option>
                     <option value="checkbox">Checkbox (sí/no + precio)</option>

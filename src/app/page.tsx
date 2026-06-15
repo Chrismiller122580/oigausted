@@ -1,6 +1,4 @@
-// @ts-ignore
-// @ts-ignore
- import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth';
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import MarketingHomePage from "./(marketing)/page";
@@ -14,7 +12,7 @@ export default async function RootPage() {
   }
 
   // Logged-in users are sent to their role-specific dashboard
-  const role = (session.user as any)?.role?.toLowerCase() || "buyer";
+  const role = session.user.role?.toLowerCase() || "buyer";
 
   if (role === "seller") {
     redirect("/seller");

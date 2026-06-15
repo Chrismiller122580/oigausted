@@ -11,9 +11,9 @@ import OnboardingTutorial from '@/components/common/OnboardingTutorial';
 
 export default function SellerDashboard() {
   const { data: session } = useSession();
-  const [gigs, setGigs] = useState<any[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [gigs, setGigs] = useState<Array<{ id: string; title: string; price: number; isActive?: boolean; stats?: { orderCount?: number; completedCount?: number; completedRevenue?: number } }>>([]);
+  const [orders, setOrders] = useState<import('@/types/order').OrderDetail[]>([]);
+  const [reviews, setReviews] = useState<import('@/types/order').OrderReview[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Tutorial state: auto appears for new sellers and when buyer->seller role unlock (full training on new features)
@@ -21,7 +21,7 @@ export default function SellerDashboard() {
 
   const fetchData = async () => {
     try {
-      const sellerId = (session?.user as any)?.id;
+      const sellerId = session?.user?.id;
       const [gigsRes, ordersRes, reviewsRes] = await Promise.all([
         fetch('/api/seller/gigs'),
         fetch('/api/orders?role=seller'),
@@ -51,7 +51,7 @@ export default function SellerDashboard() {
   // Auto-launch seller tutorial for new users or freshly unlocked sellers (localStorage per user+role)
   // Respects global admin toggle from PlatformConfig.tutorialsEnabled (buyer->seller unlock will re-trigger when enabled)
   useEffect(() => {
-    const uid = (session?.user as any)?.id;
+    const uid = session?.user?.id;
     if (uid && !loading) {
       (async () => {
         try {
@@ -154,10 +154,10 @@ export default function SellerDashboard() {
               <Star className="w-12 h-12 text-amber-500 mb-4" />
               <p className="text-sm text-muted-foreground">Calificación</p>
               <p className="text-4xl font-bold mt-2 text-foreground">
-                {(session?.user as any)?.rating?.toFixed(1) || "—"} ★
+                {session?.user?.rating?.toFixed(1) || "—"} ★
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {(session?.user as any)?.reviewCount || 0} reseñas
+                {session?.user?.reviewCount || 0} reseñas
               </p>
             </CardContent>
           </Card>
@@ -286,7 +286,7 @@ export default function SellerDashboard() {
         <OnboardingTutorial
           mode="seller"
           onComplete={() => {
-            const uid = (session?.user as any)?.id;
+            const uid = session?.user?.id;
             if (uid) localStorage.setItem(`tutorial_seller_${uid}`, 'true');
             setShowTutorial(false);
           }}

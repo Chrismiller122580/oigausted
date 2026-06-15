@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { asAuditDetails } from '@/types/audit';
 
 interface AuditLog {
   id: string;
   action: string;
   targetType: string;
   targetId: string | null;
-  details: any;
+  details: Record<string, unknown> | string | null;
   ipAddress: string | null;
   createdAt: string;
   admin?: {
@@ -211,9 +212,9 @@ export default function AdminAuditPage() {
                                 <span className="text-[10px] opacity-60 hidden group-open:inline">(click again to collapse)</span>
                               </summary>
                               <div className="mt-1">
-                                {log.action === 'PLATFORM_CONFIG_UPDATED' && log.details?.changedFields && (
+                                {log.action === 'PLATFORM_CONFIG_UPDATED' && asAuditDetails(log.details)?.changedFields && (
                                   <div className="mb-1 text-[10px]">
-                                    <span className="font-semibold">Changed:</span> {(log.details.changedFields as string[]).join(', ')}
+                                    <span className="font-semibold">Changed:</span> {(asAuditDetails(log.details)!.changedFields as string[]).join(', ')}
                                   </div>
                                 )}
                                 <pre 

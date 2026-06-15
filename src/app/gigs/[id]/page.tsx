@@ -9,14 +9,38 @@ import { ArrowLeft, Clock } from 'lucide-react';
 import { parseJsonArrayField } from "@/lib/utils";
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 import { toast } from 'sonner';
+import type { DynamicFieldDef } from '@/types/gig-fields';
+import type { OrderReview } from '@/types/order';
+
+interface GigDetail {
+  id: string;
+  title: string;
+  description?: string;
+  price: number;
+  category: string;
+  isActive?: boolean;
+  fields?: unknown;
+  addons?: unknown;
+  sellerId?: string;
+  imageUrl?: string | null;
+  completionTime?: string | null;
+  seller?: {
+    id: string;
+    name?: string | null;
+    businessName?: string | null;
+    slug?: string | null;
+    rating?: number;
+    reviewCount?: number;
+  };
+}
 
 export default function GigDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  const [gig, setGig] = useState<any>(null);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [gig, setGig] = useState<GigDetail | null>(null);
+  const [reviews, setReviews] = useState<OrderReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -43,8 +67,8 @@ export default function GigDetailPage() {
         const reviewsData = await reviewsRes.json();
         setReviews(reviewsData.reviews || []);
       }
-    } catch (err: any) {
-      setError(err.message || "Error al cargar el gig");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error al cargar el gig");
     } finally {
       setLoading(false);
     }
@@ -90,7 +114,7 @@ export default function GigDetailPage() {
     );
   }
 
-  const userId = (session?.user as any)?.id;
+  const userId = session?.user?.id;
   const isOwnGig = userId && (userId === gig.sellerId || userId === gig.seller?.id);
 
   const gigFields = parseJsonArrayField(gig?.fields);
@@ -198,7 +222,7 @@ export default function GigDetailPage() {
               <div>
                 <h2 className="text-2xl font-semibold mb-6">Opciones del servicio</h2>
                 <div className="grid gap-4">
-                  {gigFields.map((field: any, index: number) => (
+                  {gigFields.map((field: DynamicFieldDef, index: number) => (
                     <div key={index} className="bg-card p-6 rounded-3xl border">
                       <p className="text-sm uppercase tracking-widest text-muted-foreground mb-1">
                         {field.label || field.key}
@@ -254,7 +278,7 @@ export default function GigDetailPage() {
                       {gig.seller?.rating && gig.seller.rating > 0 && (
                         <div className="flex items-center gap-1 text-sm text-amber-600">
                           ⭐ {gig.seller.rating.toFixed(1)}
-                          {gig.seller.reviewCount > 0 && (
+                          {(gig.seller.reviewCount ?? 0) > 0 && (
                             <span className="text-muted-foreground">({gig.seller.reviewCount} reseñas)</span>
                           )}
                         </div>

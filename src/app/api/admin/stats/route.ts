@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -9,7 +7,7 @@ import { devLog } from '@/lib/utils';
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (session?.user?.role !== 'admin') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -70,7 +68,7 @@ export async function GET() {
 
     const totalRevenue = totalRevenueResult._sum.price || 0;
 
-    let config: any = null;
+    let config: { commissionRate: number; referralCommissionRate: number } | null = null;
     try {
       config = await prisma.platformConfig.findFirst({
         select: {
@@ -89,7 +87,7 @@ export async function GET() {
 
     // For stats we need to know which sellers were referred.
     // Fetch defensively to handle missing sellerPayoutAt column (prod DB drift).
-    let completedOrdersWithReferral: any[] = [];
+    let completedOrdersWithReferral: Array<{ price: number; sellerPayoutAt?: Date | null; seller: { referredById: string | null } }> = [];
     try {
       completedOrdersWithReferral = await prisma.order.findMany({
         where: { status: 'Completed' },
@@ -109,11 +107,11 @@ export async function GET() {
         }
       });
       // treat all as unpaid in fallback (until column added)
-      completedOrdersWithReferral = completedOrdersWithReferral.map((o: any) => ({ ...o, sellerPayoutAt: null }));
+      completedOrdersWithReferral = completedOrdersWithReferral.map(o => ({ ...o, sellerPayoutAt: null }));
     }
 
     // Only unpaid (no sellerPayoutAt) count toward pending payouts
-    const unpaidCompletedOrders = completedOrdersWithReferral.filter((o: any) => !o.sellerPayoutAt);
+    const unpaidCompletedOrders = completedOrdersWithReferral.filter(o => !o.sellerPayoutAt);
 
     // All completed for historical revenue stats
     const allBreakdowns = completedOrdersWithReferral.map(o =>

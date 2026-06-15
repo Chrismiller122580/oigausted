@@ -4,8 +4,15 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner'; // Using Sonner for 2027-grade beautiful actionable toasts
 import { playNotificationSound } from './notificationSound';
+import type { JsonObject } from '@/types/json';
 
 // Types
+export interface NotificationAction {
+  label: string;
+  action: string;
+  data?: JsonObject;
+}
+
 export interface RealtimeNotification {
   id: string;
   title: string;
@@ -13,6 +20,10 @@ export interface RealtimeNotification {
   link?: string | null;
   category: string;
   createdAt: string;
+  read?: boolean;
+  data?: JsonObject & {
+    actions?: NotificationAction[];
+  };
 }
 
 interface UseRealtimeNotificationsOptions {
@@ -25,6 +36,19 @@ interface UseRealtimeNotificationsOptions {
 // Global singleton to avoid multiple SSE connections
 let globalEventSource: EventSource | null = null;
 let connectionCount = 0;
+let sseErrorLogged = false;
+
+// Global dedup for toasts across hook instances (prevents multiples from responsive nav renders etc.)
+const globalShownIds: Set<string> =
+  typeof globalThis !== 'undefined' && '__notifShownIds' in globalThis
+    ? (globalThis as typeof globalThis & { __notifShownIds: Set<string> }).__notifShownIds
+    : (() => {
+        const set = new Set<string>();
+        if (typeof globalThis !== 'undefined') {
+          (globalThis as typeof globalThis & { __notifShownIds: Set<string> }).__notifShownIds = set;
+        }
+        return set;
+      })();
 
 /**
  * Best-in-2027 Realtime Notifications Hook
@@ -49,13 +73,6 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
   const lastNotificationIds = useRef<Set<string>>(new Set());
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Global dedup for toasts across any hook instances (prevents multiples from responsive nav renders etc.)
-  // Module level so shared.
-  if (!(globalThis as any).__notifShownIds) {
-    (globalThis as any).__notifShownIds = new Set<string>();
-  }
-  const globalShownIds: Set<string> = (globalThis as any).__notifShownIds;
-
   const isAuthed = sessionStatus === 'authenticated' && !!session?.user;
 
   // Show rich actionable toast with 2027-grade buttons
@@ -65,8 +82,8 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
     if (globalShownIds.has(notif.id)) return;
     globalShownIds.add(notif.id);
 
-    const notifData = (notif as any).data || {};
-    const customActions: Array<{ label: string; action: string; data?: any }> = notifData.actions || [];
+    const notifData = notif.data || {};
+    const customActions: NotificationAction[] = Array.isArray(notifData.actions) ? notifData.actions : [];
 
     // Build action buttons for description (when we have rich custom actions)
     // or a simple action object for Sonner's action prop (simple link case)
@@ -146,9 +163,11 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
   }, [enableToasts, enableDesktop, enableSound]);
 
   // Handle rich actions from notifications (2027-grade quick actions)
-  const handleNotificationAction = async (actionType: string, actionData: any, notif: RealtimeNotification) => {
-    const orderId = actionData?.orderId || notif.link?.split('/').pop();
-    const userId = actionData?.userId || actionData?.otherUserId;
+  const handleNotificationAction = async (actionType: string, actionData: JsonObject | undefined, notif: RealtimeNotification) => {
+    const orderId = (typeof actionData?.orderId === 'string' ? actionData.orderId : undefined) || notif.link?.split('/').pop();
+    const userId =
+      (typeof actionData?.userId === 'string' ? actionData.userId : undefined) ||
+      (typeof actionData?.otherUserId === 'string' ? actionData.otherUserId : undefined);
 
     try {
       switch (actionType) {
@@ -213,7 +232,7 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
 
         // Reviews
         case 'respond_to_review':
-          if (actionData?.reviewId) {
+          if (typeof actionData?.reviewId === 'string' && actionData.reviewId) {
             window.location.href = `/seller/earnings`; // or a dedicated review response page
           } else {
             window.location.href = `/seller/earnings`;
@@ -239,7 +258,7 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
           break;
 
         case 'edit_gig':
-          if (actionData?.gigId) {
+          if (typeof actionData?.gigId === 'string' && actionData.gigId) {
             window.location.href = `/seller/gigs`;
           }
           break;
@@ -272,7 +291,7 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
         setIsConnected(true);
         console.log('[Notifications] SSE connected');
         // Reset error log flag on successful reconnect
-        if (globalEventSource) (globalEventSource as any)._sseErrorLogged = false;
+        sseErrorLogged = false;
       };
 
       es.addEventListener('notification', (event) => {
@@ -303,9 +322,9 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
         // retries with backoff on errors. We keep the reference so reconnects
         // can succeed and fire onopen again. Polling runs in parallel as reliable backup.
         // Log only once per "drop" to avoid spam; transient errors are normal on Vercel/prod.
-        if (! (globalEventSource as any)?._sseErrorLogged) {
+        if (!sseErrorLogged) {
           console.warn('[Notifications] SSE error - auto-retrying (polling as backup)');
-          (globalEventSource as any)._sseErrorLogged = true;
+          sseErrorLogged = true;
         }
         // Do NOT close or null here. Let browser retry. Cleanup on unmount will handle close.
       };
@@ -328,11 +347,11 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
 
         const data = await res.json();
         const newOnes = (data.notifications || []).filter(
-          (n: any) => !lastNotificationIds.current.has(n.id)
+          (n: RealtimeNotification) => !lastNotificationIds.current.has(n.id)
         );
 
         if (newOnes.length > 0) {
-          newOnes.forEach((n: any) => lastNotificationIds.current.add(n.id));
+          newOnes.forEach((n: RealtimeNotification) => lastNotificationIds.current.add(n.id));
           setNotifications(prev => [...newOnes, ...prev].slice(0, 50));
           setUnreadCount(data.unreadCount || 0);
 
@@ -383,7 +402,7 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
         const data = await res.json();
         setNotifications(data.notifications || []);
         setUnreadCount(data.unreadCount || 0);
-        (data.notifications || []).forEach((n: any) => lastNotificationIds.current.add(n.id));
+        (data.notifications || []).forEach((n: RealtimeNotification) => lastNotificationIds.current.add(n.id));
       }
     } catch {}
   }, []);

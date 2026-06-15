@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, type Prisma } from '@prisma/client'
 import { withAccelerate } from '@prisma/extension-accelerate'
 import { devLog } from './utils'
 
@@ -53,7 +53,41 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 // Simple in-memory cache for the singleton PlatformConfig (rarely changes, hit on almost every admin + config + notif path).
 // This dramatically reduces DB connection usage in serverless (each API route is a new invocation).
 // TTL is short enough for admin changes to propagate quickly.
-let cachedPlatformConfig: any = null
+const platformConfigSelect = {
+  id: true,
+  commissionRate: true,
+  referralCommissionRate: true,
+  minPayoutAmount: true,
+  supportEmail: true,
+  supportPhone: true,
+  enableReviews: true,
+  enableChat: true,
+  maintenanceMode: true,
+  maintenanceMessage: true,
+  referralsEnabled: true,
+  allowNewSignups: true,
+  maxUploadSizeMB: true,
+  siteName: true,
+  siteTagline: true,
+  logoUrl: true,
+  globalPushNotificationsEnabled: true,
+  globalEmailNotificationsEnabled: true,
+  maintenanceBypassIps: true,
+  wompiRealPaymentsEnabled: true,
+  tutorialsEnabled: true,
+  wompiSftpEnabled: true,
+  wompiSftpHost: true,
+  wompiSftpPort: true,
+  wompiSftpUsername: true,
+  wompiSftpPassword: true,
+  wompiSftpPrivateKey: true,
+  wompiSftpRemotePath: true,
+  updatedAt: true,
+} satisfies Prisma.PlatformConfigSelect
+
+export type PlatformConfigRow = Prisma.PlatformConfigGetPayload<{ select: typeof platformConfigSelect }>
+
+let cachedPlatformConfig: PlatformConfigRow | null = null
 let cacheTimestamp = 0
 const CACHE_TTL_MS = 30_000 // 30 seconds
 
@@ -144,38 +178,7 @@ export async function getPlatformConfig(force = false) {
     // Select includes wompiSftp* (the previous omit was to protect old DBs; now that the migration exists we include them so admin SFTP config and getWompiSftpConfig can actually read persisted values).
     const config = await prisma.platformConfig.findUnique({
       where: { id: 'singleton' },
-      select: {
-        id: true,
-        commissionRate: true,
-        referralCommissionRate: true,
-        minPayoutAmount: true,
-        supportEmail: true,
-        supportPhone: true,
-        enableReviews: true,
-        enableChat: true,
-        maintenanceMode: true,
-        maintenanceMessage: true,
-        referralsEnabled: true,
-        allowNewSignups: true,
-        maxUploadSizeMB: true,
-        siteName: true,
-        siteTagline: true,
-        logoUrl: true,
-        globalPushNotificationsEnabled: true,
-        globalEmailNotificationsEnabled: true,
-        maintenanceBypassIps: true,
-        wompiRealPaymentsEnabled: true,
-        tutorialsEnabled: true,
-        // wompiSftp* now included (safe select updated after sftp migration)
-        wompiSftpEnabled: true,
-        wompiSftpHost: true,
-        wompiSftpPort: true,
-        wompiSftpUsername: true,
-        wompiSftpPassword: true,
-        wompiSftpPrivateKey: true,
-        wompiSftpRemotePath: true,
-        updatedAt: true,
-      }
+      select: platformConfigSelect,
     })
     if (config) {
       cachedPlatformConfig = config
@@ -190,38 +193,7 @@ export async function getPlatformConfig(force = false) {
     // Re-query to get the freshly created row (and let it be cached).
     const created = await prisma.platformConfig.findUnique({
       where: { id: 'singleton' },
-      select: {
-        id: true,
-        commissionRate: true,
-        referralCommissionRate: true,
-        minPayoutAmount: true,
-        supportEmail: true,
-        supportPhone: true,
-        enableReviews: true,
-        enableChat: true,
-        maintenanceMode: true,
-        maintenanceMessage: true,
-        referralsEnabled: true,
-        allowNewSignups: true,
-        maxUploadSizeMB: true,
-        siteName: true,
-        siteTagline: true,
-        logoUrl: true,
-        globalPushNotificationsEnabled: true,
-        globalEmailNotificationsEnabled: true,
-        maintenanceBypassIps: true,
-        wompiRealPaymentsEnabled: true,
-        tutorialsEnabled: true,
-        // wompiSftp* now included
-        wompiSftpEnabled: true,
-        wompiSftpHost: true,
-        wompiSftpPort: true,
-        wompiSftpUsername: true,
-        wompiSftpPassword: true,
-        wompiSftpPrivateKey: true,
-        wompiSftpRemotePath: true,
-        updatedAt: true,
-      }
+      select: platformConfigSelect,
     })
     if (created) {
       cachedPlatformConfig = created
@@ -234,7 +206,7 @@ export async function getPlatformConfig(force = false) {
   }
 
   // Defensive defaults (same as in the config route and ensurePlatformConfig)
-  const defaults = {
+  const defaults: PlatformConfigRow = {
     id: 'singleton',
     commissionRate: 0.12,
     referralCommissionRate: 0.05,
@@ -255,7 +227,6 @@ export async function getPlatformConfig(force = false) {
     globalEmailNotificationsEnabled: true,
     maintenanceBypassIps: '',
     wompiRealPaymentsEnabled: false,
-    // SFTP fields default to disabled/empty until column exists and configured
     wompiSftpEnabled: false,
     wompiSftpHost: null,
     wompiSftpPort: 22,
@@ -265,8 +236,7 @@ export async function getPlatformConfig(force = false) {
     wompiSftpRemotePath: '/',
     tutorialsEnabled: true,
     updatedAt: new Date(),
-    createdAt: new Date(),
-  } as any
+  }
 
   cachedPlatformConfig = defaults
   cacheTimestamp = now

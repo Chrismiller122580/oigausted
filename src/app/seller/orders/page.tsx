@@ -12,8 +12,8 @@ import { parseCustomFields } from '@/lib/utils';
 
 export default function SellerOrdersPage() {
   const { data: session, status } = useSession();
-  const [orders, setOrders] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [orders, setOrders] = useState<import('@/types/order').OrderDetail[]>([]);
+  const [reviews, setReviews] = useState<(import('@/types/order').OrderReview & { orderId?: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('All');
 
@@ -23,7 +23,7 @@ export default function SellerOrdersPage() {
       return;
     }
 
-    const sellerId = (session.user as any)?.id;
+    const sellerId = session.user.id;
 
     try {
       const [ordersRes, reviewsRes] = await Promise.all([
@@ -86,7 +86,7 @@ export default function SellerOrdersPage() {
 
       // Refresh the list
       const updatedOrders = orders.map(o =>
-        o.id === orderId ? { ...o, status: newStatus } : o
+        o.id === orderId ? { ...o, status: newStatus as import('@/types/order').OrderDetail['status'] } : o
       );
       setOrders(updatedOrders);
 

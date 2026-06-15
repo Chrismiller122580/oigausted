@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
+import type { Prisma } from '@prisma/client';
 
 // GET: List all support tickets (admin only), with optional filters
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (session?.user?.role !== 'admin') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -33,7 +32,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ticket });
     }
 
-    const where: any = {};
+    const where: Prisma.SupportTicketWhereInput = {};
     if (status) where.status = status;
     if (priority) where.priority = priority;
     if (category) where.category = category;
@@ -58,8 +57,8 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const adminId = (session?.user as any)?.id;
-    if ((session?.user as any)?.role !== 'admin' || !adminId) {
+    const adminId = session?.user?.id;
+    if (session?.user?.role !== 'admin' || !adminId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -70,7 +69,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'ticketId requerido' }, { status: 400 });
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.SupportTicketUpdateInput = {};
     if (status && ['open', 'in_progress', 'resolved', 'closed'].includes(status)) {
       updateData.status = status;
       if (status === 'resolved' || status === 'closed') {

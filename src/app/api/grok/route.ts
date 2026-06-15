@@ -1,14 +1,18 @@
 import { NextRequest } from "next/server";
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
+
+interface GrokChatMessage {
+  role: string
+  content: string
+}
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const role = (session?.user as any)?.role;
+    const role = session?.user?.role;
     if (role !== 'admin') {
       return Response.json({ error: 'Unauthorized - admin access required for Grok Build tools' }, { status: 403 });
     }
@@ -83,14 +87,13 @@ Current session context:
     }
 
     // Build proper message history if provided (for real conversation memory)
-    let apiMessages: any[] = [
+    let apiMessages: GrokChatMessage[] = [
       { role: "system", content: systemPrompt },
     ];
 
     // If full history was sent from frontend, use it (much smarter experience)
     if (Array.isArray(history) && history.length > 0) {
-      // Convert our Message format to OpenAI format
-      const formattedHistory = history.slice(0, -1).map((m: any) => ({
+      const formattedHistory = history.slice(0, -1).map((m: GrokChatMessage) => ({
         role: m.role,
         content: m.content
       }));
@@ -331,7 +334,7 @@ Current session context:
       const args = JSON.parse(toolCall.function.arguments || "{}");
 
       // Execute read-only tools on the server
-      let toolResult: any = null;
+      let toolResult: unknown = null;
 
       if (functionName === "get_platform_overview") {
         const [userCount, sellerCount, orderCount, completedOrders, totalRevenue] = await Promise.all([
@@ -378,7 +381,7 @@ Current session context:
       }
 
       if (functionName === "list_support_tickets") {
-        const where: any = {};
+        const where: Prisma.SupportTicketWhereInput = {};
         if (args.status) where.status = args.status;
         const tickets = await prisma.supportTicket.findMany({
           where,
@@ -386,7 +389,7 @@ Current session context:
           orderBy: { createdAt: 'desc' },
           take: 20
         });
-        toolResult = { tickets: tickets.map((t: any) => ({
+        toolResult = { tickets: tickets.map((t: (typeof tickets)[number]) => ({
           id: t.id,
           subject: t.subject,
           user: t.user.email,

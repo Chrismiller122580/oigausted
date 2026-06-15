@@ -1,22 +1,22 @@
 import { NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
+import { computeOrderPrice } from '@/lib/order-price';
+import type { Prisma } from '@prisma/client';
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
     }
 
-    const role = (session?.user as any)?.role;
+    const role = session?.user?.role;
     if (role && role !== 'buyer' && role !== 'admin') {
       return NextResponse.json({ error: 'Solo compradores pueden crear pedidos' }, { status: 403 });
     }
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       update: {},
       create: {
         id: userId,
-        name: (session?.user as any)?.name || 'Comprador',
+        name: session?.user?.name || 'Comprador',
         email: session?.user?.email || '',
         role: 'buyer',
       }
@@ -41,7 +41,15 @@ export async function POST(request: Request) {
 
     const gig = await prisma.gig.findUnique({
       where: { id: gigId },
-      include: { seller: true }
+      select: {
+        id: true,
+        title: true,
+        price: true,
+        fields: true,
+        isActive: true,
+        sellerId: true,
+        seller: { select: { name: true } },
+      },
     });
 
     if (!gig) return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
@@ -67,12 +75,18 @@ export async function POST(request: Request) {
       }
     });
 
+    const selections =
+      customFields && typeof customFields === 'object' && !Array.isArray(customFields)
+        ? customFields
+        : {}
+    const computedPrice = computeOrderPrice(gig.price, gig.fields, selections)
+
     const order = await prisma.order.create({
       data: {
         buyerId: userId,
         sellerId: gig.sellerId,
         gigId: gig.id,
-        price: Number(price),
+        price: computedPrice,
         customFields: customFields ? JSON.stringify(customFields) : null,
         status: 'Pending',
       },
@@ -102,7 +116,7 @@ export async function POST(request: Request) {
       details: {
         gigId: gig.id,
         gigTitle: gig.title,
-        price: Number(price),
+        price: computedPrice,
         sellerId: gig.sellerId,
       },
     });
@@ -116,7 +130,7 @@ export async function POST(request: Request) {
       `/orders/${order.id}`,
       {
         gigTitle: gig.title,
-        amount: Number(price),
+        amount: computedPrice,
         buyerName: order.buyer?.name || 'Un comprador',
         orderId: order.id,
         actions: [
@@ -135,33 +149,34 @@ export async function POST(request: Request) {
       `/orders/${order.id}`,
       {
         gigTitle: gig.title,
-        amount: Number(price),
+        amount: computedPrice,
         sellerName: gig.seller?.name || 'Vendedor',
         orderId: order.id,
       }
     );
 
     return NextResponse.json({ success: true, orderId: order.id, order });
-  } catch (error: any) {
+  } catch (error: unknown) {
     devLog('Order creation error:', error);
-    return NextResponse.json({ error: error.message || 'Error al crear la orden' }, { status: 500 });
+    const errMsg = error instanceof Error ? error.message : 'Error al crear la orden';
+    return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 }
 
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     const url = new URL(request.url);
     const role = url.searchParams.get('role') || 'buyer';
-    const isAdmin = (session?.user as any)?.role === 'admin';
+    const isAdmin = session?.user?.role === 'admin';
     const viewAll = url.searchParams.get('view') === 'all' && isAdmin;
 
-    let where: any = {};
+    let where: Prisma.OrderWhereInput = {};
     if (viewAll) {
       // Admin can view all orders for payouts/oversight
       where = {};
@@ -171,7 +186,7 @@ export async function GET(request: Request) {
       where = { buyerId: userId };
     }
 
-    let orders;
+    let orders: Awaited<ReturnType<typeof prisma.order.findMany>> = [];
     try {
       // Try with sellerPayoutAt (for payouts page to filter paid/unpaid reliably)
       orders = await prisma.order.findMany({
@@ -199,7 +214,7 @@ export async function GET(request: Request) {
         },
         orderBy: { createdAt: 'desc' }
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       // Fallback if column still missing in this DB (prod drift) - omit it, payouts page will use local persistence
       devLog('orders GET: sellerPayoutAt column missing, falling back (see payouts page localMarked)');
       orders = await prisma.order.findMany({
@@ -226,7 +241,7 @@ export async function GET(request: Request) {
         orderBy: { createdAt: 'desc' }
       });
       // attach nulls for payout tracking fields (old DB / pre-migration); payouts UI falls back to localStorage for marked state
-      orders = orders.map((o: any) => ({
+      orders = orders.map((o: (typeof orders)[number]) => ({
         ...o,
         sellerPayoutAt: null,
         wompiPayoutRef: null,
@@ -235,12 +250,12 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json(orders);  // sellerPayoutAt included when column present in DB; nulls + client localMarked otherwise (see admin/payouts)
-  } catch (error: any) {
+  } catch (error: unknown) {
     devLog('Orders fetch error:', error);
-    // Include more detail in dev, generic in prod response
+    const errMsg = error instanceof Error ? error.message : undefined;
     return NextResponse.json({ 
       error: 'Error cargando órdenes',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+      details: process.env.NODE_ENV === 'development' ? errMsg : undefined 
     }, { status: 500 });
   }
 }

@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (session?.user?.role !== 'admin') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -21,7 +20,7 @@ export async function GET(req: NextRequest) {
     const performedById = searchParams.get('performedById');
     const actorParam = searchParams.get('actor') || performedById;
 
-    let actorWhere: any = {};
+    let actorWhere: Prisma.AuditLogWhereInput = {};
     if (actorParam) {
       // Try to resolve email to ID for flexible filtering
       const user = await prisma.user.findUnique({

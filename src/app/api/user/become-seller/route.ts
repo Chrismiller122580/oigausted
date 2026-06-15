@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-// @ts-ignore
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -9,8 +8,8 @@ import { slugify, devLog } from '@/lib/utils'
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    const currentUserId = (session?.user as any)?.id
-    const isAdmin = (session?.user as any)?.role === 'admin'
+    const currentUserId = session?.user?.id
+    const isAdmin = session?.user?.role === 'admin'
 
     if (!currentUserId) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 })
@@ -71,7 +70,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const updateData: any = {
+    const updateData: import('@prisma/client').Prisma.UserUpdateInput = {
       role: "seller",
       businessName: trimmedBusinessName,
       nit: nit ? nit.trim() : null,
@@ -88,8 +87,8 @@ export async function POST(request: NextRequest) {
         where: { id: userId },
         data: updateData
       });
-    } catch (updateErr: any) {
-      const msg = String(updateErr?.message || updateErr);
+    } catch (updateErr: unknown) {
+      const msg = updateErr instanceof Error ? updateErr.message : String(updateErr);
       if (msg.includes('slug') && 'slug' in updateData) {
         devLog('Retrying become-seller update without slug (prod DB missing column)');
         delete updateData.slug;
@@ -149,10 +148,11 @@ export async function POST(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Become seller error:", error)
+    const errMsg = error instanceof Error ? error.message : "Failed to update role";
     return NextResponse.json({ 
-      error: error.message || "Failed to update role" 
+      error: errMsg
     }, { status: 500 })
   }
 }

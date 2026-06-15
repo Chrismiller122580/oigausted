@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { notifications } from '@/lib/notifications';
@@ -14,7 +12,7 @@ export async function GET(
   try {
     const { id: orderId } = await params;
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
@@ -42,7 +40,7 @@ export async function POST(
   try {
     const { id: orderId } = await params;
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
     }
@@ -113,7 +111,7 @@ export async function POST(
     });
 
     const avgRating = allReviews.length > 0
-      ? allReviews.reduce((sum: any, r: any) => sum + r.rating, 0) / allReviews.length
+      ? allReviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / allReviews.length
       : 0;
 
     await prisma.user.update({
@@ -144,7 +142,7 @@ export async function POST(
     );
 
     return NextResponse.json({ success: true, review });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Review creation error:', error);
     return NextResponse.json({ error: 'Error al guardar la reseña' }, { status: 500 });
   }

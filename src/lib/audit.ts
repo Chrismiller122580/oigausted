@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { toPrismaJson } from './utils';
+import type { JsonObject } from '@/types/json';
 
 interface LogAuditParams {
   // Preferred: the user (admin, seller, buyer) or system that performed the action
@@ -9,7 +10,7 @@ interface LogAuditParams {
   action: string;
   targetType: string;
   targetId?: string | null;
-  details?: Record<string, any> | null;
+  details?: JsonObject | null;
   ipAddress?: string | null;
   userAgent?: string | null;
 }

@@ -93,9 +93,9 @@ export default function SellerGigsManagement() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'Error al cambiar estado');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       setGigs(previousGigs); // revert
-      toast.error(error.message || 'No se pudo cambiar el estado');
+      toast.error(error instanceof Error ? error.message : 'No se pudo cambiar el estado');
     }
   };
 

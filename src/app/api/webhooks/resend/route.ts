@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import { devLog, toPrismaJson, parseDeliveryLog } from '@/lib/utils';
+import type { Notification, Prisma } from '@prisma/client';
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __lastResendWebhookAt: string | undefined;
+}
 
 // Resend Webhook Handler for email delivery tracking
 // Configure this webhook URL in your Resend dashboard: /api/webhooks/resend
@@ -75,7 +81,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    const notificationsToUpdate: any[] = [];
+    const notificationsToUpdate: Notification[] = [];
 
     // 1. Fast path: direct lookup by the new resendEmailId column (set at send time).
     // This is the reliable mechanism after the auto-emails correlation fixes.
@@ -95,7 +101,7 @@ export async function POST(req: NextRequest) {
         take: 50,
         orderBy: { createdAt: 'desc' },
       });
-      const legacyMatches = recent.filter((n: any) => {
+      const legacyMatches = recent.filter((n: (typeof recent)[number]) => {
         // If it already has the column, we would have found it above.
         if (n.resendEmailId === emailId) return true;
         const log = n.deliveryLog;
@@ -109,7 +115,7 @@ export async function POST(req: NextRequest) {
     for (const notif of notificationsToUpdate) {
       const currentLog = parseDeliveryLog(notif.deliveryLog);
 
-      let updateData: any = {
+      const updateData: Prisma.NotificationUpdateInput = {
         deliveryLog: toPrismaJson({
           ...currentLog,
           lastResendEvent: {
@@ -117,7 +123,7 @@ export async function POST(req: NextRequest) {
             at: new Date().toISOString(),
             data: event.data,
           }
-        })
+        }) as typeof updateData.deliveryLog
       };
 
       // Ensure the direct id is recorded (helps future events + admin visibility)
@@ -152,7 +158,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Simple in-memory last received for ops visibility (in prod use a DB row or metric)
-    (global as any).__lastResendWebhookAt = new Date().toISOString();
+    global.__lastResendWebhookAt = new Date().toISOString();
 
     return NextResponse.json({ received: true });
   } catch (error) {

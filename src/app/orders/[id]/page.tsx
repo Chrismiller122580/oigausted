@@ -12,12 +12,10 @@ import { useGigCategories } from '@/lib/useGigCategories';
 import { parseCustomFields } from '@/lib/utils';
 import GoogleMap from '@/components/maps/GoogleMap';
 import { MapPin } from 'lucide-react';
-
-declare global {
-  interface Window {
-    WompiCheckout?: any;
-  }
-}
+import type { OrderDetail, OrderMessage, OrderReview, OrderTab } from '@/types/order';
+import type { WompiClientDebugState, WompiPrepareResponse, WompiWidgetResult } from '@/types/wompi';
+import type { GigCategory } from '@/lib/useGigCategories';
+import type { ChangeEvent } from 'react';
 
 function OrderDetailClient() {
   const params = useParams();
@@ -26,14 +24,14 @@ function OrderDetailClient() {
   const { data: session } = useSession();
   const { categories: gigCategories } = useGigCategories();
 
-  const [order, setOrder] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [messages, setMessages] = useState<OrderMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [reviewText, setReviewText] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
-  const [existingReview, setExistingReview] = useState<any>(null);
+  const [existingReview, setExistingReview] = useState<OrderReview | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'progress' | 'review'>('overview');
+  const [activeTab, setActiveTab] = useState<OrderTab>('overview');
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Polling for Wompi payment confirmation (smart non-bypass UX)
@@ -41,7 +39,7 @@ function OrderDetailClient() {
   const paymentPollRef = useRef<NodeJS.Timeout | null>(null);
 
   // For the Wompi debugger panel
-  const [lastWompiPrepareDebug, setLastWompiPrepareDebug] = useState<any>(null);
+  const [lastWompiPrepareDebug, setLastWompiPrepareDebug] = useState<WompiClientDebugState | null>(null);
 
   // Robust Wompi script readiness (mirrors checkout page to avoid "cargando" / silent fail to open payment UI)
   const [wompiReady, setWompiReady] = useState(false);
@@ -52,7 +50,7 @@ function OrderDetailClient() {
     if (wompiReady) return true;
     if (typeof window === 'undefined') return false;
 
-    const hasGlobal = () => !!(window as any).WompiCheckout || !!(window as any).WidgetCheckout;
+    const hasGlobal = () => !!window.WompiCheckout || !!window.WidgetCheckout;
 
     if (hasGlobal()) {
       setWompiReady(true);
@@ -63,11 +61,11 @@ function OrderDetailClient() {
     // Inject script if missing
     if (!document.querySelector('script[src*="checkout.wompi.co"]')) {
       // Set globals before loading the script so Wompi's bundle can see the public key during its own initialization
-      const pk = (window as any).WOMPI_PUBLIC_KEY || '';
+      const pk = window.WOMPI_PUBLIC_KEY || '';
       if (pk) {
-        (window as any).WOMPI_PUBLIC_KEY = pk;
-        if ((window as any).$wompi && typeof (window as any).$wompi.initialize === 'function') {
-          try { (window as any).$wompi.initialize({ publicKey: pk }); } catch {}
+        window.WOMPI_PUBLIC_KEY = pk;
+        if (window.$wompi && typeof window.$wompi.initialize === 'function') {
+          try { window.$wompi.initialize({ publicKey: pk }); } catch {}
         }
       }
 
@@ -82,13 +80,13 @@ function OrderDetailClient() {
 
             // Force globals + initialize as soon as the class appears.
             // Catches Wompi internal auto merchant fetches that happen right after script load.
-            const earlyKey = (window as any).WOMPI_PUBLIC_KEY || '';
+            const earlyKey = window.WOMPI_PUBLIC_KEY || '';
             if (earlyKey) {
-              (window as any).WOMPI_PUBLIC_KEY = earlyKey;
-              (window as any).$wompi = (window as any).$wompi || {};
-              (window as any).$wompi.publicKey = earlyKey;
-              if (typeof (window as any).$wompi.initialize === 'function') {
-                try { (window as any).$wompi.initialize({ publicKey: earlyKey }); } catch {}
+              window.WOMPI_PUBLIC_KEY = earlyKey;
+              window.$wompi = window.$wompi || {};
+              window.$wompi.publicKey = earlyKey;
+              if (typeof window.$wompi.initialize === 'function') {
+                try { window.$wompi.initialize({ publicKey: earlyKey }); } catch {}
               }
             }
           }
@@ -111,10 +109,10 @@ function OrderDetailClient() {
     return false;
   };
 
-  const uid = (session?.user as any)?.id;
+  const uid = session?.user?.id;
   const isBuyer = order?.buyerId === uid;
   const isSeller = order?.sellerId === uid;
-  const isAdmin = (session?.user as any)?.role === 'admin';
+  const isAdmin = session?.user?.role === 'admin';
   const isCompleted = order?.status === 'Completed';
 
   useEffect(() => {
@@ -139,7 +137,7 @@ function OrderDetailClient() {
       }
 
       // Smart default tab
-      const urlTab = searchParams.get('tab') as any;
+      const urlTab = searchParams.get('tab') as OrderTab | null;
       const needsReview = (orderData.order || orderData)?.status === 'Completed' && !reviewData.review;
 
       if (urlTab === 'review' && (orderData.order || orderData)?.status === 'Completed') {
@@ -171,12 +169,12 @@ function OrderDetailClient() {
           const notifRes = await fetch('/api/notifications?limit=30');
           if (!notifRes.ok) return;
           const notifData = await notifRes.json();
-          const related = (notifData.notifications || []).filter((n: any) =>
+          const related = (notifData.notifications || []).filter((n: { id: string; read?: boolean; link?: string | null }) =>
             !n.read &&
             (n.link?.includes(orderId) || n.link?.includes(`/orders/${orderId}`))
           );
           if (related.length > 0) {
-            const ids = related.map((n: any) => n.id);
+            const ids = related.map((n: { id: string }) => n.id);
             await fetch('/api/notifications', {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
@@ -285,8 +283,8 @@ function OrderDetailClient() {
     }
   }, [newMessage, orderId]);
 
-  const uploadFile = useCallback(async (e: any) => {
-    const file = e.target.files[0];
+  const uploadFile = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file || !orderId) return;
     const formData = new FormData();
     formData.append('file', file);
@@ -373,8 +371,8 @@ function OrderDetailClient() {
     );
   }
 
-  const categoryInfo = gigCategories.find(c => c.name === order.gig?.category) || {};
-  const emoji = (categoryInfo as any).icon || (categoryInfo as any).emoji || '📦';
+  const categoryInfo: Partial<GigCategory> = gigCategories.find(c => c.name === order.gig?.category) || {};
+  const emoji = categoryInfo.icon || '📦';
   const isCleaningGig = order.gig?.category?.toLowerCase().includes("limpieza");
 
   return (
@@ -461,7 +459,7 @@ function OrderDetailClient() {
         ].map(tab => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key as any)}
+            onClick={() => setActiveTab(tab.key as OrderTab)}
             className={`flex-1 md:flex-none px-8 py-5 font-medium text-lg border-b-4 transition-all ${
               activeTab === tab.key ? 'border-orange-600 text-orange-600' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
@@ -582,21 +580,21 @@ function OrderDetailClient() {
 
                         // FORCE BEFORE Wompi script runs (Fix 2, orders page)
                         if (data.publicKey) {
-                          (window as any).WOMPI_PUBLIC_KEY = data.publicKey;
-                          (window as any).$wompi = { publicKey: data.publicKey };
+                          window.WOMPI_PUBLIC_KEY = data.publicKey;
+                          window.$wompi = { publicKey: data.publicKey };
 
                           console.log("✅ Wompi key forced (orders):", data.publicKey);
 
                           // Retry initialize
                           setTimeout(() => {
-                            if ((window as any).$wompi?.initialize) {
-                              (window as any).$wompi.initialize();
+                            if (window.$wompi?.initialize) {
+                              window.$wompi.initialize();
                             }
                           }, 200);
                         }
 
                         // Loud client-side guard for the most common prod signature failure
-                        const pubIsProd = /prod/i.test((window as any).WOMPI_PUBLIC_KEY || '');
+                        const pubIsProd = /prod/i.test(window.WOMPI_PUBLIC_KEY || '');
                         const hasSig = !!(data.hasIntegritySignature || data.integrity || data.checkoutData?.signature?.integrity);
                         if (pubIsProd && !hasSig) {
                           toast.error(
@@ -623,13 +621,13 @@ function OrderDetailClient() {
                         });
 
                         // Fix 2 (orders page): Force globals from prepare response (top-level + defensive)
-                        const responsePubKey = data.publicKey || checkoutData?.publicKey || (window as any).WOMPI_PUBLIC_KEY || '';
+                        const responsePubKey = data.publicKey || checkoutData?.publicKey || window.WOMPI_PUBLIC_KEY || '';
                         const responseIntegrity = data.integrity || checkoutData?.signature?.integrity;
 
                         if (responsePubKey) {
-                          (window as any).WOMPI_PUBLIC_KEY = responsePubKey;
-                          (window as any).$wompi = (window as any).$wompi || {};
-                          (window as any).$wompi.publicKey = responsePubKey;
+                          window.WOMPI_PUBLIC_KEY = responsePubKey;
+                          window.$wompi = window.$wompi || {};
+                          window.$wompi.publicKey = responsePubKey;
 
                           console.log("[Wompi] Globals forced from prepare response (orders):", responsePubKey?.slice(0, 20) + '...', {
                             source: data.publicKey ? 'top-level' : 'fallback',
@@ -638,14 +636,14 @@ function OrderDetailClient() {
 
                           // Extra defensive re-force + initialize (prevents races that cause "firma inválida" or init errors)
                           setTimeout(() => {
-                            if ((window as any).WOMPI_PUBLIC_KEY !== responsePubKey) {
-                              (window as any).WOMPI_PUBLIC_KEY = responsePubKey;
-                              (window as any).$wompi.publicKey = responsePubKey;
+                            if (window.WOMPI_PUBLIC_KEY !== responsePubKey) {
+                              window.WOMPI_PUBLIC_KEY = responsePubKey;
+                              if (window.$wompi) window.$wompi.publicKey = responsePubKey;
                               console.log("[Wompi] Re-forced globals on orders page (was overwritten)");
                             }
-                            if ((window as any).$wompi?.initialize) {
+                            if (window.$wompi?.initialize) {
                               try {
-                                (window as any).$wompi.initialize({ publicKey: responsePubKey });
+                                window.$wompi.initialize({ publicKey: responsePubKey });
                               } catch {}
                             }
                           }, 100);
@@ -657,33 +655,33 @@ function OrderDetailClient() {
 
                         // Extra defensive set right here with the exact value from the server prepare response.
                         // Some Wompi internal paths seem to snapshot the key at unexpected times.
-                        (window as any).WOMPI_PUBLIC_KEY = pubKeyFromServer;
-                        (window as any).$wompi = (window as any).$wompi || {};
-                        (window as any).$wompi.publicKey = pubKeyFromServer;
+                        window.WOMPI_PUBLIC_KEY = pubKeyFromServer;
+                        window.$wompi = window.$wompi || {};
+                        window.$wompi.publicKey = pubKeyFromServer;
                         console.log('[Wompi][Client] Forcing globals from server response', {
                           pubKey: pubKeyFromServer?.slice(0, 12) + '...',
-                          $wompiPublic: (window as any).$wompi?.publicKey?.slice(0, 12) + '...',
+                          $wompiPublic: window.$wompi?.publicKey?.slice(0, 12) + '...',
                         });
 
-                        if (typeof (window as any).$wompi.initialize === 'function') {
-                          try { (window as any).$wompi.initialize({ publicKey: pubKeyFromServer }); } catch {}
+                        if (typeof window.$wompi.initialize === 'function') {
+                          try { window.$wompi.initialize({ publicKey: pubKeyFromServer }); } catch {}
                         }
 
-                        const WidgetCheckoutClass = (window as any).WidgetCheckout || (window as any).WompiCheckout;
+                        const WidgetCheckoutClass = window.WidgetCheckout || window.WompiCheckout;
 
                         if (WidgetCheckoutClass) {
-                          const pubKey = data.publicKey || checkoutData?.publicKey || (window as any).WOMPI_PUBLIC_KEY || '';
+                          const pubKey = data.publicKey || checkoutData?.publicKey || window.WOMPI_PUBLIC_KEY || '';
 
                           // Aggressively set globals from the *server* response (runtime truth).
                           // Prevents "merchants/undefined" and init 422 even across deploys with stale client bundles.
-                          (window as any).WOMPI_PUBLIC_KEY = pubKey;
-                          (window as any).$wompi = (window as any).$wompi || {};
-                          (window as any).$wompi.publicKey = pubKey;
+                          window.WOMPI_PUBLIC_KEY = pubKey;
+                          window.$wompi = window.$wompi || {};
+                          window.$wompi.publicKey = pubKey;
 
                           // Help Wompi internal init to avoid merchants/undefined and init errors
-                          if (typeof (window as any).$wompi.initialize === 'function') {
+                          if (typeof window.$wompi.initialize === 'function') {
                             try {
-                              (window as any).$wompi.initialize({ publicKey: pubKey });
+                              window.$wompi.initialize({ publicKey: pubKey });
                               console.log('[Wompi][Client] Explicit $wompi.initialize called with', pubKey?.slice(0,12)+'...');
                             } catch (e) {
                               console.warn('[Wompi][Client] $wompi.initialize call failed (non-fatal):', e);
@@ -710,19 +708,19 @@ function OrderDetailClient() {
 
                               toast.info('Abriendo Wompi Checkout seguro. Ingresa los datos de pago allí.');
 
-                              checkout.open((result: any) => {
+                              checkout.open((result: WompiWidgetResult) => {
                                 console.log('[Wompi][Client] Widget closed with result:', result);
                                 const possibleSigError = result?.error || result?.transaction?.error || result?.transaction?.status_message;
                                 if (possibleSigError) {
                                   const errText = typeof possibleSigError === 'string' ? possibleSigError : JSON.stringify(possibleSigError);
                                   toast.error(`Error Wompi: ${errText}`);
-                                  setLastWompiPrepareDebug((prev: any) => ({
+                                  setLastWompiPrepareDebug((prev) => ({
                                     ...(prev || {}),
                                     lastWidgetResultError: errText,
                                     lastWidgetResult: result,
                                   }));
                                 } else if (result?.transaction?.status === 'ERROR') {
-                                  setLastWompiPrepareDebug((prev: any) => ({
+                                  setLastWompiPrepareDebug((prev) => ({
                                     ...(prev || {}),
                                     lastWidgetResult: result,
                                   }));
@@ -742,17 +740,17 @@ function OrderDetailClient() {
                                   } catch {}
                                 }, 1500);
                               });
-                            } catch (e: any) {
+                            } catch (e: unknown) {
                               console.error('[Wompi][Client] Failed to instantiate WidgetCheckout', e);
                               toast.error('No se pudo inicializar el widget de Wompi. Revisa el Debugger.');
-                              setLastWompiPrepareDebug((prev: any) => ({ ...(prev || {}), lastWidgetResultError: 'Instantiation failed: ' + (e?.message || e) }));
+                              setLastWompiPrepareDebug((prev) => ({ ...(prev || {}), lastWidgetResultError: 'Instantiation failed: ' + (e instanceof Error ? e.message : String(e)) }));
                             }
                           }, 120);
                         } else {
                           toast.error("No se pudo iniciar el pago con Wompi. Verifica la conexión e intenta de nuevo.");
                         }
-                      } catch (e: any) {
-                        toast.error(e.message || "Error al iniciar el pago.");
+                      } catch (e: unknown) {
+                        toast.error(e instanceof Error ? e.message : "Error al iniciar el pago.");
                       }
                     }}
                     className="w-full bg-green-600 hover:bg-green-700"
@@ -920,7 +918,7 @@ function OrderDetailClient() {
                                 toast.success(data.message || 'Consultado en Wompi');
                               }
                               // Store full check result in debugger for easy copy/feedback
-                              setLastWompiPrepareDebug((prev: any) => ({
+                              setLastWompiPrepareDebug((prev) => ({
                                 ...(prev || {}),
                                 lastCheckWompi: {
                                   status: data.transaction?.status,
@@ -949,7 +947,7 @@ function OrderDetailClient() {
                             } else {
                               toast.error(data.error || data.message || 'Error consultando Wompi');
                               // Still capture the failure + Wompi details (e.g. 401 INVALID_ACCESS_TOKEN + reason) for the debugger panel
-                              setLastWompiPrepareDebug((p: any) => ({
+                              setLastWompiPrepareDebug((p) => ({
                                 ...(p || {}),
                                 lastCheckWompi: {
                                   ...(data || {}),
@@ -993,7 +991,7 @@ function OrderDetailClient() {
                                 ? 'Misma llave de integridad (el secreto actual produce la misma firma)' 
                                 : 'La firma recomputada DIFERENTE — la llave de integridad en Vercel probablemente no coincide con la de Wompi para esta publicKey',
                             };
-                            setLastWompiPrepareDebug((prev: any) => ({ 
+                            setLastWompiPrepareDebug((prev) => ({ 
                               ...(prev || {}), 
                               ...freshDebug, 
                               signature: newSig, 
@@ -1052,7 +1050,7 @@ function OrderDetailClient() {
                 <p className="text-sm mt-1">¡Envía el primero para coordinar!</p>
               </div>
             )}
-            {messages.map((msg: any, idx: number) => {
+            {messages.map((msg, idx: number) => {
               // Use isFromBuyer (from DB) + our local isBuyer flag to determine ownership
               const isMine = !!msg.isFromBuyer === isBuyer;
               return (

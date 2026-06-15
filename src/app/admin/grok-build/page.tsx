@@ -15,8 +15,11 @@ interface Message {
 
 interface SuggestedAction {
   action: string;
-  [key: string]: any;
+  userId?: string;
+  newRate?: number;
+  reason?: string;
   executed?: boolean;
+  [key: string]: unknown;
 }
 
 interface ToolCall {
@@ -74,7 +77,7 @@ export default function GrokBuildPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeMode, setActiveMode] = useState<'chat' | 'analyze' | 'generate' | 'improve' | 'support'>('chat');
   const [customContext, setCustomContext] = useState(''); // Live context sent to Grok on every message (B)
-  const [pendingAction, setPendingAction] = useState<any>(null); // For approval flow
+  const [pendingAction, setPendingAction] = useState<SuggestedAction | null>(null); // For approval flow
   const [isListening, setIsListening] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true); // TTS enabled by default
   const [language, setLanguage] = useState<'en' | 'es'>('en'); // Default to English
@@ -156,14 +159,14 @@ export default function GrokBuildPage() {
       if (data.tool_calls && data.tool_calls.length > 0) {
         const toolCall = data.tool_calls[0];
         const functionName = toolCall.function.name;
-        const args = JSON.parse(toolCall.function.arguments || '{}');
+        const args = JSON.parse(toolCall.function.arguments || '{}') as Record<string, unknown>;
 
         // Add assistant message with tool call
         setMessages(prev => [...prev, {
           role: 'assistant',
           content: `Grok quiere usar la herramienta: **${functionName}**`,
           tool_call_id: toolCall.id
-        } as any]);
+        }]);
 
         // Execute the tool (with safety for now)
         const toolResult = await executeTool(functionName, args);
@@ -173,12 +176,12 @@ export default function GrokBuildPage() {
           role: 'tool',
           content: JSON.stringify(toolResult),
           tool_call_id: toolCall.id
-        } as any;
+        };
 
         setMessages(prev => [...prev, toolMessage]);
 
         // Continue the conversation with tool result
-        await sendMessageWithHistory([...messages, toolMessage as any], messageText, language);
+        await sendMessageWithHistory([...messages, toolMessage], messageText, language);
         return;
       }
 
@@ -235,7 +238,7 @@ export default function GrokBuildPage() {
           history: historyMessages.map(m => ({
             role: m.role,
             content: m.content,
-            tool_call_id: (m as any).tool_call_id
+            tool_call_id: m.tool_call_id
           })),
           pageContext: `Admin Panel - Mode: ${activeMode}`,
           language: currentLang,
@@ -258,7 +261,9 @@ export default function GrokBuildPage() {
   };
 
   // Execute real tools (these actually call backend APIs)
-  const executeTool = async (name: string, args: any) => {
+  const strArg = (v: unknown, fallback = '') => (typeof v === 'string' ? v : v == null ? fallback : String(v));
+
+  const executeTool = async (name: string, args: Record<string, unknown>) => {
     if (name === 'update_referral_rate') {
       const res = await fetch('/api/admin/users', {
         method: 'PATCH',
@@ -327,14 +332,14 @@ export default function GrokBuildPage() {
     // UI CONTROL TOOLS (for fixing bugs visually)
     // =====================
     if (name === 'highlight_element') {
-      const selector = args.selector;
+      const selector = strArg(args.selector);
       const elements = document.querySelectorAll(selector);
       elements.forEach(el => {
         (el as HTMLElement).style.outline = '3px solid #f97316';
         (el as HTMLElement).style.outlineOffset = '2px';
         setTimeout(() => {
           (el as HTMLElement).style.outline = '';
-        }, args.durationMs || 4000);
+        }, Number(args.durationMs) || 4000);
       });
       return { 
         success: true, 
@@ -344,7 +349,7 @@ export default function GrokBuildPage() {
     }
 
     if (name === 'describe_element') {
-      const el = document.querySelector(args.selector) as HTMLElement;
+      const el = document.querySelector(strArg(args.selector)) as HTMLElement;
       if (!el) return { error: 'Element not found' };
       return {
         tag: el.tagName,
@@ -355,7 +360,7 @@ export default function GrokBuildPage() {
     }
 
     if (name === 'scroll_to') {
-      const el = document.querySelector(args.selector);
+      const el = document.querySelector(strArg(args.selector));
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return { success: true };
@@ -364,23 +369,25 @@ export default function GrokBuildPage() {
     }
 
     if (name === 'click_element') {
-      const el = document.querySelector(args.selector) as HTMLElement;
+      const selector = strArg(args.selector);
+      const el = document.querySelector(selector) as HTMLElement;
       if (!el) return { error: 'Element not found' };
       el.click();
-      return { success: true, clicked: args.selector };
+      return { success: true, clicked: selector };
     }
 
     if (name === 'type_text') {
-      const el = document.querySelector(args.selector) as HTMLInputElement | HTMLTextAreaElement;
+      const selector = strArg(args.selector);
+      const el = document.querySelector(selector) as HTMLInputElement | HTMLTextAreaElement;
       if (!el) return { error: 'Input element not found' };
-      el.value = args.text || '';
+      el.value = strArg(args.text);
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
-      return { success: true, selector: args.selector, text: args.text };
+      return { success: true, selector, text: strArg(args.text) };
     }
 
     if (name === 'get_visible_text') {
-      const elements = document.querySelectorAll(args.selector || 'body *');
+      const elements = document.querySelectorAll(strArg(args.selector, 'body *'));
       const texts: string[] = [];
       elements.forEach(el => {
         const text = (el as HTMLElement).innerText?.trim();
@@ -392,9 +399,9 @@ export default function GrokBuildPage() {
     if (name === 'propose_code_change') {
       // Show a nice code change proposal UI instead of normal tool result
       setPendingCodeChange({
-        file: args.file,
-        description: args.description,
-        diff: args.diff,
+        file: strArg(args.file),
+        description: strArg(args.description),
+        diff: strArg(args.diff),
       });
       return { 
         success: true, 
@@ -437,7 +444,7 @@ export default function GrokBuildPage() {
 
           setMessages(prev => [...prev, {
             role: 'assistant',
-            content: `✅ Tasa de comisión actualizada para el usuario ${action.userId} a ${(action.newRate * 100).toFixed(1)}%.`
+            content: `✅ Tasa de comisión actualizada para el usuario ${action.userId} a ${((action.newRate ?? 0) * 100).toFixed(1)}%.`
           }]);
         } else {
           throw new Error('Fallo al actualizar');
@@ -524,7 +531,12 @@ export default function GrokBuildPage() {
       return;
     }
 
-    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const win = window as Window & {
+      SpeechRecognition?: new () => SpeechRecognition
+      webkitSpeechRecognition?: new () => SpeechRecognition
+    };
+    const SpeechRecognitionAPI = win.SpeechRecognition || win.webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) return;
     const recognition = new SpeechRecognitionAPI();
 
     recognition.lang = 'en-US'; // Default to English
@@ -534,7 +546,7 @@ export default function GrokBuildPage() {
     if (!isListening) {
       setIsListening(true);
 
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0][0].transcript;
         if (transcript.trim()) {
           setInput(transcript);
@@ -616,7 +628,7 @@ export default function GrokBuildPage() {
               <Button
                 key={mode.id}
                 variant={activeMode === mode.id ? "default" : "outline"}
-                onClick={() => setActiveMode(mode.id as any)}
+                onClick={() => setActiveMode(mode.id as typeof activeMode)}
                 size="sm"
               >
                 {mode.label}

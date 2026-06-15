@@ -1,11 +1,13 @@
 import { prisma } from './prisma';
 import { parseJsonArrayField } from './utils';
 import { gigCategories as staticGigCategories } from './gig-categories'; // fallback / seed source
+import type { DynamicFieldDef } from '@/types/gig-fields';
+import type { Category } from '@prisma/client';
 
 export interface GigCategory {
   name: string;
   icon: string;
-  fields: any[];
+  fields: DynamicFieldDef[];
   description?: string;
 }
 
@@ -20,11 +22,11 @@ export async function getGigCategories(): Promise<GigCategory[]> {
       orderBy: [{ order: 'asc' }, { name: 'asc' }],
     });
     if (dbCats.length > 0) {
-      return dbCats.map((c: any) => ({
+      return dbCats.map((c: Category) => ({
         name: c.name,
         icon: c.icon || '🛠️',
         description: c.description || undefined,
-        fields: parseJsonArrayField(c.fields),
+        fields: parseJsonArrayField<DynamicFieldDef>(c.fields),
       }));
     }
   } catch (e) {
@@ -34,7 +36,7 @@ export async function getGigCategories(): Promise<GigCategory[]> {
   return staticGigCategories.map((c) => ({
     name: c.name,
     icon: c.icon,
-    fields: c.fields || [],
+    fields: parseJsonArrayField<DynamicFieldDef>(c.fields),
   }));
 }
 

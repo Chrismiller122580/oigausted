@@ -4,28 +4,21 @@ import bcrypt from 'bcryptjs'
 import { notifications } from '@/lib/notifications'
 import { logAuditEvent } from '@/lib/audit'
 
-// Simple in-memory rate limiter (replace with Upstash/Redis in production)
-const signupAttempts = new Map<string, { count: number; resetTime: number }>()
+const SIGNUP_WINDOW_MS = 15 * 60 * 1000
+const MAX_SIGNUP_ATTEMPTS = 5
 
-function checkRateLimit(ip: string, email: string): { allowed: boolean; retryAfter?: number } {
-  const key = `${ip}:${email}`
-  const now = Date.now()
-  const windowMs = 15 * 60 * 1000 // 15 minutes
-  const maxAttempts = 5
-
-  const attempt = signupAttempts.get(key)
-
-  if (!attempt || now > attempt.resetTime) {
-    signupAttempts.set(key, { count: 1, resetTime: now + windowMs })
-    return { allowed: true }
+async function checkSignupRateLimit(ip: string): Promise<{ allowed: boolean; retryAfter?: number }> {
+  const since = new Date(Date.now() - SIGNUP_WINDOW_MS)
+  const count = await prisma.auditLog.count({
+    where: {
+      action: 'SIGNUP_ATTEMPT',
+      ipAddress: ip,
+      createdAt: { gte: since },
+    },
+  })
+  if (count >= MAX_SIGNUP_ATTEMPTS) {
+    return { allowed: false, retryAfter: Math.ceil(SIGNUP_WINDOW_MS / 1000) }
   }
-
-  if (attempt.count >= maxAttempts) {
-    const retryAfter = Math.ceil((attempt.resetTime - now) / 1000)
-    return { allowed: false, retryAfter }
-  }
-
-  attempt.count++
   return { allowed: true }
 }
 
@@ -42,15 +35,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "La contraseña debe tener al menos 8 caracteres" }, { status: 400 })
     }
 
-    // Rate limiting
-    const ip = request.headers.get('x-forwarded-for') || 'unknown'
-    const rateLimit = checkRateLimit(ip, email.toLowerCase())
+    const ip = (request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || request.headers.get('x-real-ip')
+      || 'unknown')
+
+    const rateLimit = await checkSignupRateLimit(ip)
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: `Too many signup attempts. Please try again in ${rateLimit.retryAfter} seconds.` },
         { status: 429 }
       )
     }
+
+    await logAuditEvent({
+      performedById: null,
+      action: 'SIGNUP_ATTEMPT',
+      targetType: 'User',
+      details: { email: email.toLowerCase() },
+      ipAddress: ip,
+    }).catch(() => {})
 
     // Gate new signups via admin settings (public config)
     try {
@@ -81,7 +84,7 @@ export async function POST(request: NextRequest) {
     // Create user + default notification prefs atomically so welcome email (and future notifs)
     // see a real prefs row instead of defensive defaults. This reduces the large fallback
     // objects in the prefs API and ensures consistent behavior from signup.
-    const newUser = await prisma.$transaction(async (tx: any) => {
+    const newUser = await prisma.$transaction(async (tx: import('@prisma/client').Prisma.TransactionClient) => {
       const createdUser = await tx.user.create({
         data: {
           name,

@@ -5,10 +5,19 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock, Tag, BarChart3, MessageCircle, Megaphone, RefreshCw } from 'lucide-react';
 import { useRealtimeNotifications } from '@/lib/useRealtimeNotifications';
+import type { AuditLogEntry } from '@/types/audit';
+
+interface AdminStats {
+  users?: number
+  gigs?: number
+  orders?: number
+  revenue?: number
+  [key: string]: number | undefined
+}
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<any>(null);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [recentActivity, setRecentActivity] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastActivityUpdate, setLastActivityUpdate] = useState<Date | null>(null);
 
@@ -279,7 +288,7 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className="divide-y divide-border">
-                  {recentActivity.map((log: any, index: number) => (
+                  {recentActivity.map((log, index: number) => (
                     <div key={index} className="px-6 py-4 flex items-start justify-between hover:bg-muted/50 transition">
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm">

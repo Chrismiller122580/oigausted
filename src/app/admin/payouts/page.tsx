@@ -6,11 +6,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG, aggregatePayouts } from '@/lib/payout';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import type { PayoutOrder, ReferralPayoutSummary } from '@/types/payout';
 
 export default function AdminPayoutsPage() {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [paidOrders, setPaidOrders] = useState<any[]>([]);
-  const [referralPayouts, setReferralPayouts] = useState<any[]>([]);
+  const [orders, setOrders] = useState<PayoutOrder[]>([]);
+  const [paidOrders, setPaidOrders] = useState<PayoutOrder[]>([]);
+  const [referralPayouts, setReferralPayouts] = useState<ReferralPayoutSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [paidSearch, setPaidSearch] = useState('');
 
@@ -52,7 +53,7 @@ export default function AdminPayoutsPage() {
       const res = await fetch('/api/orders?view=all'); // admin view: all orders
       const data = await res.json();
       const list = Array.isArray(data) ? data : [];
-      const completed = list.filter((o: any) => o.status === 'Completed');
+      const completed = list.filter((o: PayoutOrder) => o.status === 'Completed');
 
       // Always re-read the local persistence to avoid stale closure and ensure
       // previously-marked payouts do not reappear in the "to be marked" list on refresh/re-fetch.
@@ -65,7 +66,7 @@ export default function AdminPayoutsPage() {
       }
 
       // Apply proper accounting
-      const withBreakdown = completed.map((o: any) => {
+      const withBreakdown = completed.map((o: PayoutOrder) => {
         const breakdown = calculateOrderPayout(
           Number(o.price) || 0,
           !!o.seller?.referredById,
@@ -76,11 +77,11 @@ export default function AdminPayoutsPage() {
 
       // Only unpaid seller payouts in main list (persist via sellerPayoutAt)
       // Also exclude locally marked ones (for when DB column is missing in prod)
-      const unpaid = withBreakdown.filter((o: any) => !o.sellerPayoutAt && !currentMarked.has(o.id));
+      const unpaid = withBreakdown.filter((o: PayoutOrder) => !o.sellerPayoutAt && !currentMarked.has(o.id));
       setOrders(unpaid);
 
       // Separate paid for history (searchable datatable)
-      const paid = withBreakdown.filter((o: any) => !!o.sellerPayoutAt || currentMarked.has(o.id));
+      const paid = withBreakdown.filter((o: PayoutOrder) => !!o.sellerPayoutAt || currentMarked.has(o.id));
       setPaidOrders(paid);
 
       // Also fetch pending referral payouts for admin visibility
@@ -88,7 +89,7 @@ export default function AdminPayoutsPage() {
       if (refRes.ok) {
         const json = await refRes.json();
         const refs = Array.isArray(json) ? json : (json.data || []);
-        const pendingRefs = refs.filter((r: any) => r.pendingPayout > 0);
+        const pendingRefs = refs.filter((r: ReferralPayoutSummary) => (r.pendingPayout ?? 0) > 0);
         setReferralPayouts(pendingRefs);
       }
     } catch (e) {
@@ -119,13 +120,13 @@ export default function AdminPayoutsPage() {
   };
 
   const markAsPaid = async (orderId: string, wompiRef?: string) => {
-    const order = orders.find((o: any) => o.id === orderId);
+    const order = orders.find((o) => o.id === orderId);
     if (!order) return;
 
     const hasBank = !!(order.seller?.payoutAccountNumber && order.seller?.payoutBankCode);
 
     try {
-      const payload: any = { sellerPayoutAt: new Date().toISOString() };
+      const payload: { sellerPayoutAt: string; wompiPayoutRef?: string } = { sellerPayoutAt: new Date().toISOString() };
       if (wompiRef && wompiRef.trim()) {
         payload.wompiPayoutRef = wompiRef.trim();
       }
@@ -165,7 +166,7 @@ export default function AdminPayoutsPage() {
       } catch {}
 
       // Move from pending to paid list
-      setOrders(prev => prev.filter((o: any) => o.id !== orderId));
+      setOrders(prev => prev.filter((o) => o.id !== orderId));
       const paidOrder = { ...order, sellerPayoutAt: new Date().toISOString(), wompiPayoutRef: payload.wompiPayoutRef || null };
       setPaidOrders(prev => [paidOrder, ...prev]);
 
@@ -187,7 +188,7 @@ export default function AdminPayoutsPage() {
 
   // Convenience wrapper that asks for Wompi ref (the main path for "pay sellers using wompi")
   const recordWompiPayout = async (orderId: string) => {
-    const order = orders.find((o: any) => o.id === orderId);
+    const order = orders.find((o) => o.id === orderId);
     if (!order) return;
 
     const hasBank = !!(order.seller?.payoutAccountNumber && order.seller?.payoutBankCode);
@@ -201,15 +202,15 @@ export default function AdminPayoutsPage() {
     await markAsPaid(orderId, ref || undefined);
   };
 
-  const aggregated = aggregatePayouts(orders.map((o: any) => o.breakdown || { grossAmount: o.price || 0, platformFee: 0, referralFee: 0, netToSeller: o.price || 0, referralApplies: false, totalPlatformCost: 0 }));
+  const aggregated = aggregatePayouts(orders.map((o) => o.breakdown || { grossAmount: o.price || 0, platformFee: 0, referralFee: 0, netToSeller: o.price || 0, referralApplies: false, totalPlatformCost: 0 }));
   const totalNetToSellers = aggregated.netToSeller;
   const totalPlatformRevenue = aggregated.platformFee;
   const totalReferralLiability = aggregated.referralFee;
 
-  const totalPendingReferrals = referralPayouts.reduce((sum: number, r: any) => sum + (r.pendingPayout || 0), 0);
+  const totalPendingReferrals = referralPayouts.reduce((sum: number, r) => sum + (r.pendingPayout || 0), 0);
 
   // Searchable paid payouts datatable
-  const filteredPaid = paidOrders.filter((o: any) => {
+  const filteredPaid = paidOrders.filter((o) => {
     const term = paidSearch.toLowerCase();
     return (
       (o.gig?.title || '').toLowerCase().includes(term) ||
@@ -325,7 +326,7 @@ export default function AdminPayoutsPage() {
                   {filteredPaid.length === 0 ? (
                     <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No matching paid payouts.</td></tr>
                   ) : (
-                    filteredPaid.map((order: any) => (
+                    filteredPaid.map((order) => (
                       <tr key={order.id} className="border-t hover:bg-muted/30">
                         <td className="p-3">
                           <div className="font-medium">{order.gig?.title || 'Servicio'}</div>
@@ -355,7 +356,7 @@ export default function AdminPayoutsPage() {
           <div className="mt-10">
             <h2 className="text-2xl font-semibold mb-4">Pending Referral Payouts</h2>
             <div className="space-y-4">
-              {referralPayouts.map((ref: any) => (
+              {referralPayouts.map((ref) => (
                 <Card key={ref.referrer.id} className="bg-card border-border">
                   <CardContent className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>

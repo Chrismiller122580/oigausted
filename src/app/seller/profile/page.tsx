@@ -26,7 +26,7 @@ export default function MiNegocioPage() {
       const dismissed = localStorage.getItem('dismissedSellerPublicProfilePromo');
       if (!dismissed) {
         // Show if they have a business name (i.e. they are a seller)
-        const user = session.user as any;
+        const user = session.user;
         if (user.businessName) {
           setShowNewBanner(true);
         }
@@ -40,17 +40,17 @@ export default function MiNegocioPage() {
   useLayoutEffect(() => {
     const cleanup = () => {
       try {
-        const g = (window as any).google;
+        const g = window.google;
         if (g?.maps?.places) {
           try {
             g.maps.places = {
-              Autocomplete: function() { return {}; },
+              Autocomplete: function() { return {} as Record<string, never>; },
               AutocompleteService: function() {},
               PlacesService: function() {},
               PlacesServiceStatus: {},
               RankBy: {},
               PlaceAutocompleteElement: function() {}
-            };
+            } satisfies NonNullable<GoogleMapsPlacesNamespace>;
           } catch {}
         }
       } catch (e) {}
@@ -77,7 +77,7 @@ export default function MiNegocioPage() {
     serviceRadiusKm: 15,
   });
 
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<import('@/types/order').OrderReview[]>([]);
   const [realStats, setRealStats] = useState({
     rating: 0,
     reviewCount: 0,
@@ -85,53 +85,73 @@ export default function MiNegocioPage() {
   });
   const [maintenanceMode, setMaintenanceMode] = useState(false);
 
-  // Load existing data + real stats + reviews
+  const applyProfileToForm = (user: {
+    businessName?: string | null
+    tagline?: string | null
+    bio?: string | null
+    phone?: string | null
+    whatsapp?: string | null
+    city?: string | null
+    instagram?: string | null
+    profilePicture?: string | null
+    latitude?: number | null
+    longitude?: number | null
+    serviceRadiusKm?: number | null
+    rating?: number | null
+    reviewCount?: number | null
+  }) => {
+    setFormData({
+      businessName: user.businessName || "Mi Negocio Local",
+      tagline: user.tagline || "Calidad y confianza que se nota",
+      bio: user.bio || "Ofrecemos servicios profesionales con excelente atención.",
+      phone: user.phone || "",
+      whatsapp: user.whatsapp || "",
+      location: user.city || "Bucaramanga, Santander",
+      instagram: user.instagram || "",
+      profilePicture: user.profilePicture || "",
+      latitude: user.latitude ?? null,
+      longitude: user.longitude ?? null,
+      serviceRadiusKm: user.serviceRadiusKm ?? 15,
+    })
+    setRealStats(prev => ({
+      ...prev,
+      rating: user.rating || 0,
+      reviewCount: user.reviewCount || 0,
+    }))
+  }
+
+  // Load from API (source of truth); skip while user is mid-edit
   useEffect(() => {
-    if (session?.user) {
-      const user = session.user as any;
+    const user = session?.user
+    if (!user?.id) return
 
-      setFormData({
-        businessName: user.businessName || "Mi Negocio Local",
-        tagline: user.tagline || "Calidad y confianza que se nota",
-        bio: user.bio || "Ofrecemos servicios profesionales con excelente atención.",
-        phone: user.phone || "",
-        whatsapp: user.whatsapp || "",
-        location: user.city || "Bucaramanga, Santander",
-        instagram: user.instagram || "",
-        profilePicture: user.profilePicture || "",
-        latitude: user.latitude || null,
-        longitude: user.longitude || null,
-        serviceRadiusKm: user.serviceRadiusKm || 15,
-      });
-
-      // Load real rating/reviewCount
-      setRealStats({
-        rating: user.rating || 0,
-        reviewCount: user.reviewCount || 0,
-        gigCount: 0, // will update below
-      });
-
-      // Fetch recent reviews
-      fetch(`/api/reviews?sellerId=${user.id}&limit=4`)
-        .then(res => res.json())
-        .then(data => setReviews(data.reviews || []))
-        .catch(() => {});
-
-      // Fetch gig count
-      fetch(`/api/seller/gigs`)
-        .then(res => res.json())
+    if (!isEditing) {
+      fetch('/api/user/profile')
+        .then(r => (r.ok ? r.json() : null))
         .then(data => {
-          setRealStats(prev => ({ ...prev, gigCount: data.count || 0 }));
+          if (data?.user) applyProfileToForm(data.user)
+          else applyProfileToForm(user)
         })
-        .catch(() => {});
-
-      // Fetch maintenance mode to gate debug tools (only show during maintenance)
-      fetch('/api/admin/config')
-        .then(r => r.json())
-        .then(data => setMaintenanceMode(!!data.maintenanceMode))
-        .catch(() => {});
+        .catch(() => applyProfileToForm(user))
     }
-  }, [session]);
+
+    fetch(`/api/reviews?sellerId=${user.id}&limit=4`)
+      .then(res => res.json())
+      .then(data => setReviews(data.reviews || []))
+      .catch(() => {})
+
+    fetch('/api/seller/gigs')
+      .then(res => res.json())
+      .then(data => {
+        setRealStats(prev => ({ ...prev, gigCount: data.count || 0 }))
+      })
+      .catch(() => {})
+
+    fetch('/api/admin/config')
+      .then(r => r.json())
+      .then(data => setMaintenanceMode(!!data.maintenanceMode))
+      .catch(() => {})
+  }, [session?.user?.id, isEditing])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -159,13 +179,26 @@ export default function MiNegocioPage() {
       });
 
       if (res.ok) {
+        const saved = await res.json().catch(() => ({}))
         await update({
-          ...formData,
+          businessName: formData.businessName,
+          tagline: formData.tagline,
+          bio: formData.bio,
+          phone: formData.phone,
+          whatsapp: formData.whatsapp,
+          location: formData.location,
+          city: formData.location,
+          instagram: formData.instagram,
           profilePicture: formData.profilePicture,
           image: formData.profilePicture,
-        });
-        toast.success("Información del negocio guardada correctamente");
-        setIsEditing(false);
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          serviceRadiusKm: formData.serviceRadiusKm,
+          role: session?.user?.role === 'seller' ? 'seller' : undefined,
+        })
+        if (saved?.user) applyProfileToForm(saved.user)
+        toast.success("Información del negocio guardada correctamente")
+        setIsEditing(false)
       } else {
         const err = await res.json().catch(() => ({}));
         if (res.status === 401) {
@@ -253,7 +286,7 @@ export default function MiNegocioPage() {
 
               {(() => {
                 const previewSlug = slugifyForPreview(formData.businessName);
-                const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://oigagig.com'}/sellers/${previewSlug || (session?.user as any)?.id}`;
+                const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://oigagig.com'}/sellers/${previewSlug || session?.user?.id}`;
                 const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(publicUrl)}&color=ea580c&bgcolor=ffffff&margin=10`;
 
                 return (
@@ -274,7 +307,7 @@ export default function MiNegocioPage() {
                         >
                           Copiar enlace
                         </Button>
-                        <Link href={`/sellers/${previewSlug || (session?.user as any)?.id}`} target="_blank">
+                        <Link href={`/sellers/${previewSlug || session?.user?.id}`} target="_blank">
                           <Button size="sm" className="bg-orange-600 hover:bg-orange-700 gap-1.5">
                             Ver perfil público →
                           </Button>
@@ -516,7 +549,7 @@ export default function MiNegocioPage() {
                       </div>
                     ))}
                   </div>
-                  <Link href={`/sellers/${slugifyForPreview(formData.businessName) || (session?.user as any)?.id}`} className="text-xs text-orange-600 hover:underline mt-4 inline-block">
+                  <Link href={`/sellers/${slugifyForPreview(formData.businessName) || session?.user?.id}`} className="text-xs text-orange-600 hover:underline mt-4 inline-block">
                     Ver todas en mi perfil público →
                   </Link>
                 </CardContent>

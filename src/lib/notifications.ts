@@ -1,6 +1,9 @@
 import { prisma } from './prisma';
+import type { PlatformConfigRow } from './prisma';
 import { Resend } from 'resend';
 import { devLog, toPrismaJson, parseDeliveryLog } from './utils';
+import type { JsonObject } from '@/types/json';
+import type { PushSubscription } from '@prisma/client';
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
@@ -14,8 +17,56 @@ export interface NotificationPayload {
   title: string;
   message: string;
   link?: string;
-  data?: Record<string, any>;
+  data?: JsonObject;
   priority?: 'low' | 'normal' | 'high';
+}
+
+/** Prefs row shape from explicit select (marketingEmails omitted for prod DB compatibility). */
+type NotificationPrefs = {
+  id: string;
+  userId: string;
+  inAppEnabled: boolean;
+  emailEnabled: boolean;
+  smsEnabled: boolean;
+  pushEnabled: boolean;
+  orderUpdates: boolean;
+  gigUpdates: boolean;
+  reviewAlerts: boolean;
+  paymentAlerts: boolean;
+  messageAlerts: boolean;
+  systemAlerts: boolean;
+  desktopNotifications: boolean;
+  soundEnabled: boolean;
+  quietHoursEnabled: boolean;
+  quietHoursStart: string | null;
+  quietHoursEnd: string | null;
+  digestEnabled: boolean;
+  digestFrequency: string;
+  maxNotificationsPerHour: number;
+  createdAt: Date;
+  updatedAt: Date;
+  marketingEmails?: boolean;
+};
+
+type SendEmailDataOrOptions = JsonObject & {
+  category?: string;
+  priority?: 'low' | 'normal' | 'high';
+  data?: JsonObject;
+};
+
+function jsonString(data: JsonObject | undefined, key: string, fallback = ''): string {
+  const value = data?.[key];
+  return typeof value === 'string' ? value : fallback;
+}
+
+function jsonNumber(data: JsonObject | undefined, key: string, fallback = 0): number {
+  const value = data?.[key];
+  return typeof value === 'number' ? value : fallback;
+}
+
+function jsonBoolean(data: JsonObject | undefined, key: string, fallback = false): boolean {
+  const value = data?.[key];
+  return typeof value === 'boolean' ? value : fallback;
 }
 
 /**
@@ -27,7 +78,7 @@ export async function sendNotification(payload: NotificationPayload) {
   // 1. Respect user preferences (defensive: default to enabled if prefs table/query fails due to schema)
   // Use explicit select omitting newer columns (e.g. marketingEmails) that may not exist in prod DB yet.
   // This prevents "column does not exist" prisma errors on drifted deployments.
-  let prefs: any = null;
+  let prefs: NotificationPrefs | null = null;
   try {
     prefs = await prisma.notificationPreference.findUnique({
       where: { userId },
@@ -62,8 +113,8 @@ export async function sendNotification(payload: NotificationPayload) {
   }
 
   // Inject default for marketingEmails (and any future columns) when the row was loaded without it
-  if (prefs && (prefs as any).marketingEmails === undefined) {
-    (prefs as any).marketingEmails = true;
+  if (prefs && prefs.marketingEmails === undefined) {
+    prefs.marketingEmails = true;
   }
 
   const shouldSendInApp = prefs?.inAppEnabled !== false;
@@ -76,10 +127,10 @@ export async function sendNotification(payload: NotificationPayload) {
   let globalPushOk = true;
   try {
     const { getPlatformConfig } = await import('@/lib/prisma');
-    const cfg = await getPlatformConfig();
+    const cfg: PlatformConfigRow | null = await getPlatformConfig();
     if (cfg) {
-      globalEmailOk = (cfg as any).globalEmailNotificationsEnabled !== false;
-      globalPushOk = (cfg as any).globalPushNotificationsEnabled !== false;
+      globalEmailOk = cfg.globalEmailNotificationsEnabled !== false;
+      globalPushOk = cfg.globalPushNotificationsEnabled !== false;
     }
   } catch (e) {
     devLog('[Notifications] Failed to read global notification masters');
@@ -172,85 +223,89 @@ export async function sendNotification(payload: NotificationPayload) {
       let emailContent;
 
       // Use rich templates when we have enough context
-      if (category === 'order' && data?.gigTitle) {
+      if (category === 'order' && jsonString(data, 'gigTitle')) {
         const { newOrderEmail, orderStatusUpdatedEmail } = await import('./emails/templates');
-        if (data.newStatus) {
+        const gigTitle = jsonString(data, 'gigTitle');
+        const newStatus = jsonString(data, 'newStatus');
+        if (newStatus) {
           emailContent = orderStatusUpdatedEmail({
             userName: user.name,
-            gigTitle: data.gigTitle,
-            amount: data.amount || 0,
-            otherPartyName: data.buyerName || data.sellerName || 'Otra parte',
-            orderId: data.orderId || '',
-            newStatus: data.newStatus,
+            gigTitle,
+            amount: jsonNumber(data, 'amount'),
+            otherPartyName: jsonString(data, 'buyerName') || jsonString(data, 'sellerName') || 'Otra parte',
+            orderId: jsonString(data, 'orderId'),
+            newStatus,
           });
         } else {
           emailContent = newOrderEmail({
             userName: user.name,
-            gigTitle: data.gigTitle,
-            amount: data.amount || 0,
-            otherPartyName: data.buyerName || data.sellerName || 'Otra parte',
-            orderId: data.orderId || '',
+            gigTitle,
+            amount: jsonNumber(data, 'amount'),
+            otherPartyName: jsonString(data, 'buyerName') || jsonString(data, 'sellerName') || 'Otra parte',
+            orderId: jsonString(data, 'orderId'),
           });
         }
-      } else if (category === 'review' && data?.gigTitle) {
+      } else if (category === 'review' && jsonString(data, 'gigTitle')) {
         const { reviewReceivedEmail } = await import('./emails/templates');
+        const reviewerName = jsonString(data, 'reviewerName', 'Un cliente');
         emailContent = reviewReceivedEmail({
           userName: user.name,
-          gigTitle: data.gigTitle,
-          rating: data.rating || 5,
-          reviewerName: data.reviewerName || 'Un cliente',
-          orderId: data.orderId || '',
-          amount: data.amount || 0,
-          otherPartyName: data.reviewerName || 'Un cliente',
+          gigTitle: jsonString(data, 'gigTitle'),
+          rating: jsonNumber(data, 'rating', 5),
+          reviewerName,
+          orderId: jsonString(data, 'orderId'),
+          amount: jsonNumber(data, 'amount'),
+          otherPartyName: reviewerName,
         });
       } else if ((category === 'system' || category === 'email') &&
-                 (title?.toLowerCase().includes('bienvenido') || data?.isWelcome || data?.welcome)) {
+                 (title?.toLowerCase().includes('bienvenido') || jsonBoolean(data, 'isWelcome') || jsonBoolean(data, 'welcome'))) {
         // Support the dedicated welcome template for signup (direct sendEmail) and tests.
         // This gives the nice branded header instead of the plain generic.
         const { welcomeEmail } = await import('./emails/templates');
         emailContent = welcomeEmail({ userName: user.name });
       } else if ((category === 'system' || category === 'email') &&
-                 (title?.toLowerCase().includes('restablece') || title?.toLowerCase().includes('contraseña') || title?.toLowerCase().includes('password') || data?.resetLink)) {
+                 (title?.toLowerCase().includes('restablece') || title?.toLowerCase().includes('contraseña') || title?.toLowerCase().includes('password') || jsonString(data, 'resetLink'))) {
         // Rich password reset template (used by forgot-password flow + tests)
         const { passwordResetEmail } = await import('./emails/templates');
         emailContent = passwordResetEmail({
           userName: user.name,
-          resetLink: data?.resetLink || link || '',
+          resetLink: jsonString(data, 'resetLink') || link || '',
         });
-      } else if (category === 'gig' && data?.gigTitle) {
+      } else if (category === 'gig' && jsonString(data, 'gigTitle')) {
         const { gigPublishedEmail } = await import('./emails/templates');
         emailContent = gigPublishedEmail({
           userName: user.name,
-          gigTitle: data.gigTitle,
-          gigId: data.gigId,
+          gigTitle: jsonString(data, 'gigTitle'),
+          gigId: jsonString(data, 'gigId'),
         });
-      } else if (category === 'payment' && data?.amount) {
+      } else if (category === 'payment' && jsonNumber(data, 'amount') > 0) {
         // Referral payout request or payment alerts
         const { referralPayoutRequestEmail } = await import('./emails/templates');
         emailContent = referralPayoutRequestEmail({
           userName: user.name,
-          amount: data.amount,
-          requesterName: data.requesterName,
+          amount: jsonNumber(data, 'amount'),
+          requesterName: jsonString(data, 'requesterName'),
         });
-      } else if (category === 'system' && (data?.ticketId || title?.toLowerCase().includes('ticket') || title?.toLowerCase().includes('soporte'))) {
+      } else if (category === 'system' && (jsonString(data, 'ticketId') || title?.toLowerCase().includes('ticket') || title?.toLowerCase().includes('soporte'))) {
         const { supportTicketEmail } = await import('./emails/templates');
         emailContent = supportTicketEmail({
           userName: user.name,
-          subject: data?.subject || title || 'Soporte',
-          isAdmin: data?.isAdmin || false,
-          ticketId: data?.ticketId,
+          subject: jsonString(data, 'subject') || title || 'Soporte',
+          isAdmin: jsonBoolean(data, 'isAdmin'),
+          ticketId: jsonString(data, 'ticketId') || undefined,
         });
-      } else if (category === 'message' && data?.gigTitle) {
+      } else if (category === 'message' && jsonString(data, 'gigTitle')) {
         // Simple but useful message email
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
+        const gigTitle = jsonString(data, 'gigTitle');
         emailContent = {
-          subject: title || `Nuevo mensaje sobre "${data.gigTitle}"`,
+          subject: title || `Nuevo mensaje sobre "${gigTitle}"`,
           html: `
             <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
               <h2 style="color: #111;">${title || 'Nuevo mensaje'}</h2>
               <p>Hola <strong>${user.name || 'Usuario'}</strong>,</p>
               <p>${message}</p>
-              <a href="${appUrl}${link || `/orders/${data.orderId || ''}`}" 
+              <a href="${appUrl}${link || `/orders/${jsonString(data, 'orderId')}`}" 
                  style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin-top: 16px;">
                 Ver conversación
               </a>
@@ -280,7 +335,7 @@ export async function sendNotification(payload: NotificationPayload) {
         html: emailContent.html,
       });
 
-      const resendId = (emailResult as any)?.id || null;
+      const resendId = emailResult.data?.id || null;
 
       // Update delivery tracking on the *known* tracking notification id (reliable, no findFirst).
       // We also set resendEmailId (new column) for O(1) webhook correlation.
@@ -312,11 +367,16 @@ export async function sendNotification(payload: NotificationPayload) {
       }
 
       devLog(`[Resend] Email sent to ${user.email} (${category})`);
-    } catch (emailError: any) {
+    } catch (emailError: unknown) {
       devLog('Resend email error:', emailError);
       // Basic backpressure note: if 429/rate from Resend, we just log; in future could
       // implement retry with backoff or queue.
-      if (emailError?.status === 429) {
+      if (
+        emailError &&
+        typeof emailError === 'object' &&
+        'status' in emailError &&
+        (emailError as { status: number }).status === 429
+      ) {
         devLog('[Resend] Rate limited (429) - consider backing off or queuing');
       }
     }
@@ -372,13 +432,13 @@ export async function sendNotification(payload: NotificationPayload) {
 
 // Convenience helpers
 export const notifications = {
-  async sendInApp(userId: string, category: string, title: string, message: string, link?: string, data?: any) {
+  async sendInApp(userId: string, category: string, title: string, message: string, link?: string, data?: JsonObject) {
     return sendNotification({ userId, category, type: 'in_app', title, message, link, data });
   },
 
-  async sendEmail(userId: string, title: string, message: string, link?: string, dataOrOptions?: any) {
+  async sendEmail(userId: string, title: string, message: string, link?: string, dataOrOptions?: SendEmailDataOrOptions) {
     // Support legacy data + new { category, priority, data } style from marketing broadcasts
-    const opts = dataOrOptions || {};
+    const opts: SendEmailDataOrOptions = dataOrOptions || {};
     const category = opts.category || (opts.data ? 'system' : 'system');
     const priority = opts.priority || undefined;
     const data = opts.data || (opts.category || opts.priority ? undefined : opts);
@@ -389,7 +449,7 @@ export const notifications = {
     return sendNotification({ userId, category: 'system', type: 'sms', title: 'Oigagig', message });
   },
 
-  async sendPush(userId: string, title: string, message: string, data?: any) {
+  async sendPush(userId: string, title: string, message: string, data?: JsonObject) {
     return sendNotification({ userId, category: 'system', type: 'push', title, message, data });
   },
 
@@ -404,7 +464,7 @@ export { resend };
  * Checks if current time is within user's quiet hours.
  * Supports overnight ranges (e.g. 22:00 → 08:00).
  */
-function checkQuietHours(prefs: any): boolean {
+function checkQuietHours(prefs: NotificationPrefs | null): boolean {
   if (!prefs?.quietHoursEnabled || !prefs.quietHoursStart || !prefs.quietHoursEnd) {
     return false;
   }
@@ -443,7 +503,7 @@ async function sendWebPushIfEnabled(
   title: string,
   message: string,
   link?: string,
-  data?: any
+  data?: JsonObject
 ) {
   const webpush = await import('web-push').catch(() => null);
   if (!webpush) {
@@ -479,7 +539,7 @@ async function sendWebPushIfEnabled(
     data: data || {},
   });
 
-  const sendPromises = subscriptions.map(async (sub: any) => {
+  const sendPromises = subscriptions.map(async (sub: PushSubscription) => {
     try {
       await webpush.sendNotification(
         {
@@ -491,12 +551,17 @@ async function sendWebPushIfEnabled(
         },
         payload
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       // If subscription is expired/invalid, remove it
-      if (err.statusCode === 410 || err.statusCode === 404) {
+      const statusCode =
+        err && typeof err === 'object' && 'statusCode' in err
+          ? (err as { statusCode: number }).statusCode
+          : undefined;
+      if (statusCode === 410 || statusCode === 404) {
         await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
       }
-      devLog('Failed to send push to one subscription:', err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      devLog('Failed to send push to one subscription:', message);
     }
   });
 
@@ -504,65 +569,27 @@ async function sendWebPushIfEnabled(
   devLog(`[WebPush] Attempted push to ${subscriptions.length} device(s) for user ${userId}`);
 }
 
-/**
- * Simple but effective rate limiting + grouping (2027 user respect)
- *
- * NOTE: This is an *in-memory* cache (per Node process / server instance).
- * On Vercel (serverless, cold starts, multiple regions/instances, scale):
- *   - The cache frequently resets.
- *   - It provides only best-effort protection against bursts within a single invocation.
- * For real production abuse protection, replace with Redis/Upstash or a DB-backed
- * sliding window (e.g. on Notification or a lightweight SentEvent table).
- *
- * The maxNotificationsPerHour pref is still respected as a soft client-side hint.
- */
-const recentNotificationCache = new Map<string, { count: number; lastSent: number }>();
-
-async function checkRateLimit(userId: string, category: string, prefs: any) {
+/** DB-backed hourly rate limit (reliable across serverless instances). */
+async function checkRateLimit(userId: string, category: string, prefs: NotificationPrefs | null) {
   const maxPerHour = prefs?.maxNotificationsPerHour ?? 8;
   if (maxPerHour <= 0) return { limited: false };
 
-  const key = `${userId}:${category}`;
-  const now = Date.now();
-  const hourAgo = now - 60 * 60 * 1000;
+  const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
-  let cached = recentNotificationCache.get(key);
-  if (!cached || cached.lastSent < hourAgo) {
-    cached = { count: 0, lastSent: 0 };
-  }
-
-  // DB-backed count for cross-instance reliability on serverless (authoritative fallback)
-  let dbCount = cached.count;
   try {
-    // Only query DB if in-mem suggests we are close to limit (to avoid perf hit on every notif)
-    if (cached.count >= Math.max(1, Math.floor(maxPerHour * 0.6))) {
-      dbCount = await prisma.notification.count({
-        where: {
-          userId,
-          category,
-          createdAt: { gte: new Date(hourAgo) },
-        },
-      });
+    const dbCount = await prisma.notification.count({
+      where: {
+        userId,
+        category,
+        createdAt: { gte: hourAgo },
+      },
+    });
+
+    if (dbCount >= maxPerHour) {
+      return { limited: true, reason: `rate limit (${maxPerHour}/hour for ${category})` };
     }
   } catch (e) {
-    devLog('[RateLimit] DB count failed, using in-mem only:', e);
-  }
-
-  const effectiveCount = Math.max(cached.count, dbCount);
-
-  if (effectiveCount >= maxPerHour) {
-    return { limited: true, reason: `rate limit (${maxPerHour}/hour for ${category})` };
-  }
-
-  // Increment in-mem
-  cached.count = effectiveCount + 1;
-  cached.lastSent = now;
-  recentNotificationCache.set(key, cached);
-
-  // Basic grouping: if we just sent something very similar recently, skip
-  // (this still only works within one process lifetime)
-  if (now - cached.lastSent < 1000 * 90 && cached.count > 1) {
-    // Allow it but note grouping happened (future: we could batch)
+    devLog('[RateLimit] DB count failed (allowing notification):', e);
   }
 
   return { limited: false };

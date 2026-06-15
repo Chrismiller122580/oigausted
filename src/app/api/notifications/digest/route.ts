@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -29,7 +27,7 @@ export async function POST(req: NextRequest) {
   if (!isVercelCron) {
     // Allow manual trigger from admin UI (for testing)
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (session?.user?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
   }
@@ -113,7 +111,7 @@ export async function POST(req: NextRequest) {
 
             <!-- Notifications List -->
             <div style="background: #fafafa; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px;">
-              ${recent.map((n: any) => `
+              ${recent.map((n: (typeof recent)[number]) => `
                 <div style="padding: 10px 0; border-bottom: 1px solid #eee;">
                   <div style="font-weight: 600; color: #111; font-size: 14.5px;">${n.title}</div>
                   <div style="color: #555; font-size: 13.5px; margin-top: 2px; line-height: 1.35;">${n.message}</div>
@@ -153,7 +151,9 @@ export async function POST(req: NextRequest) {
         // Create a tracked Notification record for the digest email itself.
         // This gives it visibility in user history, admin logs, and sets resendEmailId
         // so delivery events (opened, etc.) can be correlated via the webhook.
-        const resendId = (emailResult as any)?.id || null;
+        const resendId = emailResult && typeof emailResult === 'object' && 'id' in emailResult
+          ? String((emailResult as { id?: string }).id || '')
+          : null;
         try {
           await prisma.notification.create({
             data: {

@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { gigCategories } from '../src/lib/gig-categories';
-import { toPrismaJson } from '../src/lib/utils';
+import { isSqliteDatabase } from '../src/lib/utils';
+import type { Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -12,14 +13,14 @@ async function main() {
       where: { name: cat.name },
       update: {
         icon: cat.icon,
-        fields: toPrismaJson(cat.fields),
+        fields: isSqliteDatabase() ? JSON.stringify(cat.fields) : (cat.fields as Prisma.InputJsonValue),
         order: index,
         isActive: true,
       },
       create: {
         name: cat.name,
         icon: cat.icon,
-        fields: toPrismaJson(cat.fields),
+        fields: isSqliteDatabase() ? JSON.stringify(cat.fields) : (cat.fields as Prisma.InputJsonValue),
         description: null,
         order: index,
         isActive: true,

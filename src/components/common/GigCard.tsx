@@ -16,7 +16,7 @@ interface Gig {
   completionTime?: string
   imageUrl?: string
   isActive?: boolean
-  seller: {
+  seller?: {
     id: string
     name?: string
     email?: string
@@ -49,12 +49,11 @@ export default function GigCard({
   const sellerName =
     gig.seller?.name ||
     gig.seller?.businessName ||
-    gig.seller?.email ||
     "Vendedor"
 
   const sellerInitial = sellerName[0]?.toUpperCase() || "V"
 
-  const userId = (session?.user as any)?.id
+  const userId = session?.user?.id
   const isOwnGig = userId && gig.seller?.id === userId
 
   const handleBuyNow = () => {

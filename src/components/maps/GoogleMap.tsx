@@ -12,7 +12,7 @@ interface GoogleMapProps {
 
 export default function GoogleMap({ center, zoom = 14, markers = [], height = '400px' }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<any>(null);
+  const mapInstance = useRef<GoogleMapInstance | null>(null);
 
   const [loadError, setLoadError] = useState(false);
 
@@ -20,9 +20,10 @@ export default function GoogleMap({ center, zoom = 14, markers = [], height = '4
     let isMounted = true;
 
     const initMap = () => {
-      if (!mapRef.current || !window.google || !isMounted) return;
+      const MapCtor = window.google?.maps?.Map;
+      if (!mapRef.current || !MapCtor || !isMounted) return;
 
-      mapInstance.current = new window.google.maps.Map(mapRef.current, {
+      mapInstance.current = new MapCtor(mapRef.current, {
         center,
         zoom,
         mapTypeControl: false,
@@ -31,7 +32,9 @@ export default function GoogleMap({ center, zoom = 14, markers = [], height = '4
       });
 
       markers.forEach((marker) => {
-        new window.google.maps.Marker({
+        const MarkerCtor = window.google?.maps?.Marker;
+        if (!MarkerCtor) return;
+        new MarkerCtor({
           position: { lat: marker.lat, lng: marker.lng },
           map: mapInstance.current,
           title: marker.title,

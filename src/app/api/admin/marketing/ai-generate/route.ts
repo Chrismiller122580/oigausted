@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
 import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
@@ -203,7 +202,7 @@ function createFallbackCampaign(goal: string, channels: string[], tone: string, 
   };
 }
 
-function normalizeCampaignResponse(raw: any, goal: string, channels: string[], variations: number, isSpanish: boolean) {
+function normalizeCampaignResponse(raw: Record<string, unknown>, goal: string, channels: string[], variations: number, isSpanish: boolean) {
   const base = createFallbackCampaign(goal, channels, "cercano", isSpanish);
 
   return {

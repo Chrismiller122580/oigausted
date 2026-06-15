@@ -31,7 +31,7 @@ export default function FloatingGrokChat() {
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   // Load from localStorage
   useEffect(() => {
@@ -156,7 +156,11 @@ export default function FloatingGrokChat() {
       return;
     }
 
-    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const win = window as Window & {
+      SpeechRecognition?: new () => SpeechRecognition
+      webkitSpeechRecognition?: new () => SpeechRecognition
+    };
+    const SpeechRecognitionAPI = win.SpeechRecognition || win.webkitSpeechRecognition;
 
     if (isListening && recognitionRef.current) {
       recognitionRef.current.stop();
@@ -164,6 +168,7 @@ export default function FloatingGrokChat() {
       return;
     }
 
+    if (!SpeechRecognitionAPI) return;
     const recognition = new SpeechRecognitionAPI();
     recognitionRef.current = recognition;
 
@@ -173,7 +178,7 @@ export default function FloatingGrokChat() {
 
     setIsListening(true);
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       const transcript = event.results[0][0].transcript;
       if (transcript.trim()) {
         setInput(transcript);

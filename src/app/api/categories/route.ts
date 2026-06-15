@@ -20,7 +20,7 @@ export async function GET() {
       },
     });
 
-    let categories = dbCategories.map((c: any) => ({
+    let categories = dbCategories.map((c: (typeof dbCategories)[number]) => ({
       name: c.name,
       icon: c.icon || '🛠️',
       description: c.description || '',

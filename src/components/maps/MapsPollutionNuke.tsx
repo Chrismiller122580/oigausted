@@ -2,6 +2,9 @@
 
 import { useLayoutEffect } from 'react';
 
+/** Minimal stub for legacy Google Places APIs we intentionally disable */
+type GooglePlacesStub = NonNullable<GoogleMapsPlacesNamespace>
+
 /**
  * Nuclear client component to kill any lingering Google Maps legacy Places
  * pollution from stale bundles or previous page loads in the same tab.
@@ -21,16 +24,16 @@ export default function MapsPollutionNuke() {
     // Run a few times quickly to catch async injection from stale chunks.
     const nuke = () => {
       try {
-        const g = (window as any).google;
+        const g = (window as Window & { google?: { maps?: { places?: GooglePlacesStub } } }).google;
         if (g?.maps?.places) {
           g.maps.places = {
-            Autocomplete: function () { return {} as any; },
+            Autocomplete: function () { return {} as Record<string, never>; },
             AutocompleteService: function () {},
             PlacesService: function () {},
             PlacesServiceStatus: {},
             RankBy: {},
             PlaceAutocompleteElement: function () {},
-          } as any;
+          } satisfies GooglePlacesStub;
         }
       } catch {}
     };

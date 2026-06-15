@@ -15,7 +15,7 @@ export default function DashboardRedirect() {
     }
 
     // Safe type cast for role
-    const role = (session.user as any)?.role || "buyer"
+    const role = session.user.role || "buyer"
 
     if (role === "seller") {
       router.replace("/seller")

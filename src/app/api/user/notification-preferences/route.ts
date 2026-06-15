@@ -1,20 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
- import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
+
+type NotificationPrefsSelect = {
+  id: string
+  userId: string
+  inAppEnabled: boolean
+  emailEnabled: boolean
+  smsEnabled: boolean
+  pushEnabled: boolean
+  orderUpdates: boolean
+  gigUpdates: boolean
+  reviewAlerts: boolean
+  paymentAlerts: boolean
+  messageAlerts: boolean
+  systemAlerts: boolean
+  desktopNotifications: boolean
+  soundEnabled: boolean
+  quietHoursEnabled: boolean
+  quietHoursStart: string
+  quietHoursEnd: string
+  digestEnabled: boolean
+  digestFrequency: string
+  maxNotificationsPerHour: number
+  createdAt: Date
+  updatedAt: Date
+}
+
+type NotificationPrefsResponse = NotificationPrefsSelect & {
+  marketingEmails?: boolean
+}
+
+const defaultPrefsData = {
+  inAppEnabled: true,
+  emailEnabled: true,
+  smsEnabled: false,
+  pushEnabled: true,
+  orderUpdates: true,
+  gigUpdates: true,
+  reviewAlerts: true,
+  paymentAlerts: true,
+  messageAlerts: true,
+  systemAlerts: true,
+  desktopNotifications: true,
+  soundEnabled: true,
+  quietHoursEnabled: false,
+  quietHoursStart: '22:00',
+  quietHoursEnd: '08:00',
+  digestEnabled: false,
+  digestFrequency: 'daily',
+  maxNotificationsPerHour: 8,
+} satisfies Omit<Prisma.NotificationPreferenceCreateInput, 'user'>
 
 // GET current user's notification preferences
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let prefs = null;
+    let prefs: NotificationPrefsResponse | null = null;
     try {
       prefs = await prisma.notificationPreference.findUnique({
         where: { userId },
@@ -52,9 +101,8 @@ export async function GET() {
     }
 
     if (prefs) {
-      // Add defaults for columns that may be missing in prod DB
-      if ((prefs as any).marketingEmails === undefined) {
-        (prefs as any).marketingEmails = true;
+      if (prefs.marketingEmails === undefined) {
+        prefs.marketingEmails = true;
       }
     }
 
@@ -64,56 +112,21 @@ export async function GET() {
         prefs = await prisma.notificationPreference.create({
           data: {
             userId,
-            inAppEnabled: true,
-            emailEnabled: true,
-            smsEnabled: false,
-            pushEnabled: true,
-            orderUpdates: true,
-            gigUpdates: true,
-            reviewAlerts: true,
-            paymentAlerts: true,
-            messageAlerts: true,
-            systemAlerts: true,
-            // marketingEmails intentionally omitted here (and in select above)
-            // to avoid "column does not exist" Prisma errors on drifted prod DBs.
-            // The fallback object and JS layer always provide the default.
-            desktopNotifications: true,
-            soundEnabled: true,
-            quietHoursEnabled: false,
-            quietHoursStart: "22:00",
-            quietHoursEnd: "08:00",
-            digestEnabled: false,
-            digestFrequency: "daily",
-            maxNotificationsPerHour: 8,
-          } as any
+            ...defaultPrefsData,
+          },
         });
+        if (prefs) prefs.marketingEmails = true;
       } catch (createErr) {
         console.warn('Prefs create failed (schema?), returning safe defaults:', createErr);
         // Fallback so UI and sendNotification don't 500
         prefs = {
+          id: `fallback-${userId}`,
           userId,
-          inAppEnabled: true,
-          emailEnabled: true,
-          smsEnabled: false,
-          pushEnabled: true,
-          orderUpdates: true,
-          gigUpdates: true,
-          reviewAlerts: true,
-          paymentAlerts: true,
-          messageAlerts: true,
-          systemAlerts: true,
+          ...defaultPrefsData,
           marketingEmails: true,
-          desktopNotifications: true,
-          soundEnabled: true,
-          quietHoursEnabled: false,
-          quietHoursStart: "22:00",
-          quietHoursEnd: "08:00",
-          digestEnabled: false,
-          digestFrequency: "daily",
-          maxNotificationsPerHour: 8,
           createdAt: new Date(),
           updatedAt: new Date(),
-        } as any;
+        } as NotificationPrefsResponse;
       }
     }
 
@@ -149,7 +162,7 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -211,28 +224,11 @@ export async function PUT(req: NextRequest) {
       updated = {
         userId,
         ...body,
-        inAppEnabled: body.inAppEnabled ?? true,
-        emailEnabled: body.emailEnabled ?? true,
-        smsEnabled: body.smsEnabled ?? false,
-        pushEnabled: body.pushEnabled ?? true,
-        orderUpdates: body.orderUpdates ?? true,
-        gigUpdates: body.gigUpdates ?? true,
-        reviewAlerts: body.reviewAlerts ?? true,
-        paymentAlerts: body.paymentAlerts ?? true,
-        messageAlerts: body.messageAlerts ?? true,
-        systemAlerts: body.systemAlerts ?? true,
+        ...defaultPrefsData,
         marketingEmails: body.marketingEmails ?? true,
-        desktopNotifications: body.desktopNotifications ?? true,
-        soundEnabled: body.soundEnabled ?? true,
-        quietHoursEnabled: body.quietHoursEnabled ?? false,
-        quietHoursStart: body.quietHoursStart ?? "22:00",
-        quietHoursEnd: body.quietHoursEnd ?? "08:00",
-        digestEnabled: body.digestEnabled ?? false,
-        digestFrequency: body.digestFrequency ?? "daily",
-        maxNotificationsPerHour: body.maxNotificationsPerHour ?? 8,
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as any;
+      } satisfies NotificationPrefsResponse;
     }
 
     return NextResponse.json(updated);
@@ -241,7 +237,7 @@ export async function PUT(req: NextRequest) {
     // Return safe merged response instead of 500
     const body = await req.json().catch(() => ({}));
     const sess = await getServerSession(authOptions);
-    const uid = (sess?.user as any)?.id || null;
+    const uid = sess?.user?.id || null;
     return NextResponse.json({
       userId: uid,
       ...body,

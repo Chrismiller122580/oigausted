@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 
 // Endpoint called by Service Worker to report push delivery/clicks
 export async function POST(req: NextRequest) {
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.NotificationUpdateInput = {};
 
     if (event === 'delivered') {
       updateData.pushStatus = 'delivered';

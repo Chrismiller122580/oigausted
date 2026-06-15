@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { calculateOrderPayout, aggregatePayouts, DEFAULT_PAYOUT_CONFIG } from '@/lib/payout';
 
 export default function AdminEarnings() {
-  const [stats, setStats] = useState<any>(null);
-  const [earningsData, setEarningsData] = useState<any>(null);
+  const [stats, setStats] = useState<Record<string, number> | null>(null);
+  const [earningsData, setEarningsData] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,9 +15,9 @@ export default function AdminEarnings() {
       fetch('/api/orders?view=all').then(r => r.ok ? r.json() : []).catch(() => []),
     ]).then(([statsData, ordersData]) => {
       const list = Array.isArray(ordersData) ? ordersData : [];
-      const completed = list.filter((o: any) => o.status === 'Completed');
+      const completed = list.filter((o: { status?: string }) => o.status === 'Completed');
 
-      const breakdowns = completed.map((o: any) => 
+      const breakdowns = completed.map((o: { price?: number; seller?: { referredById?: string | null } }) =>
         calculateOrderPayout(
           Number(o.price) || 0,
           !!o.seller?.referredById,
@@ -41,6 +41,7 @@ export default function AdminEarnings() {
   }, []);
 
   const data = stats || earningsData || {};
+  const num = (v: unknown) => Number(v) || 0;
 
   return (
     <div className="bg-background text-foreground">
@@ -54,19 +55,19 @@ export default function AdminEarnings() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="bg-card p-8 rounded-2xl border border-border">
                 <p className="text-sm text-muted-foreground">Total Revenue (Gross)</p>
-                <p className="text-5xl font-bold mt-2">${(data.totalRevenue || data.grossAmount || 0).toLocaleString('es-CO')}</p>
-                <p className="text-xs text-muted-foreground mt-1">From {data.completedCount || data.completedOrders || 0} completed orders</p>
+                <p className="text-5xl font-bold mt-2">${num(data.totalRevenue ?? data.grossAmount).toLocaleString('es-CO')}</p>
+                <p className="text-xs text-muted-foreground mt-1">From {num(data.completedCount ?? data.completedOrders)} completed orders</p>
               </div>
               <div className="bg-card p-8 rounded-2xl border border-border">
                 <p className="text-sm text-muted-foreground">Platform Revenue (Fees)</p>
-                <p className="text-5xl font-bold mt-2 text-emerald-400">${(data.platformRevenue || 0).toLocaleString('es-CO')}</p>
+                <p className="text-5xl font-bold mt-2 text-emerald-400">${num(data.platformRevenue).toLocaleString('es-CO')}</p>
                 <p className="text-xs text-amber-400 mt-1">
-                  + Referrals liability: ${(data.estimatedReferralRevenue || data.referralFee || 0).toLocaleString('es-CO')}
+                  + Referrals liability: ${num(data.estimatedReferralRevenue ?? data.referralFee).toLocaleString('es-CO')}
                 </p>
               </div>
               <div className="bg-card p-8 rounded-2xl border border-border">
                 <p className="text-sm text-muted-foreground">Net Payouts to Sellers</p>
-                <p className="text-5xl font-bold mt-2">${(data.netToSellers || data.pendingPayouts || 0).toLocaleString('es-CO')}</p>
+                <p className="text-5xl font-bold mt-2">${num(data.netToSellers ?? data.pendingPayouts).toLocaleString('es-CO')}</p>
                 <p className="text-xs text-muted-foreground mt-1">Real data from completed orders + payout calc</p>
               </div>
             </div>
@@ -80,19 +81,19 @@ export default function AdminEarnings() {
               <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div className="p-4 bg-muted/30 rounded-xl">
                   <div className="text-muted-foreground">Gross from buyers</div>
-                  <div className="font-bold text-lg">${(data.totalRevenue || 0).toLocaleString('es-CO')}</div>
+                  <div className="font-bold text-lg">${num(data.totalRevenue).toLocaleString('es-CO')}</div>
                 </div>
                 <div className="p-4 bg-muted/30 rounded-xl">
                   <div className="text-muted-foreground">Platform fees kept</div>
-                  <div className="font-bold text-lg text-emerald-400">${(data.platformRevenue || 0).toLocaleString('es-CO')}</div>
+                  <div className="font-bold text-lg text-emerald-400">${num(data.platformRevenue).toLocaleString('es-CO')}</div>
                 </div>
                 <div className="p-4 bg-muted/30 rounded-xl">
                   <div className="text-muted-foreground">Referral liabilities</div>
-                  <div className="font-bold text-lg">${(data.estimatedReferralRevenue || 0).toLocaleString('es-CO')}</div>
+                  <div className="font-bold text-lg">${num(data.estimatedReferralRevenue).toLocaleString('es-CO')}</div>
                 </div>
                 <div className="p-4 bg-muted/30 rounded-xl">
                   <div className="text-muted-foreground">Net to sellers (pending + paid)</div>
-                  <div className="font-bold text-lg">${(data.netToSellers || data.pendingPayouts || 0).toLocaleString('es-CO')}</div>
+                  <div className="font-bold text-lg">${num(data.netToSellers ?? data.pendingPayouts).toLocaleString('es-CO')}</div>
                 </div>
               </div>
             </div>

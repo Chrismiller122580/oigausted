@@ -9,11 +9,12 @@ import {
   getEventsKeyInfo,
 } from '@/lib/wompi-signature'
 import crypto from 'crypto'
+import type { WompiWebhookEvent } from '@/types/wompi'
 
 export async function POST(request: Request) {
-  let body: any;
+  let body: WompiWebhookEvent | null = null;
   try {
-    body = await request.json()
+    body = await request.json() as WompiWebhookEvent
     // Wompi uses X-Event-Checksum for the events/webhook signature (see official docs).
     // Support common variants + legacy.
     const receivedSignature = 
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
     // Prefer timestamp from header if present (more reliable), fallback to body
     const receivedTimestamp = headerTimestamp 
       ? parseInt(headerTimestamp) 
-      : (body?.timestamp ? parseInt(body.timestamp) : null)
+      : (body?.timestamp ? parseInt(String(body.timestamp)) : null)
 
     // Always log key state + basic event info on every webhook (helps diagnose when 401s happen)
     const keyInfo = getEventsKeyInfo()
@@ -70,17 +71,18 @@ export async function POST(request: Request) {
         wompiTransactionId: body?.data?.transaction?.id,
         environment: body?.environment,
         eventsKeyPrefix: eventsKey.slice(0, 12) + '...',
-        usedTimestampVariant: (detailed as any).usedTimestampVariant,
+        usedTimestampVariant: detailed.usedTimestampVariant,
       })
 
-      // Fallback verification using private key (WOMPI_PRIVATE_KEY) when events key is not yet correct.
-      // This allows approved payments to be processed even during initial key setup (e.g. wrong "Llave para eventos").
-      // We query the real transaction status from Wompi API and only proceed if it matches the claimed data in the event.
-      // This is safe because it requires the private key (server secret) and cross-checks the tx ID + status + reference.
+      // Optional dev/setup fallback — disabled in production unless explicitly enabled.
+      const allowApiFallback =
+        process.env.WOMPI_ALLOW_SIGNATURE_FALLBACK === 'true' &&
+        process.env.NODE_ENV !== 'production';
+
       let processedViaApiFallback = false;
       const privKey = process.env.WOMPI_PRIVATE_KEY || '';
       const claimedTx = body?.data?.transaction;
-      if (privKey && claimedTx?.id) {
+      if (allowApiFallback && privKey && claimedTx?.id) {
         try {
           const wompiBase = 'https://api.wompi.co';
           const apiRes = await fetch(`${wompiBase}/v1/transactions/${encodeURIComponent(claimedTx.id)}`, {
@@ -89,8 +91,28 @@ export async function POST(request: Request) {
           if (apiRes.ok) {
             const apiJson = await apiRes.json();
             const apiTx = apiJson?.data;
-            if (apiTx && apiTx.id === claimedTx.id && apiTx.status === claimedTx.status && apiTx.reference === claimedTx.reference) {
-              console.log('[Wompi][Webhook] Signature invalid but API query confirmed the transaction details — processing via private-key fallback');
+            const reference = claimedTx.reference;
+            const orderId = reference?.replace('order_', '');
+            let orderPriceCents: number | null = null;
+            if (orderId) {
+              const order = await prisma.order.findUnique({
+                where: { id: orderId },
+                select: { price: true },
+              });
+              if (order) orderPriceCents = Math.round(order.price * 100);
+            }
+            const amountMatches =
+              orderPriceCents == null ||
+              apiTx?.amount_in_cents === orderPriceCents;
+
+            if (
+              apiTx &&
+              apiTx.id === claimedTx.id &&
+              apiTx.status === claimedTx.status &&
+              apiTx.reference === claimedTx.reference &&
+              amountMatches
+            ) {
+              console.log('[Wompi][Webhook] Signature invalid but API query confirmed transaction — processing via dev fallback');
               processedViaApiFallback = true;
             }
           }
@@ -102,7 +124,6 @@ export async function POST(request: Request) {
       if (!processedViaApiFallback) {
         return NextResponse.json({ error: 'Invalid signature', reason: verification.reason }, { status: 401 });
       }
-      // If here, we proceed with processing despite bad events sig (logged above).
     }
 
     // 2. Basic replay attack protection (accept events from the last 10 minutes)
@@ -187,8 +208,8 @@ export async function POST(request: Request) {
           details: {
             wompiTransactionId: transaction.id,
             status: transaction.status,
-            amount: transaction.amount_in_cents / 100,
-            reference: transaction.reference,
+            amount: (transaction.amount_in_cents ?? 0) / 100,
+            reference: transaction.reference ?? null,
           },
         }).catch(() => {})
 
@@ -218,9 +239,7 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     message: 'Wompi webhook endpoint is active. This URL only accepts POST requests containing signed transaction events from Wompi.',
-    publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || 'MISSING',
-    eventsKey: `${process.env.WOMPI_EVENTS_KEY || 'MISSING'} (must be the exact "secreto de eventos" / Llave para eventos from Wompi dashboard "Secretos para integración técnica" for this pub key - validate with real events in admin tester until matches:true. Wrong value = HMAC mismatch on real events, even if widget integrity is good.)`,
-    docs: 'See https://docs.wompi.co/docs/colombia/inicio-rapido/ and https://docs.wompi.co/docs/colombia/eventos/ (and widget-checkout-web for integrity). The signature is the HMAC of the property values concatenated in the order listed in signature.properties, using the event secret. Use the admin Wompi tester with a real "Evento" JSON as sampleEvent (+ optional testEventsKey) until it reports matches:true. The basic samples are dummies only. After finding the correct one, set in Vercel and redeploy. Webhook has private-key fallback (if WOMPI_PRIVATE_KEY set) to still process APPROVED/DECLINED events if events sig fails during key setup.'
+    eventsKeyConfigured: !!(process.env.WOMPI_EVENTS_KEY || process.env.WOMPI_EVENTS_SECRET),
   });
 }
 

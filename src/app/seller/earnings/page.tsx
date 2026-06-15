@@ -24,7 +24,7 @@ export default function SellerEarningsPage() {
     total: 0,
     pending: 0,
   });
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<Array<Record<string, unknown> & { id: string; amount?: number }>>([]);
   const [loading, setLoading] = useState(true);
 
   // Seller payout bank details (for Wompi seller payouts from admin)
@@ -86,7 +86,7 @@ export default function SellerEarningsPage() {
         grossTotal: aggregated.grossAmount,
         platformFees: aggregated.platformFee,
         referralFees: aggregated.referralFee,
-      } as any);
+      });
 
       // Build transaction list from completed orders
       const tx = completedOrders
@@ -316,13 +316,13 @@ export default function SellerEarningsPage() {
                 {transactions.map((t) => (
                   <div key={t.id} className="flex items-center justify-between border-b pb-6 last:border-0">
                     <div>
-                      <p className="font-medium text-foreground">{t.gig}</p>
-                      <p className="text-sm text-muted-foreground">{t.date}</p>
+                      <p className="font-medium text-foreground">{String(t.gig ?? '')}</p>
+                      <p className="text-sm text-muted-foreground">{String(t.date ?? '')}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-green-600">+${t.amount.toLocaleString('es-CO')}</p>
+                      <p className="font-semibold text-green-600">+${(t.amount ?? 0).toLocaleString('es-CO')}</p>
                       <p className={`text-sm ${t.status === 'Pagado' ? 'text-green-600' : 'text-amber-600'}`}>
-                        {t.status}
+                        {String(t.status ?? '')}
                       </p>
                     </div>
                   </div>

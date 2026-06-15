@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -14,7 +13,7 @@ import { logAuditEvent } from '@/lib/audit';
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (session?.user?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -35,7 +34,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (session?.user?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -56,7 +55,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const adminId = (session.user as any).id;
+    const adminId = session.user.id;
     await logAuditEvent({
       performedById: adminId,
       action: 'FAQ_CREATED',
@@ -75,7 +74,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (session?.user?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -87,7 +86,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Only allow specific fields
-    const data: any = {};
+    const data: import('@prisma/client').Prisma.FaqItemUpdateInput = {};
     if (typeof updates.question === 'string') data.question = updates.question.trim();
     if (typeof updates.answer === 'string') data.answer = updates.answer.trim();
     if (typeof updates.category === 'string') data.category = updates.category.trim();
@@ -103,7 +102,7 @@ export async function PATCH(req: NextRequest) {
       data,
     });
 
-    const adminId = (session.user as any).id;
+    const adminId = session.user.id;
     await logAuditEvent({
       performedById: adminId,
       action: 'FAQ_UPDATED',
@@ -122,7 +121,7 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (session?.user?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -138,7 +137,7 @@ export async function DELETE(req: NextRequest) {
 
     await prisma.faqItem.delete({ where: { id } });
 
-    const adminId = (session.user as any).id;
+    const adminId = session.user.id;
     await logAuditEvent({
       performedById: adminId,
       action: 'FAQ_DELETED',

@@ -5,7 +5,6 @@
 
 declare global {
   interface Window {
-    google: any;
     __googleMapsLoadingPromise?: Promise<void>;
   }
 }
@@ -27,7 +26,7 @@ export function isGoogleMapsLoaded(): boolean {
  * Modern way to load the Places library using importLibrary (recommended).
  * Must be called after loadGoogleMaps() resolves.
  */
-export async function getPlacesLibrary(): Promise<any> {
+export async function getPlacesLibrary(): Promise<unknown> {
   if (!window.google?.maps) {
     throw new Error('Google Maps not loaded yet. Call loadGoogleMaps() first.');
   }

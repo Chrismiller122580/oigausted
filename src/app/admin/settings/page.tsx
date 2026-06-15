@@ -11,6 +11,9 @@ import {
   Save, RefreshCw, AlertTriangle, DollarSign, MessageCircle, Eye, EyeOff, Lock,
   CreditCard, Mail, Shield, Clock, RotateCcw, Check, ExternalLink, History, UserPlus, Upload, Globe, Key, Users
 } from 'lucide-react';
+import type { AdminSettingsFormConfig, AdminPlatformConfigResponse } from '@/types/platform-config';
+import { asAuditDetails, type AuditLogEntry } from '@/types/audit';
+import type { WompiTestSummary, WompiWebhookEvent } from '@/types/wompi';
 
 // Enhanced accessible Switch using native input for reliable tap/keyboard behavior on all devices (incl. Android)
 function Switch({ checked, onCheckedChange, disabled }: { checked: boolean; onCheckedChange: (v: boolean) => void; disabled?: boolean }) {
@@ -51,57 +54,13 @@ interface PaymentStatus {
   appUrl: string | null;
 }
 
-interface PlatformConfig {
-  id: string;
-  commissionRate: number;
-  referralCommissionRate: number;
-  minPayoutAmount: number;
-  supportEmail: string;
-  supportPhone?: string;
-  enableReviews: boolean;
-  enableChat: boolean;
-  maintenanceMode: boolean;
-  maintenanceMessage: string;
-
-  // Growth / access
-  referralsEnabled: boolean;
-  allowNewSignups: boolean;
-  maxUploadSizeMB: number;
-
-  // Branding
-  siteName: string;
-  siteTagline: string;
-  logoUrl?: string | null;
-
-  // Global notification masters
-  globalPushNotificationsEnabled: boolean;
-  globalEmailNotificationsEnabled: boolean;
-
-  // Advanced maintenance
-  maintenanceBypassIps?: string;
-
-  // Wompi real payments toggle (admin safety switch)
-  wompiRealPaymentsEnabled?: boolean;
-
-  // Wompi SFTP/FTPS for reports and settlements (to automate reconciliation and payouts)
-  wompiSftpEnabled?: boolean;
-  wompiSftpHost?: string;
-  wompiSftpPort?: number;
-  wompiSftpUsername?: string;
-  wompiSftpPassword?: string; // sensitive - sent only for admin edit
-  wompiSftpPrivateKey?: string; // sensitive
-  wompiSftpRemotePath?: string;
-
-  // Tutorials master toggle (controls auto-show for new users + buyer->seller + support launchers)
-  tutorialsEnabled?: boolean;
-
-  // Admin-only meta (from enhanced API)
+type PlatformConfig = AdminSettingsFormConfig & {
   _meta?: {
     lastUpdated?: string;
     payment?: PaymentStatus;
     environment?: string;
   };
-}
+};
 
 interface FaqItem {
   id: string;
@@ -115,7 +74,7 @@ interface FaqItem {
 
 // Small widget to show recent PLATFORM_CONFIG_UPDATED events
 function RecentConfigActivity() {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
@@ -124,7 +83,7 @@ function RecentConfigActivity() {
       const res = await fetch('/api/admin/audit?limit=8');
       if (res.ok) {
         const data = await res.json();
-        const filtered = (data.logs || []).filter((l: any) => l.action === 'PLATFORM_CONFIG_UPDATED');
+        const filtered = (data.logs || []).filter((l: AuditLogEntry) => l.action === 'PLATFORM_CONFIG_UPDATED');
         setLogs(filtered.slice(0, 5));
       }
     } catch {}
@@ -156,7 +115,7 @@ function RecentConfigActivity() {
               <div className="min-w-0">
                 <span className="font-medium">{log.performedBy?.name || log.admin?.name || log.performedBy?.email || 'Admin'}</span>
                 <span className="text-muted-foreground"> updated </span>
-                <span className="font-mono text-[10px]">{(log.details?.changedFields || []).join(', ') || 'config'}</span>
+                <span className="font-mono text-[10px]">{(asAuditDetails(log.details)?.changedFields || []).join(', ') || 'config'}</span>
               </div>
               <div className="text-muted-foreground whitespace-nowrap shrink-0">
                 {new Date(log.createdAt).toLocaleString('es-CO', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -206,7 +165,7 @@ export default function AdminSettings() {
   const [testEmailType, setTestEmailType] = useState<'welcome' | 'order' | 'review' | 'password-reset'>('welcome');
   const [testEmailTo, setTestEmailTo] = useState('');
   const [testEmailSending, setTestEmailSending] = useState(false);
-  const [testHistory, setTestHistory] = useState<any[]>([]);
+  const [testHistory, setTestHistory] = useState<AuditLogEntry[]>([]);
   const [loadingTestHistory, setLoadingTestHistory] = useState(false);
 
   // Confirm save for risky actions
@@ -216,10 +175,10 @@ export default function AdminSettings() {
   } | null>(null);
 
   // Recent Wompi-related audit logs for debugging
-  const [recentWompiLogs, setRecentWompiLogs] = useState<any[]>([]);
+  const [recentWompiLogs, setRecentWompiLogs] = useState<AuditLogEntry[]>([]);
 
   // Wompi self-test (keys + live query capability)
-  const [wompiTest, setWompiTest] = useState<any>(null);
+  const [wompiTest, setWompiTest] = useState<WompiTestSummary | null>(null);
   const [wompiTestLoading, setWompiTestLoading] = useState(false);
 
   // Advanced real-event test for 401 signature debugging
@@ -315,7 +274,7 @@ export default function AdminSettings() {
   const lastUpdated = config?._meta?.lastUpdated;
 
   // Normalize config for old rows that may be missing new fields (graceful upgrade)
-  const normalizeConfig = (c: any): PlatformConfig => ({
+  const normalizeConfig = (c: AdminPlatformConfigResponse): PlatformConfig => ({
     ...c,
     supportPhone: c.supportPhone ?? '',
     referralsEnabled: c.referralsEnabled ?? true,
@@ -332,11 +291,13 @@ export default function AdminSettings() {
     wompiSftpHost: c.wompiSftpHost || '',
     wompiSftpPort: c.wompiSftpPort || 22,
     wompiSftpUsername: c.wompiSftpUsername || '',
-    wompiSftpPassword: c.wompiSftpPassword || '',
-    wompiSftpPrivateKey: c.wompiSftpPrivateKey || '',
+    wompiSftpPasswordConfigured: c.wompiSftpPasswordConfigured ?? false,
+    wompiSftpPrivateKeyConfigured: c.wompiSftpPrivateKeyConfigured ?? false,
+    wompiSftpPassword: '',
+    wompiSftpPrivateKey: '',
     wompiSftpRemotePath: c.wompiSftpRemotePath || '/',
     tutorialsEnabled: c.tutorialsEnabled ?? true,
-  });
+  } as PlatformConfig);
 
   const fetchConfig = async (fresh = false) => {
     try {
@@ -365,7 +326,7 @@ export default function AdminSettings() {
       const res = await fetch('/api/admin/audit?limit=30');
       if (res.ok) {
         const data = await res.json();
-        const logs = (data.logs || []).filter((l: any) => 
+        const logs = (data.logs || []).filter((l: AuditLogEntry) =>
           (l.action && (l.action.includes('PAYMENT') || l.action.includes('WOMPI') || l.action.includes('ORDER') || l.action.includes('PLATFORM_CONFIG'))) ||
           l.targetType === 'Order' || l.targetType === 'PlatformConfig'
         ).slice(0, 15);
@@ -444,8 +405,12 @@ export default function AdminSettings() {
         wompiSftpHost: config.wompiSftpHost || '',
         wompiSftpPort: config.wompiSftpPort || 22,
         wompiSftpUsername: config.wompiSftpUsername || '',
-        wompiSftpPassword: config.wompiSftpPassword || '',
-        wompiSftpPrivateKey: config.wompiSftpPrivateKey || '',
+        wompiSftpPassword: config.wompiSftpPassword?.trim()
+          ? config.wompiSftpPassword
+          : (config.wompiSftpPasswordConfigured ? '__UNCHANGED__' : ''),
+        wompiSftpPrivateKey: config.wompiSftpPrivateKey?.trim()
+          ? config.wompiSftpPrivateKey
+          : (config.wompiSftpPrivateKeyConfigured ? '__UNCHANGED__' : ''),
         wompiSftpRemotePath: config.wompiSftpRemotePath || '/',
         tutorialsEnabled: config.tutorialsEnabled ?? true,
       };
@@ -501,7 +466,7 @@ export default function AdminSettings() {
       const res = await fetch('/api/admin/audit?limit=20');
       if (res.ok) {
         const data = await res.json();
-        const tests = (data.logs || []).filter((l: any) => l.action === 'ADMIN_TEST_EMAIL_DIRECT' || l.action?.includes('TEST_EMAIL'));
+        const tests = (data.logs || []).filter((l: AuditLogEntry) => l.action === 'ADMIN_TEST_EMAIL_DIRECT' || l.action?.includes('TEST_EMAIL'));
         setTestHistory(tests.slice(0, 8));
       }
     } catch {}
@@ -723,7 +688,7 @@ export default function AdminSettings() {
     toast.success(`Cargadas ${created} FAQs por defecto`);
   };
 
-  const updateField = (field: keyof PlatformConfig, value: any) => {
+  const updateField = (field: keyof PlatformConfig, value: PlatformConfig[keyof PlatformConfig]) => {
     if (!config) return;
     setConfig({ ...config, [field]: value });
   };
@@ -736,7 +701,7 @@ export default function AdminSettings() {
   const handleSendTestEmail = async () => {
     setTestEmailSending(true);
     try {
-      const body: any = { emailType: testEmailType };
+      const body: { emailType: typeof testEmailType; to?: string } = { emailType: testEmailType };
       if (testEmailTo.trim()) body.to = testEmailTo.trim();
 
       const res = await fetch('/api/test-email', {
@@ -1112,8 +1077,8 @@ export default function AdminSettings() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
             <div className="rounded-2xl border border-border bg-background p-4">
               <div className="text-muted-foreground text-xs mb-1">Private Key (API)</div>
-              <div className={(payment?.wompi as any)?.hasPrivateKey ? 'text-emerald-400' : 'text-amber-400'}>
-                {(payment?.wompi as any)?.hasPrivateKey ? '✓ Presente (WOMPI_PRIVATE_KEY)' : 'Opcional (para API de pagos a terceros)'}
+              <div className={payment?.wompi?.hasPrivateKey ? 'text-emerald-400' : 'text-amber-400'}>
+                {payment?.wompi?.hasPrivateKey ? '✓ Presente (WOMPI_PRIVATE_KEY)' : 'Opcional (para API de pagos a terceros)'}
               </div>
             </div>
             <div className="rounded-2xl border border-border bg-background p-4">
@@ -1157,7 +1122,7 @@ export default function AdminSettings() {
                     const data = await res.json();
                     setWompiTest(data?.summary || data);
                     if (data?.success === false) toast.error(data.error || 'Test falló');
-                  } catch (e: any) {
+                  } catch {
                     toast.error('No se pudo ejecutar el test de Wompi');
                   } finally {
                     setWompiTestLoading(false);
@@ -1183,8 +1148,8 @@ export default function AdminSettings() {
                 {wompiTest.replayResult?.attempted && (
                   <div>Replay: {wompiTest.replayResult.success ? 'SUCCESS' : 'FAILED'} action={wompiTest.replayResult.action} order={wompiTest.replayResult.orderId} status={wompiTest.replayResult.status}</div>
                 )}
-                {wompiTest.recommendations?.length > 0 && (
-                  <div className="mt-1 text-amber-600">Recomendaciones: {wompiTest.recommendations.join(' • ')}</div>
+                {(wompiTest.recommendations?.length ?? 0) > 0 && (
+                  <div className="mt-1 text-amber-600">Recomendaciones: {wompiTest.recommendations!.join(' • ')}</div>
                 )}
               </div>
             )}
@@ -1256,8 +1221,8 @@ export default function AdminSettings() {
                   onClick={async () => {
                     setAdvancedTestLoading(true);
                     try {
-                      let sampleEvent: any;
-                      let raw = advancedEventJson.trim();
+                      let sampleEvent: WompiWebhookEvent;
+                      const raw = advancedEventJson.trim();
 
                       // Try direct parse first
                       try {
@@ -1277,7 +1242,7 @@ export default function AdminSettings() {
                           return;
                         }
                       }
-                      const body: any = { sampleEvent, replay: advancedReplay };
+                      const body: { sampleEvent: WompiWebhookEvent; replay: boolean; testEventsKey?: string } = { sampleEvent, replay: advancedReplay };
                       if (advancedTestEventsKey.trim()) body.testEventsKey = advancedTestEventsKey.trim();
                       const res = await fetch('/api/admin/wompi/test', {
                         method: 'POST',
@@ -1288,7 +1253,7 @@ export default function AdminSettings() {
                       setWompiTest(data?.summary || data);
                       if (data?.success === false) toast.error(data.error || 'Test falló');
                       else toast.success('Test de evento real completado - revisa eventVerification abajo');
-                    } catch (e: any) {
+                    } catch {
                       toast.error('Error ejecutando test avanzado');
                     } finally {
                       setAdvancedTestLoading(false);
@@ -1423,7 +1388,7 @@ export default function AdminSettings() {
                 type="password" 
                 value={config?.wompiSftpPassword || ''} 
                 onChange={(e) => updateField('wompiSftpPassword', e.target.value)} 
-                placeholder="Leave blank if using private key"
+                placeholder={config?.wompiSftpPasswordConfigured ? 'Configured — leave blank to keep current password' : 'Leave blank if using private key'}
                 className="w-full border rounded-xl px-3 py-2 bg-background" 
               />
             </div>
@@ -1432,7 +1397,7 @@ export default function AdminSettings() {
               <textarea 
                 value={config?.wompiSftpPrivateKey || ''} 
                 onChange={(e) => updateField('wompiSftpPrivateKey', e.target.value)} 
-                placeholder="Paste the COMPLETE private key text here, including the -----BEGIN ... PRIVATE KEY----- header and -----END ... PRIVATE KEY----- footer with proper line breaks.&#10;Create a local file first if you have the raw key from Wompi:&#10;  cat > wompi_private_key.pem << 'EOF'&#10;  [paste private key here]&#10;  EOF&#10;  chmod 600 wompi_private_key.pem&#10;Then open the file and copy its full contents into this box."
+                placeholder={config?.wompiSftpPrivateKeyConfigured ? 'Configured — leave blank to keep current private key' : 'Paste the COMPLETE private key text here (including BEGIN/END lines)'}
                 rows={6}
                 className="w-full border rounded-xl px-3 py-2 bg-background font-mono text-xs" 
               />
@@ -1459,8 +1424,12 @@ export default function AdminSettings() {
                       host: config?.wompiSftpHost,
                       port: config?.wompiSftpPort,
                       username: config?.wompiSftpUsername,
-                      password: config?.wompiSftpPassword,
-                      privateKey: config?.wompiSftpPrivateKey,
+                      password: config?.wompiSftpPassword?.trim()
+                        ? config.wompiSftpPassword
+                        : (config?.wompiSftpPasswordConfigured ? '__UNCHANGED__' : ''),
+                      privateKey: config?.wompiSftpPrivateKey?.trim()
+                        ? config.wompiSftpPrivateKey
+                        : (config?.wompiSftpPrivateKeyConfigured ? '__UNCHANGED__' : ''),
                       remotePath: config?.wompiSftpRemotePath,
                     })
                   });
@@ -1523,7 +1492,7 @@ export default function AdminSettings() {
             <p className="text-sm text-muted-foreground">No recent Wompi-related logs yet. Perform a payment or config save to see entries.</p>
           ) : (
             <div className="divide-y divide-border text-xs max-h-64 overflow-auto">
-              {recentWompiLogs.map((log: any, idx: number) => (
+              {recentWompiLogs.map((log, idx: number) => (
                 <div key={idx} className="py-2 flex justify-between gap-4">
                   <div className="flex-1">
                     <span className="font-medium">{log.action}</span>
@@ -1732,7 +1701,7 @@ export default function AdminSettings() {
                 <div className="flex flex-col sm:flex-row gap-2">
                   <select
                     value={testEmailType}
-                    onChange={(e) => setTestEmailType(e.target.value as any)}
+                    onChange={(e) => setTestEmailType(e.target.value as typeof testEmailType)}
                     className="bg-background border border-border rounded-md px-3 py-2 text-sm flex-1"
                   >
                     <option value="welcome">Welcome</option>
@@ -1773,7 +1742,7 @@ export default function AdminSettings() {
                     <div className="max-h-28 overflow-auto text-[10px] bg-background border border-border rounded p-2 space-y-1 font-mono">
                       {testHistory.map((log, i) => (
                         <div key={i} className="flex justify-between gap-2 text-muted-foreground">
-                          <span>{log.details?.emailType || 'test'} → {log.details?.to || 'self'}</span>
+                          <span>{String(asAuditDetails(log.details)?.emailType ?? 'test')} → {String(asAuditDetails(log.details)?.to ?? 'self')}</span>
                           <span>{new Date(log.createdAt).toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'})}</span>
                         </div>
                       ))}

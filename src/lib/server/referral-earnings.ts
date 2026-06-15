@@ -1,7 +1,17 @@
 import { prisma } from '@/lib/prisma';
+import type { PlatformConfigRow } from '@/lib/prisma';
 import { sendNotification } from '@/lib/notifications';
 import { getEffectiveReferralRate } from '@/lib/payout';
 import { devLog } from '@/lib/utils';
+import { Prisma } from '@prisma/client';
+
+export type ReferralEligibleOrder = {
+  id: string;
+  price: number;
+  seller?: {
+    referredById: string | null;
+  } | null;
+};
 
 /**
  * Create referral earning for a completed/paid order if the seller was referred.
@@ -9,15 +19,15 @@ import { devLog } from '@/lib/utils';
  * Also sends notification to referrer.
  * Server-only.
  */
-export async function createReferralEarningIfApplicable(order: any) {
+export async function createReferralEarningIfApplicable(order: ReferralEligibleOrder) {
   if (!order.seller?.referredById || !order.price) return;
 
   // Master gate from admin settings
   try {
     const { prisma: prismaClient } = await import('@/lib/prisma');
     const { getPlatformConfig } = await import('@/lib/prisma');
-    const cfg = await getPlatformConfig();
-    if (cfg && (cfg as any).referralsEnabled === false) {
+    const cfg: PlatformConfigRow | null = await getPlatformConfig();
+    if (cfg && cfg.referralsEnabled === false) {
       return; // Referrals globally paused by admin
     }
   } catch {}
@@ -51,9 +61,9 @@ export async function createReferralEarningIfApplicable(order: any) {
     } catch (e) {
       devLog('Failed to send referral earning email:', e);
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Unique constraint violation is expected on duplicate calls (idempotent)
-    if (err.code !== 'P2002') {
+    if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002')) {
       devLog('Failed to create referral earning:', err);
     }
   }

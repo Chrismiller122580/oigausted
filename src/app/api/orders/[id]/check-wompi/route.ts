@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -12,8 +11,8 @@ export async function POST(
 ) {
   const { id: orderId } = await params;
   const session = await getServerSession(authOptions);
-  const userId = (session?.user as any)?.id;
-  const isAdmin = (session?.user as any)?.role === 'admin';
+  const userId = session?.user?.id;
+  const isAdmin = session?.user?.role === 'admin';
 
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -82,7 +81,7 @@ export async function POST(
     // Wompi response shape differs:
     // - ?reference=... list endpoint: { data: Transaction[] }
     // - /transactions/{id} direct: { data: Transaction }
-    let transaction = txIdFromBody
+    const transaction = txIdFromBody
       ? (data?.data || null)
       : (Array.isArray(data?.data) ? data.data[0] : null);
 
@@ -187,8 +186,9 @@ export async function POST(
         error: wompiError,
       },
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     devLog('[Wompi][check-wompi] Unexpected error', e);
-    return NextResponse.json({ error: e.message || 'Unexpected error querying Wompi' }, { status: 500 });
+    const errMsg = e instanceof Error ? e.message : 'Unexpected error querying Wompi';
+    return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 }

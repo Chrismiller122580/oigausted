@@ -5,21 +5,22 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { parseJsonArrayField } from '@/lib/utils';
 import { useGigCategories } from '@/lib/useGigCategories';
+import type { CheckoutFormData, DynamicFieldDef, GigCheckoutShape } from '@/types/gig-fields';
 
 interface Props {
-  gig: any;
-  formData: any;
-  onChange: (key: string, value: any) => void;
+  gig: GigCheckoutShape;
+  formData: CheckoutFormData;
+  onChange: (key: string, value: string | number | boolean) => void;
 }
 
 export default function DynamicCheckoutFields({ gig, formData, onChange }: Props) {
   const { categories: gigCategories } = useGigCategories();
-  const categoryTemplate = gigCategories.find((c: any) => c.name === gig.category) || { fields: [] };
-  const gigFields = parseJsonArrayField(gig?.fields);
+  const categoryTemplate = gigCategories.find((c) => c.name === gig.category) || { fields: [] };
+  const gigFields = parseJsonArrayField(gig?.fields) as DynamicFieldDef[];
   const allFields = [
     ...(categoryTemplate.fields || []),
     ...gigFields
-  ].filter((f: any, i: number, arr: any[]) => i === arr.findIndex(x => x.key === f.key));
+  ].filter((f, i: number, arr: DynamicFieldDef[]) => i === arr.findIndex(x => x.key === f.key));
 
   return (
     <Card className="mt-6">
@@ -28,13 +29,13 @@ export default function DynamicCheckoutFields({ gig, formData, onChange }: Props
         <p className="text-sm text-muted-foreground">El precio se actualizará en tiempo real</p>
       </CardHeader>
       <CardContent className="space-y-6">
-        {allFields.map((field: any) => (
+        {allFields.map((field: DynamicFieldDef) => (
           <div key={field.key} className="space-y-2">
             <Label>{field.label}</Label>
             {field.type === 'number' && (
               <Input
                 type="number"
-                value={formData[field.key] ?? ''}
+                value={typeof formData[field.key] === 'boolean' ? '' : String(formData[field.key] ?? '')}
                 onChange={(e) => onChange(field.key, e.target.value)}
                 placeholder="Ej: 3"
               />

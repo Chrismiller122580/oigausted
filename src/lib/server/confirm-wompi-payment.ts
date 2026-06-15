@@ -4,6 +4,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
 import { getEffectiveReferralRate } from '@/lib/payout';
 import { createReferralEarningIfApplicable } from '@/lib/server/referral-earnings';
+import { Prisma } from '@prisma/client';
 
 /**
  * Confirm a Wompi payment for an order.
@@ -51,11 +52,23 @@ export async function confirmWompiPayment(
       return { success: true, alreadyProcessed: true, newStatus: current, message: 'Already processed' };
     }
 
+    if (opts?.amount != null) {
+      const expectedCents = Math.round(order.price * 100);
+      const receivedCents = Math.round(opts.amount * 100);
+      if (receivedCents !== expectedCents) {
+        devLog(`[Wompi][confirm] Amount mismatch for order ${orderId}: expected ${expectedCents}c, got ${receivedCents}c`);
+        return {
+          success: false,
+          error: `Payment amount mismatch (expected ${order.price} COP, received ${opts.amount} COP)`,
+        };
+      }
+    }
+
     // Only confirm to Paid on success path
     const updateData = { status: 'Paid', updatedAt: new Date() };
 
     // Atomic: update status + create referral earning if seller was referred (prevents orphans)
-    const updated = await prisma.$transaction(async (tx: any) => {
+    const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const u = await tx.order.update({
         where: { id: orderId },
         data: updateData,
@@ -77,7 +90,7 @@ export async function confirmWompiPayment(
         // Only if we are the first to mark it Paid (defensive)
         if (current !== 'Paid' && current !== 'Completed') {
           const rate = await getEffectiveReferralRate(u.seller.referredById);
-          const amount = Math.round(((u as any).price || 0) * rate);
+          const amount = Math.round((u.price || 0) * rate);
           if (amount > 0) {
             try {
               await tx.referralEarning.create({
@@ -89,8 +102,10 @@ export async function confirmWompiPayment(
                   status: 'Pending',
                 },
               });
-            } catch (e: any) {
-              if (e.code !== 'P2002') devLog('[Wompi confirm tx] referral create err (non-dup):', e);
+            } catch (e: unknown) {
+              if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002')) {
+                devLog('[Wompi confirm tx] referral create err (non-dup):', e);
+              }
             }
           }
         }
@@ -133,7 +148,7 @@ export async function confirmWompiPayment(
     // Best-effort: run the full referral helper (it guards duplicates + sends referrer email/notif)
     if (updated.seller?.referredById) {
       try {
-        await createReferralEarningIfApplicable(updated as any);
+        await createReferralEarningIfApplicable(updated);
       } catch (rErr) {
         devLog('[Wompi confirm] referral helper error (non-fatal):', rErr);
       }
@@ -145,8 +160,9 @@ export async function confirmWompiPayment(
       newStatus: 'Paid',
       message: 'Order confirmed as Paid from Wompi transaction',
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     devLog('[Wompi][confirm] error:', error);
-    return { success: false, error: error?.message || 'Confirmation failed' };
+    const message = error instanceof Error ? error.message : 'Confirmation failed';
+    return { success: false, error: message };
   }
 }

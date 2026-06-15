@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { devLog } from '@/lib/utils';
+import type { Prisma } from '@prisma/client';
 
 /**
  * Seller payout bank details (for receiving net seller payouts via Wompi or manual).
@@ -25,8 +25,8 @@ const ALLOWED_FIELDS = [
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
-    const role = (session?.user as any)?.role;
+    const userId = session?.user?.id;
+    const role = session?.user?.role;
     if (!userId || (role !== 'seller' && role !== 'admin')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -47,7 +47,7 @@ export async function GET() {
     });
 
     return NextResponse.json({ bank: user || {} });
-  } catch (e: any) {
+  } catch (e: unknown) {
     devLog('[payout-bank] GET error', e);
     return NextResponse.json({ error: 'Failed to load' }, { status: 500 });
   }
@@ -64,14 +64,14 @@ export async function PATCH(req: NextRequest) {
 async function handleSave(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
-    const role = (session?.user as any)?.role;
+    const userId = session?.user?.id;
+    const role = session?.user?.role;
     if (!userId || (role !== 'seller' && role !== 'admin')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
-    const data: any = {};
+    const data: Prisma.UserUpdateInput = {};
 
     for (const f of ALLOWED_FIELDS) {
       if (body[f] !== undefined) {
@@ -100,7 +100,7 @@ async function handleSave(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, bank: updated });
-  } catch (e: any) {
+  } catch (e: unknown) {
     devLog('[payout-bank] save error', e);
     return NextResponse.json({ error: 'Failed to save bank details' }, { status: 500 });
   }

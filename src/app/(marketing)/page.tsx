@@ -54,12 +54,12 @@ export default async function MarketingHomePage() {
   const topCategoryNames = allCategories.slice(0, 12).map((c) => c.name);
 
   // Ratings for top categories (for badges on cards)
-  let gigsWithRatings: any[] = [];
+  let gigsWithRatings: { category: string | null; seller: { rating: number | null } | null }[] = [];
   try {
     gigsWithRatings = await prisma.gig.findMany({
       where: {
         isActive: true,
-        category: { in: topCategoryNames as any }
+        category: { in: topCategoryNames }
       },
       select: {
         category: true,

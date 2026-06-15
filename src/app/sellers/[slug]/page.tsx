@@ -146,7 +146,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
   });
 
   const avgRating = reviews.length > 0 
-    ? reviews.reduce((sum: any, r: any) => sum + r.rating, 0) / reviews.length 
+    ? reviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / reviews.length
     : 0;
 
   const displayName = seller.businessName || seller.name || 'Vendedor Local';
@@ -155,7 +155,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
   // Use slug for URLs if available, fallback to id for backward compat.
   // Cast because ID-based lookup paths deliberately omit 'slug' from the Prisma select
   // (to avoid "column does not exist" errors on drifted prod DBs). Slug path includes it.
-  const sellerSlugOrId = (seller as any).slug || seller.id;
+  const sellerSlugOrId = ('slug' in seller && seller.slug) ? seller.slug : seller.id;
 
   // Build the canonical public URL on the server (for the share client component)
   const headersList = await headers();
@@ -246,8 +246,8 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
 
         {gigs.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {gigs.map((gig: any) => (
-              <GigCard key={gig.id} gig={gig as any} />
+            {gigs.map((gig: (typeof gigs)[number]) => (
+              <GigCard key={gig.id} gig={gig} />
             ))}
           </div>
         ) : (
@@ -267,7 +267,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
               <span className="text-sm text-muted-foreground">({reviews.length} reseñas recientes)</span>
             </div>
             <div className="grid md:grid-cols-2 gap-5">
-              {reviews.map((review: any) => (
+              {reviews.map((review: (typeof reviews)[number]) => (
                 <div key={review.id} className="testimonial-card border border-border/70">
                   <div className="flex items-center gap-2 mb-3 text-amber-500 text-lg tracking-[1px]">
                     {[1,2,3,4,5].map(n => (

@@ -1,14 +1,38 @@
 import { devLog } from './utils';
-import { prisma } from './prisma';
+import type SftpClientType from 'ssh2-sftp-client';
+import type { ConnectOptions, FileInfo } from 'ssh2-sftp-client';
 
 // Lazy load ssh2-sftp-client only on server (avoids webpack native module issues in Next.js build)
-let SftpClient: any;
-async function getSftpClient() {
+type SftpClientConstructor = new (name?: string) => SftpClientType;
+let SftpClient: SftpClientConstructor | null = null;
+
+async function getSftpClient(): Promise<SftpClientType> {
   if (!SftpClient) {
     const mod = await import('ssh2-sftp-client');
-    SftpClient = mod.default || mod;
+    SftpClient = (mod.default || mod) as SftpClientConstructor;
   }
   return new SftpClient();
+}
+
+function buildConnectOptions(sftpConfig: WompiSftpConfig): ConnectOptions {
+  const connectOptions: ConnectOptions = {
+    host: sftpConfig.host,
+    port: sftpConfig.port,
+    username: sftpConfig.username,
+  };
+
+  if (sftpConfig.privateKey) {
+    connectOptions.privateKey = sftpConfig.privateKey;
+  } else if (sftpConfig.password) {
+    connectOptions.password = sftpConfig.password;
+  }
+
+  return connectOptions;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
 }
 
 export interface WompiSftpConfig {
@@ -55,26 +79,16 @@ export async function testWompiSftpConnection(config?: WompiSftpConfig): Promise
 
   const client = await getSftpClient();
   try {
-    const connectOptions: any = {
-      host: sftpConfig.host,
-      port: sftpConfig.port,
-      username: sftpConfig.username,
-    };
-
-    if (sftpConfig.privateKey) {
-      connectOptions.privateKey = sftpConfig.privateKey;
-    } else if (sftpConfig.password) {
-      connectOptions.password = sftpConfig.password;
-    } else {
+    if (!sftpConfig.privateKey && !sftpConfig.password) {
       return { success: false, message: 'No password or private key provided' };
     }
 
-    await client.connect(connectOptions);
+    await client.connect(buildConnectOptions(sftpConfig));
 
     const testPath = sftpConfig.remotePath || '/';
     const list = await client.list(testPath);
 
-    const fileNames = list.slice(0, 5).map((item: any) => item.name); // sample
+    const fileNames = list.slice(0, 5).map((item: FileInfo) => item.name); // sample
 
     await client.end();
 
@@ -83,11 +97,11 @@ export async function testWompiSftpConnection(config?: WompiSftpConfig): Promise
       message: `Connected successfully to ${sftpConfig.host}:${sftpConfig.port}. Found ${list.length} items in ${testPath}.`,
       files: fileNames,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     devLog('[Wompi SFTP] Test connection error:', error);
     try { await client.end(); } catch {}
 
-    let msg = error.message || String(error);
+    let msg = getErrorMessage(error);
 
     if (msg.includes('ENOTFOUND') || msg.includes('getaddrinfo')) {
       msg = `DNS lookup failed for host "${sftpConfig.host}". The hostname could not be resolved from the server. ` +
@@ -105,7 +119,7 @@ export async function testWompiSftpConnection(config?: WompiSftpConfig): Promise
   }
 }
 
-export async function listWompiSftpFiles(remotePath?: string): Promise<any[]> {
+export async function listWompiSftpFiles(remotePath?: string): Promise<FileInfo[]> {
   const sftpConfig = await getWompiSftpConfig();
   if (!sftpConfig.enabled || !sftpConfig.host) {
     throw new Error('SFTP not configured');
@@ -113,15 +127,7 @@ export async function listWompiSftpFiles(remotePath?: string): Promise<any[]> {
 
   const client = await getSftpClient();
   try {
-    const connectOptions: any = {
-      host: sftpConfig.host,
-      port: sftpConfig.port,
-      username: sftpConfig.username,
-    };
-    if (sftpConfig.privateKey) connectOptions.privateKey = sftpConfig.privateKey;
-    else if (sftpConfig.password) connectOptions.password = sftpConfig.password;
-
-    await client.connect(connectOptions);
+    await client.connect(buildConnectOptions(sftpConfig));
 
     const path = remotePath || sftpConfig.remotePath || '/';
     const files = await client.list(path);
@@ -142,15 +148,7 @@ export async function downloadWompiSftpFile(remoteFilePath: string): Promise<Buf
 
   const client = await getSftpClient();
   try {
-    const connectOptions: any = {
-      host: sftpConfig.host,
-      port: sftpConfig.port,
-      username: sftpConfig.username,
-    };
-    if (sftpConfig.privateKey) connectOptions.privateKey = sftpConfig.privateKey;
-    else if (sftpConfig.password) connectOptions.password = sftpConfig.password;
-
-    await client.connect(connectOptions);
+    await client.connect(buildConnectOptions(sftpConfig));
 
     const buffer = await client.get(remoteFilePath) as Buffer;
 
@@ -173,8 +171,8 @@ export async function syncWompiSftpReports(): Promise<{ success: boolean; messag
     const files = await listWompiSftpFiles();
     // Filter for common report names (adjust based on actual Wompi files: e.g. settlement, daily, payout)
     const reportFiles = files
-      .filter((f: any) => f.type === '-' && (f.name.includes('settlement') || f.name.includes('report') || f.name.includes('payout') || f.name.includes('transacciones')))
-      .sort((a: any, b: any) => (b.modifyTime || 0) - (a.modifyTime || 0))
+      .filter((f: FileInfo) => f.type === '-' && (f.name.includes('settlement') || f.name.includes('report') || f.name.includes('payout') || f.name.includes('transacciones')))
+      .sort((a: FileInfo, b: FileInfo) => (b.modifyTime || 0) - (a.modifyTime || 0))
       .slice(0, 3); // latest 3
 
     const downloaded: string[] = [];
@@ -199,8 +197,8 @@ export async function syncWompiSftpReports(): Promise<{ success: boolean; messag
       message: `Synced ${downloaded.length} report files.`,
       downloaded,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     devLog('[Wompi SFTP] Sync error:', error);
-    return { success: false, message: error.message || 'Sync failed' };
+    return { success: false, message: getErrorMessage(error) || 'Sync failed' };
   }
 }

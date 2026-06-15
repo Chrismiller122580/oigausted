@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
 import { notifications } from '@/lib/notifications';
+import type { Prisma } from '@prisma/client';
+import type { JsonObject } from '@/types/json';
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || '';
     const includeDeleted = searchParams.get('includeDeleted') === 'true';
 
-    const where: any = {};
+    const where: Prisma.GigWhereInput = {};
     if (!includeDeleted) {
       where.deletedAt = null;
     }
@@ -50,12 +50,13 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: 'desc' },
         take: 100
       });
-    } catch (dbErr: any) {
+    } catch (dbErr: unknown) {
       // Defensive fallback: if the deletedAt column hasn't been migrated yet in the DB
       // (e.g. during rollout), fall back to fetching without the deletedAt filter.
       // This prevents the admin page from showing "no data".
-      console.warn('[Admin Gigs] deletedAt column not present yet, falling back to unfiltered query', dbErr?.message);
-      const fallbackWhere: any = search ? {
+      const errMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+      console.warn('[Admin Gigs] deletedAt column not present yet, falling back to unfiltered query', errMsg);
+      const fallbackWhere: Prisma.GigWhereInput = search ? {
         OR: [
           { title: { contains: search } },
           { seller: { name: { contains: search } } },
@@ -82,7 +83,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const gigsWithStats = gigs.map((g: any) => ({
+    const gigsWithStats = gigs.map((g: typeof gigs[number]) => ({
       ...g,
       orderCount: g._count.orders
     }));
@@ -98,7 +99,7 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!isAdmin(session)) {
+    if (!isAdmin(session) || !session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -109,7 +110,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'gigId is required' }, { status: 400 });
     }
 
-    const data: any = {};
+    const data: Prisma.GigUpdateInput = {};
     if (isActive !== undefined) data.isActive = Boolean(isActive);
     if (deletedAt !== undefined) data.deletedAt = deletedAt ? new Date(deletedAt) : null;
     if (title !== undefined) data.title = title;
@@ -131,7 +132,7 @@ export async function PATCH(req: NextRequest) {
     });
 
     // Log moderation action
-    const adminId = (session.user as any).id;
+    const adminId = session.user.id;
     const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
     const userAgent = req.headers.get('user-agent') || null;
 
@@ -144,7 +145,7 @@ export async function PATCH(req: NextRequest) {
       action,
       targetType: 'Gig',
       targetId: gigId,
-      details: { ...data },
+      details: { ...data } as JsonObject,
       ipAddress,
       userAgent,
     });
@@ -171,7 +172,7 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!isAdmin(session)) {
+    if (!isAdmin(session) || !session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -198,7 +199,7 @@ export async function DELETE(req: NextRequest) {
       data: { deletedAt: now }
     });
 
-    const adminId = (session.user as any).id;
+    const adminId = session.user.id;
     const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
     const userAgent = req.headers.get('user-agent') || null;
     await logAuditEvent({

@@ -26,7 +26,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
     return <div className="min-h-[64px] bg-background border-b border-border flex items-center justify-center text-sm text-muted-foreground">Loading...</div>;
   }
 
-  const role = String((session?.user as any)?.role || '').toLowerCase().trim();
+  const role = String(session?.user?.role || '').toLowerCase().trim();
 
   // The impersonation banner (if active) is always rendered at the very top.
   // It is self-contained and will only show when the current session has impersonatorId.

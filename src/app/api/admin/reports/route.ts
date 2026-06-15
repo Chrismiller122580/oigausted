@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -9,7 +7,7 @@ import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG, aggregatePayouts } from '@
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (session?.user?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -129,7 +127,7 @@ export async function GET() {
     const totalBuyersWithOrders = buyerOrderCounts.size;
 
     // Platform revenue calc using payout lib for accuracy (like stats)
-    const breakdowns = completedOrders.map((o: any) =>
+    const breakdowns = completedOrders.map((o: { price: number; seller?: { referredById?: string | null } }) =>
       calculateOrderPayout(
         Number(o.price) || 0,
         !!o.seller?.referredById,

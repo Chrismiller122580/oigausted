@@ -51,7 +51,7 @@ export function NotificationsBell() {
       // Merge: prefer existing list's read status for known ids; treat pure realtime arrivals as unread
       setNotifications(prev => {
         const byId = new Map(prev.map(n => [n.id, n]));
-        const merged = realtimeNotifs.map((n: any) => {
+        const merged = realtimeNotifs.map((n) => {
           const existing = byId.get(n.id);
           return {
             ...n,
@@ -59,7 +59,7 @@ export function NotificationsBell() {
           } as AppNotification;
         });
         // Keep some older fetched items if realtime only has the very newest
-        const realtimeIds = new Set(realtimeNotifs.map((n: any) => n.id));
+        const realtimeIds = new Set(realtimeNotifs.map((n) => n.id));
         const older = prev.filter(p => !realtimeIds.has(p.id)).slice(0, 5);
         return [...merged, ...older].slice(0, 10);
       });

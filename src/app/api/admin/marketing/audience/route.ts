@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
 import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 200);
 
   try {
-    const where: any = {
+    const where: Prisma.UserWhereInput = {
       email: { not: null },
       isActive: true, // only active accounts by default for marketing
     };
@@ -30,14 +30,14 @@ export async function GET(req: NextRequest) {
     if (segment === 'inactive') where.isActive = false;
 
     if (city) {
-      where.city = { contains: city, mode: 'insensitive' };
+      where.city = { contains: city, mode: 'insensitive' } as Prisma.StringNullableFilter;
     }
 
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { businessName: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' } as Prisma.StringNullableFilter },
+        { email: { contains: search, mode: 'insensitive' } as Prisma.StringNullableFilter },
+        { businessName: { contains: search, mode: 'insensitive' } as Prisma.StringNullableFilter },
       ];
     }
 
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
       take: 10000,
     });
 
-    const reachable = usersForReachable.filter((u: any) => {
+    const reachable = usersForReachable.filter((u: { notificationPreferences: { emailEnabled: boolean } | null }) => {
       const p = u.notificationPreferences;
       if (!p) return true;
       if (p.emailEnabled === false) return false;
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       total,
       reachable,
-      sample: sample.map((u: any) => ({
+      sample: sample.map((u: typeof sample[number]) => ({
         id: u.id,
         name: u.name,
         email: u.email,

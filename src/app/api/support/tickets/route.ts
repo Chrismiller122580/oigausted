@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -12,7 +10,7 @@ import { logAuditEvent } from '@/lib/audit';
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: 'Debes iniciar sesión para enviar un ticket de soporte' }, { status: 401 });
     }
@@ -73,7 +71,7 @@ export async function POST(request: NextRequest) {
       const { getPlatformConfig } = await import('@/lib/prisma');
       const config = await getPlatformConfig();
       const supportEmail = config?.supportEmail || 'support@oigagig.com';
-      const adminEmails = admins.map((a: any) => a.email).filter(Boolean) as string[];
+      const adminEmails = admins.map((a: { email: string | null }) => a.email).filter(Boolean) as string[];
       const toList = Array.from(new Set([supportEmail, ...adminEmails]));
       if (resend && toList.length) {
         await resend.emails.send({
@@ -87,7 +85,7 @@ export async function POST(request: NextRequest) {
             <p><strong>Categoría:</strong> ${category} • <strong>Prioridad:</strong> ${priority}</p>
             <p>Revisa y responde en el panel de administración: /admin/support?id=${ticket.id}</p>
           `
-        }).catch((e: any) => devLog('Support ticket email blast failed:', e));
+        }).catch((e: unknown) => devLog('Support ticket email blast failed:', e));
       }
     } catch (notifErr) {
       devLog('Failed to send support confirmation notif:', notifErr);
@@ -117,7 +115,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }

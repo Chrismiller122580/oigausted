@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import { devLog } from '@/lib/utils'
+import type { WompiWebhookEvent } from '@/types/wompi'
 
 export const WOMPI_EVENTS_KEY = process.env.WOMPI_EVENTS_KEY || process.env.WOMPI_EVENTS_SECRET
 
@@ -18,15 +19,22 @@ export type WompiEventSignature = {
   properties?: string[]
 }
 
-export function getNestedValue(obj: any, path: string): any {
-  if (!obj || !path) return undefined
-  return path.split('.').reduce((current, key) => {
-    if (current == null) return undefined
-    return current[key]
+export type WompiSignatureBody = WompiWebhookEvent & {
+  data?: WompiWebhookEvent['data'] & {
+    signature?: WompiEventSignature
+    timestamp?: number | string
+  }
+}
+
+export function getNestedValue(obj: unknown, path: string): unknown {
+  if (!obj || !path || typeof obj !== 'object') return undefined
+  return path.split('.').reduce<unknown>((current, key) => {
+    if (current == null || typeof current !== 'object') return undefined
+    return (current as Record<string, unknown>)[key]
   }, obj)
 }
 
-export function resolveWompiProperty(body: any, prop: string): string {
+export function resolveWompiProperty(body: WompiSignatureBody, prop: string): string {
   if (!prop) return ''
   // Wompi properties are paths such as "transaction.id", "transaction.amount_in_cents", "timestamp", etc.
   // They are resolved against the event root (body), which has data.transaction and top-level timestamp/signature.
@@ -45,7 +53,7 @@ export function resolveWompiProperty(body: any, prop: string): string {
   return val == null ? '' : String(val)
 }
 
-export function verifyWompiSignature(body: any, receivedSignature: string, customEventsKey?: string): boolean {
+export function verifyWompiSignature(body: WompiSignatureBody, receivedSignature: string, customEventsKey?: string): boolean {
   const result = verifyWompiSignatureDetailed(body, receivedSignature, customEventsKey)
   return result.ok
 }
@@ -71,7 +79,7 @@ export type VerifyResult = {
   altWithKeyComputedHex?: string
 }
 
-export function verifyWompiSignatureDetailed(body: any, receivedSignature: string, customEventsKey?: string): VerifyResult {
+export function verifyWompiSignatureDetailed(body: WompiSignatureBody, receivedSignature: string, customEventsKey?: string): VerifyResult {
   const signature = body?.signature || body?.data?.signature || {}
   const properties: string[] = Array.isArray(signature.properties) ? signature.properties : []
 

@@ -61,7 +61,7 @@ export default function SupportPage() {
   const [tutorialMode, setTutorialMode] = useState<'buyer' | 'seller'>('buyer');
 
   // Dynamic FAQs (controlled from Admin > Settings)
-  const [faqs, setFaqs] = useState<any[]>([]);
+  const [faqs, setFaqs] = useState<{ id: string; question: string; answer: string; category?: string | null }[]>([]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -127,8 +127,8 @@ export default function SupportPage() {
 
       // Refresh list
       fetchMyTickets();
-    } catch (err: any) {
-      toast.error(err.message || 'No se pudo enviar el ticket');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo enviar el ticket');
     } finally {
       setSubmitting(false);
     }
@@ -300,7 +300,7 @@ export default function SupportPage() {
             <h3 className="text-xl font-semibold mb-4">Preguntas Frecuentes (FAQ)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {faqs.length > 0 ? (
-                faqs.map((f: any) => (
+                faqs.map((f) => (
                   <Card key={f.id} className="bg-card border-border">
                     <CardContent className="p-5">
                       <p className="font-semibold mb-1">{f.question}</p>
@@ -414,7 +414,7 @@ export default function SupportPage() {
         <OnboardingTutorial
           mode={tutorialMode}
           onComplete={() => {
-            const uid = (session?.user as any)?.id;
+            const uid = session?.user?.id;
             if (uid) {
               localStorage.setItem(`tutorial_${tutorialMode}_${uid}`, 'true');
             }

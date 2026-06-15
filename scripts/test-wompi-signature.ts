@@ -14,9 +14,10 @@
  */
 
 import crypto from 'crypto';
+import { PrismaClient } from '@prisma/client';
 import { ensurePlatformConfig, getPlatformConfig } from '../src/lib/prisma';
 
-const prisma = new (require('@prisma/client').PrismaClient)();
+const prisma = new PrismaClient();
 
 // Replicate the core generate logic exactly (as it appears in the route)
 function generateIntegritySignature(
@@ -113,7 +114,7 @@ async function main() {
   console.log(`After ensure: wompiRealPaymentsEnabled=${cfgBefore.wompiRealPaymentsEnabled ?? 'undefined'}`);
 
   // Simulate the gate in the prepare route
-  const realPaymentsEnabled = (cfgBefore as any)?.wompiRealPaymentsEnabled ?? false;
+  const realPaymentsEnabled = cfgBefore.wompiRealPaymentsEnabled ?? false;
   if (!realPaymentsEnabled) {
     console.log('✅ Gate correctly blocks when wompiRealPaymentsEnabled=false (returns 403 testMode in real route)');
   } else {
@@ -156,7 +157,7 @@ async function main() {
   console.log('\n=== 4. Amount safety guards ===');
   const badPrices = [NaN, null, undefined, 'abc', -10, 0];
   for (const p of badPrices) {
-    let a = Math.round((p as any) * 100);
+    let a = Math.round(Number(p) * 100);
     if (!Number.isFinite(a) || a <= 0) a = 0;
     console.log(`Input price=${p} → cents=${a} (guarded to 0)`);
     if (a !== 0) throw new Error('Amount guard failed');

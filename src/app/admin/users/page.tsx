@@ -32,7 +32,7 @@ interface User {
 
 export default function AdminUsersPage() {
   const { data: currentSession, update } = useSession();
-  const currentUserId = (currentSession?.user as any)?.id;
+  const currentUserId = currentSession?.user?.id;
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,7 +42,8 @@ export default function AdminUsersPage() {
 
   // Editing modal
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [editForm, setEditForm] = useState<any>({});
+  type EditForm = Partial<Omit<User, 'customReferralRate'>> & { customReferralRate?: number | null | string };
+  const [editForm, setEditForm] = useState<EditForm>({});
   const [saving, setSaving] = useState(false);
 
   // Role quick change (kept for speed)
@@ -118,12 +119,12 @@ export default function AdminUsersPage() {
       email: user.email || '',
       businessName: user.businessName || '',
       phone: user.phone || '',
-      whatsapp: (user as any).whatsapp || '',
+      whatsapp: user.whatsapp || '',
 
-      bio: (user as any).bio || '',
-      nit: (user as any).nit || '',
+      bio: user.bio || '',
+      nit: user.nit || '',
       isActive: user.isActive !== false,
-      customReferralRate: user.customReferralRate ?? '',
+      customReferralRate: user.customReferralRate ?? null,
     });
   };
 
@@ -221,9 +222,13 @@ export default function AdminUsersPage() {
       });
 
       if (res.ok) {
+        const data = await res.json();
+        if (!data.impersonationToken) {
+          toast.error('No se recibió token de impersonación');
+          return;
+        }
         toast.success(`Switching to ${user.email}...`);
-        // Update the NextAuth JWT in-place so the current browser session now acts as the target user.
-        await update({ impersonatedUserId: user.id });
+        await update({ impersonationToken: data.impersonationToken });
         // Hard navigate to home so the user immediately experiences the site with the new identity (navbars, permissions, data etc.)
         window.location.href = '/';
       } else {
@@ -283,8 +288,8 @@ export default function AdminUsersPage() {
       u.businessName || '',
       u.customReferralRate != null ? (u.customReferralRate * 100).toFixed(1) + '%' : 'default (5%)',
       u.phone || '',
-      (u as any).whatsapp || '',
-      (u as any).city || '',
+      u.whatsapp || '',
+      u.city || '',
       new Date(u.createdAt).toLocaleDateString('es-CO')
     ]);
 
@@ -543,7 +548,7 @@ export default function AdminUsersPage() {
                 <div>
                   <Label>Full name</Label>
                   <Input 
-                    value={editForm.name} 
+                    value={editForm.name ?? ''}
                     onChange={(e) => setEditForm({...editForm, name: e.target.value})}
                   />
                 </div>
@@ -551,28 +556,28 @@ export default function AdminUsersPage() {
                   <Label>Email</Label>
                   <Input 
                     type="email"
-                    value={editForm.email} 
+                    value={editForm.email ?? ''}
                     onChange={(e) => setEditForm({...editForm, email: e.target.value})}
                   />
                 </div>
                 <div>
                   <Label>Business Name</Label>
                   <Input 
-                    value={editForm.businessName} 
+                    value={editForm.businessName ?? ''}
                     onChange={(e) => setEditForm({...editForm, businessName: e.target.value})}
                   />
                 </div>
                 <div>
                   <Label>Phone</Label>
                   <Input 
-                    value={editForm.phone} 
+                    value={editForm.phone ?? ''}
                     onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
                   />
                 </div>
                 <div>
                   <Label>WhatsApp</Label>
                   <Input 
-                    value={editForm.whatsapp} 
+                    value={editForm.whatsapp ?? ''}
                     onChange={(e) => setEditForm({...editForm, whatsapp: e.target.value})}
                   />
                 </div>
@@ -580,7 +585,7 @@ export default function AdminUsersPage() {
                 <div>
                   <Label>NIT / Tax ID</Label>
                   <Input 
-                    value={editForm.nit} 
+                    value={editForm.nit ?? ''}
                     onChange={(e) => setEditForm({...editForm, nit: e.target.value})}
                   />
                 </div>
@@ -604,8 +609,8 @@ export default function AdminUsersPage() {
                       min="0"
                       max="0.3"
                       placeholder="0.05 (default 5%)"
-                      value={editForm.customReferralRate}
-                      onChange={(e) => setEditForm({...editForm, customReferralRate: e.target.value})}
+                      value={editForm.customReferralRate ?? ''}
+                      onChange={(e) => setEditForm({...editForm, customReferralRate: e.target.value || null})}
                       className="w-32"
                     />
                     <span className="text-sm text-muted-foreground">% (leave blank for global default)</span>
@@ -619,7 +624,7 @@ export default function AdminUsersPage() {
               <div>
                 <Label>Bio / Description</Label>
                 <Textarea 
-                  value={editForm.bio} 
+                  value={editForm.bio ?? ''}
                   onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
                   rows={3}
                 />

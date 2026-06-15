@@ -9,7 +9,15 @@ import type { ReactNode } from 'react';
    They receive server-fetched data as props from the Server Component page.
 */
 
-export function AnimatedCategoryGrid({ popularCategories }: { popularCategories: any[] }) {
+interface LandingCategory {
+  name: string
+  icon: string
+  description?: string
+  avgRating?: number | null
+  reviewCount?: number
+}
+
+export function AnimatedCategoryGrid({ popularCategories }: { popularCategories: LandingCategory[] }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
       {popularCategories.map((cat, index) => {
@@ -61,7 +69,14 @@ export function AnimatedCategoryGrid({ popularCategories }: { popularCategories:
   );
 }
 
-export function AnimatedTestimonials({ testimonials }: { testimonials: any[] }) {
+interface LandingTestimonial {
+  quote: string
+  name: string
+  role?: string
+  city?: string
+}
+
+export function AnimatedTestimonials({ testimonials }: { testimonials: LandingTestimonial[] }) {
   return (
     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
       {testimonials.map((t, i) => (

@@ -1,11 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-// @ts-ignore
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { notifications } from '@/lib/notifications'
 import { logAuditEvent } from '@/lib/audit'
 import { devLog, toPrismaJson } from '@/lib/utils'
+import { computeOrderPrice } from '@/lib/order-price'
+import { allowDevPaymentSimulate } from '@/lib/dev-flags'
+import {
+  isOrderStatusLabel,
+  labelToPrismaStatus,
+  prismaStatusToLabel,
+  normalizeOrderStatus,
+  OrderStatusLabel,
+  type OrderStatusLabelValue,
+} from '@/lib/order-status'
+import type { Prisma } from '@prisma/client'
+import type { JsonValue } from '@/types/json'
+
+const safeOrderSelect = {
+  id: true,
+  price: true,
+  status: true,
+  progress: true,
+  trackingNumber: true,
+  createdAt: true,
+  updatedAt: true,
+  buyerId: true,
+  sellerId: true,
+  gigId: true,
+  customFields: true,
+  serviceAddress: true,
+  serviceLatitude: true,
+  serviceLongitude: true,
+  gig: { select: { id: true, title: true, description: true, price: true, category: true } },
+  buyer: { select: { id: true, name: true, email: true } },
+  seller: {
+    select: {
+      id: true,
+      name: true,
+      businessName: true,
+      email: true,
+      referredById: true,
+    },
+  },
+} as const satisfies Prisma.OrderSelect
+
+type SafeOrder = Prisma.OrderGetPayload<{ select: typeof safeOrderSelect }>
+
+interface NotificationAction {
+  label: string
+  action: string
+}
 
 export async function GET(
   request: Request,
@@ -44,13 +90,15 @@ export async function GET(
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    const userId = (session?.user as any)?.id
-    const isAdmin = (session?.user as any)?.role === 'admin'
+    const userId = session?.user?.id
+    const isAdmin = session?.user?.role === 'admin'
     if (!isAdmin && order.buyerId !== userId && order.sellerId !== userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
 
-    return NextResponse.json({ order })
+    return NextResponse.json({
+      order: { ...order, status: prismaStatusToLabel(order.status) },
+    })
   } catch (error) {
     devLog('Fetch order error:', error)
     return NextResponse.json({ error: 'Failed to fetch order' }, { status: 500 })
@@ -63,7 +111,7 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    const userId = (session?.user as any)?.id
+    const userId = session?.user?.id
     if (!userId) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
@@ -88,7 +136,7 @@ export async function PATCH(
     if (!existingOrder) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
-    const isAdmin = (session?.user as any)?.role === 'admin'
+    const isAdmin = session?.user?.role === 'admin'
     if (!isAdmin && existingOrder.buyerId !== userId && existingOrder.sellerId !== userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
@@ -96,55 +144,67 @@ export async function PATCH(
     const isBuyer = existingOrder.buyerId === userId;
     const isSeller = existingOrder.sellerId === userId;
 
-    const updateData: any = {}
+    const updateData: Prisma.OrderUpdateInput = {}
 
     if (status) {
-      const validStatuses = ["Pending", "Paid", "In Progress", "Completed", "Cancelled"]
-      if (!validStatuses.includes(status)) {
+      if (!isOrderStatusLabel(status)) {
         return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
       }
 
-      const current = existingOrder.status;
+      const statusLabel = status as OrderStatusLabelValue
+      const prismaStatus = labelToPrismaStatus(statusLabel)
+      const current = normalizeOrderStatus(existingOrder.status)
 
       // Role-aware transition rules (prevents buyers forcing completion, etc.)
-      // Manual 'Paid' only via webhook (wompi) or admin. Dev simulate allowed for testing.
       if (!isAdmin) {
-        if (status === 'Paid' && current !== 'Pending') {
-          if (process.env.NODE_ENV !== 'development') {
+        if (statusLabel === OrderStatusLabel.Paid) {
+          if (!allowDevPaymentSimulate()) {
             return NextResponse.json({ error: 'Cannot manually set to Paid outside payment flow' }, { status: 400 });
           }
-          // In dev, the simulate button (in checkout page) is allowed to force Paid for testing without webhook.
         }
-        if (status === 'In Progress' && current !== 'Paid') {
+        if (statusLabel === OrderStatusLabel.InProgress && current !== 'Paid') {
           return NextResponse.json({ error: 'Order must be Paid before In Progress' }, { status: 400 });
         }
-        if (status === 'Completed' && !['Paid', 'In Progress'].includes(current)) {
+        if (statusLabel === OrderStatusLabel.Completed && !['Paid', 'InProgress'].includes(current)) {
           return NextResponse.json({ error: 'Invalid transition to Completed' }, { status: 400 });
         }
-        if (status === 'Cancelled' && !['Pending', 'Paid'].includes(current)) {
+        if (statusLabel === OrderStatusLabel.Cancelled && !['Pending', 'Paid'].includes(current)) {
           return NextResponse.json({ error: 'Cannot cancel at this stage' }, { status: 400 });
         }
-        if (status === 'In Progress' && !isSeller) {
+        if (statusLabel === OrderStatusLabel.InProgress && !isSeller) {
           return NextResponse.json({ error: 'Only seller can mark In Progress' }, { status: 403 });
         }
-        if (status === 'Completed' && !isSeller) {
+        if (statusLabel === OrderStatusLabel.Completed && !isSeller) {
           return NextResponse.json({ error: 'Only seller can mark Completed' }, { status: 403 });
         }
-        if (status === 'Cancelled' && !isBuyer) {
+        if (statusLabel === OrderStatusLabel.Cancelled && !isBuyer) {
           return NextResponse.json({ error: 'Only buyer can cancel' }, { status: 403 });
         }
       }
 
-      updateData.status = status
-    }
-
-    if (price !== undefined) {
-      const n = Number(price);
-      updateData.price = Number.isFinite(n) ? n : existingOrder.price;
+      updateData.status = prismaStatus
     }
 
     if (customFields !== undefined) {
       updateData.customFields = customFields ? JSON.stringify(customFields) : null
+      const gig = await prisma.gig.findUnique({
+        where: { id: existingOrder.gigId },
+        select: { price: true, fields: true },
+      })
+      if (!gig) {
+        return NextResponse.json({ error: 'Gig not found' }, { status: 404 })
+      }
+      const selections =
+        customFields && typeof customFields === 'object' && !Array.isArray(customFields)
+          ? customFields
+          : {}
+      updateData.price = computeOrderPrice(gig.price, gig.fields, selections)
+    } else if (price !== undefined) {
+      if (!isAdmin) {
+        return NextResponse.json({ error: 'Price cannot be changed directly' }, { status: 403 })
+      }
+      const n = Number(price)
+      updateData.price = Number.isFinite(n) ? n : existingOrder.price
     }
 
     if (serviceAddress !== undefined) {
@@ -167,40 +227,11 @@ export async function PATCH(
 
     // sellerPayoutAt and wompiPayoutRef are intentionally never put into updateData (handled in best-effort blocks below to survive prod DB drift)
 
-    let updatedOrder: any;
-
-    // Safe select for Order + needed relations (avoids selecting columns like sellerPayoutAt/wompiPayoutRef that may be missing in prod DB)
-    const safeOrderSelect = {
-      id: true,
-      price: true,
-      status: true,
-      progress: true,
-      trackingNumber: true,
-      createdAt: true,
-      updatedAt: true,
-      buyerId: true,
-      sellerId: true,
-      gigId: true,
-      customFields: true,
-      serviceAddress: true,
-      serviceLatitude: true,
-      serviceLongitude: true,
-      gig: { select: { id: true, title: true, description: true, price: true, category: true } },
-      buyer: { select: { id: true, name: true, email: true } },
-      seller: { 
-        select: { 
-          id: true, 
-          name: true, 
-          businessName: true, 
-          email: true,
-          referredById: true 
-        } 
-      }
-    } as const;
+    let updatedOrder: SafeOrder | null = null;
 
     if (Object.keys(updateData).length > 0 || status !== undefined || price !== undefined || customFields !== undefined || serviceAddress !== undefined || serviceLatitude !== undefined || serviceLongitude !== undefined) {
       // Wrap core order status + audit + referral create + cancel earnings in tx for data integrity
-      updatedOrder = await prisma.$transaction(async (tx: any) => {
+      updatedOrder = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const u = await tx.order.update({
         where: { id: orderId },
         data: updateData,
@@ -219,31 +250,32 @@ export async function PATCH(
               previousStatus: existingOrder.status,
               newStatus: status || existingOrder.status,
               updatedFields: Object.keys(updateData),
-              updatedByRole: (session?.user as any)?.role,
-            }),
+              updatedByRole: session?.user?.role,
+            }) as string | null | undefined,
             // ip/ua if available in context (omitted here for brevity)
           },
         });
       }
 
       // Referral earning create inside tx (atomic with status)
-      if ((status === 'Paid' || status === 'Completed') && (u as any).seller?.referredById) {
+      if ((status === 'Paid' || status === 'Completed') && u.seller?.referredById) {
         const { getEffectiveReferralRate } = await import('@/lib/payout');
-        const rate = await getEffectiveReferralRate((u as any).seller.referredById);
-        const amount = Math.round(((u as any).price || 0) * rate);
+        const rate = await getEffectiveReferralRate(u.seller.referredById);
+        const amount = Math.round((u.price || 0) * rate);
         if (amount > 0) {
           try {
             await tx.referralEarning.create({
               data: {
                 amount,
                 rateUsed: rate,
-                referrerId: (u as any).seller.referredById,
-                orderId: (u as any).id,
+                referrerId: u.seller.referredById,
+                orderId: u.id,
                 status: 'Pending',
               }
             });
-          } catch (e: any) {
-            if (e.code !== 'P2002') devLog('tx referral create non-dup err:', e);
+          } catch (e: unknown) {
+            const code = e && typeof e === 'object' && 'code' in e ? (e as { code?: string }).code : undefined;
+            if (code !== 'P2002') devLog('tx referral create non-dup err:', e);
           }
         }
       }
@@ -252,7 +284,7 @@ export async function PATCH(
       if (status === 'Cancelled') {
         try {
           await tx.referralEarning.updateMany({
-            where: { orderId: (u as any).id, status: { in: ['Pending', 'Requested'] } },
+            where: { orderId: u.id, status: { in: ['Pending', 'Requested'] } },
             data: { status: 'Cancelled' }
           });
         } catch (e) {
@@ -270,12 +302,16 @@ export async function PATCH(
       });
     }
 
+    if ((sellerPayoutAtUpdate !== undefined || wompiPayoutRefUpdate !== undefined) && !isAdmin) {
+      return NextResponse.json({ error: 'Only admins can update payout fields' }, { status: 403 })
+    }
+
     // Best-effort update for sellerPayoutAt (separate to avoid breaking the tx if column missing in prod DB)
     if (sellerPayoutAtUpdate !== undefined) {
       try {
         await prisma.order.update({
           where: { id: orderId },
-          data: { sellerPayoutAt: sellerPayoutAtUpdate } as any,
+          data: { sellerPayoutAt: sellerPayoutAtUpdate } as Prisma.OrderUpdateInput,
         });
       } catch (payoutErr) {
         devLog('sellerPayoutAt update skipped (column may be missing in prod DB)', payoutErr);
@@ -287,7 +323,7 @@ export async function PATCH(
       try {
         await prisma.order.update({
           where: { id: orderId },
-          data: { wompiPayoutRef: wompiPayoutRefUpdate } as any,
+          data: { wompiPayoutRef: wompiPayoutRefUpdate } as Prisma.OrderUpdateInput,
         });
       } catch (refErr) {
         devLog('wompiPayoutRef update skipped (column may be missing in prod DB)', refErr);
@@ -309,7 +345,7 @@ export async function PATCH(
         : updatedOrder.sellerId
 
       // Smart contextual actions based on new status
-      let actions: any[] = [{ label: 'Ver Pedido', action: 'view_order' }];
+      let actions: NotificationAction[] = [{ label: 'Ver Pedido', action: 'view_order' }];
 
       if (status === 'In Progress') {
         actions = [
@@ -334,7 +370,7 @@ export async function PATCH(
           amount: updatedOrder.price, 
           orderId,
           newStatus: status,
-          actions
+          actions: actions as unknown as JsonValue,
         }
       )
 
@@ -352,7 +388,11 @@ export async function PATCH(
       }
     }
 
-    return NextResponse.json({ order: updatedOrder })
+    return NextResponse.json({
+      order: updatedOrder
+        ? { ...updatedOrder, status: prismaStatusToLabel(updatedOrder.status) }
+        : updatedOrder,
+    })
   } catch (error) {
     devLog('Update status error:', error)
     return NextResponse.json({ error: 'Failed to update status' }, { status: 500 })
@@ -368,7 +408,7 @@ export async function DELETE(
     const resolvedParams = await params
     const orderId = resolvedParams.id
     const session = await getServerSession(authOptions);
-    const isAdmin = (session?.user as any)?.role === 'admin';
+    const isAdmin = session?.user?.role === 'admin';
 
     if (!isAdmin) {
       return NextResponse.json({ error: 'Only admins can delete orders' }, { status: 403 });
@@ -376,7 +416,7 @@ export async function DELETE(
 
     const existing = await prisma.order.findUnique({
       where: { id: orderId },
-      select: { id: true, reference: true, status: true }
+      select: { id: true, status: true }
     });
 
     if (!existing) {
@@ -391,13 +431,13 @@ export async function DELETE(
 
     await prisma.order.delete({ where: { id: orderId } });
 
-    const adminId = (session.user as any).id;
+    const adminId = session.user.id;
     await logAuditEvent({
       performedById: adminId,
       action: 'ORDER_DELETED',
       targetType: 'Order',
       targetId: orderId,
-      details: { reference: existing.reference, previousStatus: existing.status },
+      details: { previousStatus: existing.status },
     });
 
     return NextResponse.json({ success: true, message: `Order ${orderId} deleted` });

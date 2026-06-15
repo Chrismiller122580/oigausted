@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
 import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
+import { createImpersonationToken } from '@/lib/impersonation';
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!isAdmin(session)) {
+    if (!isAdmin(session) || !session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'userId es requerido' }, { status: 400 });
     }
 
-    const adminId = (session.user as any).id;
-    const adminEmail = (session.user as any).email;
+    const adminId = session.user.id;
+    const adminEmail = session.user.email;
 
     if (userId === adminId) {
       return NextResponse.json({ error: 'No puedes impersonar tu propia cuenta' }, { status: 400 });
@@ -66,17 +66,21 @@ export async function POST(req: NextRequest) {
         },
         impersonator: {
           id: adminId,
-          email: adminEmail,
+          email: adminEmail ?? null,
         },
       },
       ipAddress,
       userAgent,
     });
 
-    // Success. The actual session override happens on the client via session.update()
-    // (this keeps the auth layer changes minimal and the audit authoritative).
+    const impersonationToken = createImpersonationToken(adminId, target.id);
+    if (!impersonationToken) {
+      return NextResponse.json({ error: 'Impersonación no disponible (falta NEXTAUTH_SECRET)' }, { status: 500 });
+    }
+
     return NextResponse.json({
       success: true,
+      impersonationToken,
       target: {
         id: target.id,
         email: target.email,

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
 import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
+import type { Prisma } from '@prisma/client';
 
 interface BroadcastBody {
   subject: string;
@@ -16,7 +16,7 @@ interface BroadcastBody {
 }
 
 function parseSegment(segment: string | undefined, city?: string) {
-  const where: any = { email: { not: null }, isActive: true };
+  const where: Prisma.UserWhereInput = { email: { not: null }, isActive: true };
 
   const seg = (segment || 'all').toLowerCase();
 
@@ -28,10 +28,10 @@ function parseSegment(segment: string | undefined, city?: string) {
   }
 
   if (city) {
-    where.city = { contains: city, mode: 'insensitive' };
+    where.city = { contains: city, mode: 'insensitive' } as Prisma.StringNullableFilter;
   } else if (seg.startsWith('city:')) {
     const c = seg.replace('city:', '');
-    where.city = { contains: c, mode: 'insensitive' };
+    where.city = { contains: c, mode: 'insensitive' } as Prisma.StringNullableFilter;
   }
 
   return where;
@@ -39,12 +39,12 @@ function parseSegment(segment: string | undefined, city?: string) {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!isAdmin(session)) {
+  if (!isAdmin(session) || !session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
-  const adminId = (session.user as any).id;
-  const adminEmail = (session.user as any).email;
+  const adminId = session.user.id;
+  const adminEmail = session.user.email;
 
   let body: BroadcastBody;
   try {
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     if (testOnly) {
       // Send a test only to the admin themselves
       const me = await prisma.user.findUnique({ where: { id: adminId }, select: { id: true, email: true, name: true } });
-      if (me?.email) recipients = [me as any];
+      if (me?.email) recipients = [me];
     } else {
       const where = parseSegment(segment, city);
 
@@ -83,16 +83,18 @@ export async function POST(req: NextRequest) {
       // Filter further by email + marketing preference (defensive: missing pref row = allowed)
       // IMPORTANT: select only columns guaranteed to exist (omit marketingEmails) to survive prod DB drift.
       // We default-allow marketing (as per schema @default(true)) when we cannot read the flag.
-      const userIds = baseUsers.map((u: any) => u.id);
+      const userIds = baseUsers.map((u: { id: string }) => u.id);
 
       const prefs = await prisma.notificationPreference.findMany({
         where: { userId: { in: userIds } },
         select: { userId: true, emailEnabled: true },
       });
 
-      const prefMap = new Map<string, any>(prefs.map((p: any) => [p.userId, p]));
+      const prefMap = new Map<string, { userId: string; emailEnabled: boolean }>(
+        prefs.map((p: { userId: string; emailEnabled: boolean }) => [p.userId, p])
+      );
 
-      recipients = baseUsers.filter((u: any) => {
+      recipients = baseUsers.filter((u: { id: string; email: string | null }) => {
         if (!u.email) return false;
         const p = prefMap.get(u.id);
         if (!p) return true; // no prefs row yet → default allow
@@ -119,8 +121,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Record the campaign first (for history)
-    // @ts-ignore - model added in this change; run `prisma generate` after migration
-    const campaign = await (prisma as any).marketingCampaign.create({
+    const campaign = await prisma.marketingCampaign.create({
       data: {
         subject,
         message,

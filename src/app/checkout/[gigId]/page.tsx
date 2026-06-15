@@ -9,17 +9,10 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { parseJsonArrayField, devLog } from '@/lib/utils';
 import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
-
-declare global {
-  interface Window {
-    WompiCheckout?: any;
-    WidgetCheckout?: any;
-    WOMPI_PUBLIC_KEY?: string;
-    $wompi?: any;
-    Wompi?: any;
-    WOMPI_CONFIG?: any;
-  }
-}
+import type { CheckoutFormData, CheckoutGig, DynamicFieldDef, DynamicFieldOption } from '@/types/gig-fields';
+import type { OrderDetail } from '@/types/order';
+import type { PublicPlatformConfig } from '@/types/platform-config';
+import type { WompiClientDebugState, WompiPrepareResponse, WompiWidgetResult } from '@/types/wompi';
 
 export default function CheckoutPage() {
   const params = useParams();
@@ -27,8 +20,8 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
 
-  const [gig, setGig] = useState<any>(null);
-  const [order, setOrder] = useState<any>(null);
+  const [gig, setGig] = useState<CheckoutGig | null>(null);
+  const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState(false);
   const [wompiReady, setWompiReady] = useState(false);
@@ -42,12 +35,12 @@ export default function CheckoutPage() {
   // can find the public key even if their init runs on script load or in payment form sub-flows.
   // This helps avoid "merchants/undefined" and init 422 errors.
   if (typeof window !== 'undefined' && WOMPI_PUBLIC_KEY) {
-    (window as any).WOMPI_PUBLIC_KEY = WOMPI_PUBLIC_KEY;
-    (window as any).$wompi = { publicKey: WOMPI_PUBLIC_KEY };
+    window.WOMPI_PUBLIC_KEY = WOMPI_PUBLIC_KEY;
+    window.$wompi = { publicKey: WOMPI_PUBLIC_KEY };
   }
 
   // Dynamic fields selections
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
+  const [selectedOptions, setSelectedOptions] = useState<CheckoutFormData>({});
 
   // Service location for non-remote gigs
   const [serviceAddress, setServiceAddress] = useState("");
@@ -55,7 +48,7 @@ export default function CheckoutPage() {
   const [serviceLongitude, setServiceLongitude] = useState<number | null>(null);
 
   // Wompi debug info for real feedback
-  const [lastWompiPrepare, setLastWompiPrepare] = useState<any>(null);
+  const [lastWompiPrepare, setLastWompiPrepare] = useState<WompiClientDebugState | null>(null);
 
   // Function to ensure Wompi script is loaded (for reliable payment entry)
   const ensureWompiReady = async (): Promise<boolean> => {
@@ -68,9 +61,9 @@ export default function CheckoutPage() {
       devLog('[Wompi] Attempting dynamic script load on demand...');
 
       // Set globals before loading the script so Wompi's bundle can see the public key during its own initialization
-      (window as any).WOMPI_PUBLIC_KEY = WOMPI_PUBLIC_KEY;
-      if ((window as any).$wompi && typeof (window as any).$wompi.initialize === 'function') {
-        try { (window as any).$wompi.initialize({ publicKey: WOMPI_PUBLIC_KEY }); } catch {}
+      window.WOMPI_PUBLIC_KEY = WOMPI_PUBLIC_KEY;
+      if (window.$wompi && typeof window.$wompi.initialize === 'function') {
+        try { window.$wompi.initialize({ publicKey: WOMPI_PUBLIC_KEY }); } catch {}
       }
 
       const script = document.createElement('script');
@@ -79,7 +72,7 @@ export default function CheckoutPage() {
 
       script.onload = () => {
         setTimeout(() => {
-          if (window.WompiCheckout || (window as any).WidgetCheckout) {
+          if (window.WompiCheckout || window.WidgetCheckout) {
             setWompiReady(true);
             setWompiLoadFailed(false);
 
@@ -88,11 +81,11 @@ export default function CheckoutPage() {
             // right after the main script loads. Setting here catches those paths.
             const earlyKey = WOMPI_PUBLIC_KEY;
             if (earlyKey) {
-              (window as any).WOMPI_PUBLIC_KEY = earlyKey;
-              (window as any).$wompi = (window as any).$wompi || {};
-              (window as any).$wompi.publicKey = earlyKey;
-              if (typeof (window as any).$wompi.initialize === 'function') {
-                try { (window as any).$wompi.initialize({ publicKey: earlyKey }); } catch {}
+              window.WOMPI_PUBLIC_KEY = earlyKey;
+              window.$wompi = window.$wompi || {};
+              window.$wompi.publicKey = earlyKey;
+              if (typeof window.$wompi.initialize === 'function') {
+                try { window.$wompi.initialize({ publicKey: earlyKey }); } catch {}
               }
             }
           }
@@ -111,7 +104,7 @@ export default function CheckoutPage() {
 
     // Wait up to 5 seconds for it to be ready
     for (let i = 0; i < 25; i++) {
-      if (window.WompiCheckout || (window as any).WidgetCheckout) {
+      if (window.WompiCheckout || window.WidgetCheckout) {
         setWompiReady(true);
         setWompiLoadFailed(false);
         return true;
@@ -260,9 +253,9 @@ export default function CheckoutPage() {
       if (!orderRes.ok) throw new Error(orderResponse.error || "Failed to create order");
       
       setOrder(orderResponse.order || orderResponse);
-    } catch (err: any) {
+    } catch (err: unknown) {
       devLog('Checkout load error:', err);
-      toast.error(err.message || "No se pudo cargar el checkout. ¿Estás logueado?");
+      toast.error(err instanceof Error ? err.message : "No se pudo cargar el checkout. ¿Estás logueado?");
     } finally {
       setLoading(false);
     }
@@ -310,19 +303,19 @@ export default function CheckoutPage() {
         method: 'POST',
         body: JSON.stringify({ orderId })
       });
-      const config = await res.json();
+      const config: WompiPrepareResponse = await res.json();
 
       if (config?.error) {
         throw new Error(config.error);
       }
 
       // Store full config (as specified)
-      (window as any).WOMPI_CONFIG = config;
+      window.WOMPI_CONFIG = config;
 
       // Force everything (publicKey + $wompi + Wompi) from server response
-      (window as any).WOMPI_PUBLIC_KEY = config.publicKey;
-      (window as any).$wompi = { publicKey: config.publicKey };
-      (window as any).Wompi = { publicKey: config.publicKey };
+      window.WOMPI_PUBLIC_KEY = config.publicKey;
+      window.$wompi = { publicKey: config.publicKey };
+      window.Wompi = { publicKey: config.publicKey };
 
       // Also update last debug info for the in-page debugger
       setLastWompiPrepare(config);
@@ -332,10 +325,10 @@ export default function CheckoutPage() {
       // Trigger the strict useEffect below (flip to guarantee re-run even if wompiReady was already true from initial script load)
       setWompiReady(false);
       setTimeout(() => setWompiReady(true), 0);
-    } catch (err: any) {
+    } catch (err: unknown) {
       devLog('Wompi widget error:', err);
-      toast.error(err.message || "No se pudo abrir Wompi. Por favor intenta de nuevo o contacta soporte.");
-      setLastWompiPrepare((prev: any) => ({ ...(prev || {}), lastWidgetError: err?.message || String(err) }));
+      toast.error(err instanceof Error ? err.message : "No se pudo abrir Wompi. Por favor intenta de nuevo o contacta soporte.");
+      setLastWompiPrepare((prev) => ({ ...(prev || {}), lastWidgetError: err instanceof Error ? err.message : String(err) }));
     } finally {
       setOpening(false);
     }
@@ -347,12 +340,12 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!wompiReady) return;
 
-    const config = (window as any).WOMPI_CONFIG;
+    const config = window.WOMPI_CONFIG;
 
     const init = () => {
-      if ((window as any).$wompi?.initialize) {
+      if (window.$wompi?.initialize) {
         try {
-          (window as any).$wompi.initialize();
+          window.$wompi.initialize();
           console.log("✅ Wompi initialized with full config");
         } catch (e) {
           console.warn('[Wompi] $wompi.initialize() (no arg) failed (non-fatal):', e);
@@ -380,7 +373,7 @@ export default function CheckoutPage() {
       }
 
       const tryLaunchWidget = (attempt = 0) => {
-        const WidgetCheckout = (window as any).WidgetCheckout || (window as any).WompiCheckout;
+        const WidgetCheckout = window.WidgetCheckout || window.WompiCheckout;
         if (!WidgetCheckout) {
           if (attempt < 15) {
             setTimeout(() => tryLaunchWidget(attempt + 1), 200);
@@ -390,14 +383,14 @@ export default function CheckoutPage() {
           return;
         }
 
-        const pubKey = config.publicKey || (window as any).WOMPI_PUBLIC_KEY || WOMPI_PUBLIC_KEY;
+        const pubKey = config.publicKey || window.WOMPI_PUBLIC_KEY || WOMPI_PUBLIC_KEY;
 
         // Re-force from the fresh config one more time right before constructing (from previous level-up)
-        (window as any).WOMPI_PUBLIC_KEY = pubKey;
-        (window as any).$wompi = (window as any).$wompi || {};
-        (window as any).$wompi.publicKey = pubKey;
-        if (typeof (window as any).$wompi.initialize === 'function') {
-          try { (window as any).$wompi.initialize({ publicKey: pubKey }); } catch {}
+        window.WOMPI_PUBLIC_KEY = pubKey;
+        window.$wompi = window.$wompi || {};
+        window.$wompi.publicKey = pubKey;
+        if (typeof window.$wompi.initialize === 'function') {
+          try { window.$wompi.initialize({ publicKey: pubKey }); } catch {}
         }
 
         // Exact match to user-provided snippet for signature.integrity
@@ -408,11 +401,11 @@ export default function CheckoutPage() {
             currency: 'COP',
             reference: config.reference,
             signature: {
-              integrity: config.integrity   // ← This line is the one missing or wrong
+              integrity: config.integrity ?? ''   // ← This line is the one missing or wrong
             }
           });
 
-          checkout.open((result: any) => {
+          checkout.open((result: WompiWidgetResult) => {
             console.log('✅ Wompi result:', result);
             if (result?.transaction) {
               console.log('[Wompi] Transaction from callback:', {
@@ -425,7 +418,7 @@ export default function CheckoutPage() {
             if (err) {
               const errText = typeof err === 'string' ? err : JSON.stringify(err);
               toast.error(`Error Wompi en widget: ${errText}`);
-              setLastWompiPrepare((prev: any) => ({ ...(prev || {}), lastWidgetError: errText, lastWidgetResult: result }));
+              setLastWompiPrepare((prev) => ({ ...(prev || {}), lastWidgetError: errText, lastWidgetResult: result }));
             }
             // Post-payment: let webhook or check-wompi update order, then go to order page
             const targetOrderId = order?.id;
@@ -449,16 +442,17 @@ export default function CheckoutPage() {
               }
             }, 1200);
           });
-        } catch (t: any) {
-          if (t && t.json) {
-            console.error("🔍 Wompi VALIDATION ERROR DETAILS:", JSON.stringify(t.json, null, 2));
-            alert("Wompi Error: " + JSON.stringify(t.json.error || t.json));
+        } catch (t: unknown) {
+          const wompiErr = t as { json?: { error?: unknown } & Record<string, unknown>; message?: string };
+          if (wompiErr?.json) {
+            console.error("🔍 Wompi VALIDATION ERROR DETAILS:", JSON.stringify(wompiErr.json, null, 2));
+            alert("Wompi Error: " + JSON.stringify(wompiErr.json.error || wompiErr.json));
           } else {
             console.error("Error during initialization:", t);
           }
           console.error('[Wompi][Client] Failed to instantiate WidgetCheckout', t);
           toast.error('No se pudo inicializar el widget de Wompi. Revisa el Debugger.');
-          setLastWompiPrepare((prev: any) => ({ ...(prev || {}), lastWidgetError: 'Instantiation failed: ' + (t?.message || t) }));
+          setLastWompiPrepare((prev) => ({ ...(prev || {}), lastWidgetError: 'Instantiation failed: ' + (wompiErr?.message || String(t)) }));
         }
       };
 
@@ -506,9 +500,9 @@ export default function CheckoutPage() {
 
       toast.success('Configuración guardada. Pedido creado como pendiente de pago.');
       router.push(`/orders/${order.id}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       devLog('Confirm order error:', err);
-      toast.error(err.message || "No se pudo confirmar el pedido.");
+      toast.error(err instanceof Error ? err.message : "No se pudo confirmar el pedido.");
     } finally {
       setOpening(false);
     }
@@ -521,13 +515,13 @@ export default function CheckoutPage() {
 
   // Calculate extra cost from selections
   // Coerce to finite numbers defensively (bad JSON data in fields can produce NaN -> bad amountInCents -> signature/amount errors at Wompi)
-  const toNum = (v: any) => {
-    const n = typeof v === 'number' ? v : parseFloat(v);
+  const toNum = (v: unknown) => {
+    const n = typeof v === 'number' ? v : parseFloat(String(v));
     return Number.isFinite(n) ? n : 0;
   };
   const calculateExtra = () => {
     let extra = 0;
-    fields.forEach((field: any) => {
+    fields.forEach((field: DynamicFieldDef) => {
       const value = selectedOptions[field.key];
       if (!value) return;
 
@@ -536,7 +530,7 @@ export default function CheckoutPage() {
       } else if (field.type === 'checkbox' && value === true) {
         extra += toNum(field.extraPrice);
       } else if (field.type === 'select' && field.options) {
-        const chosen = field.options.find((o: any) => (typeof o === 'string' ? o === value : o.label === value));
+        const chosen = field.options?.find((o: DynamicFieldOption) => (typeof o === 'string' ? o === value : o.label === value));
         if (chosen && typeof chosen === 'object' && chosen.extraPrice != null) {
           extra += toNum(chosen.extraPrice);
         }
@@ -549,7 +543,7 @@ export default function CheckoutPage() {
   const finalPrice = (gig?.price || 0) + extraCost;
 
   // Handle field change
-  const handleFieldChange = (key: string, value: any) => {
+  const handleFieldChange = (key: string, value: string | number | boolean) => {
     setSelectedOptions(prev => ({
       ...prev,
       [key]: value
@@ -580,7 +574,7 @@ export default function CheckoutPage() {
     );
   }
 
-  const isOwnGig = session?.user && gig?.sellerId && (session.user as any).id === gig.sellerId;
+  const isOwnGig = session?.user && gig?.sellerId && session.user.id === gig.sellerId;
 
   if (isOwnGig) {
     return (
@@ -604,7 +598,7 @@ export default function CheckoutPage() {
       <div className="bg-muted p-6 rounded-2xl">
         <p className="font-semibold text-foreground mb-4">Personaliza tu servicio</p>
         <div className="space-y-5">
-          {fields.map((field: any, index: number) => {
+          {fields.map((field: DynamicFieldDef, index: number) => {
             const currentValue = selectedOptions[field.key];
 
             return (
@@ -622,7 +616,7 @@ export default function CheckoutPage() {
                   <input
                     type="number"
                     min="0"
-                    value={currentValue ?? ''}
+                    value={typeof currentValue === 'boolean' ? '' : (currentValue ?? '')}
                     onChange={(e) => handleFieldChange(field.key, parseInt(e.target.value) || 0)}
                     className="w-full border rounded-xl px-4 py-3 text-lg"
                     placeholder="0"
@@ -643,12 +637,12 @@ export default function CheckoutPage() {
 
                 {field.type === 'select' && field.options && (
                   <select
-                    value={currentValue || ''}
+                    value={typeof currentValue === 'boolean' ? '' : String(currentValue || '')}
                     onChange={(e) => handleFieldChange(field.key, e.target.value)}
                     className="w-full border rounded-xl px-4 py-3 text-lg bg-card"
                   >
                     <option value="">Seleccionar...</option>
-                    {field.options.map((opt: any, idx: number) => {
+                    {field.options?.map((opt: DynamicFieldOption, idx: number) => {
                       const label = typeof opt === 'string' ? opt : opt.label;
                       const price = typeof opt === 'object' && opt.extraPrice ? ` (+$${opt.extraPrice.toLocaleString('es-CO')})` : '';
                       return <option key={idx} value={label}>{label}{price}</option>;
@@ -744,7 +738,9 @@ export default function CheckoutPage() {
               {Object.keys(selectedOptions).length > 0 && (
                 <div className="pl-2 border-l-2 border-border">
                   {Object.entries(selectedOptions).map(([key, value], idx) => {
-                    const fieldDef = fields.find((f: any) => f.key === key);
+                    const fieldDef = fields.find(
+                      (f) => typeof f === 'object' && f !== null && (f as { key?: string }).key === key
+                    ) as { key: string; type?: string; label?: string; extraPrice?: number; options?: unknown[] } | undefined;
                     let extra = 0;
                     if (fieldDef) {
                       if (fieldDef.type === 'number' && typeof value === 'number') {
@@ -752,9 +748,11 @@ export default function CheckoutPage() {
                       } else if (fieldDef.type === 'checkbox' && value === true) {
                         extra = fieldDef.extraPrice || 0;
                       } else if (fieldDef.type === 'select' && fieldDef.options) {
-                        const chosen = fieldDef.options.find((o: any) => (typeof o === 'string' ? o === value : o.label === value));
-                        if (chosen && typeof chosen === 'object' && chosen.extraPrice) {
-                          extra = chosen.extraPrice;
+                        const chosen = fieldDef.options.find((o) =>
+                          typeof o === 'string' ? o === value : (o as { label?: string }).label === value
+                        );
+                        if (chosen && typeof chosen === 'object' && chosen !== null && 'extraPrice' in chosen) {
+                          extra = Number((chosen as { extraPrice?: number }).extraPrice) || 0;
                         }
                       }
                     }
@@ -877,11 +875,11 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {/* DEBUG TOOLS: Simulate Wompi payment (shown when maintenance mode active, or in local dev) */}
-          {(maintenanceMode || process.env.NODE_ENV === 'development') && order && (
+          {/* DEBUG: Simulate Wompi payment — local dev only (server enforces ALLOW_DEV_PAYMENT_SIMULATE) */}
+          {(process.env.NEXT_PUBLIC_ALLOW_DEV_PAYMENT_SIMULATE === 'true' || (process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_VERCEL_URL)) && order && (
             <div className="mt-4 p-4 border border-dashed border-gray-400 rounded-xl bg-gray-50 dark:bg-gray-950/30 text-sm">
               <p className="font-medium text-gray-700 dark:text-gray-400 mb-2">
-                DEBUG / DEV TESTING — Only in maintenance mode or local dev
+                DEBUG / DEV TESTING — Local development only
               </p>
               <Button
                 variant="outline"

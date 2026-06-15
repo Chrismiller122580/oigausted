@@ -21,6 +21,14 @@ export default function LoginPage() {
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reason') === 'deactivated') {
+      setError('Tu cuenta ha sido desactivada. Contacta a soporte si crees que es un error.');
+      window.history.replaceState({}, '', '/login');
+    }
+  }, []);
+
   // Handle NextAuth error redirects (e.g. ?error=OAuthSignin)
   useEffect(() => {
     const urlError = new URLSearchParams(window.location.search).get('error');

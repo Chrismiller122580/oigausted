@@ -20,7 +20,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [realStats, setRealStats] = useState({ rating: 0, reviewCount: 0, gigCount: 0 });
-  const [recentReviews, setRecentReviews] = useState<any[]>([]);
+  const [recentReviews, setRecentReviews] = useState<import('@/types/order').OrderReview[]>([]);
 
   // Password change state
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -51,7 +51,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (session?.user) {
-      const user = session.user as any;
+      const user = session.user;
       setFormData({
         name: user.name || "",
         tagline: user.tagline || "",
@@ -119,8 +119,8 @@ export default function ProfilePage() {
         setFormData({ ...formData, imageUrl: data.url });
         toast.success("Imagen subida correctamente");
       }
-    } catch (err: any) {
-      toast.error(err.message || "Error subiendo la foto. Usa el campo URL de imagen abajo.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Error subiendo la foto. Usa el campo URL de imagen abajo.");
     } finally {
       setUploading(false);
     }
@@ -146,8 +146,8 @@ export default function ProfilePage() {
         setFormData({ ...formData, coverImageUrl: data.url });
         toast.success("Foto de fondo subida correctamente");
       }
-    } catch (err: any) {
-      toast.error(err.message || "Error subiendo la foto de fondo.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Error subiendo la foto de fondo.");
     } finally {
       setUploading(false);
     }
@@ -176,7 +176,7 @@ export default function ProfilePage() {
   };
 
   const copyProfileLink = () => {
-    const user = session?.user as any;
+    const user = session?.user;
     const link = user?.role === 'seller' 
       ? `${window.location.origin}/sellers/${user.slug || user.id}`
       : `${window.location.origin}/profile`;
@@ -221,10 +221,17 @@ export default function ProfilePage() {
     }
   };
 
-  const user = session?.user as any;
+  const user = session?.user;
   
   // Local state to reflect role changes without full reload
   const [currentRole, setCurrentRole] = useState(user?.role || 'buyer');
+
+  useEffect(() => {
+    if (session?.user?.role) {
+      setCurrentRole(session.user.role);
+    }
+  }, [session?.user?.role]);
+
   const isSeller = currentRole === 'seller';
   const isBuyer = currentRole === 'buyer' || !currentRole;
 
@@ -239,6 +246,9 @@ export default function ProfilePage() {
   const handleBecomeSeller = async () => {
     if (!sellerForm.businessName.trim()) {
       return toast.error("El nombre del negocio es obligatorio");
+    }
+    if (!user?.id) {
+      return toast.error("Debes iniciar sesión");
     }
 
     setBecomingSeller(true);
@@ -258,15 +268,18 @@ export default function ProfilePage() {
 
       if (res.ok) {
         toast.success("¡Felicidades! Ahora eres vendedor");
-        await update(); // refresh session data
-        
-        // Optimistic update for smooth UX (no full reload)
+        await update({
+          role: 'seller',
+          businessName: sellerForm.businessName,
+          bio: sellerForm.bio || formData.bio,
+        });
+
         setCurrentRole('seller');
         setShowBecomeSeller(false);
 
         // Clear tutorial flags so the seller tutorial automatically appears when they visit /seller
         // (per requirement: when buyer becomes seller the tutorial re-appears for the newly unlocked features)
-        const uid = user?.id || (session?.user as any)?.id;
+        const uid = user?.id || session?.user?.id;
         if (uid) {
           localStorage.removeItem(`tutorial_buyer_${uid}`);
           localStorage.removeItem(`tutorial_seller_${uid}`);
@@ -607,7 +620,7 @@ export default function ProfilePage() {
                         </p>
                       </div>
 
-                      <Link href={`/sellers/${(session?.user as any)?.slug || (session?.user as any)?.id}`} target="_blank">
+                      <Link href={`/sellers/${session?.user?.slug || session?.user?.id}`} target="_blank">
                         <Button variant="outline" className="flex items-center gap-2">
                           Ver perfil público <ExternalLink size={16} />
                         </Button>

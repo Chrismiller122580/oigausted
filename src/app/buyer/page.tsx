@@ -15,8 +15,8 @@ export default function BuyerDashboard() {
     completed: 0,
     pendingReviews: 0 
   })
-  const [pendingReviewOrders, setPendingReviewOrders] = useState<any[]>([])
-  const [recentOrders, setRecentOrders] = useState<any[]>([])
+  const [pendingReviewOrders, setPendingReviewOrders] = useState<import('@/types/order').OrderDetail[]>([])
+  const [recentOrders, setRecentOrders] = useState<import('@/types/order').OrderDetail[]>([])
   const [loading, setLoading] = useState(true)
 
   // Tutorial / onboarding for new buyers (full training)
@@ -25,7 +25,7 @@ export default function BuyerDashboard() {
   const userName = session?.user?.name?.split(' ')[0] || 'Comprador'
 
   useEffect(() => {
-    const uid = (session?.user as any)?.id
+    const uid = session?.user?.id
     if (!uid) {
       setLoading(false)
       return
@@ -42,7 +42,7 @@ export default function BuyerDashboard() {
       const userReviews = reviewsData.reviews || []
 
       const completedOrders = orders.filter(o => o.status === 'Completed')
-      const reviewedOrderIds = new Set(userReviews.map((r: any) => r.orderId))
+      const reviewedOrderIds = new Set(userReviews.map((r: { orderId?: string }) => r.orderId))
 
       const pending = completedOrders.filter(o => !reviewedOrderIds.has(o.id))
 
@@ -63,7 +63,7 @@ export default function BuyerDashboard() {
   // Auto-show buyer tutorial for first-time / new users (support request: new users go through tutorial)
   // Respects global admin toggle from PlatformConfig.tutorialsEnabled
   useEffect(() => {
-    const uid = (session?.user as any)?.id
+    const uid = session?.user?.id
     if (uid && !loading) {
       (async () => {
         try {
@@ -262,7 +262,7 @@ export default function BuyerDashboard() {
         </div>
 
         {/* Become Seller nudge (only for pure buyers) */}
-        {(session?.user as any)?.role === 'buyer' && (
+        {session?.user?.role === 'buyer' && (
           <div className="mt-10 text-center">
             <p className="text-muted-foreground">
               ¿Tienes habilidades para ofrecer?{' '}
@@ -279,7 +279,7 @@ export default function BuyerDashboard() {
         <OnboardingTutorial
           mode="buyer"
           onComplete={() => {
-            const uid = (session?.user as any)?.id
+            const uid = session?.user?.id
             if (uid) localStorage.setItem(`tutorial_buyer_${uid}`, 'true')
             setShowTutorial(false)
           }}

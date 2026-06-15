@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 
 // GET /api/admin/notifications/logs
 // Advanced filtering for notification logs (2027-grade admin tooling)
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if ((session?.user as any)?.role !== 'admin') {
+  if (session?.user?.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
@@ -26,7 +25,7 @@ export async function GET(req: NextRequest) {
   const offset = parseInt(searchParams.get('offset') || '0');
 
   try {
-    const where: any = {};
+    const where: Prisma.NotificationWhereInput = {};
 
     if (search) {
       where.OR = [
@@ -63,7 +62,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     return NextResponse.json({
-      logs: logs.map((n: any) => ({
+      logs: logs.map((n: (typeof logs)[number]) => ({
         id: n.id,
         userId: n.userId,
         userName: n.user?.name || n.user?.email || 'Unknown',

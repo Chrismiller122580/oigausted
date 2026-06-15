@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma, getPlatformConfig } from '@/lib/prisma';
 import crypto from 'crypto';
 import { devLog } from '@/lib/utils';
+import type { WompiCheckoutConfig } from '@/types/wompi';
 
 const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
 const WOMPI_INTEGRITY_KEY = process.env.WOMPI_INTEGRITY_KEY || process.env.WOMPI_INTEGRITY_SECRET;
@@ -44,7 +44,7 @@ function generateIntegritySignature(
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
 
     // Respect admin toggle for real payments
     const platformConfig = await getPlatformConfig();
-    const realPaymentsEnabled = (platformConfig as any)?.wompiRealPaymentsEnabled ?? false;
+    const realPaymentsEnabled = platformConfig.wompiRealPaymentsEnabled ?? false;
 
     if (!realPaymentsEnabled) {
       return NextResponse.json({ 
@@ -185,40 +185,37 @@ export async function POST(req: NextRequest) {
     // Return the clean top-level shape the latest client snippets expect,
     // plus compat fields (hasIntegritySignature + checkoutData) so orders page
     // and any older client code keep working without  "no integrity" false positives.
-    const response: any = {
-      reference,
-      amountInCents,
-      publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
-      integrity: integritySignature,   // ← this is what the widget needs (top level)
+    const checkoutData: WompiCheckoutConfig = {
+      publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '',
       currency: 'COP',
+      amountInCents,
+      reference,
       redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/orders/${order.id}`,
       customerData: {
         email: order.buyer?.email || session?.user?.email || '',
         fullName: order.buyer?.name || session?.user?.name || '',
       },
+      ...(integritySignature ? { signature: { integrity: integritySignature } } : {}),
+    };
+
+    return NextResponse.json({
+      reference,
+      amountInCents,
+      publicKey: checkoutData.publicKey,
+      integrity: integritySignature,
+      currency: checkoutData.currency,
+      redirectUrl: checkoutData.redirectUrl,
+      customerData: checkoutData.customerData,
       hasIntegritySignature: !!integritySignature,
-      debug
-    };
+      debug,
+      checkoutData,
+    });
 
-    // Legacy shape some client code (orders page) still reads
-    response.checkoutData = {
-      publicKey: response.publicKey,
-      currency: response.currency,
-      amountInCents: response.amountInCents,
-      reference: response.reference,
-      redirectUrl: response.redirectUrl,
-      customerData: response.customerData,
-    };
-    if (integritySignature) {
-      response.checkoutData.signature = { integrity: integritySignature };
-    }
-
-    return NextResponse.json(response);
-
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Wompi checkout error:', error);
+    const details = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Failed to prepare Wompi checkout', details: error.message },
+      { error: 'Failed to prepare Wompi checkout', details },
       { status: 500 }
     );
   }

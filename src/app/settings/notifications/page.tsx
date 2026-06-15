@@ -368,7 +368,8 @@ export default function NotificationPreferences() {
               onClick={() => {
                 // Test sound using the same logic as bell (simple chime)
                 try {
-                  const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+                  const win = window as Window & { webkitAudioContext?: typeof AudioContext };
+                  const AudioCtx = window.AudioContext || win.webkitAudioContext;
                   const audio = new AudioCtx();
                   const o = audio.createOscillator();
                   const g = audio.createGain();
@@ -515,8 +516,8 @@ export default function NotificationPreferences() {
                   await subscribeToPushNotifications();
                   toast.success('¡Push real activado! Recibirás notificaciones en segundo plano.');
                   setPushSubscribed(true);
-                } catch (e: any) {
-                  toast.error(e.message || 'No se pudo activar push');
+                } catch (e: unknown) {
+                  toast.error(e instanceof Error ? e.message : 'No se pudo activar push');
                 }
               }}
               className="bg-orange-600 hover:bg-orange-700"

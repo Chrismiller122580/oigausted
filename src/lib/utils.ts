@@ -1,8 +1,15 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import type { DynamicFieldDef } from "@/types/gig-fields"
+import type { JsonObject, JsonValue } from "@/types/json"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+export function isSqliteDatabase(): boolean {
+  const dbUrl = process.env.DATABASE_URL || process.env.DIRECT_DATABASE_URL || ''
+  return /file:|\.db|sqlite:/.test(dbUrl)
 }
 
 /**
@@ -23,13 +30,18 @@ export function slugify(text: string): string {
  * Safely parse a field that may be stored as a JSON string (e.g. gig.fields, gig.addons).
  * Returns an array, or empty array on failure / missing value.
  */
-export function parseJsonArrayField(value: any): any[] {
+export function asJsonObject(value: unknown): JsonObject | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  return value as JsonObject
+}
+
+export function parseJsonArrayField<T = DynamicFieldDef>(value: unknown): T[] {
   if (!value) return []
-  if (Array.isArray(value)) return value
+  if (Array.isArray(value)) return value as T[]
   if (typeof value === 'string') {
     try {
       const parsed = JSON.parse(value)
-      return Array.isArray(parsed) ? parsed : []
+      return Array.isArray(parsed) ? (parsed as T[]) : []
     } catch {
       return []
     }
@@ -41,10 +53,10 @@ export function parseJsonArrayField(value: any): any[] {
  * Safely parse customFields which may be stored as a JSON string on Order.
  * Returns a plain object (Record), or empty object on failure.
  */
-export function parseCustomFields(value: any): Record<string, any> {
+export function parseCustomFields(value: unknown): JsonObject {
   if (!value) return {}
-  let obj: any = {}
-  if (typeof value === 'object' && !Array.isArray(value)) obj = value
+  let obj: JsonObject = {}
+  if (typeof value === 'object' && !Array.isArray(value)) obj = value as JsonObject
   else if (typeof value === 'string') {
     try {
       const parsed = JSON.parse(value)
@@ -56,7 +68,7 @@ export function parseCustomFields(value: any): Record<string, any> {
     return {}
   }
   // Strip internal bypass/debug keys (prefixed with __) from buyer/seller UI
-  const clean: Record<string, any> = {}
+  const clean: JsonObject = {}
   for (const [k, v] of Object.entries(obj)) {
     if (!k.startsWith('__')) clean[k] = v
   }
@@ -67,7 +79,7 @@ export function parseCustomFields(value: any): Record<string, any> {
  * Dev-only logging. Silences in production to keep Vercel logs clean.
  * Use for success/trace logs; keep console.error for real issues.
  */
-export function devLog(...args: any[]) {
+export function devLog(...args: unknown[]) {
   if (process.env.NODE_ENV === 'development') {
     console.log(...args)
   }
@@ -80,11 +92,11 @@ export function devLog(...args: any[]) {
  * - In real Postgres (prod or direct pg dev), pass the native object so it stores as structured JSON.
  * This lets us use Json? in committed schema while keeping "npm run dev" working against sqlite.
  */
-export function toPrismaJson(value: any): any {
+export function toPrismaJson(value: unknown): string | JsonValue | undefined {
   if (value == null) return undefined;
-  const dbUrl = process.env.DATABASE_URL || process.env.DIRECT_DATABASE_URL || '';
-  const isSqliteDev = /file:|\.db|sqlite:/.test(dbUrl);
-  return isSqliteDev ? JSON.stringify(value) : value;
+  if (isSqliteDatabase()) return JSON.stringify(value);
+  if (typeof value === 'object') return value as JsonValue;
+  return value as JsonValue;
 }
 
 /**
@@ -93,7 +105,7 @@ export function toPrismaJson(value: any): any {
  * TODO (compat-cleanup): After full Postgres migration, consider removing
  * stringification path for deliveryLog/data if no longer needed for local dev.
  */
-export function parseDeliveryLog(val: any): Record<string, any> {
+export function parseDeliveryLog(val: unknown): JsonObject {
   if (!val) return {};
   if (typeof val === 'string') {
     try {
@@ -103,6 +115,6 @@ export function parseDeliveryLog(val: any): Record<string, any> {
       return {};
     }
   }
-  return val && typeof val === 'object' && !Array.isArray(val) ? val : {};
+  return val && typeof val === 'object' && !Array.isArray(val) ? (val as JsonObject) : {};
 }
 

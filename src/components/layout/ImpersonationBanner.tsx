@@ -14,7 +14,7 @@ export default function ImpersonationBanner() {
 
   if (status !== 'authenticated') return null;
 
-  const user = session?.user as any;
+  const user = session?.user;
   if (!user?.impersonatorId) return null;
 
   const displayName = user.name || user.email || 'this user';

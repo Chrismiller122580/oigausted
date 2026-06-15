@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, Suspense, useRef } from "react";
+import { useEffect, useState, useMemo, Suspense, useRef, type ComponentProps } from "react";
 import { useSearchParams } from "next/navigation";
 import GigCard from "@/components/common/GigCard";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,28 @@ import LocationPermissionPrompt from "@/components/maps/LocationPermissionPrompt
 import { MapPin, Wifi, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { CategoryIcon } from "@/lib/icon-registry";
 
+type GigListItem = {
+  id: string;
+  title: string;
+  price: number;
+  description?: string;
+  category?: string;
+  latitude?: number;
+  longitude?: number;
+  isRemote?: boolean;
+  createdAt?: string;
+  distanceKm?: number;
+  seller?: {
+    id?: string;
+    name?: string;
+    businessName?: string;
+    slug?: string;
+    profilePicture?: string;
+    rating?: number;
+    reviewCount?: number;
+  };
+};
+
 // Inner client component - this is where useSearchParams is safe
 function GigsClient() {
   const searchParams = useSearchParams();
@@ -20,7 +42,7 @@ function GigsClient() {
 
   const categoryList = loadedCategories.map((c) => c.name);
 
-  const [gigs, setGigs] = useState<any[]>([]);
+  const [gigs, setGigs] = useState<GigListItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [sortBy, setSortBy] = useState("relevance");
@@ -85,11 +107,12 @@ function GigsClient() {
       setUserLocation(location);
       setShowOnlyNearMe(true);
       localStorage.setItem('userLocation', JSON.stringify(location));
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const geoError = error as { code?: number };
       let message = "No pudimos acceder a tu ubicación.";
-      if (error.code === 1) message = "Permiso de ubicación denegado.";
-      else if (error.code === 2) message = "No fue posible determinar tu ubicación.";
-      else if (error.code === 3) message = "La solicitud tardó demasiado.";
+      if (geoError.code === 1) message = "Permiso de ubicación denegado.";
+      else if (geoError.code === 2) message = "No fue posible determinar tu ubicación.";
+      else if (geoError.code === 3) message = "La solicitud tardó demasiado.";
 
       setLocationError(message);
       setShowPermissionPrompt(true);
@@ -172,7 +195,7 @@ function GigsClient() {
       } else if (sortBy === "price-high") {
         result.sort((a, b) => (b.price || 0) - (a.price || 0));
       } else if (sortBy === "newest") {
-        result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        result.sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
       }
     }
 
@@ -409,7 +432,7 @@ function GigsClient() {
                 {filteredGigs.slice(0, 12).map((gig) => (
                   <div key={gig.id} className="snap-start w-[85%] max-w-[310px] flex-shrink-0">
                     <GigCard 
-                      gig={gig} 
+                      gig={gig as ComponentProps<typeof GigCard>['gig']} 
                       distanceKm={gig.distanceKm} 
                       compact={true} 
                     />
@@ -433,7 +456,7 @@ function GigsClient() {
             {filteredGigs.map((gig) => (
               <GigCard 
                 key={gig.id} 
-                gig={gig} 
+                gig={gig as ComponentProps<typeof GigCard>['gig']} 
                 distanceKm={gig.distanceKm} 
               />
             ))}

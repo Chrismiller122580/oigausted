@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { notifications } from '@/lib/notifications';
@@ -11,7 +9,7 @@ import { logAuditEvent } from '@/lib/audit';
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (session?.user?.role !== 'admin') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -37,7 +35,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Audit the manual notification send (important for abuse tracking)
-    const adminId = (session.user as any).id;
+    const adminId = session.user.id;
     const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
     const userAgent = req.headers.get('user-agent') || null;
     await logAuditEvent({

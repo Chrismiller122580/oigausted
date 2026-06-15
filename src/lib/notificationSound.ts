@@ -12,7 +12,8 @@ export function playNotificationSound(volume = 0.12) {
 
   try {
     if (!audioContext) {
-      const AudioContextCtor = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const w = window as Window & { webkitAudioContext?: typeof AudioContext };
+      const AudioContextCtor = window.AudioContext || w.webkitAudioContext;
       if (!AudioContextCtor) return;
       audioContext = new AudioContextCtor();
     }

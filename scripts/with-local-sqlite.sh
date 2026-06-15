@@ -56,6 +56,12 @@ node -e '
   s = s.replace(/(\w+)\s+Json\?/g, "$1       String?");
   // Remove Postgres-specific @db.Text annotations for sqlite
   s = s.replace(/\s+@db\.Text/g, "");
+  // SQLite connector does not support Prisma enums — keep Order.status as String locally
+  s = s.replace(/enum OrderStatus \{[\s\S]*?\}\n\n/, "");
+  s = s.replace(
+    /status\s+OrderStatus @default\(Pending\)/,
+    "status          String   @default(\"Pending\")"
+  );
   fs.writeFileSync(process.argv[1], s);
   console.log("  (schema patched to sqlite for this dev session)");
 ' "$SCHEMA"

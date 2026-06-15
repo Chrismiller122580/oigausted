@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
- import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma, getPlatformConfig } from '@/lib/prisma';
+import { prisma, getPlatformConfig, type PlatformConfigRow } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
+import { isSecretUnchanged, maskSecretConfigured } from '@/lib/secrets';
+import type { PublicPlatformConfig } from '@/types/platform-config';
+import type { JsonObject } from '@/types/json';
+
+function errMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const isAdmin = (session?.user as any)?.role === 'admin';
+    const isAdmin = session?.user?.role === 'admin';
 
     const { searchParams } = new URL(req.url);
     const forceFresh = searchParams.has('fresh') || searchParams.has('bust');
@@ -18,7 +23,7 @@ export async function GET(req: NextRequest) {
     // Use cached getter (see lib/prisma.ts). This is the key mitigation for "too many database connections"
     // because /api/admin/config is called extremely frequently from the bell, checkout, admin layout, etc.
     // Each serverless invocation was previously opening a fresh connection for this singleton query.
-    let config = await getPlatformConfig(forceFresh);
+    const config = await getPlatformConfig(forceFresh);
 
     // getPlatformConfig() (see src/lib/prisma.ts) now centrally does a lazy
     // ensurePlatformConfig() (idempotent upsert) the first time the row is absent.
@@ -31,25 +36,21 @@ export async function GET(req: NextRequest) {
     // so the MaintenanceBanner doesn't spam 403 errors in the console during normal testing.
     // We now also expose branding + important gates so public UI and signup can respect them.
     if (!isAdmin) {
-      return NextResponse.json({
+      const publicConfig: PublicPlatformConfig = {
         maintenanceMode: config.maintenanceMode,
         maintenanceMessage: config.maintenanceMessage,
-        // Public branding
-        siteName: (config as any).siteName || 'Oigagig',
-        siteTagline: (config as any).siteTagline || 'Conecta con profesionales locales en Colombia',
-        logoUrl: (config as any).logoUrl || null,
-        // Public gates (clients can use these to hide/disable features)
-        allowNewSignups: (config as any).allowNewSignups ?? true,
-        referralsEnabled: (config as any).referralsEnabled ?? true,
-        // Global notification masters (for future client respect)
-        globalPushNotificationsEnabled: (config as any).globalPushNotificationsEnabled ?? true,
-        globalEmailNotificationsEnabled: (config as any).globalEmailNotificationsEnabled ?? true,
-        // Wompi payments status (public so checkout UI can show "test mode" warnings)
-        wompiRealPaymentsEnabled: (config as any).wompiRealPaymentsEnabled ?? false,
-        // SFTP status (public for admin UI indicators)
-        wompiSftpEnabled: (config as any).wompiSftpEnabled ?? false,
-        tutorialsEnabled: (config as any).tutorialsEnabled ?? true,
-      });
+        siteName: config.siteName || 'Oigagig',
+        siteTagline: config.siteTagline || 'Conecta con profesionales locales en Colombia',
+        logoUrl: config.logoUrl || null,
+        allowNewSignups: config.allowNewSignups ?? true,
+        referralsEnabled: config.referralsEnabled ?? true,
+        globalPushNotificationsEnabled: config.globalPushNotificationsEnabled ?? true,
+        globalEmailNotificationsEnabled: config.globalEmailNotificationsEnabled ?? true,
+        wompiRealPaymentsEnabled: config.wompiRealPaymentsEnabled ?? false,
+        wompiSftpEnabled: config.wompiSftpEnabled ?? false,
+        tutorialsEnabled: config.tutorialsEnabled ?? true,
+      };
+      return NextResponse.json(publicConfig);
     }
 
     // Admin-only rich response: include payment status derived from env (no secrets)
@@ -88,9 +89,9 @@ export async function GET(req: NextRequest) {
         hasPrivateKey: !!process.env.WOMPI_PRIVATE_KEY, // for full API / third-party payouts if used
       },
       sftp: {
-        enabled: (config as any).wompiSftpEnabled ?? false,
-        configured: !!(config as any).wompiSftpHost && !!(config as any).wompiSftpUsername,
-        host: (config as any).wompiSftpHost || null,
+        enabled: config.wompiSftpEnabled ?? false,
+        configured: !!config.wompiSftpHost && !!config.wompiSftpUsername,
+        host: config.wompiSftpHost || null,
       },
       appUrl: process.env.NEXT_PUBLIC_APP_URL || null,
     };
@@ -98,27 +99,27 @@ export async function GET(req: NextRequest) {
     // Defensive normalization for rows created before the latest fields were added
     const normalizedConfig = {
       ...config,
-      supportPhone: (config as any).supportPhone ?? '',
-      referralsEnabled: (config as any).referralsEnabled ?? true,
-      allowNewSignups: (config as any).allowNewSignups ?? true,
-      maxUploadSizeMB: (config as any).maxUploadSizeMB ?? 10,
-      siteName: (config as any).siteName || 'Oigagig',
-      siteTagline: (config as any).siteTagline || 'Conecta con profesionales locales en Colombia',
-      logoUrl: (config as any).logoUrl || null,
-      globalPushNotificationsEnabled: (config as any).globalPushNotificationsEnabled ?? true,
-      globalEmailNotificationsEnabled: (config as any).globalEmailNotificationsEnabled ?? true,
-      maintenanceBypassIps: (config as any).maintenanceBypassIps || '',
-      wompiRealPaymentsEnabled: (config as any).wompiRealPaymentsEnabled ?? false,
-      // SFTP config (non-sensitive fields only in response; secrets sent back only for editing in admin UI)
-      wompiSftpEnabled: (config as any).wompiSftpEnabled ?? false,
-      wompiSftpHost: (config as any).wompiSftpHost || '',
-      wompiSftpPort: (config as any).wompiSftpPort || 22,
-      wompiSftpUsername: (config as any).wompiSftpUsername || '',
-      wompiSftpRemotePath: (config as any).wompiSftpRemotePath || '/',
-      // Secrets are returned for the edit form (they are stored in DB; in high-security setups move to env/secret manager)
-      wompiSftpPassword: (config as any).wompiSftpPassword || '',
-      wompiSftpPrivateKey: (config as any).wompiSftpPrivateKey || '',
-      tutorialsEnabled: (config as any).tutorialsEnabled ?? true,
+      supportPhone: config.supportPhone ?? '',
+      referralsEnabled: config.referralsEnabled ?? true,
+      allowNewSignups: config.allowNewSignups ?? true,
+      maxUploadSizeMB: config.maxUploadSizeMB ?? 10,
+      siteName: config.siteName || 'Oigagig',
+      siteTagline: config.siteTagline || 'Conecta con profesionales locales en Colombia',
+      logoUrl: config.logoUrl || null,
+      globalPushNotificationsEnabled: config.globalPushNotificationsEnabled ?? true,
+      globalEmailNotificationsEnabled: config.globalEmailNotificationsEnabled ?? true,
+      maintenanceBypassIps: config.maintenanceBypassIps || '',
+      wompiRealPaymentsEnabled: config.wompiRealPaymentsEnabled ?? false,
+      wompiSftpEnabled: config.wompiSftpEnabled ?? false,
+      wompiSftpHost: config.wompiSftpHost || '',
+      wompiSftpPort: config.wompiSftpPort || 22,
+      wompiSftpUsername: config.wompiSftpUsername || '',
+      wompiSftpRemotePath: config.wompiSftpRemotePath || '/',
+      wompiSftpPasswordConfigured: !!config.wompiSftpPassword,
+      wompiSftpPrivateKeyConfigured: !!config.wompiSftpPrivateKey,
+      wompiSftpPassword: maskSecretConfigured(!!config.wompiSftpPassword),
+      wompiSftpPrivateKey: maskSecretConfigured(!!config.wompiSftpPrivateKey),
+      tutorialsEnabled: config.tutorialsEnabled ?? true,
     };
 
     return NextResponse.json({
@@ -161,7 +162,7 @@ export async function GET(req: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if ((session?.user as any)?.role !== 'admin') {
+    if (session?.user?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -170,9 +171,9 @@ export async function PUT(request: NextRequest) {
     // Snapshot current values (using the safe getPlatformConfig path with limited
     // select) so we can compute a meaningful diff for the audit log. This prevents
     // every save from appearing to change 25+ fields.
-    let current: any = {};
+    let current: PlatformConfigRow | null = null;
     try {
-      current = (await getPlatformConfig(true)) || {};
+      current = await getPlatformConfig(true);
     } catch {}
 
     // Use upsert for the core (stable) fields. This guarantees the singleton row is
@@ -288,47 +289,53 @@ export async function PUT(request: NextRequest) {
 
     if (hasAnySftpField) {
       try {
+        const sftpData: Record<string, unknown> = {
+          wompiSftpEnabled: body.wompiSftpEnabled ?? false,
+          wompiSftpHost: body.wompiSftpHost || '',
+          wompiSftpPort: body.wompiSftpPort || 22,
+          wompiSftpUsername: body.wompiSftpUsername || '',
+          wompiSftpRemotePath: body.wompiSftpRemotePath || '/',
+        }
+        if (!isSecretUnchanged(body.wompiSftpPassword)) {
+          sftpData.wompiSftpPassword = body.wompiSftpPassword
+        }
+        if (!isSecretUnchanged(body.wompiSftpPrivateKey)) {
+          sftpData.wompiSftpPrivateKey = body.wompiSftpPrivateKey
+        }
+
         const sftpUpdated = await prisma.platformConfig.update({
           where: { id: 'singleton' },
-          data: {
-            wompiSftpEnabled: body.wompiSftpEnabled ?? false,
-            wompiSftpHost: body.wompiSftpHost || '',
-            wompiSftpPort: body.wompiSftpPort || 22,
-            wompiSftpUsername: body.wompiSftpUsername || '',
-            wompiSftpPassword: body.wompiSftpPassword || '',
-            wompiSftpPrivateKey: body.wompiSftpPrivateKey || '',
-            wompiSftpRemotePath: body.wompiSftpRemotePath || '/',
-          },
+          data: sftpData,
         });
         if (sftpUpdated) updated = sftpUpdated;
-      } catch (sftpErr: any) {
+      } catch (sftpErr: unknown) {
         // Expected in prod DBs that lag on the wompiSftp* migration columns.
-        if (process.env.NODE_ENV !== 'production' || !String(sftpErr?.message || '').includes('does not exist')) {
+        if (process.env.NODE_ENV !== 'production' || !errMessage(sftpErr).includes('does not exist')) {
           devLog('PlatformConfig SFTP fields update skipped (column may be missing in prod DB)', sftpErr);
         }
       }
     }
 
     // Log platform config changes (security + ops relevant)
-    const adminId = (session.user as any).id;
+    const adminId = session.user.id;
     const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || null;
     const userAgent = request.headers.get('user-agent') || null;
 
     // Only report fields that actually differ from the previous persisted values.
     // (Client always sends the full current form state.)
-    const changedKeys = Object.keys(body).filter(k => {
-      if (body[k] === undefined) return false;
-      const oldVal = (current as any)[k];
-      const newVal = body[k];
-      // Normalize empty-ish values so '' / null / undefined don't count as a change for
-      // optional string fields (supportPhone, logoUrl, bypass IPs, SFTP strings, etc.)
-      const norm = (v: any) => (v == null || v === '') ? '' : v;
+    const bodyRecord = body as Record<string, unknown>;
+    const currentRecord = (current ?? {}) as Record<string, unknown>;
+    const changedKeys = Object.keys(bodyRecord).filter(k => {
+      if (bodyRecord[k] === undefined) return false;
+      const oldVal = currentRecord[k];
+      const newVal = bodyRecord[k];
+      const norm = (v: unknown) => (v == null || v === '') ? '' : v;
       return norm(oldVal) !== norm(newVal);
     });
 
     // Redact secrets — they must never be stored in plain text inside AuditLog.details
     // (even when the admin legitimately updates the SFTP credentials).
-    const redactedNewValues: any = { ...body };
+    const redactedNewValues = { ...bodyRecord } as JsonObject;
     if (redactedNewValues.wompiSftpPassword) redactedNewValues.wompiSftpPassword = '[REDACTED]';
     if (redactedNewValues.wompiSftpPrivateKey) redactedNewValues.wompiSftpPrivateKey = '[REDACTED]';
 
@@ -345,7 +352,14 @@ export async function PUT(request: NextRequest) {
       userAgent,
     });
 
-    return NextResponse.json(updated);
+    const { wompiSftpPassword, wompiSftpPrivateKey, ...safeUpdated } = updated as Record<string, unknown>
+    return NextResponse.json({
+      ...safeUpdated,
+      wompiSftpPasswordConfigured: !!wompiSftpPassword,
+      wompiSftpPrivateKeyConfigured: !!wompiSftpPrivateKey,
+      wompiSftpPassword: maskSecretConfigured(!!wompiSftpPassword),
+      wompiSftpPrivateKey: maskSecretConfigured(!!wompiSftpPrivateKey),
+    });
   } catch (error) {
     console.error('Config PUT error:', error);
     return NextResponse.json({ error: 'Error al guardar configuración' }, { status: 500 });

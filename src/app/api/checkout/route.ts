@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
@@ -9,7 +7,7 @@ import { devLog } from '@/lib/utils';
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -62,11 +60,12 @@ export async function POST(req: NextRequest) {
       order 
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Checkout error:", error);
+    const details = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ 
       error: "Failed to create order", 
-      details: error.message 
+      details
     }, { status: 500 });
   }
 }

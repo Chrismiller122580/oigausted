@@ -3,26 +3,85 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
 import { devLog } from './utils'
+import { verifyImpersonationToken } from './impersonation'
+import type { NextAuthOptions, Session } from 'next-auth'
+import type { JWT } from 'next-auth/jwt'
+import type { UserRole } from './session'
+
+type AuthProvider = ReturnType<typeof CredentialsProvider> | ReturnType<typeof GoogleProvider>
+
+/** Custom fields passed via session.update() from profile editors / impersonation UI */
+type SessionUpdatePayload = Session & {
+  role?: UserRole
+  name?: string | null
+  tagline?: string | null
+  profilePicture?: string | null
+  image?: string | null
+  coverImageUrl?: string | null
+  businessName?: string | null
+  bio?: string | null
+  phone?: string | null
+  whatsapp?: string | null
+  instagram?: string | null
+  facebook?: string | null
+  city?: string | null
+  location?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  serviceRadiusKm?: number | null
+  impersonationToken?: string
+  stopImpersonation?: boolean
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    tagline?: string | null
+    coverImageUrl?: string | null
+    businessName?: string | null
+    bio?: string | null
+    phone?: string | null
+    whatsapp?: string | null
+    instagram?: string | null
+    facebook?: string | null
+    city?: string | null
+    latitude?: number | null
+    longitude?: number | null
+    serviceRadiusKm?: number | null
+    rating?: number
+    reviewCount?: number
+  }
+}
+
+type ExtendedSessionUser = Session['user'] & {
+  bio?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  serviceRadiusKm?: number | null
+}
 
 // Demo IDs removed - legacy support for old "1","2","3" sessions no longer needed.
 // All users now use real Prisma UUIDs.
 
+type SessionLike = Session | { role?: UserRole; user?: { role?: UserRole } } | null | undefined
+
 /** Type-safe admin check (works with both JWT session.user and token shapes) */
-export function isAdmin(userOrSession: any): boolean {
-  const role = userOrSession?.role ?? userOrSession?.user?.role
+export function isAdmin(userOrSession: SessionLike): boolean {
+  const role = (userOrSession as { role?: UserRole })?.role ?? userOrSession?.user?.role
   return role === 'admin'
 }
 
-export function getSessionRole(session: any): string {
-  return session?.user?.role || 'buyer'
+export function getSessionRole(session: SessionLike): UserRole {
+  const role = session?.user?.role
+  if (role === 'admin' || role === 'seller' || role === 'buyer') return role
+  return 'buyer'
 }
 
-export function isSeller(session: any): boolean {
+export function isSeller(session: SessionLike): boolean {
   const role = getSessionRole(session)
   return role === 'seller' || role === 'admin'
 }
 
-const providers: any[] = [
+const providers: AuthProvider[] = [
   CredentialsProvider({
     name: "Credentials",
     credentials: {
@@ -44,11 +103,16 @@ const providers: any[] = [
             email: true,
             role: true,
             password: true,
+            isActive: true,
           }
         })
 
         if (!user) {
           devLog('[auth] No user found for email:', credentials.email.toLowerCase())
+          return null
+        }
+        if (user.isActive === false) {
+          devLog('[auth] User account is deactivated:', user.email)
           return null
         }
         if (!user.password) {
@@ -86,10 +150,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   )
 }
 
-// @ts-ignore - next-auth types in this env
 export { getServerSession } from "next-auth";
 
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   providers,
 
   session: {
@@ -97,7 +160,7 @@ export const authOptions = {
   },
 
   callbacks: {
-    async signIn({ user, account, profile }: any) {
+    async signIn({ user, account, profile }) {
       // Handle Google users: ensure they exist in our Prisma DB with a real UUID + role
       if (account?.provider === "google" && user?.email) {
         const email = user.email.toLowerCase()
@@ -105,8 +168,13 @@ export const authOptions = {
         try {
           const existing = await prisma.user.findUnique({
             where: { email },
-            select: { id: true, role: true }
+            select: { id: true, role: true, isActive: true }
           })
+
+          if (existing?.isActive === false) {
+            devLog('[auth] Google sign-in blocked for deactivated user:', email)
+            return false
+          }
 
           // Support promoting specific real Gmail accounts to admin automatically
           const adminEmails = (process.env.ADMIN_EMAILS || '')
@@ -150,10 +218,11 @@ export const authOptions = {
       return true
     },
 
-    async jwt({ token, user, account, trigger, session }: any) {
+    async jwt({ token, user, trigger, session }) {
+      const t = token as JWT
       if (user) {
-        token.id = user.id
-        token.role = (user as any).role || "buyer"
+        t.id = user.id
+        t.role = user.role || "buyer"
         // Populate profile fields at signin time only (avoids per-request DB in session)
         // If profile edited later, client can refresh session or re-login for instant reflect
         try {
@@ -180,8 +249,8 @@ export const authOptions = {
             }
           })
           if (dbUser) {
-            const t = token as any
             t.name = dbUser.name
+            t.tagline = dbUser.tagline
             t.profilePicture = dbUser.profilePicture
             t.coverImageUrl = dbUser.coverImageUrl
             t.businessName = dbUser.businessName
@@ -207,38 +276,48 @@ export const authOptions = {
       // Support client-side session.update({ ... }) calls from profile editors
       // This lets saves reflect immediately without requiring a full re-login or page reload.
       if (trigger === 'update' && session) {
-        const t = token as any
-        if (session.name !== undefined) t.name = session.name
-        if (session.tagline !== undefined) t.tagline = session.tagline
-        const pic = session.profilePicture ?? session.image
+        const update = session as SessionUpdatePayload
+        if (update.role !== undefined) t.role = update.role
+        if (update.name !== undefined) t.name = update.name
+        if (update.tagline !== undefined) t.tagline = update.tagline
+        const pic = update.profilePicture ?? update.image
         if (pic !== undefined) {
           t.profilePicture = pic
         }
-        if (session.coverImageUrl !== undefined) t.coverImageUrl = session.coverImageUrl
-        if (session.businessName !== undefined) t.businessName = session.businessName
-        if (session.bio !== undefined) t.bio = session.bio
-        if (session.phone !== undefined) t.phone = session.phone
-        if (session.whatsapp !== undefined) t.whatsapp = session.whatsapp
-        if (session.instagram !== undefined) t.instagram = session.instagram
-        if (session.facebook !== undefined) t.facebook = session.facebook
+        if (update.coverImageUrl !== undefined) t.coverImageUrl = update.coverImageUrl
+        if (update.businessName !== undefined) t.businessName = update.businessName
+        if (update.bio !== undefined) t.bio = update.bio
+        if (update.phone !== undefined) t.phone = update.phone
+        if (update.whatsapp !== undefined) t.whatsapp = update.whatsapp
+        if (update.instagram !== undefined) t.instagram = update.instagram
+        if (update.facebook !== undefined) t.facebook = update.facebook
         // city can come as 'city' (main profile) or 'location' (seller profile form)
-        if (session.city !== undefined) t.city = session.city
-        else if (session.location !== undefined) t.city = session.location
-        if (session.latitude !== undefined) t.latitude = session.latitude
-        if (session.longitude !== undefined) t.longitude = session.longitude
-        if (session.serviceRadiusKm !== undefined) t.serviceRadiusKm = session.serviceRadiusKm
+        if (update.city !== undefined) t.city = update.city
+        else if (update.location !== undefined) t.city = update.location
+        if (update.latitude !== undefined) t.latitude = update.latitude
+        if (update.longitude !== undefined) t.longitude = update.longitude
+        if (update.serviceRadiusKm !== undefined) t.serviceRadiusKm = update.serviceRadiusKm
 
-        // === Impersonation support (admin can temporarily become another user) ===
-        // Triggered from admin/users "Impersonate" button via session.update()
-        if (session.impersonatedUserId) {
-          // Preserve the real admin identity so we can restore later
-          if (!t.impersonatorId) {
-            t.impersonatorId = t.id
+        // === Impersonation support (admin only, requires signed token from /api/admin/impersonate) ===
+        if (update.impersonationToken) {
+          const verified = verifyImpersonationToken(update.impersonationToken)
+          if (verified && verified.adminId === t.id) {
+            try {
+              const admin = await prisma.user.findUnique({
+                where: { id: verified.adminId },
+                select: { role: true },
+              })
+              if (admin?.role === 'admin') {
+                t.impersonatorId = verified.adminId
+                t.impersonatedUserId = verified.targetUserId
+              }
+            } catch (e) {
+              devLog('[auth] Impersonation token admin check failed', e)
+            }
           }
-          t.impersonatedUserId = session.impersonatedUserId
         }
 
-        if (session.stopImpersonation) {
+        if (update.stopImpersonation) {
           const realAdminId = t.impersonatorId || t.id
           // Clear impersonation flags
           delete t.impersonatedUserId
@@ -288,8 +367,25 @@ export const authOptions = {
       // If the token carries an impersonatedUserId (set via update or persisted in JWT),
       // we override the visible identity (id, role, profile fields) with the target's data.
       // The original admin id is kept in impersonatorId so we can stop later.
-      const t = token as any
-      if (t.impersonatedUserId && t.impersonatedUserId !== t.id) {
+      if (t.impersonatedUserId && t.impersonatorId) {
+        // Re-verify admin on every token refresh — revoke if impersonator is no longer admin
+        try {
+          const impersonator = await prisma.user.findUnique({
+            where: { id: t.impersonatorId },
+            select: { role: true },
+          })
+          if (impersonator?.role !== 'admin') {
+            delete t.impersonatedUserId
+            delete t.impersonatorId
+            delete t.impersonating
+            return token
+          }
+        } catch (e) {
+          devLog('[auth] Impersonation admin re-check failed (non-fatal)', e)
+        }
+      }
+
+      if (t.impersonatedUserId && t.impersonatorId) {
         try {
           const target = await prisma.user.findUnique({
             where: { id: t.impersonatedUserId },
@@ -351,12 +447,28 @@ export const authOptions = {
       return token
     },
 
-    async session({ session, token }: any) {
+    async session({ session, token }) {
+      const t = token as JWT
+      const effectiveUserId = t?.id as string | undefined
+
+      if (effectiveUserId) {
+        try {
+          const activeUser = await prisma.user.findUnique({
+            where: { id: effectiveUserId },
+            select: { isActive: true },
+          })
+          if (activeUser?.isActive === false) {
+            return { ...session, user: undefined, expired: true }
+          }
+        } catch (e) {
+          devLog('[auth] session isActive check failed (non-fatal)', e)
+        }
+      }
+
       if (session.user) {
-        const su = session.user as any
-        const t = token as any
+        const su = session.user as ExtendedSessionUser
         su.id = t.id as string
-        su.role = t.role as string
+        su.role = (t.role === 'admin' || t.role === 'seller' || t.role === 'buyer' ? t.role : 'buyer')
 
         // Profile fields come from token (populated at signin/jwt to avoid N+1 DB per session)
         if (t.name) su.name = t.name

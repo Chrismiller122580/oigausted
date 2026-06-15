@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'sellerId, reviewerId, or gigId is required' }, { status: 400 });
     }
 
-    const where: any = {};
+    const where: import('@prisma/client').Prisma.ReviewWhereInput = {};
     if (sellerId) where.sellerId = sellerId;
     if (reviewerId) where.reviewerId = reviewerId;
 

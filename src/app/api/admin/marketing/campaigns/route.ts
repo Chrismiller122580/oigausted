@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
 import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -15,9 +14,8 @@ export async function GET(req: NextRequest) {
   const offset = parseInt(searchParams.get('offset') || '0');
 
   try {
-    // @ts-ignore - MarketingCampaign model is new; run prisma generate + migrate
     const [campaigns, total] = await Promise.all([
-      (prisma as any).marketingCampaign.findMany({
+      prisma.marketingCampaign.findMany({
         orderBy: { createdAt: 'desc' },
         include: {
           sentBy: { select: { id: true, name: true, email: true } },
@@ -25,11 +23,11 @@ export async function GET(req: NextRequest) {
         take: limit,
         skip: offset,
       }),
-      (prisma as any).marketingCampaign.count(),
+      prisma.marketingCampaign.count(),
     ]);
 
     return NextResponse.json({
-      campaigns: (campaigns || []).map((c: any) => ({
+      campaigns: (campaigns || []).map((c: (typeof campaigns)[number]) => ({
         id: c.id,
         subject: c.subject,
         segment: c.segment,

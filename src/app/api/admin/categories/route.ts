@@ -1,5 +1,3 @@
-// @ts-ignore
-// @ts-ignore
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
@@ -10,7 +8,7 @@ import type { Category } from '@prisma/client';
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
-  const role = (session?.user as any)?.role;
+  const role = session?.user?.role;
   if (!session?.user || role !== 'admin') {
     return null;
   }
@@ -34,7 +32,7 @@ export async function GET() {
       where: { category: { in: names } },
       _count: { _all: true },
     });
-    const usageMap = Object.fromEntries(gigUsage.map((g: any) => [g.category, g._count._all]));
+    const usageMap = Object.fromEntries(gigUsage.map((g: { category: string; _count: { _all: number } }) => [g.category, g._count._all]));
 
     // Normalize fields for response (handle sqlite string vs json)
     const normalized = categories.map((c: Category) => ({
@@ -134,8 +132,9 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ category: { ...created, fields: normalizedFields } });
-  } catch (error: any) {
-    if (error.code === 'P2002') {
+  } catch (error: unknown) {
+    const code = error && typeof error === 'object' && 'code' in error ? (error as { code?: string }).code : undefined;
+    if (code === 'P2002') {
       return NextResponse.json({ error: 'Ya existe una categoría con ese nombre' }, { status: 409 });
     }
     console.error('Admin categories POST error:', error);
@@ -157,10 +156,10 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Nombre (identificador) requerido para actualizar' }, { status: 400 });
     }
 
-    const data: any = {};
+    const data: import('@prisma/client').Prisma.CategoryUpdateInput = {};
     if (icon !== undefined) data.icon = icon;
     if (description !== undefined) data.description = description || null;
-    if (fields !== undefined) data.fields = toPrismaJson(Array.isArray(fields) ? fields : []);
+    if (fields !== undefined) data.fields = toPrismaJson(Array.isArray(fields) ? fields : []) as typeof data.fields;
     if (isActive !== undefined) data.isActive = !!isActive;
     if (order !== undefined) data.order = Number(order) || 0;
 

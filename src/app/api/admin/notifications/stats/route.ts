@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -8,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 // Admin-only notification analytics
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if ((session?.user as any)?.role !== 'admin') {
+  if (session?.user?.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
@@ -42,7 +40,7 @@ export async function GET() {
       })
     ]);
 
-    const categoryStats = byCategory.map((c: any) => ({
+    const categoryStats = byCategory.map((c: { category: string; _count: { id: number } }) => ({
       category: c.category,
       count: c._count.id
     }));
@@ -53,7 +51,7 @@ export async function GET() {
       last24h,
       last7d,
       byCategory: categoryStats,
-      recent: recent.map((n: any) => ({
+      recent: recent.map((n: (typeof recent)[number]) => ({
         id: n.id,
         user: n.user?.name || n.user?.email || 'Unknown',
         title: n.title,

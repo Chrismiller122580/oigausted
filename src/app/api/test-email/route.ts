@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
-// @ts-ignore
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { notifications, resend as rawResend } from '@/lib/notifications';
@@ -15,14 +13,14 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
 
     // Only allow admins or the logged in user to test their own email
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { emailType = 'welcome', to } = await req.json();
 
-    const isAdmin = (session.user as any)?.role === 'admin';
+    const isAdmin = session.user?.role === 'admin';
 
     // Direct send when admin provides a "to" address (bypasses user lookup)
     // Hardened: only admins, audited, and in prod consider extra gates (e.g. feature flag).
@@ -45,7 +43,7 @@ export async function POST(req: NextRequest) {
         });
 
         // Audit direct test sends (security / abuse tracking)
-        const adminId = (session.user as any).id;
+        const adminId = session.user.id;
         const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
         await logAuditEvent({
           performedById: adminId,
@@ -57,8 +55,9 @@ export async function POST(req: NextRequest) {
         }).catch(() => {});
 
         return NextResponse.json({ success: true, message: `Direct test email sent to ${to}`, sendResult });
-      } catch (e: any) {
-        return NextResponse.json({ error: 'Direct send failed', details: e.message }, { status: 500 });
+      } catch (e: unknown) {
+        const details = e instanceof Error ? e.message : String(e);
+        return NextResponse.json({ error: 'Direct send failed', details }, { status: 500 });
       }
     }
 
@@ -103,11 +102,12 @@ export async function POST(req: NextRequest) {
       message: `Test email (${emailType}) sent`,
       result 
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Test email error:', error);
+    const details = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ 
       error: 'Failed to send test email', 
-      details: error.message 
+      details
     }, { status: 500 });
   }
 }

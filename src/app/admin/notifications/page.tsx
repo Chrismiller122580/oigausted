@@ -15,12 +15,15 @@ interface NotificationStats {
   recent: Array<{
     id: string;
     user: string;
+    userName?: string;
     title: string;
     message: string;
     category: string;
     createdAt: string;
     read: boolean;
     link: string | null;
+    emailStatus?: string;
+    pushStatus?: string;
   }>;
 }
 
@@ -37,7 +40,7 @@ export default function AdminNotificationsDashboard() {
   const [loadingStats, setLoadingStats] = useState(true);
 
   // === Notification Logs (Option 3) ===
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<NotificationStats['recent']>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logsTotal, setLogsTotal] = useState(0);
   const [logsOffset, setLogsOffset] = useState(0);
@@ -227,9 +230,9 @@ export default function AdminNotificationsDashboard() {
                         ) : (
                           <span className="text-orange-600 text-xs font-medium">Unread</span>
                         )}
-                        {(n as any).emailStatus && (
+                        {n.emailStatus && (
                           <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">
-                            Email: {(n as any).emailStatus}
+                            Email: {n.emailStatus}
                           </span>
                         )}
                       </td>
@@ -427,7 +430,7 @@ export default function AdminNotificationsDashboard() {
               )}
               {logs.map((log) => (
                 <tr key={log.id} className="border-t hover:bg-muted/30 transition-colors">
-                  <td className="p-3 font-medium text-xs">{log.userName}</td>
+                  <td className="p-3 font-medium text-xs">{log.userName ?? log.user}</td>
                   <td className="p-3 max-w-[280px]">
                     <div className="truncate font-medium">{log.title}</div>
                     <div className="text-xs text-muted-foreground truncate">{log.message}</div>
