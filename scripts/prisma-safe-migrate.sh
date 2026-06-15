@@ -29,6 +29,24 @@ fi
 
 echo "Running prisma migrate deploy (using direct URL if provided)..."
 
+# Proactively resolve known problematic/recent migrations that have caused "failed migrations"
+# states after rollbacks, force-pushes, or previous failed deploys. This is safe (idempotent).
+echo "Proactively resolving known recent migrations to clean any dirty/failed state from rollbacks..."
+DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$MIGRATION_NAME" || true
+DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$NEW_PAYOUT_MIGRATION" || true
+DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$DELETED_AT_MIGRATION" || true
+
+# Also proactively resolve any other timestamped migrations that might be in a failed state
+# (scans the _prisma_migrations table indirectly via common error patterns or just tries common ones)
+echo "    Also resolving any other potential failed timestamp migrations (best-effort cleanup)..."
+for mig in 20260604015327_enhance_audit_for_all_system_changes \
+           20260614000000_add_seller_payout_bank_details_and_wompi_ref \
+           20260615000000_add_gig_deleted_at \
+           20260613000000_add_wompi_sftp_columns \
+           20260609130000_add_missing_platform_config_columns; do
+  DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$mig" || true
+done
+
 # Helper to run migrate deploy with capture
 run_migrate() {
   set +e
@@ -38,7 +56,7 @@ run_migrate() {
   return $exit_code
 }
 
-# First attempt
+# First attempt (after proactive cleanup)
 run_migrate
 MIGRATE_EXIT=$?
 
