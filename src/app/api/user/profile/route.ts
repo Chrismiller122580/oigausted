@@ -95,6 +95,47 @@ export async function PATCH(request: Request) {
           where: { id: userId },
           data: updateData,
         });
+      } else if (msg.includes('coverImageUrl') || (msg.toLowerCase().includes('column') && msg.includes('does not exist'))) {
+        devLog('Retrying profile update with raw SQL due to missing column(s) in prod DB (coverImageUrl, geo, etc.)');
+        // Fallback to raw update for fields we control. Omit potentially drifted columns.
+        const safeUpdate = { ...updateData };
+        delete safeUpdate.coverImageUrl;
+        delete safeUpdate.latitude;
+        delete safeUpdate.longitude;
+        delete safeUpdate.serviceRadiusKm;
+        // payout* and other advanced fields are also omitted here for safety
+        delete safeUpdate.payoutBankCode;
+        delete safeUpdate.payoutAccountNumber;
+        // etc. - Prisma will still complain if any other drifted field is in the data object for this call
+        // so use raw as ultimate fallback
+        await prisma.$executeRawUnsafe(`
+          UPDATE "User" SET 
+            name = $1,
+            tagline = $2,
+            "profilePicture" = $3,
+            bio = $4,
+            phone = $5,
+            whatsapp = $6,
+            instagram = $7,
+            facebook = $8,
+            city = $9,
+            "businessName" = $10,
+            "updatedAt" = NOW()
+          WHERE id = $11
+        `, 
+          safeUpdate.name || null, 
+          safeUpdate.tagline || null, 
+          safeUpdate.profilePicture || null, 
+          safeUpdate.bio || null, 
+          safeUpdate.phone || null, 
+          safeUpdate.whatsapp || null, 
+          safeUpdate.instagram || null, 
+          safeUpdate.facebook || null, 
+          safeUpdate.city || null, 
+          safeUpdate.businessName || null, 
+          userId
+        );
+        updatedUser = await prisma.user.findUnique({ where: { id: userId } });
       } else {
         throw updateErr;
       }

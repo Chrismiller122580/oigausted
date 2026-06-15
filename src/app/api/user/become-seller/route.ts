@@ -97,6 +97,32 @@ export async function POST(request: NextRequest) {
           where: { id: userId },
           data: updateData
         });
+      } else if (msg.includes('coverImageUrl') || msg.toLowerCase().includes('column') && msg.includes('does not exist')) {
+        devLog('Retrying become-seller with raw SQL due to missing column(s) in prod DB (e.g. coverImageUrl, geo, payout fields)');
+        // Use raw SQL to bypass Prisma client model validation for drifted columns.
+        // Only touch fields we know are safe or have been added via prior migrations.
+        await prisma.$executeRawUnsafe(`
+          UPDATE "User" SET 
+            role = 'seller',
+            "businessName" = $1,
+            nit = $2,
+            bio = $3,
+            "updatedAt" = NOW()
+          WHERE id = $4
+        `, trimmedBusinessName, nit ? nit.trim() : null, bio ? bio.trim() : null, userId);
+
+        // Re-fetch with a very safe minimal select (avoid any columns that might be missing on this DB)
+        updatedUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            businessName: true,
+            // deliberately omit coverImageUrl, latitude, payout*, slug if it might be missing, etc.
+          }
+        });
       } else {
         throw updateErr;
       }
