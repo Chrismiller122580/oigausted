@@ -174,54 +174,66 @@ export default async function MarketingHomePage() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/10" />
 
         <div className="max-w-7xl mx-auto px-6 pt-20 pb-16 relative z-10">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-sm mb-6 border border-white/30">
-              🇨🇴 ¡Bienvenidos, familia! • OigaGig acaba de nacer y ya está listo para ti
+          <div className="grid lg:grid-cols-[1fr_minmax(280px,420px)] gap-10 lg:gap-14 items-center">
+            <div className="max-w-3xl">
+              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-sm mb-6 border border-white/30">
+                🇨🇴 ¡Bienvenidos, familia! • OigaGig acaba de nacer y ya está listo para ti
+              </div>
+
+              <h1 className="text-5xl md:text-6xl font-bold leading-[1.05] tracking-tighter mb-6 drop-shadow-sm">
+                El servicio que necesitas,
+                <br />
+                <span className="text-yellow-200">hecho por paisas de confianza.</span>
+              </h1>
+
+              <p className="text-xl md:text-2xl text-white/95 mb-8 max-w-2xl">
+                Conecta directamente con profesionales locales en Bogotá, Medellín, Cali, Bucaramanga y todo Colombia.
+                <br />
+                Sin intermediarios. Pagos seguros. Chat real. Y sobre todo… <strong>gente como tú.</strong>
+              </p>
+
+              <div className="mb-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-white/90 text-sm">
+                <span>⭐ Ya hay {stats.gigs.toLocaleString('es-CO')} gigs activos y creciendo</span>
+                <span>💬 Chat directo por WhatsApp</span>
+                <span>💳 Paga fácil con Wompi • Nequi • PSE</span>
+                <span className="font-semibold text-yellow-300">🎉 ¡Acabamos de lanzar!</span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  href="/gigs"
+                  className="bg-white text-orange-600 hover:bg-white/95 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl active:scale-[0.985] transition-all"
+                >
+                  🔍 Ver todos los servicios disponibles →
+                </Link>
+
+                <Link
+                  href="/create-gig"
+                  className="border-2 border-white/70 hover:bg-white/10 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center transition-all backdrop-blur active:scale-[0.985]"
+                >
+                  🚀 Quiero ofrecer mis servicios y empezar a ganar plata
+                </Link>
+              </div>
+
+              <p className="mt-8 text-sm text-white/70 flex items-center gap-2">
+                ❤️ Hecho con cariño por y para colombianos • Primera semana de lanzamiento • Únete a los primeros
+              </p>
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-bold leading-[1.05] tracking-tighter mb-6 drop-shadow-sm">
-              El servicio que necesitas,
-              <br />
-              <span className="text-yellow-200">hecho por paisas de confianza.</span>
-            </h1>
-
-            <p className="text-xl md:text-2xl text-white/95 mb-8 max-w-2xl">
-              Conecta directamente con profesionales locales en Bogotá, Medellín, Cali, Bucaramanga y todo Colombia.
-              <br />
-              Sin intermediarios. Pagos seguros. Chat real. Y sobre todo… <strong>gente como tú.</strong>
-            </p>
-
-            <div className="mb-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-white/90 text-sm">
-              <span>⭐ Ya hay {stats.gigs.toLocaleString('es-CO')} gigs activos y creciendo</span>
-              <span>💬 Chat directo por WhatsApp</span>
-              <span>💳 Paga fácil con Wompi • Nequi • PSE</span>
-              <span className="font-semibold text-yellow-300">🎉 ¡Acabamos de lanzar!</span>
+            <div className="relative mx-auto w-full max-w-md lg:max-w-none">
+              <div className="absolute -inset-6 bg-yellow-300/25 blur-3xl rounded-full -z-10" aria-hidden="true" />
+              <div className="relative overflow-hidden rounded-3xl shadow-2xl ring-2 ring-white/30 border border-white/20">
+                <Image
+                  src="/world-cup-hero.jpg"
+                  alt="Celebración Copa Mundial 2026 — Colombia"
+                  width={1280}
+                  height={720}
+                  className="w-full h-auto object-cover"
+                  priority
+                />
+              </div>
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href="/gigs"
-                className="bg-white text-orange-600 hover:bg-white/95 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl active:scale-[0.985] transition-all"
-              >
-                🔍 Ver todos los servicios disponibles →
-              </Link>
-
-              <Link
-                href="/create-gig"
-                className="border-2 border-white/70 hover:bg-white/10 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center transition-all backdrop-blur active:scale-[0.985]"
-              >
-                🚀 Quiero ofrecer mis servicios y empezar a ganar plata
-              </Link>
-            </div>
-
-            <p className="mt-8 text-sm text-white/70 flex items-center gap-2">
-              ❤️ Hecho con cariño por y para colombianos • Primera semana de lanzamiento • Únete a los primeros
-            </p>
           </div>
-        </div>
-
-        <div className="absolute bottom-0 right-10 hidden lg:block opacity-20">
-          <Image src="/globe.svg" alt="Colombia" width={320} height={320} />
         </div>
       </section>
 
