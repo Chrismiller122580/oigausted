@@ -43,7 +43,16 @@ export async function GET() {
           return await prisma.gig.count({ where: { isActive: true } });
         }
       })(),
-      prisma.order.count(),
+      // Filter out pure Pending (often test/incomplete) for "Total Orders" on dashboard
+      // to avoid showing stale/test data after cleanups. Use completed + in-progress as "real" volume.
+      (async () => {
+        try {
+          return await prisma.order.count({ where: { status: { not: 'Pending' } } });
+        } catch (e) {
+          devLog('filtered orders count failed, falling back');
+          return await prisma.order.count();
+        }
+      })(),
       prisma.order.count({ where: { status: 'Completed' } }),
       prisma.order.aggregate({
         where: { status: 'Completed' },
@@ -56,7 +65,7 @@ export async function GET() {
           // (we can enhance later with a payout model)
         }
       }),
-      prisma.category.count()
+      prisma.category.count({ where: { isActive: true } })
     ]);
 
     const totalRevenue = totalRevenueResult._sum.price || 0;

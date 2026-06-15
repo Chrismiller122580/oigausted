@@ -472,7 +472,7 @@ export default function AdminCategoriesPage() {
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">
                 No categories in the database yet. 
-                Static fallback definitions are currently in use (20 categories).
+                Static fallback definitions are currently in use (22 initial categories).
               </p>
               <Button 
                 onClick={async () => {
@@ -495,7 +495,7 @@ export default function AdminCategoriesPage() {
                 }}
                 className="mx-auto"
               >
-                <Plus className="h-4 w-4 mr-2" /> Import the 20 initial categories (recommended)
+                <Plus className="h-4 w-4 mr-2" /> Import the 22 initial categories (recommended)
               </Button>
               <p className="text-xs text-muted-foreground mt-2">
                 This will populate the database so the admin and public pages use the managed categories.

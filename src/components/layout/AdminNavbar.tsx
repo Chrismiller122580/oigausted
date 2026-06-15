@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { 
   LogOut, Users, Package, TrendingUp, Home, Settings, BarChart3, DollarSign, 
-  MessageCircle, Tag, Menu, X, Bell, Megaphone,
+  MessageCircle, Tag, Menu, X, Bell, Megaphone, List,
   type LucideIcon
 } from 'lucide-react';
 import { useState } from 'react';
@@ -25,6 +25,7 @@ const navItems: NavItem[] = [
   { href: '/admin', label: 'Overview', icon: Home },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/gigs', label: 'Gigs', icon: Package },
+  { href: '/admin/orders', label: 'Orders', icon: List },
   { href: '/admin/categories', label: 'Categories', icon: Tag },
   { href: '/admin/earnings', label: 'Earnings', icon: TrendingUp },
   { href: '/admin/payouts', label: 'Payouts', icon: DollarSign },

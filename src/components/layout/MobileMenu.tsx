@@ -141,6 +141,9 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             <Link href="/admin/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               Gigs
             </Link>
+            <Link href="/admin/orders" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              Orders
+            </Link>
             <Link href="/admin/categories" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Tag size={22} /> Categorías
             </Link>
