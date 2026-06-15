@@ -32,12 +32,16 @@ echo "Running prisma migrate deploy (using direct URL if provided)..."
 # Proactively resolve known problematic/recent migrations that have caused "failed migrations"
 # states after rollbacks, force-pushes, or previous failed deploys. This is safe (idempotent).
 echo "Proactively resolving known recent migrations to clean any dirty/failed state from rollbacks..."
+echo "    (Using small sleeps between calls because the prisma_migration role has a very low connection limit.)"
 DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$MIGRATION_NAME" || true
+sleep 4
 DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$NEW_PAYOUT_MIGRATION" || true
+sleep 4
 DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$DELETED_AT_MIGRATION" || true
+sleep 4
 
-# Also proactively resolve any other timestamped migrations that might be in a failed state
-# (scans the _prisma_migrations table indirectly via common error patterns or just tries common ones)
+# Also proactively resolve any other timestamped migrations that might be in a failed state.
+# Sleep between each to avoid hammering the low-limit migration role.
 echo "    Also resolving any other potential failed timestamp migrations (best-effort cleanup)..."
 for mig in 20260604015327_enhance_audit_for_all_system_changes \
            20260614000000_add_seller_payout_bank_details_and_wompi_ref \
@@ -45,6 +49,7 @@ for mig in 20260604015327_enhance_audit_for_all_system_changes \
            20260613000000_add_wompi_sftp_columns \
            20260609130000_add_missing_platform_config_columns; do
   DATABASE_URL="$DB_URL" npx prisma migrate resolve --rolled-back "$mig" || true
+  sleep 3
 done
 
 # Helper to run migrate deploy with capture
