@@ -98,7 +98,7 @@ export default function SellerDashboard() {
           </div>
 
           {/* Prominent public profile card on main dashboard */}
-          <Card className="bg-gradient-to-br from-orange-50 to-white dark:from-orange-950/40 border-orange-200 dark:border-orange-900/60">
+          <Card id="tutorial-public-profile" className="bg-gradient-to-br from-orange-50 to-white dark:from-orange-950/40 border-orange-200 dark:border-orange-900/60">
             <CardContent className="pt-6">
               <div className="flex items-center gap-2 text-orange-600 font-semibold mb-2">
                 🔗 Tu perfil público directo
@@ -116,7 +116,7 @@ export default function SellerDashboard() {
           {/* Center the CTA on mobile so it aligns with the stacked stat tiles */}
           <div className="flex justify-center md:justify-end">
             <Link href="/create-gig">
-              <Button className="bg-orange-600 hover:bg-orange-700 text-lg px-8 py-6 rounded-2xl flex items-center gap-3">
+              <Button id="tutorial-create-gig" className="bg-orange-600 hover:bg-orange-700 text-lg px-8 py-6 rounded-2xl flex items-center gap-3">
                 <Plus size={24} /> Crear Nuevo Gig
               </Button>
             </Link>

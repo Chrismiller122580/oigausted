@@ -40,6 +40,7 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8 font-medium">
               <Link 
+                id="tutorial-explore-gigs"
                 href="/gigs" 
                 className={`flex items-center gap-2 transition ${isActive('/gigs') ? 'text-foreground font-semibold border-b-2 border-orange-600 pb-1' : 'text-muted-foreground hover:text-foreground'}`}
               >

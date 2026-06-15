@@ -10,6 +10,8 @@ interface TutorialStep {
   description: string;
   tips: string[];
   icon?: string;
+  target?: string;      // CSS selector for element to highlight (e.g. '#tutorial-create-gig')
+  placement?: 'top' | 'bottom' | 'left' | 'right';
 }
 
 interface OnboardingTutorialProps {
@@ -31,13 +33,15 @@ const buyerSteps: TutorialStep[] = [
   },
   {
     title: "Busca y Contacta",
-    description: "Encuentra el servicio que necesitas. Haz clic en 'Ver Detalles' o contacta directamente al vendedor.",
+    description: "Encuentra el servicio que necesitas. Mira el botón resaltado abajo y haz clic en 'Explorar Gigs' para ver opciones cerca de ti.",
     tips: [
       "Usa filtros de categoría, precio y distancia",
       "El botón 'Contactar' abre WhatsApp o chat",
       "Pregunta detalles antes de pagar"
     ],
-    icon: "🔍"
+    icon: "🔍",
+    target: "#tutorial-explore-gigs",
+    placement: "bottom"
   },
   {
     title: "Paga de Forma Segura",
@@ -57,30 +61,36 @@ const buyerSteps: TutorialStep[] = [
       "Chatea con el vendedor en la página del pedido",
       "Deja reseña para ayudar a otros compradores"
     ],
-    icon: "⭐"
+    icon: "⭐",
+    target: "#tutorial-recent-orders",
+    placement: "top"
   }
 ];
 
 const sellerSteps: TutorialStep[] = [
   {
     title: "¡Felicidades! Ahora eres Vendedor",
-    description: "Has desbloqueado nuevas herramientas. Crea gigs, recibe pedidos, cobra con Nequi y comparte tu perfil público.",
+    description: "Has desbloqueado nuevas herramientas. Crea gigs, recibe pedidos, cobra con Nequi y comparte tu perfil público. Mira la tarjeta resaltada.",
     tips: [
       "Tu perfil público está en oigagig.com/sellers/tu-slug",
       "Comparte el enlace para atraer clientes directos",
       "Los compradores pagan con Nequi/PayU"
     ],
-    icon: "🎉"
+    icon: "🎉",
+    target: "#tutorial-public-profile",
+    placement: "bottom"
   },
   {
     title: "Crea tu Primer Gig",
-    description: "Publica tus servicios con precios claros y campos dinámicos (ej: número de habitaciones para limpieza).",
+    description: "Publica tus servicios con precios claros y campos dinámicos (ej: número de habitaciones para limpieza). Mira el botón resaltado y haz clic para empezar.",
     tips: [
       "Usa fotos atractivas de tu trabajo",
       "Define campos extras para aumentar ingresos",
       "Activa 'isRemote' si ofreces servicios online"
     ],
-    icon: "🛠️"
+    icon: "🛠️",
+    target: "#tutorial-create-gig",
+    placement: "bottom"
   },
   {
     title: "Gestiona Pedidos y Pagos",
@@ -110,13 +120,50 @@ const sellerSteps: TutorialStep[] = [
       "Comisión por defecto 5% (puede variar)",
       "Revisa tus ganancias en la sección de referidos"
     ],
-    icon: "💰"
+    icon: "💰",
+    target: "#tutorial-referrals-nav",
+    placement: "bottom"
   }
 ];
 
 export default function OnboardingTutorial({ mode, onComplete, onClose }: OnboardingTutorialProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const steps = mode === 'buyer' ? buyerSteps : sellerSteps;
+  const step = steps[currentStep];
+  const progress = ((currentStep + 1) / steps.length) * 100;
+
+  // Compute highlight target rect (viewport-relative) when step changes
+  const updateTargetRect = () => {
+    if (!step.target) {
+      setTargetRect(null);
+      return;
+    }
+    const el = document.querySelector(step.target) as HTMLElement | null;
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      setTargetRect(rect);
+    } else {
+      setTargetRect(null);
+    }
+  };
+
+  useEffect(() => {
+    updateTargetRect();
+
+    const handleUpdate = () => updateTargetRect();
+    window.addEventListener('resize', handleUpdate);
+    window.addEventListener('scroll', handleUpdate, true);
+
+    // Small delay in case elements render after modal
+    const t = setTimeout(updateTargetRect, 150);
+
+    return () => {
+      window.removeEventListener('resize', handleUpdate);
+      window.removeEventListener('scroll', handleUpdate, true);
+      clearTimeout(t);
+    };
+  }, [currentStep, step.target]);
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -136,81 +183,236 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
     onComplete();
   };
 
-  const step = steps[currentStep];
-  const progress = ((currentStep + 1) / steps.length) * 100;
+  const isHighlighting = !!targetRect && !!step.target;
+
+  // Position the callout card relative to the highlight (default bottom)
+  const getCardStyle = () => {
+    if (!targetRect) return {};
+    const padding = 12;
+    let top = targetRect.bottom + padding;
+    let left = targetRect.left;
+
+    // Prefer below, flip above if not enough space
+    const cardHeight = 340; // approx
+    if (top + cardHeight > window.innerHeight - 20) {
+      top = targetRect.top - cardHeight - padding;
+    }
+
+    // Clamp horizontally
+    const cardWidth = 420;
+    if (left + cardWidth > window.innerWidth - 20) {
+      left = window.innerWidth - cardWidth - 20;
+    }
+    if (left < 20) left = 20;
+
+    return {
+      position: 'fixed' as const,
+      top: `${top}px`,
+      left: `${left}px`,
+      zIndex: 53,
+      maxWidth: `${Math.min(cardWidth, window.innerWidth - 40)}px`,
+    };
+  };
+
+  // Small arrow pointing to the highlighted element
+  const getArrowStyle = () => {
+    if (!targetRect) return {};
+    const placement = step.placement || 'bottom';
+    if (placement === 'bottom') {
+      return {
+        position: 'absolute' as const,
+        top: -8,
+        left: 28,
+        width: 0,
+        height: 0,
+        borderLeft: '8px solid transparent',
+        borderRight: '8px solid transparent',
+        borderBottom: '8px solid #f97316', // orange-600
+      };
+    }
+    // Add more placements if needed; default works for most
+    return {};
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <Card className="w-full max-w-2xl bg-card border-border shadow-2xl">
-        <div className="p-6 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="text-3xl">{step.icon}</div>
-            <div>
-              <div className="text-sm text-muted-foreground">
-                {mode === 'buyer' ? 'Capacitación para Compradores' : 'Capacitación para Vendedores'} • Paso {currentStep + 1} de {steps.length}
-              </div>
-              <h2 className="text-2xl font-bold text-foreground">{step.title}</h2>
-            </div>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X size={20} />
-          </Button>
-        </div>
+    <div className="fixed inset-0 z-50">
+      {isHighlighting ? (
+        <>
+          {/* Dark overlay (click to close) */}
+          <div 
+            className="fixed inset-0 bg-black/70" 
+            onClick={onClose}
+          />
 
-        <CardContent className="p-8 space-y-6">
-          {/* Progress bar */}
-          <div className="w-full bg-muted rounded-full h-2">
-            <div 
-              className="bg-orange-600 h-2 rounded-full transition-all duration-300" 
-              style={{ width: `${progress}%` }}
-            />
-          </div>
+          {/* Highlight / spotlight box with glow cutout */}
+          <div
+            className="fixed z-[52] border-[5px] border-orange-500 rounded-3xl pointer-events-none transition-all duration-200"
+            style={{
+              top: `${targetRect.top - 8}px`,
+              left: `${targetRect.left - 8}px`,
+              width: `${targetRect.width + 16}px`,
+              height: `${targetRect.height + 16}px`,
+              boxShadow: '0 0 0 9999px rgba(0,0,0,0.75)',
+            }}
+          />
 
-          <p className="text-lg text-muted-foreground leading-relaxed">
-            {step.description}
-          </p>
-
-          <div className="bg-muted/50 rounded-2xl p-6">
-            <p className="font-semibold text-sm mb-3 text-orange-600">Consejos clave:</p>
-            <ul className="space-y-2 text-sm">
-              {step.tips.map((tip, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <span className="text-orange-600 mt-0.5">•</span>
-                  <span>{tip}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="text-xs text-muted-foreground text-center">
-            Este tutorial te ayudará a aprovechar Oigagig al máximo. Puedes volver a verlo desde Soporte.
-          </div>
-        </CardContent>
-
-        <div className="p-6 border-t border-border flex items-center justify-between">
-          <Button 
-            variant="outline" 
-            onClick={handlePrev} 
-            disabled={currentStep === 0}
-            className="gap-2"
+          {/* Callout card positioned next to the highlight */}
+          <Card 
+            className="bg-card border-border shadow-2xl w-full"
+            style={getCardStyle()}
           >
-            <ArrowLeft size={16} /> Anterior
-          </Button>
+            {/* small pointing arrow */}
+            <div style={getArrowStyle()} />
 
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={onClose}>
-              Saltar por ahora
-            </Button>
-            <Button onClick={handleNext} className="gap-2 bg-orange-600 hover:bg-orange-700">
-              {currentStep === steps.length - 1 ? (
-                <>Finalizar <Check size={16} /></>
-              ) : (
-                <>Siguiente <ArrowRight size={16} /></>
-              )}
-            </Button>
-          </div>
+            <div className="p-5 border-b border-border flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="text-2xl">{step.icon}</div>
+                <div>
+                  <div className="text-xs text-muted-foreground">
+                    {mode === 'buyer' ? 'Capacitación para Compradores' : 'Capacitación para Vendedores'} • Paso {currentStep + 1} de {steps.length}
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground">{step.title}</h2>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <X size={18} />
+              </Button>
+            </div>
+
+            <CardContent className="p-5 space-y-4 text-sm">
+              <p className="text-muted-foreground leading-relaxed">
+                {step.description}
+              </p>
+
+              <div className="bg-muted/50 rounded-xl p-4">
+                <p className="font-semibold text-xs mb-2 text-orange-600">Consejos clave:</p>
+                <ul className="space-y-1.5 text-xs">
+                  {step.tips.map((tip, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span className="text-orange-600 mt-0.5">•</span>
+                      <span>{tip}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="text-[10px] text-muted-foreground text-center">
+                Mira el área resaltada en naranja. Este tutorial te ayudará a aprovechar Oigagig al máximo.
+              </div>
+
+              {/* Progress bar small */}
+              <div className="w-full bg-muted rounded-full h-1.5 mt-2">
+                <div 
+                  className="bg-orange-600 h-1.5 rounded-full transition-all duration-300" 
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </CardContent>
+
+            <div className="p-4 border-t border-border flex items-center justify-between gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handlePrev} 
+                disabled={currentStep === 0}
+                className="gap-1 text-xs"
+              >
+                <ArrowLeft size={14} /> Anterior
+              </Button>
+
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={onClose} className="text-xs">
+                  Saltar
+                </Button>
+                <Button 
+                  size="sm" 
+                  onClick={handleNext} 
+                  className="gap-1 bg-orange-600 hover:bg-orange-700 text-xs"
+                >
+                  {currentStep === steps.length - 1 ? (
+                    <>Finalizar <Check size={14} /></>
+                  ) : (
+                    <>Siguiente <ArrowRight size={14} /></>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </>
+      ) : (
+        /* Fallback centered modal (when no target or launched from pages without elements) */
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <Card className="w-full max-w-2xl bg-card border-border shadow-2xl">
+            <div className="p-6 border-b border-border flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="text-3xl">{step.icon}</div>
+                <div>
+                  <div className="text-sm text-muted-foreground">
+                    {mode === 'buyer' ? 'Capacitación para Compradores' : 'Capacitación para Vendedores'} • Paso {currentStep + 1} de {steps.length}
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground">{step.title}</h2>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <X size={20} />
+              </Button>
+            </div>
+
+            <CardContent className="p-8 space-y-6">
+              <div className="w-full bg-muted rounded-full h-2">
+                <div 
+                  className="bg-orange-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                {step.description}
+              </p>
+
+              <div className="bg-muted/50 rounded-2xl p-6">
+                <p className="font-semibold text-sm mb-3 text-orange-600">Consejos clave:</p>
+                <ul className="space-y-2 text-sm">
+                  {step.tips.map((tip, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span className="text-orange-600 mt-0.5">•</span>
+                      <span>{tip}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="text-xs text-muted-foreground text-center">
+                Este tutorial te ayudará a aprovechar Oigagig al máximo. Puedes volver a verlo desde Soporte.
+              </div>
+            </CardContent>
+
+            <div className="p-6 border-t border-border flex items-center justify-between">
+              <Button 
+                variant="outline" 
+                onClick={handlePrev} 
+                disabled={currentStep === 0}
+                className="gap-2"
+              >
+                <ArrowLeft size={16} /> Anterior
+              </Button>
+
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={onClose}>
+                  Saltar por ahora
+                </Button>
+                <Button onClick={handleNext} className="gap-2 bg-orange-600 hover:bg-orange-700">
+                  {currentStep === steps.length - 1 ? (
+                    <>Finalizar <Check size={16} /></>
+                  ) : (
+                    <>Siguiente <ArrowRight size={16} /></>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
-      </Card>
+      )}
     </div>
   );
 }

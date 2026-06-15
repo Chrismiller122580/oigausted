@@ -152,7 +152,7 @@ export default function BuyerDashboard() {
             <p className="text-2xl mb-10 max-w-2xl mx-auto opacity-90">
               Miles de gigs locales en Colombia. Encuentra freelancers confiables para tu proyecto.
             </p>
-            <Button asChild size="lg" className="bg-card text-orange-700 hover:bg-muted text-2xl px-16 py-8 rounded-3xl font-semibold shadow-xl">
+            <Button asChild size="lg" id="tutorial-browse-all-gigs" className="bg-card text-orange-700 hover:bg-muted text-2xl px-16 py-8 rounded-3xl font-semibold shadow-xl">
               <Link href="/gigs">Ver Todos los Gigs</Link>
             </Button>
           </CardContent>
@@ -195,7 +195,7 @@ export default function BuyerDashboard() {
 
         {/* Recent Orders Preview */}
         {recentOrders.length > 0 && (
-          <div className="mb-12">
+          <div id="tutorial-recent-orders" className="mb-12">
             <div className="flex items-center justify-between mb-4 px-1">
               <h3 className="text-2xl font-semibold text-foreground">Tus pedidos recientes</h3>
               <Link href="/orders" className="text-sm text-orange-600 hover:underline flex items-center gap-1">
