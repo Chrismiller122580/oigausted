@@ -31,9 +31,23 @@ interface AuditLog {
 export default function AdminAuditPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionFilter, setActionFilter] = useState('');
-  const [targetTypeFilter, setTargetTypeFilter] = useState('');
-  const [actorFilter, setActorFilter] = useState(''); // search in email/name of performedBy or admin
+  // Seed initial filters from URL for deep links (e.g. from /admin/settings "Recent Payment Audit Logs" link)
+  // Supports ?action=XXX, ?search=XXX (legacy), ?targetType=YYY, ?actor=ZZZ
+  const [actionFilter, setActionFilter] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    const sp = new URLSearchParams(window.location.search);
+    return sp.get('action') || sp.get('search') || '';
+  });
+  const [targetTypeFilter, setTargetTypeFilter] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    const sp = new URLSearchParams(window.location.search);
+    return sp.get('targetType') || sp.get('target') || '';
+  });
+  const [actorFilter, setActorFilter] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    const sp = new URLSearchParams(window.location.search);
+    return sp.get('actor') || '';
+  });
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -59,6 +73,7 @@ export default function AdminAuditPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchLogs();
   }, [actionFilter, targetTypeFilter, actorFilter]);
 

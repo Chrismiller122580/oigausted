@@ -19,6 +19,7 @@ export function LaunchPromoBanner({ sellerCount, maxSlots = 50 }: LaunchPromoBan
   const promoActive = remaining > 0;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     try {
       if (localStorage.getItem(STORAGE_KEY) === '1') {

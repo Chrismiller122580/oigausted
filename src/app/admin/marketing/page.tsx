@@ -166,7 +166,7 @@ export default function AdminMarketingPage() {
     });
   };
 
-  const useAdCopy = (copy: { headline: string; body: string; cta: string }) => {
+  const applyAdCopy = (copy: { headline: string; body: string; cta: string }) => {
     const combined = `${copy.headline}\n\n${copy.body}\n\n${copy.cta}`;
     setSubject(copy.headline);
     setMessage(combined);
@@ -647,7 +647,7 @@ export default function AdminMarketingPage() {
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
                       <Button size="sm" variant="outline" onClick={() => copyText(`${copy.headline}\n\n${copy.body}\n\n${copy.cta}`)}>Copiar</Button>
-                      <Button size="sm" onClick={() => useAdCopy(copy)}>Usar en Broadcast</Button>
+                      <Button size="sm" onClick={() => applyAdCopy(copy)}>Usar en Broadcast</Button>
                     </div>
                   </div>
                 ))}

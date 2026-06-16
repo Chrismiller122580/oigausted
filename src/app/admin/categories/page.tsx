@@ -70,6 +70,7 @@ export default function AdminCategoriesPage() {
 
   useEffect(() => {
     loadCategories();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
   }, []);
 
   function resetForm() {
@@ -381,7 +382,7 @@ export default function AdminCategoriesPage() {
                     <Plus className="h-4 w-4 mr-1" /> Add field
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">For "select" type, add options after creating the field.</p>
+                <p className="text-xs text-muted-foreground mt-1">For &quot;select&quot; type, add options after creating the field.</p>
               </div>
             </div>
 
@@ -499,7 +500,7 @@ export default function AdminCategoriesPage() {
               </Button>
               <p className="text-xs text-muted-foreground mt-2">
                 This will populate the database so the admin and public pages use the managed categories.
-                Use the "Force reset to initials" button (above) if you want to clean custom categories not in the static list.
+                Use the &quot;Force reset to initials&quot; button (above) if you want to clean custom categories not in the static list.
               </p>
             </div>
           ) : (
@@ -511,7 +512,7 @@ export default function AdminCategoriesPage() {
                     <strong>Warning:</strong> Only {categories.length} categories in the database, 
                     but there are {staticGigCategories.length} known static definitions.
                     <br />
-                    Click <strong>"Sync initials"</strong> above to import the missing ones 
+                    Click <strong>&quot;Sync initials&quot;</strong> above to import the missing ones 
                     (nothing will be deleted).
                   </div>
                 </div>

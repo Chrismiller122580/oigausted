@@ -61,6 +61,7 @@ export default function AdminGigsPage() {
 
   useEffect(() => {
     fetchGigs(searchTerm, includeDeleted);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
   }, [includeDeleted]);
 
   useEffect(() => {

@@ -21,25 +21,6 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [lastActivityUpdate, setLastActivityUpdate] = useState<Date | null>(null);
 
-  // Real-time updates via notifications SSE (instant refresh on relevant events)
-  // + polling fallback every 10s for true real-time feel on admin dashboard
-  useRealtimeNotifications({
-    enableToasts: false, // avoid duplicate toasts in admin; we just want the trigger
-    onNewNotification: () => {
-      fetchStats(true); // background refresh on any new notification
-    },
-  });
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  // Poll every 10s for real-time data (lightweight background updates)
-  useEffect(() => {
-    const iv = setInterval(() => fetchStats(true), 10000);
-    return () => clearInterval(iv);
-  }, []);
-
   const fetchStats = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     try {
@@ -60,6 +41,25 @@ export default function AdminDashboard() {
       if (!isBackground) setLoading(false);
     }
   };
+
+  // Real-time updates via notifications SSE (instant refresh on relevant events)
+  // + polling fallback every 10s for true real-time feel on admin dashboard
+  useRealtimeNotifications({
+    enableToasts: false, // avoid duplicate toasts in admin; we just want the trigger
+    onNewNotification: () => {
+      fetchStats(true); // background refresh on any new notification
+    },
+  });
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  // Poll every 10s for real-time data (lightweight background updates)
+  useEffect(() => {
+    const iv = setInterval(() => fetchStats(true), 10000);
+    return () => clearInterval(iv);
+  }, []);
 
   if (loading) {
     return (

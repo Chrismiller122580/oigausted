@@ -305,7 +305,7 @@ export default function AdminSettings() {
     tutorialsEnabled: c.tutorialsEnabled ?? true,
   } as PlatformConfig);
 
-  const fetchConfig = async (fresh = false) => {
+  async function fetchConfig(fresh = false) {
     try {
       const url = fresh ? '/api/admin/config?fresh=1' : '/api/admin/config';
       const res = await fetch(url);
@@ -327,7 +327,7 @@ export default function AdminSettings() {
     }
   };
 
-  const loadWompiLogs = async () => {
+  async function loadWompiLogs() {
     try {
       const res = await fetch('/api/admin/audit?limit=30');
       if (res.ok) {
@@ -466,7 +466,7 @@ export default function AdminSettings() {
     toast('Configuration restored to defaults. Press Save to apply.');
   };
 
-  const loadTestHistory = async () => {
+  async function loadTestHistory() {
     setLoadingTestHistory(true);
     try {
       const res = await fetch('/api/admin/audit?limit=20');
@@ -514,7 +514,7 @@ export default function AdminSettings() {
   };
 
   // ========== FAQ + Tutorials helpers ==========
-  const loadFaqs = async () => {
+  async function loadFaqs() {
     setFaqsLoading(true);
     try {
       const res = await fetch('/api/admin/faqs');
@@ -1098,8 +1098,8 @@ export default function AdminSettings() {
               <div className="rounded-2xl border border-border bg-background p-4">
                 <div className="text-muted-foreground text-xs mb-1">Support Tools (Maintenance Mode only)</div>
                 <div className="text-[10px] space-y-1">
-                  <a href="/admin/payouts" className="text-orange-400 hover:underline block">→ Payouts Debugger (local marks + force check)</a>
-                  <a href="/admin/audit?search=PAYMENT" className="text-orange-400 hover:underline block">→ Recent Payment Audit Logs</a>
+                  <Link href="/admin/payouts" className="text-orange-400 hover:underline block">→ Payouts Debugger (local marks + force check)</Link>
+                  <Link href="/admin/audit?action=PAYMENT" className="text-orange-400 hover:underline block">→ Recent Payment Audit Logs</Link>
                   <span className="text-muted-foreground">Webhook: https://oigagig.com/api/webhooks/wompi</span> (direct GET returns status info; only POSTs from Wompi are processed)
                 </div>
               </div>
@@ -1512,7 +1512,7 @@ export default function AdminSettings() {
               ))}
             </div>
           )}
-          <p className="text-[10px] text-muted-foreground mt-2">See full history in <a href="/admin/audit" className="text-orange-400 hover:underline">/admin/audit</a></p>
+          <p className="text-[10px] text-muted-foreground mt-2">See full history in <Link href="/admin/audit" className="text-orange-400 hover:underline">/admin/audit</Link></p>
         </div>
         )}
 
