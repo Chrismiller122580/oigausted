@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions, isAdmin } from '@/lib/auth';
+import { authOptions, isAdmin, isSeller } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
 
 export async function POST(req: NextRequest) {
@@ -10,15 +10,25 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 });
     }
-    if (!isAdmin(session)) {
-      return NextResponse.json({ error: 'Solo administradores pueden usar la generación con Grok' }, { status: 403 });
-    }
 
     parsedBody = await req.json();
     const { title, category, type } = parsedBody;
 
     if (!title || !category) {
       return NextResponse.json({ error: "Title and category are required" }, { status: 400 });
+    }
+
+    // FAQ generation is admin-only; gig descriptions for sellers; bio for any logged-in user
+    if (type === 'faq') {
+      if (!isAdmin(session)) {
+        return NextResponse.json({ error: 'Solo administradores pueden generar FAQs con Grok' }, { status: 403 });
+      }
+    } else if (type === 'gig-description' || type === 'bio') {
+      if (type === 'gig-description' && !isSeller(session)) {
+        return NextResponse.json({ error: 'Solo vendedores pueden generar descripciones de gigs' }, { status: 403 });
+      }
+    } else if (!isAdmin(session)) {
+      return NextResponse.json({ error: 'No autorizado para este tipo de generación' }, { status: 403 });
     }
 
     let prompt = '';
@@ -35,6 +45,15 @@ Devuelve SOLO un JSON válido (sin markdown, sin explicaciones) con esta forma e
   "question": "Pregunta clara y natural que haría un usuario",
   "answer": "Respuesta útil, paso a paso si aplica, máximo 120 palabras, tono cercano y profesional. Menciona Nequi, pedidos, perfiles públicos o lo que corresponda cuando sea relevante."
 }`;
+    } else if (type === 'bio') {
+      prompt = `Eres un experto en redacción de perfiles profesionales en Colombia.
+Crea una biografía breve, atractiva y confiable (máximo 150 palabras) para este perfil:
+
+Nombre: ${title}
+Contexto: ${category}
+
+Incluye experiencia, enfoque del servicio y un tono cercano.
+Responde SOLO con la biografía, sin introducciones.`;
     } else {
       prompt = `Eres un experto en servicios locales en Colombia. 
 Crea una descripción atractiva, profesional y persuasiva (máximo 250 palabras) para este gig:

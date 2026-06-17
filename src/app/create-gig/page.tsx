@@ -199,6 +199,10 @@ function CreateGigClient() {
         body: JSON.stringify({ title, category, type: 'gig-description' })
       });
       const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "No se pudo generar la descripción");
+        return;
+      }
       if (data.description) {
         setDescription(data.description);
         toast.success("✅ Descripción generada con Grok");
