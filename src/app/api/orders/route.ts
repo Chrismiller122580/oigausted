@@ -6,6 +6,7 @@ import { notifications } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
 import { computeOrderPrice } from '@/lib/order-price';
+import { notifyAdminsNewOrder } from '@/lib/admin-notifications';
 import type { Prisma } from '@prisma/client';
 
 export async function POST(request: Request) {
@@ -154,6 +155,14 @@ export async function POST(request: Request) {
         orderId: order.id,
       }
     );
+
+    notifyAdminsNewOrder({
+      orderId: order.id,
+      gigTitle: gig.title,
+      amount: computedPrice,
+      buyerName: order.buyer?.name || session?.user?.name,
+      sellerName: gig.seller?.name,
+    }).catch(() => {})
 
     return NextResponse.json({ success: true, orderId: order.id, order });
   } catch (error: unknown) {

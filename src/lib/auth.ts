@@ -194,6 +194,17 @@ export const authOptions: NextAuthOptions = {
             })
             user.id = newUser.id
             user.role = newUser.role
+
+            import('@/lib/admin-notifications')
+              .then(({ notifyAdminsNewSignup }) =>
+                notifyAdminsNewSignup({
+                  name: newUser.name,
+                  email: newUser.email,
+                  role: newUser.role,
+                  viaGoogle: true,
+                })
+              )
+              .catch((e) => devLog('[auth] Admin signup email failed (non-fatal):', e))
           } else {
             // If this Gmail is listed as admin, upgrade the role on login
             const finalRole = shouldBeAdmin ? 'admin' : existing.role

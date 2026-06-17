@@ -227,3 +227,41 @@ export function referralPayoutRequestEmail({ userName = 'Usuario', amount, reque
     `
   };
 }
+
+interface AdminAlertProps {
+  title: string;
+  bodyHtml: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  eventLabel?: string;
+}
+
+/** Branded wrapper for operational alerts sent to support@oigagig.com and admins. */
+export function adminAlertEmail({ title, bodyHtml, ctaLabel, ctaHref, eventLabel }: AdminAlertProps) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
+  return {
+    subject: `[Oigagig Admin] ${title}`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; background: #fff;">
+        <div style="border-bottom: 3px solid #f97316; padding-bottom: 16px; margin-bottom: 24px;">
+          <p style="margin: 0 0 4px 0; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.05em;">
+            ${eventLabel || 'Alerta de plataforma'}
+          </p>
+          <h2 style="color: #111; margin: 0; font-size: 22px;">${title}</h2>
+        </div>
+        <div style="color: #333; font-size: 15px; line-height: 1.6;">${bodyHtml}</div>
+        ${ctaLabel && ctaHref ? `
+          <div style="margin: 28px 0 8px 0;">
+            <a href="${ctaHref.startsWith('http') ? ctaHref : `${appUrl}${ctaHref}`}"
+               style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+              ${ctaLabel}
+            </a>
+          </div>
+        ` : ''}
+        <p style="margin-top: 32px; font-size: 12px; color: #888;">
+          Oigagig Admin • Este correo se envía a <a href="mailto:support@oigagig.com" style="color: #f97316;">support@oigagig.com</a>
+        </p>
+      </div>
+    `,
+  };
+}

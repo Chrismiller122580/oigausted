@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
+import { notifyAdminsNewOrder } from '@/lib/admin-notifications';
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,8 +14,16 @@ export async function POST(req: NextRequest) {
     }
 
     const { gigId } = await req.json();
-    const gig = await prisma.gig.findUnique({ 
-      where: { id: gigId } 
+    const gig = await prisma.gig.findUnique({
+      where: { id: gigId },
+      select: {
+        id: true,
+        title: true,
+        price: true,
+        sellerId: true,
+        isActive: true,
+        seller: { select: { name: true, businessName: true } },
+      },
     });
 
     if (!gig) {
@@ -54,6 +63,19 @@ export async function POST(req: NextRequest) {
     });
 
     devLog("✅ Order created:", order.id);
+
+    const buyer = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    })
+
+    notifyAdminsNewOrder({
+      orderId: order.id,
+      gigTitle: gig.title,
+      amount: gig.price,
+      buyerName: buyer?.name || session?.user?.name,
+      sellerName: gig.seller?.businessName || gig.seller?.name,
+    }).catch(() => {})
 
     return NextResponse.json({ 
       success: true, 

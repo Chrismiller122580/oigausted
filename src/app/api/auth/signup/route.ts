@@ -3,6 +3,7 @@ import { prisma } from '../../../../lib/prisma'
 import bcrypt from 'bcryptjs'
 import { notifications } from '@/lib/notifications'
 import { logAuditEvent } from '@/lib/audit'
+import { notifyAdminsNewSignup } from '@/lib/admin-notifications'
 
 const SIGNUP_WINDOW_MS = 15 * 60 * 1000
 const MAX_SIGNUP_ATTEMPTS = 5
@@ -152,6 +153,12 @@ export async function POST(request: NextRequest) {
       `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/gigs`,
       { isWelcome: true }
     )
+
+    notifyAdminsNewSignup({
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+    }).catch(() => {})
 
     return NextResponse.json({ 
       success: true, 

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
+import { notifyAdminsSupportTicket } from '@/lib/admin-notifications';
 import { devLog } from '@/lib/utils';
 import { logAuditEvent } from '@/lib/audit';
 
@@ -48,45 +49,15 @@ export async function POST(request: NextRequest) {
         { ticketId: ticket.id }
       );
 
-      // Notify all admins (in-app)
-      const admins = await prisma.user.findMany({
-        where: { role: 'admin' },
-        select: { id: true, email: true }
-      });
-
-      const notifyMsg = `Nuevo ticket de soporte de ${ticket.user.name || ticket.user.email}: "${subject}"`;
-      for (const admin of admins) {
-        await notifications.sendInApp(
-          admin.id,
-          'system',
-          'Nuevo ticket de soporte',
-          notifyMsg,
-          `/admin/support?id=${ticket.id}`,
-          { ticketId: ticket.id }
-        ).catch(() => {});
-      }
-
-      // Email blast to supportEmail + all admin emails (deduped)
-      const { resend } = await import('@/lib/notifications');
-      const { getPlatformConfig } = await import('@/lib/prisma');
-      const config = await getPlatformConfig();
-      const supportEmail = config?.supportEmail || 'support@oigagig.com';
-      const adminEmails = admins.map((a: { email: string | null }) => a.email).filter(Boolean) as string[];
-      const toList = Array.from(new Set([supportEmail, ...adminEmails]));
-      if (resend && toList.length) {
-        await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'Oigagig <support@oigagig.com>',
-          to: toList,
-          subject: `Nuevo ticket de soporte: ${subject}`,
-          html: `
-            <p><strong>${ticket.user.name || ticket.user.email}</strong> ha enviado un nuevo ticket de soporte.</p>
-            <p><strong>Asunto:</strong> ${subject}</p>
-            <p><strong>Mensaje:</strong> ${message.substring(0, 300)}${message.length > 300 ? '...' : ''}</p>
-            <p><strong>Categoría:</strong> ${category} • <strong>Prioridad:</strong> ${priority}</p>
-            <p>Revisa y responde en el panel de administración: /admin/support?id=${ticket.id}</p>
-          `
-        }).catch((e: unknown) => devLog('Support ticket email blast failed:', e));
-      }
+      await notifyAdminsSupportTicket({
+        ticketId: ticket.id,
+        subject,
+        message,
+        category,
+        priority,
+        userName: ticket.user.name,
+        userEmail: ticket.user.email,
+      })
     } catch (notifErr) {
       devLog('Failed to send support confirmation notif:', notifErr);
     }

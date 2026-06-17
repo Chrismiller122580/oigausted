@@ -4,6 +4,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
 import { getEffectiveReferralRate } from '@/lib/payout';
 import { createReferralEarningIfApplicable } from '@/lib/server/referral-earnings';
+import { notifyAdminsPaymentReceived } from '@/lib/admin-notifications';
 import { Prisma } from '@prisma/client';
 
 /**
@@ -153,6 +154,14 @@ export async function confirmWompiPayment(
         devLog('[Wompi confirm] referral helper error (non-fatal):', rErr);
       }
     }
+
+    notifyAdminsPaymentReceived({
+      orderId,
+      gigTitle: updated.gig?.title || 'Servicio',
+      amount: updated.price,
+      buyerName: updated.buyer?.name,
+      wompiTransactionId: opts?.wompiTransactionId,
+    }).catch((e) => devLog('[Wompi confirm] admin email failed (non-fatal):', e))
 
     devLog(`[Wompi] ✅ APPROVED via confirm helper - Order ${orderId} now Paid`);
     return {

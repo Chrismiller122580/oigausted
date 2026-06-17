@@ -6,6 +6,7 @@ import { notifications } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
 import { normalizeGigImagePayload, parseGigImagesField } from '@/lib/gig-images';
+import { notifyAdminsNewGig } from '@/lib/admin-notifications';
 
 export async function GET(req: NextRequest) {
   try {
@@ -172,10 +173,27 @@ export async function POST(req: NextRequest) {
         '¡Gig publicado exitosamente!',
         `Tu servicio "${title}" ya está visible para los compradores.`,
         `/seller/gigs`,
-        { gigTitle: title }
+        { gigTitle: title, gigId: gig.id }
       );
     } catch (notifErr) {
       devLog("Gig created but failed to send confirmation notification (prefs or delivery issue):", notifErr);
+    }
+
+    try {
+      const seller = await prisma.user.findUnique({
+        where: { id: sellerId },
+        select: { name: true, email: true, businessName: true },
+      })
+      await notifyAdminsNewGig({
+        gigId: gig.id,
+        title,
+        category,
+        price: Number(price),
+        sellerName: seller?.businessName || seller?.name,
+        sellerEmail: seller?.email,
+      })
+    } catch (adminErr) {
+      devLog('Gig created but failed to notify admins:', adminErr)
     }
 
     return NextResponse.json({ 

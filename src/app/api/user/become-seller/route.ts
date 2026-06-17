@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logAuditEvent } from '@/lib/audit'
 import { slugify, devLog } from '@/lib/utils'
+import { notifyAdminsBecomeSeller } from '@/lib/admin-notifications'
 
 export async function POST(request: NextRequest) {
   try {
@@ -135,6 +136,13 @@ export async function POST(request: NextRequest) {
       targetId: userId,
       details: { previousRole: 'buyer', businessName, byAdmin: isAdmin },
     });
+
+    notifyAdminsBecomeSeller({
+      userId,
+      name: updatedUser?.name,
+      email: updatedUser?.email,
+      businessName: trimmedBusinessName,
+    }).catch(() => {})
 
     return NextResponse.json({ 
       success: true, 

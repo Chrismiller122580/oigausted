@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { sendNotification } from '@/lib/notifications'
-import { devLog } from '@/lib/utils'
+import { notifyAdminsReferralPayout } from '@/lib/admin-notifications'
 
 export async function POST() {
   const session = await getServerSession(authOptions)
@@ -40,59 +39,16 @@ export async function POST() {
       data: { status: 'Requested' }
     })
 
-    // Notify all admins
-    const admins = await prisma.user.findMany({
-      where: { role: 'admin' },
-      select: { id: true, email: true }
-    })
-
     const requester = await prisma.user.findUnique({
       where: { id: userId },
       select: { name: true, email: true }
     })
 
-    const message = `${requester?.name || requester?.email} solicitó pago de comisiones por referidos por $${totalPending.toLocaleString('es-CO')}.`
-
-    for (const admin of admins) {
-      await sendNotification({
-        userId: admin.id,
-        category: 'payment',
-        type: 'in_app',
-        title: 'Solicitud de pago por referidos',
-        message,
-        link: '/admin/referrals',
-        data: { 
-          referrerId: userId, 
-          amount: totalPending,
-          actions: [
-            { label: 'Ver solicitud', action: 'view' }
-          ]
-        }
-      })
-    }
-
-    // Also send email to support + all admins (better visibility)
-    try {
-      const { resend } = await import('@/lib/notifications')
-      if (resend) {
-        const adminEmails = admins.map((a: { email: string | null }) => a.email).filter(Boolean) as string[]
-        const toList = Array.from(new Set([config?.supportEmail || 'soporte@oigagig.com', ...adminEmails]))
-        if (toList.length) {
-          await resend.emails.send({
-            from: process.env.RESEND_FROM_EMAIL || 'Oigagig <support@oigagig.com>',
-            to: toList,
-            subject: 'Nueva solicitud de pago por referidos',
-            html: `
-              <p><strong>${requester?.name || requester?.email}</strong> ha solicitado el pago de comisiones por referidos.</p>
-              <p><strong>Monto:</strong> $${totalPending.toLocaleString('es-CO')}</p>
-              <p>Revisa el panel de administración para procesar el pago.</p>
-            `
-          })
-        }
-      }
-    } catch (e) {
-      devLog('Failed to send payout request email:', e)
-    }
+    await notifyAdminsReferralPayout({
+      requesterName: requester?.name,
+      requesterEmail: requester?.email,
+      amount: totalPending,
+    })
 
     return NextResponse.json({ 
       success: true, 
