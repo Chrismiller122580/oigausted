@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { devLog } from '@/lib/utils';
+import { devLog, parseJsonArrayField } from '@/lib/utils';
 
 export async function GET(
   request: Request,
@@ -48,7 +48,11 @@ export async function GET(
       return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
     }
 
-    return NextResponse.json(gig);
+    return NextResponse.json({
+      ...gig,
+      fields: parseJsonArrayField(gig.fields),
+      addons: parseJsonArrayField(gig.addons),
+    });
   } catch (error) {
     devLog('Get gig error:', error);
     return NextResponse.json({ error: 'Error al cargar el gig' }, { status: 500 });

@@ -17,6 +17,7 @@ import { MapPin } from 'lucide-react';
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 import type { CheckoutFormData, DynamicFieldDef, DynamicFieldOption, GigAddonOption } from '@/types/gig-fields';
 import type { ChangeEvent, FormEvent } from 'react';
+import { parseJsonArrayField } from '@/lib/utils';
 
 function CreateGigClient() {
   const { data: session, status } = useSession();
@@ -35,6 +36,8 @@ function CreateGigClient() {
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [customOptions, setCustomOptions] = useState<GigAddonOption[]>([]);
+  const [savedFields, setSavedFields] = useState<DynamicFieldDef[]>([]);
+  const [completionTime, setCompletionTime] = useState('2-5 días');
   const [generating, setGenerating] = useState(false);
 
   const [formData, setFormData] = useState<CheckoutFormData>({});
@@ -94,15 +97,17 @@ function CreateGigClient() {
   const editParam = searchParams.get('edit');
   useEffect(() => {
     const id = editParam;
-    if (id) {
-      setIsEditing(true);
-      setEditId(id);
-      loadGigForEdit(id);
-    } else {
+    if (!id) {
       setIsEditing(false);
       setEditId(null);
+      return;
     }
-  }, [editParam]);
+    if (status === 'loading' || !session?.user?.id) return;
+
+    setIsEditing(true);
+    setEditId(id);
+    loadGigForEdit(id);
+  }, [editParam, status, session?.user?.id]);
 
   // Redirect unauthenticated or non-seller users
   useEffect(() => {
@@ -122,12 +127,22 @@ function CreateGigClient() {
       if (!res.ok) throw new Error('No se pudo cargar el gig');
       const gig = await res.json();
 
+      const userId = session?.user?.id;
+      const isAdmin = session?.user?.role === 'admin';
+      if (userId && gig.sellerId !== userId && !isAdmin) {
+        toast.error('No tienes permiso para editar este servicio');
+        router.push('/seller/gigs');
+        return;
+      }
+
       setTitle(gig.title || '');
       setDescription(gig.description || '');
       setBasePrice(gig.price || 0);
       setCategory(gig.category || '');
       setImageUrl(gig.imageUrl || '');
-      setCustomOptions(gig.addons || []);
+      setCustomOptions(parseJsonArrayField<GigAddonOption>(gig.addons));
+      setSavedFields(parseJsonArrayField<DynamicFieldDef>(gig.fields));
+      setCompletionTime(gig.completionTime || '2-5 días');
 
       // Restore geolocation if present on the gig
       setGigLocation(gig.city || '');
@@ -140,7 +155,7 @@ function CreateGigClient() {
       setFormData({});
     } catch (err) {
       toast.error("Error cargando el servicio para editar");
-      router.push('/seller');
+      router.push('/seller/gigs');
     } finally {
       setLoadingGig(false);
     }
@@ -215,9 +230,11 @@ function CreateGigClient() {
       price: basePrice, // base price only; buyer-selected options/fields/addons add extras on top at checkout time
       category,
       imageUrl: imageUrl || null,
-      fields: selectedCategory?.fields || [],
+      fields: selectedCategory?.fields?.length
+        ? selectedCategory.fields
+        : (isEditing ? savedFields : []),
       addons: customOptions.filter(o => o.name?.trim()),
-      completionTime: "2-5 días",
+      completionTime,
       // Geolocation
       city: gigLocation || undefined,
       latitude: gigLatitude,
@@ -450,8 +467,8 @@ function CreateGigClient() {
           <div>
             <Label>Tiempo Estimado de Entrega</Label>
             <select 
-              value="2-5 días" 
-              onChange={() => {}} 
+              value={completionTime} 
+              onChange={(e) => setCompletionTime(e.target.value)} 
               className="w-full border rounded-md p-3 text-base"
             >
               <option>1-2 días</option>
