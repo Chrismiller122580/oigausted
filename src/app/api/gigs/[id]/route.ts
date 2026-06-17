@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { devLog, parseJsonArrayField } from '@/lib/utils';
+import { getGigImages, normalizeGigImagePayload, parseGigImagesField } from '@/lib/gig-images';
 
 export async function GET(
   request: Request,
@@ -11,45 +12,62 @@ export async function GET(
   try {
     const { id } = await params;   // ← This is the required fix for Next.js 16
 
-    const gig = await prisma.gig.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        price: true,
-        category: true,
-        completionTime: true,
-        imageUrl: true,
-        fields: true,
-        addons: true,
-        isActive: true,
-        createdAt: true,
-        sellerId: true,
-        city: true,
-        latitude: true,
-        longitude: true,
-        isRemote: true,
-        // deletedAt intentionally omitted until migration is applied everywhere
-        seller: {
-          select: {
-            id: true,
-            name: true,
-            businessName: true,
-            profilePicture: true,
-            rating: true,
-            reviewCount: true,
-          }
+    const gigSelect = {
+      id: true,
+      title: true,
+      description: true,
+      price: true,
+      category: true,
+      completionTime: true,
+      imageUrl: true,
+      images: true,
+      fields: true,
+      addons: true,
+      isActive: true,
+      createdAt: true,
+      sellerId: true,
+      city: true,
+      latitude: true,
+      longitude: true,
+      isRemote: true,
+      seller: {
+        select: {
+          id: true,
+          name: true,
+          businessName: true,
+          profilePicture: true,
+          rating: true,
+          reviewCount: true,
         }
       }
-    });
+    } as const
+
+    let gig: Awaited<ReturnType<typeof prisma.gig.findUnique>> & {
+      images?: string | null
+    } | null = null
+
+    try {
+      gig = await prisma.gig.findUnique({ where: { id }, select: gigSelect })
+    } catch (dbErr: unknown) {
+      const errMsg = dbErr instanceof Error ? dbErr.message : String(dbErr)
+      if (errMsg.includes('images') && errMsg.includes('does not exist')) {
+        const { images: _omit, ...selectWithoutImages } = gigSelect
+        gig = await prisma.gig.findUnique({ where: { id }, select: selectWithoutImages })
+      } else {
+        throw dbErr
+      }
+    }
 
     if (!gig) {
       return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
     }
 
+    const imageList = getGigImages(gig)
+
     return NextResponse.json({
       ...gig,
+      images: imageList,
+      imageUrl: imageList[0] ?? gig.imageUrl ?? null,
       fields: parseJsonArrayField(gig.fields),
       addons: parseJsonArrayField(gig.addons),
     });
@@ -93,7 +111,8 @@ export async function PUT(
       description, 
       price, 
       category, 
-      imageUrl, 
+      imageUrl,
+      images,
       fields, 
       addons, 
       completionTime,
@@ -105,14 +124,23 @@ export async function PUT(
       isRemote
     } = body;
 
-    const updated = await prisma.gig.update({
-      where: { id },
-      data: {
+    const imagePayload =
+      images !== undefined || imageUrl !== undefined
+        ? normalizeGigImagePayload(
+            images !== undefined ? parseGigImagesField(images) : undefined,
+            imageUrl
+          )
+        : null
+
+    const updateData = {
         ...(title !== undefined && { title }),
         ...(description !== undefined && { description }),
         ...(price !== undefined && { price: Number(price) }),
         ...(category !== undefined && { category }),
-        ...(imageUrl !== undefined && { imageUrl: imageUrl || null }),
+        ...(imagePayload && {
+          imageUrl: imagePayload.imageUrl,
+          images: imagePayload.images,
+        }),
         ...(fields !== undefined && { fields: fields ? JSON.stringify(fields) : null }),
         ...(addons !== undefined && { addons: addons ? JSON.stringify(addons) : null }),
         ...(completionTime !== undefined && { completionTime }),
@@ -122,8 +150,20 @@ export async function PUT(
         ...(latitude !== undefined && { latitude: latitude != null ? Number(latitude) : null }),
         ...(longitude !== undefined && { longitude: longitude != null ? Number(longitude) : null }),
         ...(isRemote !== undefined && { isRemote: Boolean(isRemote) }),
-      },
-    });
+    }
+
+    let updated
+    try {
+      updated = await prisma.gig.update({ where: { id }, data: updateData })
+    } catch (dbErr: unknown) {
+      const errMsg = dbErr instanceof Error ? dbErr.message : String(dbErr)
+      if (imagePayload && errMsg.includes('images') && errMsg.includes('does not exist')) {
+        const { images: _omit, ...dataWithoutImages } = updateData
+        updated = await prisma.gig.update({ where: { id }, data: dataWithoutImages })
+      } else {
+        throw dbErr
+      }
+    }
 
     devLog("Gig updated:", id);
 

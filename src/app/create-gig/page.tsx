@@ -18,6 +18,7 @@ import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 import type { CheckoutFormData, DynamicFieldDef, DynamicFieldOption, GigAddonOption } from '@/types/gig-fields';
 import type { ChangeEvent, FormEvent } from 'react';
 import { parseJsonArrayField } from '@/lib/utils';
+import { getGigImages, MAX_GIG_IMAGES } from '@/lib/gig-images';
 
 function CreateGigClient() {
   const { data: session, status } = useSession();
@@ -33,7 +34,7 @@ function CreateGigClient() {
   const [description, setDescription] = useState('');
   const [basePrice, setBasePrice] = useState(0);
   const [category, setCategory] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [customOptions, setCustomOptions] = useState<GigAddonOption[]>([]);
   const [savedFields, setSavedFields] = useState<DynamicFieldDef[]>([]);
@@ -139,7 +140,7 @@ function CreateGigClient() {
       setDescription(gig.description || '');
       setBasePrice(gig.price || 0);
       setCategory(gig.category || '');
-      setImageUrl(gig.imageUrl || '');
+      setImages(getGigImages(gig));
       setCustomOptions(parseJsonArrayField<GigAddonOption>(gig.addons));
       setSavedFields(parseJsonArrayField<DynamicFieldDef>(gig.fields));
       setCompletionTime(gig.completionTime || '2-5 días');
@@ -166,25 +167,54 @@ function CreateGigClient() {
   };
 
   const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const remaining = MAX_GIG_IMAGES - images.length;
+    if (remaining <= 0) {
+      toast.error(`Máximo ${MAX_GIG_IMAGES} fotos por servicio`);
+      return;
+    }
+
+    const toUpload = files.slice(0, remaining);
+    if (files.length > remaining) {
+      toast.message(`Solo se subirán ${remaining} foto(s) (máximo ${MAX_GIG_IMAGES})`);
+    }
+
     setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
+    const uploaded: string[] = [];
 
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.url) {
-        setImageUrl(data.url);
-        toast.success("Imagen subida correctamente");
-      } else {
-        toast.error("Error subiendo imagen");
+      for (const file of toUpload) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.url) {
+          uploaded.push(data.url);
+        }
       }
-    } catch (err) {
-      toast.error("Error al subir la imagen");
+
+      if (uploaded.length > 0) {
+        setImages(prev => [...prev, ...uploaded]);
+        toast.success(
+          uploaded.length === 1
+            ? 'Imagen subida correctamente'
+            : `${uploaded.length} imágenes subidas correctamente`
+        );
+      } else {
+        toast.error('Error subiendo imágenes');
+      }
+    } catch {
+      toast.error('Error al subir las imágenes');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
     }
-    setUploading(false);
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const generateWithGrok = async () => {
@@ -233,7 +263,8 @@ function CreateGigClient() {
       description: description.trim(),
       price: basePrice, // base price only; buyer-selected options/fields/addons add extras on top at checkout time
       category,
-      imageUrl: imageUrl || null,
+      images,
+      imageUrl: images[0] || null,
       fields: selectedCategory?.fields?.length
         ? selectedCategory.fields
         : (isEditing ? savedFields : []),
@@ -485,39 +516,56 @@ function CreateGigClient() {
         </div>
 
         <div>
-          <Label>Imagen del Servicio</Label>
-          <div className="mt-2">
-            {!imageUrl ? (
-              <label className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-orange-400 rounded-2xl p-8 cursor-pointer transition">
-                <div className="text-4xl mb-2">📷</div>
-                <span className="font-medium">Subir imagen del servicio</span>
-                <span className="text-sm text-muted-foreground mt-1">PNG, JPG hasta 5MB</span>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleImageUpload} 
-                  className="hidden" 
-                />
-              </label>
-            ) : (
-              <div className="relative">
-                <img 
-                  src={imageUrl} 
-                  alt="preview" 
-                  className="w-full max-h-72 object-cover rounded-2xl border" 
-                />
-                <button
-                  type="button"
-                  onClick={() => setImageUrl('')}
-                  className="absolute top-3 right-3 bg-card/90 text-foreground px-3 py-1 rounded-full text-sm hover:bg-muted"
-                >
-                  Quitar imagen
-                </button>
+          <Label>Fotos del Servicio</Label>
+          <p className="text-sm text-muted-foreground mt-1 mb-3">
+            Sube hasta {MAX_GIG_IMAGES} fotos. La primera será la portada.
+          </p>
+          <div className="mt-2 space-y-4">
+            {images.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {images.map((url, index) => (
+                  <div key={`${url}-${index}`} className="relative group rounded-2xl overflow-hidden border">
+                    <img src={url} alt={`Foto ${index + 1}`} className="w-full h-32 object-cover" />
+                    {index === 0 && (
+                      <span className="absolute top-2 left-2 bg-orange-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                        Portada
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white w-7 h-7 rounded-full text-sm"
+                      aria-label={`Quitar foto ${index + 1}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
+
+            {images.length < MAX_GIG_IMAGES && (
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-orange-400 rounded-2xl p-8 cursor-pointer transition">
+                <div className="text-4xl mb-2">📷</div>
+                <span className="font-medium">
+                  {images.length === 0 ? 'Subir fotos del servicio' : 'Agregar más fotos'}
+                </span>
+                <span className="text-sm text-muted-foreground mt-1">
+                  PNG, JPG hasta 5MB · {images.length}/{MAX_GIG_IMAGES}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+            )}
+
             {uploading && (
-              <p className="text-sm text-orange-600 mt-2 flex items-center gap-2">
-                <span className="animate-spin">⏳</span> Subiendo imagen...
+              <p className="text-sm text-orange-600 flex items-center gap-2">
+                <span className="animate-spin">⏳</span> Subiendo imágenes...
               </p>
             )}
           </div>

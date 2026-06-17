@@ -249,6 +249,7 @@ model Gig {
   category        String?
   completionTime  String?
   imageUrl        String?
+  images          String?  // JSON array of image URLs for multi-photo gigs
   fields          String?
   addons          String?
   isActive        Boolean   @default(true)

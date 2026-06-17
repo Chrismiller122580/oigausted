@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { notifications } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
+import { normalizeGigImagePayload, parseGigImagesField } from '@/lib/gig-images';
 
 export async function GET(req: NextRequest) {
   try {
@@ -100,7 +101,8 @@ export async function POST(req: NextRequest) {
       description, 
       price, 
       category, 
-      imageUrl, 
+      imageUrl,
+      images,
       fields = [], 
       addons = [], 
       completionTime = "2-5 días",
@@ -115,13 +117,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
     }
 
-    const gig = await prisma.gig.create({
-      data: {
+    const imagePayload = normalizeGigImagePayload(
+      images !== undefined ? parseGigImagesField(images) : undefined,
+      imageUrl
+    )
+
+    const createData = {
         title,
         description: description || null,
         price: Number(price),
         category,
-        imageUrl: imageUrl || null,
+        imageUrl: imagePayload.imageUrl,
+        images: imagePayload.images,
         fields: fields ? JSON.stringify(fields) : null,
         addons: addons ? JSON.stringify(addons) : null,
         completionTime,
@@ -131,8 +138,20 @@ export async function POST(req: NextRequest) {
         latitude: latitude != null ? Number(latitude) : null,
         longitude: longitude != null ? Number(longitude) : null,
         isRemote: Boolean(isRemote),
-      },
-    });
+    }
+
+    let gig
+    try {
+      gig = await prisma.gig.create({ data: createData })
+    } catch (dbErr: unknown) {
+      const errMsg = dbErr instanceof Error ? dbErr.message : String(dbErr)
+      if (errMsg.includes('images') && errMsg.includes('does not exist')) {
+        const { images: _omit, ...dataWithoutImages } = createData
+        gig = await prisma.gig.create({ data: dataWithoutImages })
+      } else {
+        throw dbErr
+      }
+    }
 
     devLog("✅ Gig created successfully:", gig.id);
 

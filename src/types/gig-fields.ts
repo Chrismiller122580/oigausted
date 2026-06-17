@@ -32,6 +32,7 @@ export interface GigCheckoutShape {
   isRemote?: boolean
   sellerId?: string
   imageUrl?: string | null
+  images?: string[]
 }
 
 export type CheckoutFormData = Record<string, string | number | boolean>

@@ -7,6 +7,8 @@ import { useSession } from 'next-auth/react';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock } from 'lucide-react';
 import { parseJsonArrayField } from "@/lib/utils";
+import { getGigImages } from "@/lib/gig-images";
+import { GigImageGallery } from "@/components/common/GigImageGallery";
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 import { toast } from 'sonner';
 import type { DynamicFieldDef } from '@/types/gig-fields';
@@ -23,6 +25,7 @@ interface GigDetail {
   addons?: unknown;
   sellerId?: string;
   imageUrl?: string | null;
+  images?: string[];
   completionTime?: string | null;
   seller?: {
     id: string;
@@ -119,6 +122,7 @@ export default function GigDetailPage() {
 
   const gigFields = parseJsonArrayField(gig?.fields);
   const gigAddons = parseJsonArrayField(gig?.addons);
+  const gigImages = getGigImages(gig);
 
   return (
     <div className="bg-background py-8">
@@ -129,17 +133,8 @@ export default function GigDetailPage() {
 
         <div className="grid lg:grid-cols-5 gap-12">
           <div className="lg:col-span-3 space-y-10">
-            {gig.imageUrl && (
-              <div className="rounded-3xl overflow-hidden shadow-xl bg-card">
-                <img
-                  src={gig.imageUrl}
-                  alt={gig.title}
-                  className="w-full aspect-video object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://placehold.co/800x450?text=Sin+Imagen';
-                  }}
-                />
-              </div>
+            {gigImages.length > 0 && (
+              <GigImageGallery images={gigImages} alt={gig.title} />
             )}
 
             <div>
