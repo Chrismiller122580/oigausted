@@ -477,6 +477,7 @@ export const authOptions: NextAuthOptions = {
           su.image = t.profilePicture
           su.profilePicture = t.profilePicture
         }
+        su.coverImageUrl = t.coverImageUrl ?? null
         su.businessName = t.businessName
         su.bio = t.bio
         su.phone = t.phone

@@ -53,6 +53,7 @@ declare module "next-auth/jwt" {
     name?: string | null
     email?: string | null
     profilePicture?: string | null
+    coverImageUrl?: string | null
     referredById?: string | null
     customReferralRate?: number | null
     isActive?: boolean

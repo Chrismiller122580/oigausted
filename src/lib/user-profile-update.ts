@@ -105,18 +105,20 @@ async function rawSqlProfileUpdate(
       name = $1,
       tagline = $2,
       "profilePicture" = $3,
-      bio = $4,
-      phone = $5,
-      whatsapp = $6,
-      instagram = $7,
-      facebook = $8,
-      city = $9,
-      "businessName" = $10,
+      "coverImageUrl" = $4,
+      bio = $5,
+      phone = $6,
+      whatsapp = $7,
+      instagram = $8,
+      facebook = $9,
+      city = $10,
+      "businessName" = $11,
       "updatedAt" = NOW()
-    WHERE id = $11`,
+    WHERE id = $12`,
     updateData.name ?? null,
     updateData.tagline ?? null,
     updateData.profilePicture ?? null,
+    updateData.coverImageUrl ?? null,
     updateData.bio ?? null,
     updateData.phone ?? null,
     updateData.whatsapp ?? null,
@@ -132,7 +134,6 @@ async function rawSqlProfileUpdate(
 function stripDriftedColumns(data: Prisma.UserUpdateInput): Prisma.UserUpdateInput {
   const safe = { ...data }
   delete safe.slug
-  delete safe.coverImageUrl
   delete safe.latitude
   delete safe.longitude
   delete safe.serviceRadiusKm
@@ -191,6 +192,7 @@ const profileSelectFull = {
   facebook: true,
   city: true,
   profilePicture: true,
+  coverImageUrl: true,
   latitude: true,
   longitude: true,
   serviceRadiusKm: true,

@@ -95,6 +95,48 @@ export default function ProfilePage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const persistProfile = async (
+    patch: Partial<typeof formData>,
+    options?: { exitEditMode?: boolean; successMessage?: string }
+  ) => {
+    const payload = { ...formData, ...patch };
+    setLoading(true);
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        setFormData(payload);
+        await update({
+          ...payload,
+          image: payload.imageUrl,
+          profilePicture: payload.imageUrl,
+          coverImageUrl: payload.coverImageUrl,
+        });
+        if (options?.exitEditMode) setIsEditing(false);
+        toast.success(options?.successMessage || "Perfil actualizado correctamente");
+        return true;
+      }
+
+      const err = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        toast.error("Tu sesión expiró. Por favor inicia sesión de nuevo.");
+        router.push(`/login?callbackUrl=${encodeURIComponent(getAuthCallbackUrl('/profile'))}`);
+      } else {
+        toast.error(err.error || "Error al guardar el perfil");
+      }
+      return false;
+    } catch {
+      toast.error("Error de conexión");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -117,8 +159,8 @@ export default function ProfilePage() {
           throw new Error(data.error || 'Upload failed');
         }
       } else if (data.url) {
-        setFormData({ ...formData, imageUrl: data.url });
-        toast.success("Imagen subida correctamente");
+        setFormData(prev => ({ ...prev, imageUrl: data.url }));
+        await persistProfile({ imageUrl: data.url }, { successMessage: "Foto de perfil guardada" });
       }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Error subiendo la foto. Usa el campo URL de imagen abajo.");
@@ -144,8 +186,8 @@ export default function ProfilePage() {
           throw new Error(data.error || 'Upload failed');
         }
       } else if (data.url) {
-        setFormData({ ...formData, coverImageUrl: data.url });
-        toast.success("Foto de fondo subida correctamente");
+        setFormData(prev => ({ ...prev, coverImageUrl: data.url }));
+        await persistProfile({ coverImageUrl: data.url }, { successMessage: "Foto de fondo guardada" });
       }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Error subiendo la foto de fondo.");
@@ -187,39 +229,7 @@ export default function ProfilePage() {
   };
 
   const saveProfile = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/user/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      
-      if (res.ok) {
-        // Force session update with latest data so UI reflects immediately
-        await update({
-          ...formData,
-          image: formData.imageUrl,
-          profilePicture: formData.imageUrl,
-          coverImageUrl: formData.coverImageUrl,
-        });
-        setIsEditing(false);
-        toast.success("Perfil actualizado correctamente");
-      } else {
-        const err = await res.json().catch(() => ({}));
-        
-        if (res.status === 401) {
-          toast.error("Tu sesión expiró. Por favor inicia sesión de nuevo.");
-          router.push(`/login?callbackUrl=${encodeURIComponent(getAuthCallbackUrl('/profile'))}`);
-        } else {
-          toast.error(err.error || "Error al guardar el perfil");
-        }
-      }
-    } catch (err) {
-      toast.error("Error de conexión");
-    } finally {
-      setLoading(false);
-    }
+    await persistProfile(formData, { exitEditMode: true });
   };
 
   const user = session?.user;
@@ -579,6 +589,12 @@ export default function ProfilePage() {
                     value={formData.imageUrl} 
                     onChange={handleChange} 
                     placeholder="URL de imagen de perfil (o sube una arriba)" 
+                  />
+                  <Input
+                    name="coverImageUrl"
+                    value={formData.coverImageUrl}
+                    onChange={handleChange}
+                    placeholder="URL de imagen de fondo (o sube una arriba)"
                   />
                 </div>
 
