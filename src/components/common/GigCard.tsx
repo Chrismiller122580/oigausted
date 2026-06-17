@@ -71,11 +71,13 @@ export default function GigCard({
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       {gig.imageUrl && (
-        <img
-          src={gig.imageUrl}
-          alt={gig.title}
-          className={`w-full ${compact ? 'h-32' : 'h-48'} object-cover`}
-        />
+        <div className={`w-full ${compact ? 'h-32' : 'h-48'} bg-muted flex items-center justify-center overflow-hidden`}>
+          <img
+            src={gig.imageUrl}
+            alt={gig.title}
+            className="w-full h-full object-contain"
+          />
+        </div>
       )}
       <CardHeader>
         <CardTitle className="line-clamp-2">{gig.title}</CardTitle>

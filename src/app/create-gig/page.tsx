@@ -524,8 +524,8 @@ function CreateGigClient() {
             {images.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {images.map((url, index) => (
-                  <div key={`${url}-${index}`} className="relative group rounded-2xl overflow-hidden border">
-                    <img src={url} alt={`Foto ${index + 1}`} className="w-full h-32 object-cover" />
+                  <div key={`${url}-${index}`} className="relative group rounded-2xl overflow-hidden border bg-muted flex items-center justify-center h-36">
+                    <img src={url} alt={`Foto ${index + 1}`} className="w-full h-full object-contain" />
                     {index === 0 && (
                       <span className="absolute top-2 left-2 bg-orange-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
                         Portada

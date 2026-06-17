@@ -9,6 +9,12 @@ interface GigImageGalleryProps {
   className?: string
 }
 
+const mainImageClass =
+  'w-full h-auto max-h-[min(70vh,560px)] object-contain'
+const slideClass =
+  'w-full flex-shrink-0 snap-center flex items-center justify-center bg-muted min-h-[200px] max-h-[min(70vh,560px)]'
+const frameClass = 'rounded-3xl overflow-hidden shadow-xl bg-muted flex items-center justify-center'
+
 export function GigImageGallery({ images, alt, className = '' }: GigImageGalleryProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
@@ -38,11 +44,11 @@ export function GigImageGallery({ images, alt, className = '' }: GigImageGallery
 
   if (images.length === 1) {
     return (
-      <div className={`rounded-3xl overflow-hidden shadow-xl bg-card ${className}`}>
+      <div className={`${frameClass} ${className}`}>
         <img
           src={images[0]}
           alt={alt}
-          className="w-full aspect-video object-cover"
+          className={mainImageClass}
           onError={onImageError}
         />
       </div>
@@ -56,16 +62,17 @@ export function GigImageGallery({ images, alt, className = '' }: GigImageGallery
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth rounded-3xl shadow-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth rounded-3xl shadow-xl bg-muted [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {images.map((url, index) => (
-            <img
-              key={`${url}-${index}`}
-              src={url}
-              alt={`${alt} - foto ${index + 1}`}
-              className="w-full flex-shrink-0 snap-center aspect-video object-cover"
-              onError={onImageError}
-            />
+            <div key={`${url}-${index}`} className={slideClass}>
+              <img
+                src={url}
+                alt={`${alt} - foto ${index + 1}`}
+                className={mainImageClass}
+                onError={onImageError}
+              />
+            </div>
           ))}
         </div>
 
@@ -106,11 +113,11 @@ export function GigImageGallery({ images, alt, className = '' }: GigImageGallery
 
       {/* Desktop: main image + thumbnails */}
       <div className="hidden md:block space-y-3">
-        <div className="rounded-3xl overflow-hidden shadow-xl bg-card">
+        <div className={frameClass}>
           <img
             src={images[activeIndex]}
             alt={`${alt} - foto ${activeIndex + 1}`}
-            className="w-full aspect-video object-cover"
+            className={mainImageClass}
             onError={onImageError}
           />
         </div>
@@ -120,11 +127,11 @@ export function GigImageGallery({ images, alt, className = '' }: GigImageGallery
               key={`${url}-thumb-${index}`}
               type="button"
               onClick={() => setActiveIndex(index)}
-              className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition ${
+              className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 bg-muted flex items-center justify-center transition ${
                 index === activeIndex ? 'border-orange-600' : 'border-transparent opacity-70 hover:opacity-100'
               }`}
             >
-              <img src={url} alt="" className="w-full h-full object-cover" onError={onImageError} />
+              <img src={url} alt="" className="max-w-full max-h-full object-contain" onError={onImageError} />
             </button>
           ))}
         </div>

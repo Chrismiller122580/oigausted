@@ -238,12 +238,12 @@ export default function SellerGigsManagement() {
               <Card key={gig.id} className="overflow-hidden hover:shadow-lg transition">
                 <CardContent className="p-0">
                   {/* Header with image + status */}
-                  <div className="relative h-48 bg-muted">
+                  <div className="relative h-48 bg-muted flex items-center justify-center">
                     {gig.imageUrl ? (
                       <img 
                         src={gig.imageUrl} 
                         alt={gig.title} 
-                        className="w-full h-full object-cover" 
+                        className="w-full h-full object-contain" 
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-6xl text-gray-300">
