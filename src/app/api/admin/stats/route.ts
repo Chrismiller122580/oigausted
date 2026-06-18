@@ -3,7 +3,39 @@ import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { devLog } from '@/lib/utils';
+import { isMissingColumnError } from '@/lib/user-profile-update';
 import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
+
+/** Avoid re-querying a missing column on warm serverless instances (prevents log spam + 25P02 cascades). */
+let sellerPayoutAtAvailable: boolean | null = null;
+
+async function fetchCompletedOrdersForPayoutStats() {
+  const where = { status: labelToPrismaStatus(OrderStatusLabel.Completed) };
+  const baseSelect = {
+    price: true,
+    seller: { select: { referredById: true } },
+  } as const;
+
+  if (sellerPayoutAtAvailable === false) {
+    const rows = await prisma.order.findMany({ where, select: baseSelect });
+    return rows.map((o) => ({ ...o, sellerPayoutAt: null as Date | null }));
+  }
+
+  try {
+    const rows = await prisma.order.findMany({
+      where,
+      select: { ...baseSelect, sellerPayoutAt: true },
+    });
+    sellerPayoutAtAvailable = true;
+    return rows;
+  } catch (e) {
+    if (!isMissingColumnError(e)) throw e;
+    sellerPayoutAtAvailable = false;
+    devLog('sellerPayoutAt column missing in stats — using fallback (run prisma migrate deploy)');
+    const rows = await prisma.order.findMany({ where, select: baseSelect });
+    return rows.map((o) => ({ ...o, sellerPayoutAt: null as Date | null }));
+  }
+}
 
 export async function GET() {
   try {
@@ -88,30 +120,7 @@ export async function GET() {
     // Use the canonical payout calculation for accuracy
     const { aggregatePayouts, calculateOrderPayout, DEFAULT_PAYOUT_CONFIG } = await import('@/lib/payout');
 
-    // For stats we need to know which sellers were referred.
-    // Fetch defensively to handle missing sellerPayoutAt column (prod DB drift).
-    let completedOrdersWithReferral: Array<{ price: number; sellerPayoutAt?: Date | null; seller: { referredById: string | null } }> = [];
-    try {
-      completedOrdersWithReferral = await prisma.order.findMany({
-        where: { status: labelToPrismaStatus(OrderStatusLabel.Completed) },
-        select: {
-          price: true,
-          sellerPayoutAt: true,  // may not exist yet
-          seller: { select: { referredById: true } }
-        }
-      });
-    } catch (e) {
-      // Fallback without sellerPayoutAt
-      completedOrdersWithReferral = await prisma.order.findMany({
-        where: { status: labelToPrismaStatus(OrderStatusLabel.Completed) },
-        select: {
-          price: true,
-          seller: { select: { referredById: true } }
-        }
-      });
-      // treat all as unpaid in fallback (until column added)
-      completedOrdersWithReferral = completedOrdersWithReferral.map(o => ({ ...o, sellerPayoutAt: null }));
-    }
+    const completedOrdersWithReferral = await fetchCompletedOrdersForPayoutStats();
 
     // Only unpaid (no sellerPayoutAt) count toward pending payouts
     const unpaidCompletedOrders = completedOrdersWithReferral.filter(o => !o.sellerPayoutAt);
