@@ -148,23 +148,26 @@ export async function confirmWompiPayment(
     // Seller can start work only after payment — offer action here, not on Pending order creation
     if (updated.sellerId) {
       try {
-        await notifications.sendInApp(
-          updated.sellerId,
-          'order',
-          '¡Pago recibido!',
-          `El pedido por "${updated.gig?.title || 'el servicio'}" fue pagado. Ya puedes aceptar e iniciar el trabajo.`,
-          `/orders/${orderId}`,
-          {
+        await notifications.sendNotification({
+          userId: updated.sellerId,
+          category: 'order',
+          type: 'in_app',
+          priority: 'high',
+          title: '¡Pago recibido! Inicia el trabajo',
+          message: `El pedido por "${updated.gig?.title || 'el servicio'}" fue pagado. Acepta e inicia el trabajo cuando estés listo.`,
+          link: `/orders/${orderId}`,
+          data: {
             gigTitle: updated.gig?.title,
             amount: updated.price,
             orderId,
             buyerName: updated.buyer?.name,
+            newStatus: 'Paid',
             actions: [
               { label: 'Ver Pedido', action: 'view_order' },
               { label: 'Aceptar e Iniciar', action: 'start_order' },
             ],
-          }
-        );
+          },
+        });
       } catch (nErr) {
         devLog('[Wompi confirm] seller notif error (non-fatal):', nErr);
       }

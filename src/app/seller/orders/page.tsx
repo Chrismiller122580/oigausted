@@ -9,6 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { parseCustomFields } from '@/lib/utils';
+import {
+  getOrderStatusDisplayEs,
+  SELLER_ORDER_FILTER_LABELS,
+  OrderStatusLabel,
+} from '@/lib/order-status';
 
 export default function SellerOrdersPage() {
   const { data: session, status } = useSession();
@@ -48,6 +53,21 @@ export default function SellerOrdersPage() {
     setLoading(true);
     loadOrders();
   }, [session, status]);
+
+  // Refresh while waiting on payments so Paid appears without manual reload
+  useEffect(() => {
+    if (!session?.user || orders.length === 0) return;
+    const hasPending = orders.some((o) => o.status === OrderStatusLabel.Pending);
+    if (!hasPending) return;
+
+    const interval = setInterval(() => loadOrders(), 30_000);
+    const onFocus = () => loadOrders();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [session?.user, orders]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -95,6 +115,8 @@ export default function SellerOrdersPage() {
     }
   };
 
+  const paidOrders = orders.filter((o) => o.status === OrderStatusLabel.Paid);
+
   const filteredOrders = statusFilter === 'All' 
     ? orders 
     : orders.filter(o => o.status === statusFilter);
@@ -122,22 +144,50 @@ export default function SellerOrdersPage() {
         <Link href="/seller" className="text-orange-600 hover:underline">← Volver al Dashboard</Link>
       </div>
 
+      {paidOrders.length > 0 && (
+        <div className="mb-6 p-4 rounded-2xl border-2 border-blue-300 bg-blue-50 dark:bg-blue-950/40 dark:border-blue-800">
+          <p className="font-semibold text-blue-800 dark:text-blue-300">
+            {paidOrders.length === 1
+              ? '1 pedido pagado — listo para iniciar'
+              : `${paidOrders.length} pedidos pagados — listos para iniciar`}
+          </p>
+          <p className="text-sm text-blue-700/80 dark:text-blue-400/80 mt-1">
+            El comprador ya pagó. Usa &quot;Aceptar y Comenzar&quot; para pasar a En progreso.
+          </p>
+        </div>
+      )}
+
       {/* Status Filters */}
       {orders.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-8">
-          {['All', 'Pending', 'Paid', 'In Progress', 'Completed'].map((status) => (
+          {['All', 'Pending', 'Paid', 'In Progress', 'Completed'].map((status) => {
+            const count =
+              status === 'All'
+                ? orders.length
+                : orders.filter((o) => o.status === status).length;
+            return (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition inline-flex items-center gap-1.5 ${
                 statusFilter === status 
                   ? 'bg-orange-600 text-white' 
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  : status === 'Paid' && count > 0
+                    ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/60 ring-2 ring-blue-400/50'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
-              {status === 'All' ? 'Todos' : status}
+              {SELLER_ORDER_FILTER_LABELS[status] ?? status}
+              {count > 0 && (
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                  statusFilter === status ? 'bg-white/20' : 'bg-black/5 dark:bg-white/10'
+                }`}>
+                  {count}
+                </span>
+              )}
             </button>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -150,7 +200,14 @@ export default function SellerOrdersPage() {
       ) : (
         <div className="grid gap-6">
           {filteredOrders.map((order) => (
-            <Card key={order.id} className="overflow-hidden hover:shadow-lg transition">
+            <Card
+              key={order.id}
+              className={`overflow-hidden hover:shadow-lg transition ${
+                order.status === OrderStatusLabel.Paid
+                  ? 'ring-2 ring-blue-400/60 border-blue-200 dark:border-blue-800'
+                  : ''
+              }`}
+            >
               <CardContent className="p-8 flex flex-col md:flex-row gap-8">
                 <div className="md:w-48 flex-shrink-0">
                   {order.gig?.imageUrl ? (
@@ -168,8 +225,13 @@ export default function SellerOrdersPage() {
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <span className={`px-5 py-2 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-                        {order.status}
+                        {getOrderStatusDisplayEs(order.status)}
                       </span>
+                      {order.status === OrderStatusLabel.Paid && (
+                        <span className="text-xs font-medium text-blue-700 dark:text-blue-400">
+                          ¡Pago recibido!
+                        </span>
+                      )}
                       {order.status === 'Completed' && (
                         <span className={`text-xs px-2 py-0.5 rounded-full ${hasReview(order.id) ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                           {hasReview(order.id) ? 'Reseña recibida' : 'Sin reseña'}
@@ -212,12 +274,12 @@ export default function SellerOrdersPage() {
                     </p>
                   )}
 
-                  {order.status === 'Paid' && (
+                  {order.status === OrderStatusLabel.Paid && (
                     <Button 
                       onClick={() => updateOrderStatus(order.id, 'In Progress')}
-                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      className="w-full bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/25"
                     >
-                      Aceptar y Comenzar
+                      🚀 Aceptar y Comenzar
                     </Button>
                   )}
 

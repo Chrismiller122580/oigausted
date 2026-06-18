@@ -56,3 +56,24 @@ export function prismaStatusToLabel(status: OrderStatus | string): OrderStatusLa
 export function normalizeOrderStatus(status: string): OrderStatusLabelValue {
   return prismaStatusToLabel(status)
 }
+
+/** Spanish labels for seller/buyer order UI. */
+export const ORDER_STATUS_DISPLAY_ES: Record<OrderStatusLabelValue, string> = {
+  [OrderStatusLabel.Pending]: 'Pendiente',
+  [OrderStatusLabel.Paid]: 'Pagado',
+  [OrderStatusLabel.InProgress]: 'En progreso',
+  [OrderStatusLabel.Completed]: 'Completado',
+  [OrderStatusLabel.Cancelled]: 'Cancelado',
+}
+
+export function getOrderStatusDisplayEs(status: string): string {
+  return ORDER_STATUS_DISPLAY_ES[prismaStatusToLabel(status)] ?? status
+}
+
+export const SELLER_ORDER_FILTER_LABELS: Record<string, string> = {
+  All: 'Todos',
+  Pending: 'Pendiente',
+  Paid: 'Pagado',
+  'In Progress': 'En progreso',
+  Completed: 'Completado',
+}

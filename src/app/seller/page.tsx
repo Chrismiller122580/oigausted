@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DollarSign, Package, Star, Plus, TrendingUp, Clock } from 'lucide-react';
 import OnboardingTutorial from '@/components/common/OnboardingTutorial';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
+import { getOrderStatusDisplayEs, OrderStatusLabel } from '@/lib/order-status';
 
 export default function SellerDashboard() {
   const { data: session } = useSession();
@@ -63,8 +64,14 @@ export default function SellerDashboard() {
     }
   }, [session, loading, platformConfig?.tutorialsEnabled]);
 
-  const activeOrders = orders.filter(o => ['Pending', 'In Progress'].includes(o.status || ''));
-  const completedOrders = orders.filter(o => o.status === 'Completed');
+  const paidAwaitingStart = orders.filter((o) => o.status === OrderStatusLabel.Paid);
+  const activeSellerStatuses = new Set([
+    OrderStatusLabel.Pending,
+    OrderStatusLabel.Paid,
+    OrderStatusLabel.InProgress,
+  ]);
+  const activeOrders = orders.filter((o) => activeSellerStatuses.has(o.status || ''));
+  const completedOrders = orders.filter(o => o.status === OrderStatusLabel.Completed);
   const totalEarnings = completedOrders.reduce((sum, order) => sum + (Number(order.price) || 0), 0);
   const pendingEarnings = activeOrders.reduce((sum, order) => sum + (Number(order.price) || 0), 0);
 
@@ -117,6 +124,26 @@ export default function SellerDashboard() {
             </Link>
           </div>
         </div>
+
+        {paidAwaitingStart.length > 0 && (
+          <Card className="mb-8 border-2 border-blue-300 bg-blue-50 dark:bg-blue-950/40 dark:border-blue-800">
+            <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <p className="font-semibold text-blue-800 dark:text-blue-300 text-lg">
+                  {paidAwaitingStart.length === 1
+                    ? 'Tienes 1 pedido pagado listo para iniciar'
+                    : `Tienes ${paidAwaitingStart.length} pedidos pagados listos para iniciar`}
+                </p>
+                <p className="text-sm text-blue-700/80 dark:text-blue-400/80 mt-1">
+                  El comprador ya pagó. Acepta el pedido y comienza el trabajo.
+                </p>
+              </div>
+              <Link href="/seller/orders">
+                <Button className="bg-blue-600 hover:bg-blue-700 shrink-0">Ver pedidos pagados</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
@@ -254,16 +281,34 @@ export default function SellerDashboard() {
               {activeOrders.length > 0 ? (
                 <div className="space-y-3">
                   {activeOrders.slice(0, 4).map(order => (
-                    <div key={order.id} className="flex justify-between items-center p-4 border rounded-2xl hover:bg-muted/50 transition">
+                    <div
+                      key={order.id}
+                      className={`flex justify-between items-center p-4 border rounded-2xl hover:bg-muted/50 transition ${
+                        order.status === OrderStatusLabel.Paid ? 'border-blue-300 bg-blue-50/50 dark:bg-blue-950/20' : ''
+                      }`}
+                    >
                       <div className="min-w-0">
                         <p className="font-medium truncate text-foreground">{order.gig?.title || "Servicio"}</p>
                         <p className="text-xs text-muted-foreground">
                           {order.buyer?.name || "Cliente"} • ${Number(order.price || 0).toLocaleString('es-CO')}
                         </p>
-                        <p className="text-xs text-orange-600 mt-0.5">{order.status}</p>
+                        <p className={`text-xs mt-0.5 font-medium ${
+                          order.status === OrderStatusLabel.Paid
+                            ? 'text-blue-700 dark:text-blue-400'
+                            : 'text-orange-600'
+                        }`}>
+                          {getOrderStatusDisplayEs(order.status)}
+                          {order.status === OrderStatusLabel.Paid ? ' — ¡inicia el trabajo!' : ''}
+                        </p>
                       </div>
                       <Link href={`/orders/${order.id}`}>
-                        <Button variant="outline" size="sm" className="shrink-0">Gestionar</Button>
+                        <Button
+                          variant={order.status === OrderStatusLabel.Paid ? 'default' : 'outline'}
+                          size="sm"
+                          className={`shrink-0 ${order.status === OrderStatusLabel.Paid ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                        >
+                          {order.status === OrderStatusLabel.Paid ? 'Iniciar' : 'Gestionar'}
+                        </Button>
                       </Link>
                     </div>
                   ))}
