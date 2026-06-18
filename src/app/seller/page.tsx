@@ -65,12 +65,12 @@ export default function SellerDashboard() {
   }, [session, loading, platformConfig?.tutorialsEnabled]);
 
   const paidAwaitingStart = orders.filter((o) => o.status === OrderStatusLabel.Paid);
-  const activeSellerStatuses = new Set([
+  const activeSellerStatuses = new Set<string>([
     OrderStatusLabel.Pending,
     OrderStatusLabel.Paid,
     OrderStatusLabel.InProgress,
   ]);
-  const activeOrders = orders.filter((o) => activeSellerStatuses.has(o.status || ''));
+  const activeOrders = orders.filter((o) => activeSellerStatuses.has(o.status ?? ''));
   const completedOrders = orders.filter(o => o.status === OrderStatusLabel.Completed);
   const totalEarnings = completedOrders.reduce((sum, order) => sum + (Number(order.price) || 0), 0);
   const pendingEarnings = activeOrders.reduce((sum, order) => sum + (Number(order.price) || 0), 0);
