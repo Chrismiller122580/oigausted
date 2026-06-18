@@ -7,6 +7,7 @@ import { getCategoryIcon } from '@/lib/icon-registry';
 import { Search, MessageCircle, ShieldCheck } from 'lucide-react';
 import { AnimatedCategoryGrid, AnimatedTestimonials } from './LandingClient';
 import { LaunchPromoBanner } from './LaunchPromoBanner';
+import { HomepageWelcomeSplash } from './HomepageWelcomeSplash';
 import { PublicFooter } from '@/components/marketing/PublicFooter';
 
 export const metadata = {
@@ -166,6 +167,7 @@ export default async function MarketingHomePage() {
   return (
     <div className="min-h-screen bg-background">
       <LaunchPromoBanner sellerCount={stats.sellers} maxSlots={launchPromoMaxSlots} />
+      <HomepageWelcomeSplash />
 
       {/* HERO - Warm Colombian welcome + launch energy */}
       <section className="relative bg-gradient-to-br from-orange-600 via-red-600 to-rose-600 text-white overflow-hidden">

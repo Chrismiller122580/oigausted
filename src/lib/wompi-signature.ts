@@ -69,7 +69,7 @@ export type VerifyResult = {
   computedHex: string
   receivedHexLen: number
   computedHexLen: number
-  // Optional diagnostics added for timestamp variant support (propertiesValues + timestamp + eventsKey as HMAC key only)
+  // Optional diagnostics for timestamp variant support (propertiesValues + timestamp + eventsKey)
   usedTimestampVariant?: boolean
   altSignedPayloadWithTimestamp?: string
   altComputedHex?: string
@@ -114,8 +114,9 @@ export function verifyWompiSignatureDetailed(body: WompiSignatureBody, receivedS
 
   const normalizedReceived = (receivedSignature || '').replace(/^sha256=/i, '').trim().toLowerCase()
 
+  // Wompi docs: SHA256(properties + timestamp + events secret) — plain hash, not HMAC.
   const computedHex = crypto
-    .createHmac('sha256', keyToUse)
+    .createHash('sha256')
     .update(fullPayload)
     .digest('hex')
 
@@ -167,7 +168,7 @@ export function verifyWompiSignatureDetailed(body: WompiSignatureBody, receivedS
 
     return {
       ok: match,
-      reason: match ? 'ok (using properties+timestamp+eventsKey per user Fix 1)' : 'HMAC mismatch (wrong events key or properties/timestamp concat mismatch)',
+      reason: match ? 'ok (SHA256 of properties+timestamp+eventsKey)' : 'Checksum mismatch (wrong events key or properties/timestamp concat mismatch)',
       signedPayload: returnedPayload,
       properties,
       keyPresent: true,

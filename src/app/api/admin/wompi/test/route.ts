@@ -137,10 +137,10 @@ export async function POST(req: NextRequest) {
       const sampleCents = 12345;
       const sampleCur = 'COP';
       const toSign = `${sampleRef}${sampleCents}${sampleCur}${integ}`;
-      sampleSig = crypto.createHmac('sha256', integ).update(toSign).digest('hex');
-      sampleNote = 'computed successfully (exact concat: ref + cents + COP + secret)';
+      sampleSig = crypto.createHash('sha256').update(toSign).digest('hex');
+      sampleNote = 'computed successfully (SHA256 of ref + cents + COP + secret)';
     } catch (e: unknown) {
-      sampleNote = 'HMAC failed: ' + errMessage(e);
+      sampleNote = 'SHA256 failed: ' + errMessage(e);
     }
   }
 
@@ -150,16 +150,17 @@ export async function POST(req: NextRequest) {
     try {
       const sampleProps = ['transaction.id', 'transaction.status', 'transaction.amount_in_cents'];
       const sampleTx = { id: 'tx_test_999', status: 'APPROVED', amount_in_cents: 100000 };
+      const sampleTimestamp = '1530291411';
       const signedPayload = sampleProps.map(p => {
         if (p === 'transaction.id') return sampleTx.id;
         if (p === 'transaction.status') return sampleTx.status;
         if (p === 'transaction.amount_in_cents') return String(sampleTx.amount_in_cents);
         return '';
-      }).join('');
-      sampleEventsSig = crypto.createHmac('sha256', events).update(signedPayload).digest('hex');
-      sampleEventsNote = `computed successfully (properties: ${sampleProps.join(', ')} → concat: ${signedPayload})`;
+      }).join('') + sampleTimestamp + events;
+      sampleEventsSig = crypto.createHash('sha256').update(signedPayload).digest('hex');
+      sampleEventsNote = `computed successfully (SHA256 of properties + timestamp + eventsKey)`;
     } catch (e: unknown) {
-      sampleEventsNote = 'HMAC failed: ' + errMessage(e);
+      sampleEventsNote = 'SHA256 failed: ' + errMessage(e);
     }
   }
 
@@ -228,7 +229,7 @@ export async function POST(req: NextRequest) {
       eventVerification = {
         ...eventVerification,
         matches: detailed.ok,
-        reason: detailed.ok ? 'ok (using properties+timestamp+eventsKey)' : 'HMAC mismatch',
+        reason: detailed.ok ? 'ok (SHA256 of properties+timestamp+eventsKey)' : 'Checksum mismatch',
         signedPayload: detailed.signedPayload,
         computed: detailed.computedHex,
         receivedChecksum: detailed.receivedNormalized,
@@ -245,7 +246,7 @@ export async function POST(req: NextRequest) {
         if (eventVerification.matches) {
           summary.recommendations.push('CUSTOM KEY TEST: The provided testEventsKey SUCCESSFULLY validated the sample event. Use this exact value as WOMPI_EVENTS_KEY in Vercel Production and redeploy.');
         } else {
-          summary.recommendations.push('CUSTOM KEY TEST: The provided testEventsKey did NOT validate the sample event (HMAC mismatch). Try a different "Llave para eventos" from the Wompi dashboard for this public key.');
+          summary.recommendations.push('CUSTOM KEY TEST: The provided testEventsKey did NOT validate the sample event (checksum mismatch). Try a different "Llave para eventos" from the Wompi dashboard for this public key.');
         }
       } else if (!eventVerification.matches) {
         summary.recommendations.push(`SAMPLE EVENT SIGNATURE FAILED — this real event does NOT validate with the current EVENTS_KEY for ${process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || 'this pub key'}. Paste this exact full event JSON as sampleEvent + try your candidate "Llave para eventos" as testEventsKey until matches:true. Then set that exact value in Vercel Production as WOMPI_EVENTS_KEY and redeploy. The basic tester samples are only dummies — real events are the only proof.`);
