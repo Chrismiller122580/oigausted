@@ -27,6 +27,11 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, ''); // trim leading/trailing -
 }
 
+/** True only for standard UUID user ids — not long business slugs like "cortland-blackstone-sas404". */
+export function isUuidIdentifier(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+}
+
 /**
  * Safely parse a field that may be stored as a JSON string (e.g. gig.fields, gig.addons).
  * Returns an array, or empty array on failure / missing value.

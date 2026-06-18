@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import GigCard from '@/components/common/GigCard';
 import { Button } from '@/components/ui/button';
-import { devLog } from '@/lib/utils';
+import { devLog, isUuidIdentifier } from '@/lib/utils';
 import ProfileShare from './ProfileShare';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -23,33 +23,35 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+const sellerByIdSelect = {
+  id: true,
+  name: true,
+  businessName: true,
+  bio: true,
+  profilePicture: true,
+  whatsapp: true,
+  instagram: true,
+  phone: true,
+} as const;
+
+const sellerBySlugSelect = {
+  ...sellerByIdSelect,
+  slug: true,
+} as const;
+
 // Helper to support both slug (preferred, company name based) and legacy UUID id
 async function findSellerBySlugOrId(identifier: string) {
   if (!identifier) return null;
 
-  // Detect legacy ID-style access so we can completely avoid touching the 'slug' column
-  // on prod DBs that are behind on migrations. This prevents "column User.slug does not exist"
-  // prisma errors from appearing in Vercel logs for /sellers/<uuid> links.
-  const looksLikeId = /^[0-9a-fA-F-]{8,}$/.test(identifier) || identifier.length > 20;
+  const normalized = decodeURIComponent(identifier).trim().toLowerCase();
+  const isUuid = isUuidIdentifier(normalized);
 
-  // Always prefer ID lookup first when it looks like one (guaranteed column).
-  // Use a select that deliberately omits 'slug'.
-  if (looksLikeId) {
+  // UUID links: id lookup first (avoids touching slug column on drifted DBs)
+  if (isUuid) {
     try {
       const seller = await prisma.user.findUnique({
-        where: { id: identifier },
-        select: {
-          id: true,
-          name: true,
-          businessName: true,
-          // slug omitted here and in all ID paths to avoid referencing the column
-          // when it doesn't exist in the current production database.
-          bio: true,
-          profilePicture: true,
-          whatsapp: true,
-          instagram: true,
-          phone: true,
-        }
+        where: { id: normalized },
+        select: sellerByIdSelect,
       });
       if (seller) return seller;
     } catch (e) {
@@ -57,50 +59,28 @@ async function findSellerBySlugOrId(identifier: string) {
     }
   }
 
-  // Only attempt slug lookup for values that do not look like IDs.
-  // Real slugs are human-friendly (e.g. "mi-tienda-local"). Querying WHERE slug = '<uuid>'
-  // or selecting the column on a drifted DB produces the prisma error we see in logs.
-  if (!looksLikeId) {
+  // Business slug (e.g. cortland-blackstone-sas404) — must not use length heuristic; long slugs are valid
+  try {
+    const seller = await prisma.user.findUnique({
+      where: { slug: normalized },
+      select: sellerBySlugSelect,
+    });
+    if (seller) return seller;
+  } catch (e) {
+    devLog('Seller find by slug failed (column may be missing in prod DB - run prisma migrate deploy)', e);
+  }
+
+  // Fallback: direct id for non-UUID legacy links
+  if (!isUuid) {
     try {
       const seller = await prisma.user.findUnique({
-        where: { slug: identifier },
-        select: {
-          id: true,
-          name: true,
-          businessName: true,
-          slug: true,
-          bio: true,
-          profilePicture: true,
-          whatsapp: true,
-          instagram: true,
-          phone: true,
-        }
+        where: { id: normalized },
+        select: sellerByIdSelect,
       });
       if (seller) return seller;
     } catch (e) {
-      devLog('Seller find by slug failed (column may be missing in prod DB - run prisma migrate deploy)', e);
+      devLog('Seller find by id fallback failed', e);
     }
-  }
-
-  // Last attempt by id (for the case where the param did not look like an ID but ID lookup might still work)
-  if (!looksLikeId) {
-    try {
-      const seller = await prisma.user.findUnique({
-        where: { id: identifier },
-        select: {
-          id: true,
-          name: true,
-          businessName: true,
-          // slug omitted for prod DB compatibility
-          bio: true,
-          profilePicture: true,
-          whatsapp: true,
-          instagram: true,
-          phone: true,
-        }
-      });
-      if (seller) return seller;
-    } catch (e) {}
   }
 
   return null;
