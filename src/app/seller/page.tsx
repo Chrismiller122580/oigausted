@@ -6,7 +6,7 @@ import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { DollarSign, Package, Star, Plus, TrendingUp, Clock } from 'lucide-react';
+import { DollarSign, Package, Star, Plus, TrendingUp, Clock, Users } from 'lucide-react';
 import OnboardingTutorial from '@/components/common/OnboardingTutorial';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 import { getOrderStatusDisplayEs, OrderStatusLabel } from '@/lib/order-status';
@@ -111,6 +111,21 @@ export default function SellerDashboard() {
               <Link href="/seller/profile">
                 <Button size="sm" variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-100">
                   Ver y compartir mi enlace público
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 border-blue-200 dark:border-blue-900/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-semibold mb-2">
+                <Users size={18} /> Red de Vendedores
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Busca socios para proyectos grandes. Combina servicios y contacta otros vendedores.
+              </p>
+              <Link href="/seller/network">
+                <Button size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-950/50">
+                  Explorar red de vendedores
                 </Button>
               </Link>
             </CardContent>

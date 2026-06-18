@@ -51,6 +51,12 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
               <Briefcase size={18} /> Mis Gigs
             </Link>
             <Link 
+              href="/seller/network" 
+              className={`flex items-center gap-2 transition ${isActive('/seller/network') ? 'text-foreground font-semibold border-b-2 border-orange-600 pb-1' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <Users size={18} /> Red
+            </Link>
+            <Link 
               href="/seller/profile" 
               className={isActive('/seller/profile') 
                 ? 'font-semibold bg-orange-100 dark:bg-orange-900/40 px-4 py-1 rounded-2xl hover:bg-orange-200 dark:hover:bg-orange-900/60 transition flex items-center gap-2' 

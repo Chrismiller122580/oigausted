@@ -37,11 +37,17 @@ export default function GigCard({
   sellerView = false,
   compact = false,
   distanceKm,
+  mode = 'buyer',
+  inProject = false,
+  onAddToProject,
 }: { 
   gig: Gig; 
   sellerView?: boolean;
   compact?: boolean;
   distanceKm?: number;
+  mode?: 'buyer' | 'network';
+  inProject?: boolean;
+  onAddToProject?: (gig: Gig) => void;
 }) {
   const router = useRouter()
   const { data: session } = useSession()
@@ -152,8 +158,23 @@ export default function GigCard({
           </div>
         </div>
       </CardContent>
-      <CardFooter>
-        {sellerView && isOwnGig ? (
+      <CardFooter className={mode === 'network' ? 'flex flex-col gap-2' : undefined}>
+        {mode === 'network' ? (
+          <>
+            <Button
+              onClick={() => onAddToProject?.(gig)}
+              className="w-full bg-orange-600 hover:bg-orange-700"
+              disabled={inProject || gig.isActive === false}
+            >
+              {inProject ? 'En tu proyecto' : 'Agregar al proyecto'}
+            </Button>
+            <Link href={`/sellers/${gig.seller?.slug || gig.seller?.id}`} className="w-full">
+              <Button variant="outline" className="w-full">
+                Ver perfil del vendedor
+              </Button>
+            </Link>
+          </>
+        ) : sellerView && isOwnGig ? (
           <Button
             onClick={() => router.push(`/create-gig?edit=${gig.id}`)}
             className="w-full bg-orange-600 hover:bg-orange-700"
