@@ -165,7 +165,7 @@ export async function PATCH(
         if (statusLabel === OrderStatusLabel.InProgress && current !== 'Paid') {
           return NextResponse.json({ error: 'Order must be Paid before In Progress' }, { status: 400 });
         }
-        if (statusLabel === OrderStatusLabel.Completed && !['Paid', 'InProgress'].includes(current)) {
+        if (statusLabel === OrderStatusLabel.Completed && !['Paid', OrderStatusLabel.InProgress].includes(current)) {
           return NextResponse.json({ error: 'Invalid transition to Completed' }, { status: 400 });
         }
         if (statusLabel === OrderStatusLabel.Cancelled && !['Pending', 'Paid'].includes(current)) {

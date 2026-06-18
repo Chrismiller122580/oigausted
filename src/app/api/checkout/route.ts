@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
 import { notifyAdminsNewOrder } from '@/lib/admin-notifications';
+import { createPendingOrder, ensureBuyerForOrder } from '@/lib/order-queries';
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,27 +40,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Este servicio está pausado y no se puede comprar" }, { status: 400 });
     }
 
-    const order = await prisma.order.create({
-      data: {
-        buyerId: userId,
-        sellerId: gig.sellerId,
-        gigId: gig.id,
-        price: gig.price,
-        status: 'Pending',
-        customFields: null
-      },
-      // Explicit select to avoid columns missing in prod DB (e.g. sellerPayoutAt)
-      select: {
-        id: true,
-        buyerId: true,
-        sellerId: true,
-        gigId: true,
-        price: true,
-        status: true,
-        customFields: true,
-        createdAt: true,
-        updatedAt: true,
-      }
+    await ensureBuyerForOrder(session?.user)
+
+    const order = await createPendingOrder({
+      buyerId: userId,
+      sellerId: gig.sellerId,
+      gigId: gig.id,
+      price: gig.price,
     });
 
     devLog("✅ Order created:", order.id);

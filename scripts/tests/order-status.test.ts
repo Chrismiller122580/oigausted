@@ -12,7 +12,7 @@ function assert(cond: boolean, msg: string) {
 assert(isOrderStatusLabel('In Progress'), 'In Progress is valid label')
 assert(!isOrderStatusLabel('InProgress'), 'InProgress is not API label')
 const mapped = labelToPrismaStatus(OrderStatusLabel.InProgress)
-assert(mapped === 'InProgress' || mapped === 'In Progress', 'label to prisma/sqlite')
+assert(mapped === 'In Progress', 'label to prisma stores spaced enum value')
 assert(prismaStatusToLabel('InProgress') === 'In Progress', 'prisma to label')
 assert(prismaStatusToLabel('Paid') === 'Paid', 'Paid roundtrip')
 

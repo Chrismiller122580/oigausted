@@ -7,6 +7,8 @@ import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
 import { computeOrderPrice } from '@/lib/order-price';
 import { notifyAdminsNewOrder } from '@/lib/admin-notifications';
+import { fetchOrdersList, orderCreateSelect } from '@/lib/order-queries';
+import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
 import type { Prisma } from '@prisma/client';
 
 export async function POST(request: Request) {
@@ -89,20 +91,12 @@ export async function POST(request: Request) {
         gigId: gig.id,
         price: computedPrice,
         customFields: customFields ? JSON.stringify(customFields) : null,
-        status: 'Pending',
+        status: labelToPrismaStatus(OrderStatusLabel.Pending),
       },
-      // Explicit select to avoid missing columns like sellerPayoutAt
       select: {
-        id: true,
-        buyerId: true,
-        sellerId: true,
-        gigId: true,
-        price: true,
-        status: true,
-        customFields: true,
-        createdAt: true,
+        ...orderCreateSelect,
         buyer: { select: { name: true } },
-      }
+      },
     });
 
     // Note: 'order' here has limited shape due to explicit select (to avoid prod DB column issues).
@@ -195,70 +189,9 @@ export async function GET(request: Request) {
       where = { buyerId: userId };
     }
 
-    let orders: Awaited<ReturnType<typeof prisma.order.findMany>> = [];
-    try {
-      // Try with sellerPayoutAt (for payouts page to filter paid/unpaid reliably)
-      orders = await prisma.order.findMany({
-        where,
-        select: {
-          id: true,
-          price: true,
-          status: true,
-          progress: true,
-          trackingNumber: true,
-          createdAt: true,
-          updatedAt: true,
-          buyerId: true,
-          sellerId: true,
-          gigId: true,
-          customFields: true,
-          sellerPayoutAt: true,
-          wompiPayoutRef: true,
-          serviceLatitude: true,
-          serviceLongitude: true,
-          serviceAddress: true,
-          gig: { select: { title: true, imageUrl: true } },
-          buyer: { select: { id: true, name: true, email: true } },
-          seller: { select: { id: true, name: true, businessName: true, referredById: true, payoutBankCode: true, payoutAccountNumber: true, payoutAccountType: true, payoutHolderName: true, payoutDocumentType: true, payoutDocumentNumber: true } }
-        },
-        orderBy: { createdAt: 'desc' }
-      });
-    } catch (e: unknown) {
-      // Fallback if column still missing in this DB (prod drift) - omit it, payouts page will use local persistence
-      devLog('orders GET: sellerPayoutAt column missing, falling back (see payouts page localMarked)');
-      orders = await prisma.order.findMany({
-        where,
-        select: {
-          id: true,
-          price: true,
-          status: true,
-          progress: true,
-          trackingNumber: true,
-          createdAt: true,
-          updatedAt: true,
-          buyerId: true,
-          sellerId: true,
-          gigId: true,
-          customFields: true,
-          serviceLatitude: true,
-          serviceLongitude: true,
-          serviceAddress: true,
-          gig: { select: { title: true, imageUrl: true } },
-          buyer: { select: { id: true, name: true, email: true } },
-          seller: { select: { id: true, name: true, businessName: true, referredById: true } }
-        },
-        orderBy: { createdAt: 'desc' }
-      });
-      // attach nulls for payout tracking fields (old DB / pre-migration); payouts UI falls back to localStorage for marked state
-      orders = orders.map((o: (typeof orders)[number]) => ({
-        ...o,
-        sellerPayoutAt: null,
-        wompiPayoutRef: null,
-        // seller payout bank fields absent in this path (UI will treat as "no bank configured")
-      }));
-    }
+    const orders = await fetchOrdersList(where);
 
-    return NextResponse.json(orders);  // sellerPayoutAt included when column present in DB; nulls + client localMarked otherwise (see admin/payouts)
+    return NextResponse.json(orders);
   } catch (error: unknown) {
     devLog('Orders fetch error:', error);
     const errMsg = error instanceof Error ? error.message : undefined;
