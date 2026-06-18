@@ -405,19 +405,25 @@ function OrderDetailClient() {
         </div>
       </div>
 
-      {/* Payment in progress banner - smart UX for real Wompi flow (no bypass) */}
-      {order.status === 'Pending' && (
-        <div className="mb-6 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-sm">
-          <div className="flex items-center gap-3">
-            {isPollingPayment && <div className="animate-pulse w-2 h-2 bg-blue-500 rounded-full" />}
-            <div>
-              <strong>Esperando confirmación de pago de Wompi</strong>
-              <span className="text-muted-foreground"> — el webhook de Wompi + polling cada 4s actualizan el estado.</span>
-            </div>
+      {/* Payment confirmation — visual-only while Wompi webhook/polling updates status */}
+      {order.status === 'Pending' && isPollingPayment && (
+        <div
+          className="mb-6 flex flex-col items-center justify-center gap-3 py-6 rounded-2xl bg-gradient-to-r from-blue-500/5 via-blue-500/10 to-blue-500/5 border border-blue-500/20"
+          role="status"
+          aria-label="Confirmando pago"
+        >
+          <div className="relative h-10 w-10">
+            <span className="absolute inset-0 rounded-full border-2 border-blue-500/20" />
+            <span className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.3s]" />
+            <span className="h-2 w-2 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.15s]" />
+            <span className="h-2 w-2 rounded-full bg-blue-500 animate-bounce" />
           </div>
           {maintenanceMode && (
             <div className="text-[10px] text-muted-foreground mt-1">
-              Reference en Wompi: <span className="font-mono font-medium">order_{order.id}</span>. Revisa el panel de debugger abajo para más detalles y forzar chequeo.
+              Reference en Wompi: <span className="font-mono font-medium">order_{order.id}</span>
             </div>
           )}
         </div>
