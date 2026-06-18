@@ -1,10 +1,13 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import GigCard from '@/components/common/GigCard';
 import { Button } from '@/components/ui/button';
-import { devLog, isUuidIdentifier } from '@/lib/utils';
+import {
+  canonicalSellerPath,
+  findSellerBySlugOrId,
+} from '@/lib/seller-profile';
 import ProfileShare from './ProfileShare';
 import SellerProfileMobileBar from './SellerProfileMobileBar';
 
@@ -24,69 +27,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-const sellerByIdSelect = {
-  id: true,
-  name: true,
-  businessName: true,
-  bio: true,
-  profilePicture: true,
-  whatsapp: true,
-  instagram: true,
-  phone: true,
-} as const;
-
-const sellerBySlugSelect = {
-  ...sellerByIdSelect,
-  slug: true,
-} as const;
-
-// Helper to support both slug (preferred, company name based) and legacy UUID id
-async function findSellerBySlugOrId(identifier: string) {
-  if (!identifier) return null;
-
-  const normalized = decodeURIComponent(identifier).trim().toLowerCase();
-  const isUuid = isUuidIdentifier(normalized);
-
-  // UUID links: id lookup first (avoids touching slug column on drifted DBs)
-  if (isUuid) {
-    try {
-      const seller = await prisma.user.findUnique({
-        where: { id: normalized },
-        select: sellerByIdSelect,
-      });
-      if (seller) return seller;
-    } catch (e) {
-      devLog('Seller find by id failed (possible schema)', e);
-    }
-  }
-
-  // Business slug (e.g. cortland-blackstone-sas404) — must not use length heuristic; long slugs are valid
-  try {
-    const seller = await prisma.user.findUnique({
-      where: { slug: normalized },
-      select: sellerBySlugSelect,
-    });
-    if (seller) return seller;
-  } catch (e) {
-    devLog('Seller find by slug failed (column may be missing in prod DB - run prisma migrate deploy)', e);
-  }
-
-  // Fallback: direct id for non-UUID legacy links
-  if (!isUuid) {
-    try {
-      const seller = await prisma.user.findUnique({
-        where: { id: normalized },
-        select: sellerByIdSelect,
-      });
-      if (seller) return seller;
-    } catch (e) {
-      devLog('Seller find by id fallback failed', e);
-    }
-  }
-
-  return null;
-}
-
 export default async function PublicSellerProfile({ params }: { params: Promise<{ slug: string }> }) {
   const { slug: identifier } = await params;
 
@@ -96,7 +36,13 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
     notFound();
   }
 
-  const sellerId = seller!.id;
+  const canonicalPath = canonicalSellerPath(seller);
+  const requested = decodeURIComponent(identifier).trim().toLowerCase();
+  if (canonicalPath !== requested) {
+    redirect(`/sellers/${canonicalPath}`);
+  }
+
+  const sellerId = seller.id;
 
   const gigs = await prisma.gig.findMany({
     where: { sellerId },

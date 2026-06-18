@@ -77,6 +77,7 @@ export default function MiNegocioPage() {
     longitude: null as number | null,
     serviceRadiusKm: 15,
   });
+  const [publicSlug, setPublicSlug] = useState<string | null>(null);
 
   const [reviews, setReviews] = useState<import('@/types/order').OrderReview[]>([]);
   const [realStats, setRealStats] = useState({
@@ -101,6 +102,8 @@ export default function MiNegocioPage() {
     serviceRadiusKm?: number | null
     rating?: number | null
     reviewCount?: number | null
+    slug?: string | null
+    id?: string
   }) => {
     setFormData({
       businessName: user.businessName || "Mi Negocio Local",
@@ -120,6 +123,7 @@ export default function MiNegocioPage() {
       rating: user.rating || 0,
       reviewCount: user.reviewCount || 0,
     }))
+    setPublicSlug(user.slug || user.id || null)
   }
 
   // Load from API (source of truth); skip while user is mid-edit
@@ -283,8 +287,8 @@ export default function MiNegocioPage() {
               </p>
 
               {(() => {
-                const previewSlug = slugifyForPreview(formData.businessName);
-                const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://oigagig.com'}/sellers/${previewSlug || session?.user?.id}`;
+                const linkSlug = publicSlug || slugifyForPreview(formData.businessName) || session?.user?.id;
+                const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://oigagig.com'}/sellers/${linkSlug}`;
                 const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(publicUrl)}&color=ea580c&bgcolor=ffffff&margin=10`;
 
                 return (
@@ -305,7 +309,7 @@ export default function MiNegocioPage() {
                         >
                           Copiar enlace
                         </Button>
-                        <Link href={`/sellers/${previewSlug || session?.user?.id}`} target="_blank">
+                        <Link href={`/sellers/${linkSlug}`} target="_blank">
                           <Button size="sm" className="bg-orange-600 hover:bg-orange-700 gap-1.5">
                             Ver perfil público →
                           </Button>
@@ -316,7 +320,7 @@ export default function MiNegocioPage() {
                           onClick={() => {
                             const link = document.createElement('a');
                             link.href = qrUrl;
-                            link.download = `qr-${previewSlug || 'perfil'}.png`;
+                            link.download = `qr-${linkSlug || 'perfil'}.png`;
                             document.body.appendChild(link);
                             link.click();
                             document.body.removeChild(link);
@@ -547,7 +551,7 @@ export default function MiNegocioPage() {
                       </div>
                     ))}
                   </div>
-                  <Link href={`/sellers/${slugifyForPreview(formData.businessName) || session?.user?.id}`} className="text-xs text-orange-600 hover:underline mt-4 inline-block">
+                  <Link href={`/sellers/${publicSlug || slugifyForPreview(formData.businessName) || session?.user?.id}`} className="text-xs text-orange-600 hover:underline mt-4 inline-block">
                     Ver todas en mi perfil público →
                   </Link>
                 </CardContent>
