@@ -19,6 +19,7 @@ import type { ChangeEvent } from 'react';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 import { trackEvent } from '@/lib/analytics';
 import { buildWompiWidgetConfig } from '@/lib/wompi-widget';
+import { getOrderProgressSteps } from '@/lib/order-progress';
 
 function OrderDetailClient() {
   const params = useParams();
@@ -1112,19 +1113,41 @@ function OrderDetailClient() {
         <Card className="shadow-lg">
           <CardHeader><CardTitle>📈 Progreso del Pedido</CardTitle></CardHeader>
           <CardContent className="pt-8">
-            <div className="space-y-10 relative pl-8 before:absolute before:left-4 before:top-0 before:bottom-0 before:w-0.5 before:bg-muted">
-              {[
-                { step: "Pedido creado", date: order.createdAt, done: true },
-                { step: "En progreso", date: null, done: order.status === 'In Progress' || isCompleted },
-                { step: "Trabajo completado", date: null, done: isCompleted },
-              ].map((s, i) => (
-                <div key={i} className="flex gap-6 relative">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${s.done ? 'bg-green-500 text-white' : 'bg-muted'}`}>
-                    {s.done ? '✓' : i+1}
+            <div className="space-y-8 relative pl-8 before:absolute before:left-4 before:top-0 before:bottom-0 before:w-0.5 before:bg-muted">
+              {getOrderProgressSteps({
+                status: order.status,
+                createdAt: order.createdAt,
+                updatedAt: order.updatedAt,
+                hasReview: !!existingReview,
+              }).map((s, i) => (
+                <div key={s.key} className="flex gap-6 relative">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-medium ${
+                      s.done
+                        ? 'bg-green-500 text-white'
+                        : s.current
+                          ? 'bg-orange-500 text-white ring-4 ring-orange-500/20'
+                          : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {s.done ? '✓' : i + 1}
                   </div>
                   <div>
-                    <p className={`font-semibold ${s.done ? 'text-green-600' : ''}`}>{s.step}</p>
-                    {s.date && <p className="text-sm text-muted-foreground">{new Date(s.date).toLocaleString('es-CO')}</p>}
+                    <p
+                      className={`font-semibold ${
+                        s.done ? 'text-green-600 dark:text-green-400' : s.current ? 'text-orange-600' : 'text-muted-foreground'
+                      }`}
+                    >
+                      {s.label}
+                    </p>
+                    {s.date && (
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(s.date).toLocaleString('es-CO')}
+                      </p>
+                    )}
+                    {s.current && !s.done && (
+                      <p className="text-xs text-orange-600/80 mt-0.5">Paso actual</p>
+                    )}
                   </div>
                 </div>
               ))}

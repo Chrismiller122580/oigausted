@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { parseCustomFields } from '@/lib/utils';
 import type { OrderDetail } from '@/types/order';
 import type { OrderReview } from '@/types/order';
+import { getOrderProgressPercent, ORDER_PROGRESS_MILESTONE_LABELS } from '@/lib/order-progress';
 
 export default function BuyerOrdersPage() {
   const { data: session, status } = useSession();
@@ -43,15 +44,8 @@ export default function BuyerOrdersPage() {
   const needsReview = (order: OrderDetail) =>
     order.status === 'Completed' && !reviewedOrderIds.has(order.id);
 
-  const getProgress = (status: string) => {
-    switch (status) {
-      case 'Pending': return 25;
-      case 'Paid': return 50;
-      case 'In Progress': return 75;
-      case 'Completed': return 100;
-      default: return 25;
-    }
-  };
+  const getProgress = (order: OrderDetail) =>
+    getOrderProgressPercent(order.status, reviewedOrderIds.has(order.id));
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -100,7 +94,7 @@ export default function BuyerOrdersPage() {
       ) : (
         <div className="grid gap-6">
           {orders.map((order) => {
-            const progress = getProgress(order.status);
+            const progress = getProgress(order);
             return (
               <Card key={order.id} className="overflow-hidden hover:shadow-lg transition">
                 <CardContent className="p-8 flex flex-col md:flex-row gap-8">
@@ -131,10 +125,10 @@ export default function BuyerOrdersPage() {
 
                     <div className="mt-6">
                       <Progress value={progress} className="h-3" />
-                      <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                        <span>Pendiente</span>
-                        <span>En Progreso</span>
-                        <span>Completado</span>
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 text-[10px] sm:text-xs text-muted-foreground mt-2">
+                        {ORDER_PROGRESS_MILESTONE_LABELS.map((label) => (
+                          <span key={label} className="text-center truncate">{label}</span>
+                        ))}
                       </div>
                     </div>
 
