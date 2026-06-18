@@ -25,11 +25,12 @@ export default function NotificationsPage() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch('/api/notifications');
+      const res = await fetch('/api/notifications?unreadOnly=true');
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data.notifications);
-        setUnreadCount(data.unreadCount);
+        const unread = (data.notifications || []).filter((n: Notification) => !n.read);
+        setNotifications(unread);
+        setUnreadCount(data.unreadCount ?? unread.length);
       }
     } catch (e) {
       console.error(e);
@@ -45,9 +46,8 @@ export default function NotificationsPage() {
   }, [session]);
 
   const markAsRead = async (id: string) => {
-    // Optimistic for this page
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    setUnreadCount((prev) => Math.max(0, prev - 1));
 
     try {
       await fetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
@@ -63,7 +63,7 @@ export default function NotificationsPage() {
   };
 
   const markAllAsRead = async () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications([]);
     setUnreadCount(0);
 
     try {
@@ -113,7 +113,7 @@ export default function NotificationsPage() {
         ) : notifications.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center text-muted-foreground">
-              No tienes notificaciones todavía.
+              No tienes notificaciones sin leer.
             </CardContent>
           </Card>
         ) : (

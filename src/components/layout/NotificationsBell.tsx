@@ -43,37 +43,34 @@ export function NotificationsBell() {
   const seenIdsRef = useRef<Set<string>>(new Set());
   const prevUnreadRef = useRef(0);
 
-  // Sync with realtime hook (count + merge recent without clobbering read status from fetches)
+  // Sync with realtime hook — only surface unread notifications
   useEffect(() => {
-    if (realtimeNotifs.length > 0) {
-      setUnreadCount(realtimeUnread);
+    const unreadRealtime = realtimeNotifs.filter((n) => !n.read);
+    setUnreadCount(realtimeUnread);
 
-      // Merge: prefer existing list's read status for known ids; treat pure realtime arrivals as unread
-      setNotifications(prev => {
-        const byId = new Map(prev.map(n => [n.id, n]));
-        const merged = realtimeNotifs.map((n) => {
-          const existing = byId.get(n.id);
-          return {
-            ...n,
-            read: existing ? existing.read : (n.read ?? false),
-          } as AppNotification;
-        });
-        // Keep some older fetched items if realtime only has the very newest
-        const realtimeIds = new Set(realtimeNotifs.map((n) => n.id));
-        const older = prev.filter(p => !realtimeIds.has(p.id)).slice(0, 5);
+    if (unreadRealtime.length > 0) {
+      setNotifications((prev) => {
+        const unreadPrev = prev.filter((n) => !n.read);
+        const byId = new Map(unreadPrev.map((n) => [n.id, n]));
+        const merged = unreadRealtime.map(
+          (n) => byId.get(n.id) ?? ({ ...n, read: false } as AppNotification)
+        );
+        const realtimeIds = new Set(unreadRealtime.map((n) => n.id));
+        const older = unreadPrev.filter((p) => !realtimeIds.has(p.id)).slice(0, 5);
         return [...merged, ...older].slice(0, 10);
       });
-
       setLoading(false);
+    } else if (realtimeUnread === 0) {
+      setNotifications([]);
     }
   }, [realtimeNotifs, realtimeUnread]);
 
   const fetchNotifications = async (isInitial = false) => {
     try {
-      const res = await fetch('/api/notifications?limit=5');
+      const res = await fetch('/api/notifications?limit=5&unreadOnly=true');
       if (res.ok) {
         const data = await res.json();
-        const notifs: AppNotification[] = data.notifications || [];
+        const notifs: AppNotification[] = (data.notifications || []).filter((n: AppNotification) => !n.read);
         setNotifications(notifs);
         setUnreadCount(data.unreadCount || 0);
       }
@@ -186,9 +183,8 @@ export function NotificationsBell() {
   const markAsRead = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
 
-    // Optimistic update for instant badge/list feedback
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    setUnreadCount((prev) => Math.max(0, prev - 1));
 
     try {
       await fetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
@@ -203,8 +199,7 @@ export function NotificationsBell() {
   };
 
   const markAllAsRead = async () => {
-    // Optimistic
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications([]);
     setUnreadCount(0);
 
     try {
@@ -269,7 +264,7 @@ export function NotificationsBell() {
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="p-6 text-center text-sm text-muted-foreground">
-                No tienes notificaciones todavía.
+                No tienes notificaciones sin leer.
               </div>
             ) : (
               notifications.map((n) => (

@@ -304,7 +304,12 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
 
         case 'mark_as_read':
           await fetch(`/api/notifications/${notif.id}/read`, { method: 'PATCH' });
+          setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
+          setUnreadCount((c) => Math.max(0, c - 1));
           toast.success('Notificación marcada como leída');
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('notifications:read-updated'));
+          }
           break;
 
         case 'edit_gig':
@@ -392,22 +397,22 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
 
     pollingIntervalRef.current = setInterval(async () => {
       try {
-        const res = await fetch('/api/notifications?limit=5');
+        const res = await fetch('/api/notifications?limit=5&unreadOnly=true');
         if (!res.ok) return;
 
         const data = await res.json();
-        const newOnes = (data.notifications || []).filter(
+        const unread = (data.notifications || []).filter((n: RealtimeNotification) => !n.read);
+        const newOnes = unread.filter(
           (n: RealtimeNotification) => !lastNotificationIds.current.has(n.id)
         );
 
         if (newOnes.length > 0) {
           newOnes.forEach((n: RealtimeNotification) => lastNotificationIds.current.add(n.id));
-          setNotifications(prev => [...newOnes, ...prev].slice(0, 50));
+          setNotifications((prev) => [...newOnes, ...prev.filter((p) => !p.read)].slice(0, 50));
           setUnreadCount(data.unreadCount || 0);
-
-          // Show toasts for new ones
           newOnes.forEach((n: RealtimeNotification) => showNotificationToast(n));
         } else {
+          setNotifications(unread);
           setUnreadCount(data.unreadCount || 0);
         }
       } catch (e) {
@@ -447,12 +452,13 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
   // Manual refresh (authoritative from DB)
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch('/api/notifications?limit=20');
+      const res = await fetch('/api/notifications?limit=20&unreadOnly=true');
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data.notifications || []);
+        const unread = (data.notifications || []).filter((n: RealtimeNotification) => !n.read);
+        setNotifications(unread);
         setUnreadCount(data.unreadCount || 0);
-        (data.notifications || []).forEach((n: RealtimeNotification) => lastNotificationIds.current.add(n.id));
+        unread.forEach((n: RealtimeNotification) => lastNotificationIds.current.add(n.id));
       }
     } catch {}
   }, []);

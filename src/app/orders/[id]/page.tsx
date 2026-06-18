@@ -180,7 +180,7 @@ function OrderDetailClient() {
       // Runs once per order load (best-effort, non-blocking).
       (async () => {
         try {
-          const notifRes = await fetch('/api/notifications?limit=30');
+          const notifRes = await fetch('/api/notifications?limit=30&unreadOnly=true');
           if (!notifRes.ok) return;
           const notifData = await notifRes.json();
           const related = (notifData.notifications || []).filter((n: { id: string; read?: boolean; link?: string | null }) =>
