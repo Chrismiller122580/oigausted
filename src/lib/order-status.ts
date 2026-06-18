@@ -1,3 +1,4 @@
+import type { OrderStatus } from '@prisma/client'
 import { isSqliteDatabase } from '@/lib/utils'
 
 /** API / UI string values (backward compatible). */
@@ -11,18 +12,13 @@ export const OrderStatusLabel = {
 
 export type OrderStatusLabelValue = (typeof OrderStatusLabel)[keyof typeof OrderStatusLabel]
 
-/**
- * Value passed to Prisma for Order.status.
- * Postgres: OrderStatus enum members (In_Progress maps to DB "In Progress").
- * SQLite dev: spaced API label strings stored as TEXT.
- */
-export type PrismaOrderStatusValue =
-  | 'Pending'
-  | 'Paid'
-  | 'In_Progress'
-  | 'Completed'
-  | 'Cancelled'
-  | OrderStatusLabelValue
+const POSTGRES_STATUS_MAP: Record<OrderStatusLabelValue, OrderStatus> = {
+  [OrderStatusLabel.Pending]: 'Pending',
+  [OrderStatusLabel.Paid]: 'Paid',
+  [OrderStatusLabel.InProgress]: 'In_Progress',
+  [OrderStatusLabel.Completed]: 'Completed',
+  [OrderStatusLabel.Cancelled]: 'Cancelled',
+}
 
 export const VALID_ORDER_STATUS_LABELS: OrderStatusLabelValue[] = [
   OrderStatusLabel.Pending,
@@ -36,26 +32,15 @@ export function isOrderStatusLabel(s: string): s is OrderStatusLabelValue {
   return (VALID_ORDER_STATUS_LABELS as string[]).includes(s)
 }
 
-/** Convert API label to value for Prisma Order.status writes/filters. */
-export function labelToPrismaStatus(label: OrderStatusLabelValue): PrismaOrderStatusValue {
-  if (isSqliteDatabase()) return label
-  switch (label) {
-    case OrderStatusLabel.Pending:
-      return 'Pending'
-    case OrderStatusLabel.Paid:
-      return 'Paid'
-    case OrderStatusLabel.InProgress:
-      return 'In_Progress'
-    case OrderStatusLabel.Completed:
-      return 'Completed'
-    case OrderStatusLabel.Cancelled:
-      return 'Cancelled'
-    default:
-      return 'Pending'
+/** Convert API label to Prisma Order.status (Postgres enum / SQLite TEXT). */
+export function labelToPrismaStatus(label: OrderStatusLabelValue): OrderStatus {
+  if (isSqliteDatabase()) {
+    return label as unknown as OrderStatus
   }
+  return POSTGRES_STATUS_MAP[label]
 }
 
-export function prismaStatusToLabel(status: PrismaOrderStatusValue | string): OrderStatusLabelValue {
+export function prismaStatusToLabel(status: OrderStatus | string): OrderStatusLabelValue {
   if (
     status === 'In_Progress' ||
     status === 'InProgress' ||

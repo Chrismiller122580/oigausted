@@ -90,25 +90,22 @@ export async function confirmWompiPayment(
 
       // Referral earning inside the tx for atomicity (same pattern as before)
       if (u.seller?.referredById) {
-        // Only if we are the first to mark it Paid (defensive)
-        if (currentLabel !== OrderStatusLabel.Paid && currentLabel !== OrderStatusLabel.Completed) {
-          const rate = await getEffectiveReferralRate(u.seller.referredById);
-          const amount = Math.round((u.price || 0) * rate);
-          if (amount > 0) {
-            try {
-              await tx.referralEarning.create({
-                data: {
-                  amount,
-                  rateUsed: rate,
-                  referrerId: u.seller.referredById,
-                  orderId: u.id,
-                  status: 'Pending',
-                },
-              });
-            } catch (e: unknown) {
-              if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002')) {
-                devLog('[Wompi confirm tx] referral create err (non-dup):', e);
-              }
+        const rate = await getEffectiveReferralRate(u.seller.referredById);
+        const amount = Math.round((u.price || 0) * rate);
+        if (amount > 0) {
+          try {
+            await tx.referralEarning.create({
+              data: {
+                amount,
+                rateUsed: rate,
+                referrerId: u.seller.referredById,
+                orderId: u.id,
+                status: 'Pending',
+              },
+            });
+          } catch (e: unknown) {
+            if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002')) {
+              devLog('[Wompi confirm tx] referral create err (non-dup):', e);
             }
           }
         }
