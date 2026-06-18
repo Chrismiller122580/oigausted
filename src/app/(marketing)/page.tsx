@@ -185,7 +185,7 @@ export default async function MarketingHomePage() {
               <h1 className="text-5xl md:text-6xl font-bold leading-[1.05] tracking-tighter mb-6 drop-shadow-sm">
                 El servicio que necesitas,
                 <br />
-                <span className="text-yellow-200">hecho por paisas de confianza.</span>
+                <span className="text-yellow-200">hecho por gente de confianza!</span>
               </h1>
 
               <p className="text-xl md:text-2xl text-white/95 mb-8 max-w-2xl">
