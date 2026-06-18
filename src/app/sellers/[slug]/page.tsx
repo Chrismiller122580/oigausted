@@ -1,8 +1,9 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { headers } from 'next/headers';
-import { prisma } from '@/lib/prisma';
 import GigCard from '@/components/common/GigCard';
+import { fetchPublicProfileGigs } from '@/lib/gig-showcase';
+import { prisma } from '@/lib/prisma';
 import { Button } from '@/components/ui/button';
 import {
   canonicalSellerPath,
@@ -44,23 +45,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
 
   const sellerId = seller.id;
 
-  const gigs = await prisma.gig.findMany({
-    where: { sellerId },
-    include: {
-      seller: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          businessName: true,
-          slug: true,
-          profilePicture: true,
-        }
-      }
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 12
-  });
+  const gigs = await fetchPublicProfileGigs(sellerId);
 
   const reviews = await prisma.review.findMany({
     where: { sellerId },

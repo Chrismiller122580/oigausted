@@ -253,6 +253,8 @@ model Gig {
   fields          String?
   addons          String?
   isActive        Boolean   @default(true)
+  showOnProfile   Boolean   @default(true) // seller-curated visibility on public /sellers/[slug] page
+  profileShowcaseOrder Int?  // display order on public profile (lower = first)
   createdAt       DateTime @default(now())
   deletedAt       DateTime? // soft delete for admin moderation / restore
   sellerId        String

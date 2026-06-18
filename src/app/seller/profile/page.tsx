@@ -10,6 +10,7 @@ import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save, Users } from "
 import { toast } from 'sonner';
 import { slugify } from '@/lib/utils';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
+import ShowcaseGigPicker from '@/components/seller/ShowcaseGigPicker';
 
 function slugifyForPreview(name?: string) {
   return slugify(name || '');
@@ -355,6 +356,12 @@ export default function MiNegocioPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="mb-10">
+          <ShowcaseGigPicker
+            publicProfileHref={`/sellers/${publicSlug || slugifyForPreview(formData.businessName) || session?.user?.id || ''}`}
+          />
         </div>
 
         {/* DEBUG TOOLS - only visible when Modo Mantenimiento is active */}
