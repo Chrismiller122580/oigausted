@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { devLog, isUuidIdentifier, slugify } from '@/lib/utils'
 
@@ -28,6 +29,8 @@ export type SellerProfile = {
   phone: string | null
   slug?: string | null
 }
+
+type SellerBySlugRow = Prisma.UserGetPayload<{ select: typeof sellerBySlugSelect }>
 
 /** True when `candidate` is an exact slug or a safe numeric suffix (-N or trailing digits). */
 export function isSlugPrefixMatch(requested: string, candidate: string): boolean {
@@ -81,10 +84,10 @@ export async function findSellerBySlugOrId(identifier: string): Promise<SellerPr
       take: 8,
     })
     const aliasMatches = prefixMatches.filter(
-      (s) => s.slug && isSlugPrefixMatch(normalized, s.slug)
+      (s: SellerBySlugRow) => s.slug && isSlugPrefixMatch(normalized, s.slug)
     )
     if (aliasMatches.length === 1) return aliasMatches[0]
-    const exact = aliasMatches.find((s) => s.slug === normalized)
+    const exact = aliasMatches.find((s: SellerBySlugRow) => s.slug === normalized)
     if (exact) return exact
   } catch (e) {
     devLog('Seller find by slug prefix failed', e)
@@ -102,12 +105,14 @@ export async function findSellerBySlugOrId(identifier: string): Promise<SellerPr
         select: sellerBySlugSelect,
         take: 12,
       })
-      const bizMatches = candidates.filter((s) => {
+      const bizMatches = candidates.filter((s: SellerBySlugRow) => {
         const derived = slugify(s.businessName || '')
         return derived && isSlugPrefixMatch(normalized, derived)
       })
       if (bizMatches.length === 1) return bizMatches[0]
-      const exactBiz = bizMatches.find((s) => slugify(s.businessName || '') === normalized)
+      const exactBiz = bizMatches.find(
+        (s: SellerBySlugRow) => slugify(s.businessName || '') === normalized
+      )
       if (exactBiz) return exactBiz
     }
   } catch (e) {
