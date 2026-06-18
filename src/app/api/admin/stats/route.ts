@@ -9,7 +9,19 @@ import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
 /** Avoid re-querying a missing column on warm serverless instances (prevents log spam + 25P02 cascades). */
 let sellerPayoutAtAvailable: boolean | null = null;
 
-async function fetchCompletedOrdersForPayoutStats() {
+type PayoutStatsOrderRow = {
+  price: number;
+  sellerPayoutAt: Date | null;
+  seller: { referredById: string | null };
+};
+
+type PayoutStatsOrderBase = Omit<PayoutStatsOrderRow, 'sellerPayoutAt'>;
+
+function withNullSellerPayoutAt(rows: PayoutStatsOrderBase[]): PayoutStatsOrderRow[] {
+  return rows.map((o) => ({ ...o, sellerPayoutAt: null }));
+}
+
+async function fetchCompletedOrdersForPayoutStats(): Promise<PayoutStatsOrderRow[]> {
   const where = { status: labelToPrismaStatus(OrderStatusLabel.Completed) };
   const baseSelect = {
     price: true,
@@ -18,7 +30,7 @@ async function fetchCompletedOrdersForPayoutStats() {
 
   if (sellerPayoutAtAvailable === false) {
     const rows = await prisma.order.findMany({ where, select: baseSelect });
-    return rows.map((o) => ({ ...o, sellerPayoutAt: null as Date | null }));
+    return withNullSellerPayoutAt(rows);
   }
 
   try {
@@ -33,7 +45,7 @@ async function fetchCompletedOrdersForPayoutStats() {
     sellerPayoutAtAvailable = false;
     devLog('sellerPayoutAt column missing in stats — using fallback (run prisma migrate deploy)');
     const rows = await prisma.order.findMany({ where, select: baseSelect });
-    return rows.map((o) => ({ ...o, sellerPayoutAt: null as Date | null }));
+    return withNullSellerPayoutAt(rows);
   }
 }
 
