@@ -261,7 +261,7 @@ function GigsClient() {
             size="sm"
             className="gap-1.5"
           >
-            <MapPin className="h-4 w-4" />
+            <MapPin className="h-5 w-5 shrink-0" />
             {locationLoading ? "Ubicando..." : "Cerca de mí"}
           </Button>
 
@@ -281,7 +281,7 @@ function GigsClient() {
             size="sm"
             className="gap-1.5"
           >
-            <Wifi className="h-4 w-4" />
+            <Wifi className="h-5 w-5 shrink-0" />
             {showOnlyRemote ? "Todos" : "Solo remotos"}
           </Button>
 
@@ -299,7 +299,7 @@ function GigsClient() {
               size="sm"
               className="text-orange-600 border-orange-200 hover:bg-orange-50 gap-1 ml-auto sm:ml-0"
             >
-              <X className="h-3.5 w-3.5" /> Limpiar filtros
+              <X className="h-4 w-4 shrink-0" /> Limpiar filtros
             </Button>
           )}
         </div>
@@ -322,7 +322,7 @@ function GigsClient() {
           <div className="relative">
             {/* Optional scroll arrows (desktop friendly) */}
             <button
-              onClick={() => categoryCarouselRef.current?.scrollBy({ left: -220, behavior: "smooth" })}
+              onClick={() => categoryCarouselRef.current?.scrollBy({ left: -260, behavior: "smooth" })}
               className="hidden md:flex absolute -left-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 items-center justify-center rounded-full bg-background/90 border shadow-sm hover:bg-muted"
               aria-label="Scroll left"
             >
@@ -336,17 +336,27 @@ function GigsClient() {
               {/* Todas tile */}
               <button
                 onClick={() => setSelectedCategory("Todas")}
-                className={`snap-start flex-shrink-0 w-[78px] md:w-24 flex flex-col items-center justify-center p-3 rounded-2xl border transition-all active:scale-[0.985] ${
+                className={`snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl border transition-all active:scale-[0.985] ${
                   selectedCategory === "Todas"
                     ? "border-orange-600 bg-orange-600 text-white shadow-sm"
                     : "border-border bg-card hover:border-orange-300 hover:bg-muted"
                 }`}
               >
-                <div className="mb-1 flex h-8 w-8 items-center justify-center">
-                  <LayoutGrid className={`h-7 w-7 ${selectedCategory === "Todas" ? "text-white" : "text-foreground"}`} />
+                <div
+                  className={`mb-1.5 flex h-12 w-12 items-center justify-center rounded-xl ring-1 ${
+                    selectedCategory === "Todas"
+                      ? "bg-white/95 ring-white/40 shadow-md"
+                      : "bg-white shadow-sm ring-black/5 dark:bg-white/95 dark:ring-white/20 dark:shadow-md"
+                  }`}
+                >
+                  <LayoutGrid
+                    className={`h-8 w-8 ${
+                      selectedCategory === "Todas" ? "text-orange-600" : "text-orange-500 dark:text-orange-400"
+                    }`}
+                  />
                 </div>
-                <div className="text-[11px] font-medium text-center leading-tight">Todas</div>
-                <div className={`text-[10px] mt-0.5 ${selectedCategory === "Todas" ? "text-orange-200" : "text-muted-foreground"}`}>
+                <div className="text-xs font-medium text-center leading-tight">Todas</div>
+                <div className={`text-[11px] mt-0.5 ${selectedCategory === "Todas" ? "text-orange-200" : "text-muted-foreground"}`}>
                   {gigs.length}
                 </div>
               </button>
@@ -359,20 +369,20 @@ function GigsClient() {
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`snap-start flex-shrink-0 w-[78px] md:w-24 flex flex-col items-center justify-center p-3 rounded-2xl border transition-all active:scale-[0.985] ${
+                    className={`snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl border transition-all active:scale-[0.985] ${
                       isActive
                         ? "border-orange-600 bg-orange-600 text-white shadow-sm"
                         : "border-border bg-card hover:border-orange-300 hover:bg-muted"
                     }`}
                     title={cat}
                   >
-                    <div className="mb-1 flex h-8 w-8 items-center justify-center">
-                      <CategoryIcon name={cat} className="h-7 w-7 object-contain" fallbackClassName="text-2xl" />
+                    <div className="mb-1.5">
+                      <CategoryIcon name={cat} variant="tile" active={isActive} />
                     </div>
-                    <div className="text-[10px] font-medium text-center leading-tight line-clamp-2">
+                    <div className="text-[11px] font-medium text-center leading-tight line-clamp-2">
                       {cat}
                     </div>
-                    <div className={`text-[10px] mt-0.5 ${isActive ? "text-orange-200" : "text-muted-foreground"}`}>
+                    <div className={`text-[11px] mt-0.5 ${isActive ? "text-orange-200" : "text-muted-foreground"}`}>
                       {count}
                     </div>
                   </button>
@@ -381,7 +391,7 @@ function GigsClient() {
             </div>
 
             <button
-              onClick={() => categoryCarouselRef.current?.scrollBy({ left: 220, behavior: "smooth" })}
+              onClick={() => categoryCarouselRef.current?.scrollBy({ left: 260, behavior: "smooth" })}
               className="hidden md:flex absolute -right-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 items-center justify-center rounded-full bg-background/90 border shadow-sm hover:bg-muted"
               aria-label="Scroll right"
             >

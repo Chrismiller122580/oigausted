@@ -148,8 +148,10 @@ export default function GigCard({
               </div>
             )}
             {gig.category && (
-              <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-md flex items-center gap-1">
-                <CategoryIcon name={gig.category} className="w-3 h-3 mr-0.5 object-contain inline align-middle" />
+              <span className="text-xs bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-200 px-3 py-1 rounded-md flex items-center gap-1.5">
+                <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white ring-1 ring-black/5 dark:bg-white/90 dark:ring-white/15">
+                  <CategoryIcon name={gig.category} className="h-4 w-4 object-contain" />
+                </span>
                 {gig.category}
               </span>
             )}

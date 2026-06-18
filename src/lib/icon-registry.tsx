@@ -65,21 +65,53 @@ export function getCategoryIcon(name: string): string {
  * Handles the img vs emoji decision + basic sizing/class for badges/cards.
  * Use when you want <CategoryIcon name={cat.name} className="w-4 h-4 mr-1" />
  */
+const tileContainerBase =
+  "flex items-center justify-center rounded-xl ring-1 transition-shadow";
+
+function tileContainerClass(active: boolean) {
+  return active
+    ? `${tileContainerBase} h-12 w-12 bg-white/95 ring-white/40 shadow-md`
+    : `${tileContainerBase} h-12 w-12 bg-white shadow-sm ring-black/5 dark:bg-white/95 dark:ring-white/20 dark:shadow-md`;
+}
+
 export function CategoryIcon({
   name,
-  className = "w-4 h-4 mr-1 object-contain inline align-middle",
-  fallbackClassName = "inline text-[1em]",
+  className,
+  fallbackClassName,
+  variant = "inline",
+  active = false,
 }: {
   name: string;
   className?: string;
   fallbackClassName?: string;
+  /** `tile` wraps icons in a light backdrop for carousel/grid chips (readable in dark mode). */
+  variant?: "inline" | "tile";
+  active?: boolean;
 }) {
   const ic = getCategoryIcon(name);
-  if (ic.startsWith('/')) {
+  const isImage = ic.startsWith("/");
+
+  const resolvedClassName =
+    className ??
+    (variant === "tile"
+      ? "h-10 w-10 object-contain"
+      : "w-4 h-4 mr-1 object-contain inline align-middle");
+
+  const resolvedFallbackClassName =
+    fallbackClassName ?? (variant === "tile" ? "text-3xl" : "inline text-[1em]");
+
+  const content = isImage ? (
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={ic} alt="" className={className} />;
+    <img src={ic} alt="" className={resolvedClassName} />
+  ) : (
+    <span className={resolvedFallbackClassName}>{ic}</span>
+  );
+
+  if (variant === "tile") {
+    return <div className={tileContainerClass(active)}>{content}</div>;
   }
-  return <span className={fallbackClassName}>{ic}</span>;
+
+  return content;
 }
 
 // Re-export for convenience in places that still import emojis
