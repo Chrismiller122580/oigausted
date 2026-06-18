@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { devLog } from '@/lib/utils';
+import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     const [pendingOrders, openTickets, recentReferrals] = await Promise.all([
-      prisma.order.count({ where: { status: 'Pending' } }),
+      prisma.order.count({ where: { status: labelToPrismaStatus(OrderStatusLabel.Pending) } }),
       prisma.supportTicket.count({ where: { status: { in: ['open', 'in_progress'] } } }),
       prisma.referralEarning.count({ where: { status: 'Pending' } }),
     ]);

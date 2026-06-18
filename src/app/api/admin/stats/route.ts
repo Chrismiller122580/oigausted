@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { devLog } from '@/lib/utils';
+import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
 
 export async function GET() {
   try {
@@ -45,20 +46,22 @@ export async function GET() {
       // to avoid showing stale/test data after cleanups. Use completed + in-progress as "real" volume.
       (async () => {
         try {
-          return await prisma.order.count({ where: { status: { not: 'Pending' } } });
+          return await prisma.order.count({
+            where: { status: { not: labelToPrismaStatus(OrderStatusLabel.Pending) } },
+          });
         } catch (e) {
           devLog('filtered orders count failed, falling back');
           return await prisma.order.count();
         }
       })(),
-      prisma.order.count({ where: { status: 'Completed' } }),
+      prisma.order.count({ where: { status: labelToPrismaStatus(OrderStatusLabel.Completed) } }),
       prisma.order.aggregate({
-        where: { status: 'Completed' },
+        where: { status: labelToPrismaStatus(OrderStatusLabel.Completed) },
         _sum: { price: true }
       }),
       prisma.order.count({
         where: {
-          status: 'Completed',
+          status: labelToPrismaStatus(OrderStatusLabel.Completed),
           // For beta we consider "not paid out" as any completed without a payout flag
           // (we can enhance later with a payout model)
         }
@@ -90,7 +93,7 @@ export async function GET() {
     let completedOrdersWithReferral: Array<{ price: number; sellerPayoutAt?: Date | null; seller: { referredById: string | null } }> = [];
     try {
       completedOrdersWithReferral = await prisma.order.findMany({
-        where: { status: 'Completed' },
+        where: { status: labelToPrismaStatus(OrderStatusLabel.Completed) },
         select: {
           price: true,
           sellerPayoutAt: true,  // may not exist yet
@@ -100,7 +103,7 @@ export async function GET() {
     } catch (e) {
       // Fallback without sellerPayoutAt
       completedOrdersWithReferral = await prisma.order.findMany({
-        where: { status: 'Completed' },
+        where: { status: labelToPrismaStatus(OrderStatusLabel.Completed) },
         select: {
           price: true,
           seller: { select: { referredById: true } }

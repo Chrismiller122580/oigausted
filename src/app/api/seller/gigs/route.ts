@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
+import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
 
 export async function GET() {
   try {
@@ -94,7 +95,7 @@ export async function GET() {
       where: {
         gigId: { in: gigIds },
         sellerId,
-        status: 'Completed'
+        status: labelToPrismaStatus(OrderStatusLabel.Completed)
       },
       _count: { _all: true },
       _sum: { price: true }

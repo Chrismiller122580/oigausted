@@ -10,6 +10,7 @@ import {
 } from '@/lib/wompi-signature'
 import crypto from 'crypto'
 import type { WompiWebhookEvent } from '@/types/wompi'
+import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status'
 
 export async function POST(request: Request) {
   let body: WompiWebhookEvent | null = null;
@@ -197,7 +198,7 @@ export async function POST(request: Request) {
       if (['DECLINED', 'ERROR', 'VOIDED'].includes(transaction.status)) {
         await prisma.order.update({
           where: { id: orderId },
-          data: { status: 'Cancelled', updatedAt: new Date() },
+          data: { status: labelToPrismaStatus(OrderStatusLabel.Cancelled), updatedAt: new Date() },
         }).catch(() => {})
 
         await logAuditEvent({

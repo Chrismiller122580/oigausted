@@ -12,6 +12,7 @@ import {
   type VerifyResult,
 } from '@/lib/wompi-signature';
 import type { WompiWebhookEvent } from '@/types/wompi';
+import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
 
 interface WompiTestRequestBody {
   sampleWebhookEvent?: WompiWebhookEvent;
@@ -306,7 +307,7 @@ export async function POST(req: NextRequest) {
         } else if (['DECLINED', 'ERROR', 'VOIDED'].includes(status || '')) {
           await prisma.order.update({
             where: { id: orderId },
-            data: { status: 'Cancelled', updatedAt: new Date() },
+            data: { status: labelToPrismaStatus(OrderStatusLabel.Cancelled), updatedAt: new Date() },
           }).catch(() => {});
 
           await logAuditEvent({

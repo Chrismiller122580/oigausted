@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { devLog, parseJsonArrayField } from '@/lib/utils';
 import { getGigImages, normalizeGigImagePayload, parseGigImagesField } from '@/lib/gig-images';
+import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
 
 export async function GET(
   request: Request,
@@ -211,7 +212,12 @@ export async function DELETE(
     const activeOrders = await prisma.order.count({
       where: {
         gigId: id,
-        status: { notIn: ['Completed', 'Cancelled'] }
+        status: {
+          notIn: [
+            labelToPrismaStatus(OrderStatusLabel.Completed),
+            labelToPrismaStatus(OrderStatusLabel.Cancelled),
+          ],
+        }
       }
     });
 

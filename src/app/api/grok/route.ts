@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
+import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
 
 interface GrokChatMessage {
   role: string
@@ -341,8 +342,11 @@ Current session context:
           prisma.user.count(),
           prisma.user.count({ where: { role: "seller" } }),
           prisma.order.count(),
-          prisma.order.count({ where: { status: "Completed" } }),
-          prisma.order.aggregate({ where: { status: "Completed" }, _sum: { price: true } })
+          prisma.order.count({ where: { status: labelToPrismaStatus(OrderStatusLabel.Completed) } }),
+          prisma.order.aggregate({
+            where: { status: labelToPrismaStatus(OrderStatusLabel.Completed) },
+            _sum: { price: true },
+          })
         ]);
 
         toolResult = {

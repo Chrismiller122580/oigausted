@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG, aggregatePayouts } from '@/lib/payout';
+import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
 
 export async function GET() {
   try {
@@ -24,7 +25,7 @@ export async function GET() {
 
     // Get all completed orders with necessary relations
     const completedOrders = await prisma.order.findMany({
-      where: { status: 'Completed' },
+      where: { status: labelToPrismaStatus(OrderStatusLabel.Completed) },
       // Explicit select to avoid missing columns (sellerPayoutAt etc) in prod DB
       select: {
         id: true,

@@ -5,6 +5,7 @@ import { devLog } from '@/lib/utils';
 import { getEffectiveReferralRate } from '@/lib/payout';
 import { createReferralEarningIfApplicable } from '@/lib/server/referral-earnings';
 import { notifyAdminsPaymentReceived } from '@/lib/admin-notifications';
+import { OrderStatusLabel, labelToPrismaStatus, prismaStatusToLabel } from '@/lib/order-status';
 import { Prisma } from '@prisma/client';
 
 /**
@@ -48,9 +49,10 @@ export async function confirmWompiPayment(
     }
 
     const current = order.status;
-    if (current === 'Paid' || current === 'Completed') {
-      devLog(`[Wompi][confirm] Order ${orderId} already ${current}, skipping`);
-      return { success: true, alreadyProcessed: true, newStatus: current, message: 'Already processed' };
+    const currentLabel = prismaStatusToLabel(current);
+    if (currentLabel === OrderStatusLabel.Paid || currentLabel === OrderStatusLabel.Completed) {
+      devLog(`[Wompi][confirm] Order ${orderId} already ${currentLabel}, skipping`);
+      return { success: true, alreadyProcessed: true, newStatus: currentLabel, message: 'Already processed' };
     }
 
     if (opts?.amount != null) {
@@ -66,7 +68,7 @@ export async function confirmWompiPayment(
     }
 
     // Only confirm to Paid on success path
-    const updateData = { status: 'Paid', updatedAt: new Date() };
+    const updateData = { status: labelToPrismaStatus(OrderStatusLabel.Paid), updatedAt: new Date() };
 
     // Atomic: update status + create referral earning if seller was referred (prevents orphans)
     const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -89,7 +91,7 @@ export async function confirmWompiPayment(
       // Referral earning inside the tx for atomicity (same pattern as before)
       if (u.seller?.referredById) {
         // Only if we are the first to mark it Paid (defensive)
-        if (current !== 'Paid' && current !== 'Completed') {
+        if (currentLabel !== OrderStatusLabel.Paid && currentLabel !== OrderStatusLabel.Completed) {
           const rate = await getEffectiveReferralRate(u.seller.referredById);
           const amount = Math.round((u.price || 0) * rate);
           if (amount > 0) {

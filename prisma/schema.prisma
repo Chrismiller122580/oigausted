@@ -278,10 +278,18 @@ model Category {
   updatedAt   DateTime @updatedAt
 }
 
+enum OrderStatus {
+  Pending
+  Paid
+  In_Progress @map("In Progress")
+  Completed
+  Cancelled
+}
+
 model Order {
-  id              String   @id @default(uuid())
+  id              String      @id @default(uuid())
   price           Float
-  status          String   @default("Pending")
+  status          OrderStatus @default(Pending)
   progress        Int      @default(0)
   trackingNumber  String?
   createdAt       DateTime @default(now())
