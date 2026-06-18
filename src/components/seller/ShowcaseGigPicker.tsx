@@ -149,8 +149,8 @@ export default function ShowcaseGigPicker({ publicProfileHref }: { publicProfile
   }
 
   return (
-    <Card className="border-orange-200 dark:border-orange-900/50 shadow-sm">
-      <CardContent className="p-6 sm:p-8">
+    <Card className="border-orange-200 dark:border-orange-900/50 shadow-sm overflow-hidden">
+      <CardContent className="p-4 sm:p-6 md:p-8">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
           <div className="flex items-start gap-4 min-w-0">
             <div className="w-11 h-11 rounded-2xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center shrink-0">
@@ -169,15 +169,15 @@ export default function ShowcaseGigPicker({ publicProfileHref }: { publicProfile
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 shrink-0">
-            <Link href={publicProfileHref} target="_blank">
-              <Button variant="outline" size="sm" className="gap-1.5">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
+            <Link href={publicProfileHref} target="_blank" className="w-full sm:w-auto">
+              <Button variant="outline" size="sm" className="gap-1.5 w-full sm:w-auto">
                 <Eye size={16} /> Vista previa
               </Button>
             </Link>
             <Button
               size="sm"
-              className="bg-orange-600 hover:bg-orange-700 gap-1.5"
+              className="bg-orange-600 hover:bg-orange-700 gap-1.5 w-full sm:w-auto"
               onClick={handleSave}
               disabled={saving || !isDirty || !supported}
             >
@@ -203,69 +203,73 @@ export default function ShowcaseGigPicker({ publicProfileHref }: { publicProfile
             return (
               <div
                 key={gig.id}
-                className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl border transition-colors ${
+                className={`rounded-2xl border transition-colors ${
                   isSelected
                     ? 'border-orange-300 dark:border-orange-800 bg-orange-50/80 dark:bg-orange-950/30'
                     : 'border-border bg-card hover:bg-muted/40'
                 } ${!gig.isActive ? 'opacity-60' : ''}`}
               >
-                <button
-                  type="button"
-                  onClick={() => gig.isActive && toggleGig(gig.id)}
-                  disabled={!gig.isActive || !supported}
-                  aria-pressed={isSelected}
-                  className={`w-6 h-6 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
-                    isSelected
-                      ? 'bg-orange-600 border-orange-600 text-white'
-                      : 'border-muted-foreground/40 bg-background'
-                  } disabled:cursor-not-allowed`}
-                >
-                  {isSelected && <Check size={14} strokeWidth={3} />}
-                </button>
+                <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => gig.isActive && toggleGig(gig.id)}
+                    disabled={!gig.isActive || !supported}
+                    aria-pressed={isSelected}
+                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
+                      isSelected
+                        ? 'bg-orange-600 border-orange-600 text-white'
+                        : 'border-muted-foreground/40 bg-background'
+                    } disabled:cursor-not-allowed`}
+                  >
+                    {isSelected && <Check size={14} strokeWidth={3} />}
+                  </button>
 
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-muted shrink-0 border border-border">
-                  {gig.imageUrl ? (
-                    <img src={gig.imageUrl} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-2xl">🛠️</div>
-                  )}
-                </div>
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-muted shrink-0 border border-border">
+                    {gig.imageUrl ? (
+                      <img src={gig.imageUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xl sm:text-2xl">🛠️</div>
+                    )}
+                  </div>
 
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{gig.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {gig.category || 'Sin categoría'} · ${gig.price.toLocaleString('es-CO')}
-                    {!gig.isActive && ' · Pausado'}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm sm:text-base line-clamp-2 sm:truncate">{gig.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 break-words">
+                      {gig.category || 'Sin categoría'} · ${gig.price.toLocaleString('es-CO')}
+                      {!gig.isActive && ' · Pausado'}
+                    </p>
+                  </div>
                 </div>
 
                 {isSelected && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-[10px] font-mono text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/50 px-2 py-1 rounded-full mr-1 hidden sm:inline">
-                      #{orderIndex + 1}
+                  <div className="flex items-center justify-between gap-2 px-3 pb-3 sm:px-4 sm:pb-4 pt-0 border-t border-orange-200/60 dark:border-orange-800/40 sm:border-0 sm:pt-0 sm:justify-end">
+                    <span className="text-[10px] font-mono text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/50 px-2 py-1 rounded-full sm:mr-1">
+                      Orden #{orderIndex + 1}
                     </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      disabled={!canMoveUp}
-                      onClick={() => moveGig(gig.id, -1)}
-                      aria-label="Subir en el orden"
-                    >
-                      <ChevronUp size={16} />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      disabled={!canMoveDown}
-                      onClick={() => moveGig(gig.id, 1)}
-                      aria-label="Bajar en el orden"
-                    >
-                      <ChevronDown size={16} />
-                    </Button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={!canMoveUp}
+                        onClick={() => moveGig(gig.id, -1)}
+                        aria-label="Subir en el orden"
+                      >
+                        <ChevronUp size={16} />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={!canMoveDown}
+                        onClick={() => moveGig(gig.id, 1)}
+                        aria-label="Bajar en el orden"
+                      >
+                        <ChevronDown size={16} />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
