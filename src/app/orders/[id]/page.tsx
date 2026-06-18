@@ -18,6 +18,7 @@ import type { GigCategory } from '@/lib/useGigCategories';
 import type { ChangeEvent } from 'react';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 import { trackEvent } from '@/lib/analytics';
+import { buildWompiWidgetConfig } from '@/lib/wompi-widget';
 
 function OrderDetailClient() {
   const params = useParams();
@@ -701,15 +702,8 @@ function OrderDetailClient() {
                           setTimeout(() => {
                             try {
                               // Exact construction per user request
-                              const checkout = new WidgetCheckoutClass({
-                                publicKey: data.publicKey,
-                                amountInCents: data.amountInCents,
-                                currency: 'COP',
-                                reference: data.reference,
-                                signature: {
-                                  integrity: data.integrity
-                                }
-                              });
+                              const widgetConfig = buildWompiWidgetConfig(data);
+                              const checkout = new WidgetCheckoutClass(widgetConfig);
 
                               toast.info('Abriendo Wompi Checkout seguro. Ingresa los datos de pago allí.');
 

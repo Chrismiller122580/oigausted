@@ -5,6 +5,7 @@ import { prisma, getPlatformConfig } from '@/lib/prisma';
 import crypto from 'crypto';
 import { devLog } from '@/lib/utils';
 import type { WompiCheckoutConfig } from '@/types/wompi';
+import { getAppBaseUrl } from '@/lib/app-url';
 
 const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
 const WOMPI_INTEGRITY_KEY = process.env.WOMPI_INTEGRITY_KEY || process.env.WOMPI_INTEGRITY_SECRET;
@@ -190,7 +191,8 @@ export async function POST(req: NextRequest) {
       currency: 'COP',
       amountInCents,
       reference,
-      redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/orders/${order.id}`,
+      // Wompi "Return to Commerce" uses this URL after payment (must match the gig/order context).
+      redirectUrl: `${getAppBaseUrl(req)}/orders/${order.id}?from=wompi&gigId=${order.gigId}`,
       customerData: {
         email: order.buyer?.email || session?.user?.email || '',
         fullName: order.buyer?.name || session?.user?.name || '',

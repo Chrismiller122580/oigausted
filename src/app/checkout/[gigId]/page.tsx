@@ -14,6 +14,7 @@ import type { OrderDetail } from '@/types/order';
 import type { WompiClientDebugState, WompiPrepareResponse, WompiWidgetResult } from '@/types/wompi';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 import { trackEvent } from '@/lib/analytics';
+import { buildWompiWidgetConfig } from '@/lib/wompi-widget';
 
 export default function CheckoutPage() {
   const params = useParams();
@@ -393,15 +394,8 @@ export default function CheckoutPage() {
 
         // Exact match to user-provided snippet for signature.integrity
         try {
-          const checkout = new WidgetCheckout({
-            publicKey: config.publicKey,
-            amountInCents: config.amountInCents,
-            currency: 'COP',
-            reference: config.reference,
-            signature: {
-              integrity: config.integrity ?? ''   // ← This line is the one missing or wrong
-            }
-          });
+          const widgetConfig = buildWompiWidgetConfig(config);
+          const checkout = new WidgetCheckout(widgetConfig);
 
           trackEvent('payment_initiated', { payment_method: 'wompi' });
 
