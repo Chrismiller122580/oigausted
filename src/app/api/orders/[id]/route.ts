@@ -162,13 +162,27 @@ export async function PATCH(
             return NextResponse.json({ error: 'Cannot manually set to Paid outside payment flow' }, { status: 400 });
           }
         }
-        if (statusLabel === OrderStatusLabel.InProgress && current !== 'Paid') {
-          return NextResponse.json({ error: 'Order must be Paid before In Progress' }, { status: 400 });
+        if (statusLabel === OrderStatusLabel.InProgress && current !== OrderStatusLabel.Paid) {
+          return NextResponse.json(
+            { error: 'El pedido debe estar pagado antes de iniciar el trabajo' },
+            { status: 400 }
+          );
         }
-        if (statusLabel === OrderStatusLabel.Completed && !['Paid', OrderStatusLabel.InProgress].includes(current)) {
-          return NextResponse.json({ error: 'Invalid transition to Completed' }, { status: 400 });
+        if (
+          statusLabel === OrderStatusLabel.Completed &&
+          current !== OrderStatusLabel.Paid &&
+          current !== OrderStatusLabel.InProgress
+        ) {
+          return NextResponse.json(
+            { error: 'Solo puedes completar pedidos pagados o en progreso' },
+            { status: 400 }
+          );
         }
-        if (statusLabel === OrderStatusLabel.Cancelled && !['Pending', 'Paid'].includes(current)) {
+        if (
+          statusLabel === OrderStatusLabel.Cancelled &&
+          current !== OrderStatusLabel.Pending &&
+          current !== OrderStatusLabel.Paid
+        ) {
           return NextResponse.json({ error: 'Cannot cancel at this stage' }, { status: 400 });
         }
         if (statusLabel === OrderStatusLabel.InProgress && !isSeller) {

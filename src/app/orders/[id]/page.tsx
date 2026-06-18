@@ -313,15 +313,15 @@ function OrderDetailClient() {
         const updatedOrder = await fetch(`/api/orders/${orderId}`).then(r => r.json());
         setOrder(updatedOrder.order || updatedOrder);
       } else {
+        const err = await res.json().catch(() => ({}));
+        const message = typeof err.error === 'string' ? err.error : 'Error actualizando estado';
         if (res.status === 403) {
-          const err = await res.json().catch(() => ({}));
-          toast.error(err.error || 'No tienes permiso para esta acción en este pedido');
-          // Refetch in case of stale data
-          const fresh = await fetch(`/api/orders/${orderId}`).then(r => r.json()).catch(() => ({}));
-          if (fresh.order) setOrder(fresh.order);
+          toast.error(message || 'No tienes permiso para esta acción en este pedido');
         } else {
-          toast.error('Error actualizando estado');
+          toast.error(message);
         }
+        const fresh = await fetch(`/api/orders/${orderId}`).then(r => r.json()).catch(() => ({}));
+        if (fresh.order) setOrder(fresh.order);
       }
     } catch {
       toast.error('Error actualizando');
@@ -541,9 +541,14 @@ function OrderDetailClient() {
                 {isSeller && (
                   <>
                     {order.status === 'Pending' && (
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        Esperando confirmación de pago del comprador.
+                      </p>
+                    )}
+                    {order.status === 'Paid' && (
                       <Button onClick={() => updateStatus('In Progress')} className="w-full bg-blue-600 hover:bg-blue-700">🚀 Aceptar e Iniciar</Button>
                     )}
-                    {['Pending', 'In Progress'].includes(order.status) && (
+                    {order.status === 'In Progress' && (
                       <Button onClick={() => updateStatus('Completed')} className="w-full">✅ Marcar como Completado</Button>
                     )}
                   </>
@@ -1127,11 +1132,14 @@ function OrderDetailClient() {
 
             {isSeller && (
               <div className="mt-12 flex flex-wrap gap-3">
-                {order.status !== 'In Progress' && order.status !== 'Completed' && (
+                {order.status === 'Paid' && (
                   <Button onClick={() => updateStatus('In Progress')} size="lg">🚀 Iniciar Trabajo</Button>
                 )}
-                {order.status !== 'Completed' && (
+                {order.status === 'In Progress' && (
                   <Button onClick={() => updateStatus('Completed')} size="lg">✅ Marcar Completado</Button>
+                )}
+                {order.status === 'Pending' && (
+                  <p className="text-sm text-muted-foreground">El trabajo se puede iniciar cuando el pago esté confirmado.</p>
                 )}
               </div>
             )}

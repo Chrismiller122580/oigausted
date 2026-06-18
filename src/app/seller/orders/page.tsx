@@ -73,13 +73,12 @@ export default function SellerOrdersPage() {
       });
 
       if (!res.ok) {
-        if (res.status === 403) {
-          toast.error('No tienes permiso para actualizar este pedido');
-          // Refetch to remove any stale orders from previous sessions
+        const err = await res.json().catch(() => ({}));
+        const message = typeof err.error === 'string' ? err.error : 'No se pudo actualizar el estado';
+        toast.error(message);
+        if (res.status === 403 || res.status === 400) {
           setLoading(true);
           loadOrders();
-        } else {
-          throw new Error('Error actualizando estado');
         }
         return;
       }
@@ -126,7 +125,7 @@ export default function SellerOrdersPage() {
       {/* Status Filters */}
       {orders.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-8">
-          {['All', 'Pending', 'In Progress', 'Completed'].map((status) => (
+          {['All', 'Pending', 'Paid', 'In Progress', 'Completed'].map((status) => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
@@ -208,6 +207,12 @@ export default function SellerOrdersPage() {
                 <div className="flex flex-col gap-3 w-full md:w-52 pt-4">
                   {/* Quick Status Actions */}
                   {order.status === 'Pending' && (
+                    <p className="text-xs text-muted-foreground text-center px-1">
+                      Esperando pago del comprador
+                    </p>
+                  )}
+
+                  {order.status === 'Paid' && (
                     <Button 
                       onClick={() => updateOrderStatus(order.id, 'In Progress')}
                       className="w-full bg-purple-600 hover:bg-purple-700"
