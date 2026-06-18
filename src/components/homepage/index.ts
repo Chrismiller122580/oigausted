@@ -1,0 +1,9 @@
+export { HomeNavbar } from './HomeNavbar';
+export { HomeHero } from './HomeHero';
+export { MegaSearchBar } from './MegaSearchBar';
+export { CategoriesSection } from './CategoriesSection';
+export { StatsAndPopular } from './StatsAndPopular';
+export { HowItWorks } from './HowItWorks';
+export { TestimonialsCarousel } from './TestimonialsCarousel';
+export { SellerPromoCTA } from './SellerPromoCTA';
+export { HomeFooter } from './HomeFooter';

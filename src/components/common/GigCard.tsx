@@ -119,7 +119,7 @@ export default function GigCard({
                 size="sm"
                 showValue
                 reviewCount={gig.seller.reviewCount ?? undefined}
-                className="text-[10px]"
+
               />
             </div>
           )}

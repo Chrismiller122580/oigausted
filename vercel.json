@@ -1,5 +1,5 @@
 {
-  "buildCommand": "prisma generate && ./scripts/prisma-safe-migrate.sh && next build",
+  "buildCommand": "prisma generate --no-engine && ./scripts/prisma-safe-migrate.sh && next build",
   "crons": [
     {
       "path": "/api/notifications/digest?frequency=daily",

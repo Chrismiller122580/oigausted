@@ -58,6 +58,18 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
     );
   }
 
+  // Homepage v2 ships its own sticky navbar — skip the default public bar on /
+  const isHomepage = pathname === '/';
+
+  if (isHomepage) {
+    return (
+      <>
+        {banner}
+        <main>{children}</main>
+      </>
+    );
+  }
+
   // Public navbar
   return (
     <>

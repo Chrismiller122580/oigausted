@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock, Tag, BarChart3, MessageCircle, Megaphone, RefreshCw } from 'lucide-react';
+import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock, Tag, BarChart3, MessageCircle, Megaphone, RefreshCw, Activity, Zap } from 'lucide-react';
 import { useRealtimeNotifications } from '@/lib/useRealtimeNotifications';
 import type { AuditLogEntry } from '@/types/audit';
+import type { AnalyticsIntegration } from '@/lib/admin-analytics';
+import { AnalyticsIntegrationsPanel } from '@/components/admin/AnalyticsIntegrationsPanel';
 
 interface AdminStats {
   users?: number
@@ -17,6 +19,7 @@ interface AdminStats {
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [integrations, setIntegrations] = useState<AnalyticsIntegration[]>([]);
   const [recentActivity, setRecentActivity] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastActivityUpdate, setLastActivityUpdate] = useState<Date | null>(null);
@@ -24,9 +27,10 @@ export default function AdminDashboard() {
   const fetchStats = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     try {
-      const [statsRes, activityRes] = await Promise.all([
+      const [statsRes, activityRes, integrationsRes] = await Promise.all([
         fetch('/api/admin/stats'),
-        fetch('/api/admin/audit?limit=6')
+        fetch('/api/admin/audit?limit=6'),
+        fetch('/api/admin/analytics/integrations'),
       ]);
 
       const statsData = await statsRes.json();
@@ -34,6 +38,12 @@ export default function AdminDashboard() {
 
       const activityData = await activityRes.json();
       setRecentActivity(activityData.logs || []);
+
+      if (integrationsRes.ok) {
+        const integrationsData = await integrationsRes.json();
+        setIntegrations(integrationsData.integrations || []);
+      }
+
       setLastActivityUpdate(new Date());
     } catch (e) {
       console.error(e);
@@ -167,6 +177,21 @@ export default function AdminDashboard() {
           </Link>
         </div>
 
+        {integrations.length > 0 && (
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Zap className="h-5 w-5 text-brand" />
+                Analytics integrations
+              </h2>
+              <Link href="/admin/analytics" className="text-sm text-brand hover:underline">
+                Full analytics →
+              </Link>
+            </div>
+            <AnalyticsIntegrationsPanel integrations={integrations} compact />
+          </div>
+        )}
+
         <div className="mb-4">
           <h2 className="text-xl font-semibold mb-4 text-muted-foreground">Quick Actions</h2>
         </div>
@@ -213,6 +238,17 @@ export default function AdminDashboard() {
         </div>
 
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Link href="/admin/analytics">
+            <Card className="bg-card border-border hover:border-accent transition cursor-pointer h-full">
+              <CardContent className="p-6 flex items-center gap-4">
+                <Activity className="h-8 w-8 text-blue-400" />
+                <div>
+                  <div className="font-semibold">Analytics</div>
+                  <div className="text-sm text-muted-foreground">Integrations, funnel, trends</div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
           <Link href="/admin/reports">
             <Card className="bg-card border-border hover:border-accent transition cursor-pointer h-full">
               <CardContent className="p-6 flex items-center gap-4">

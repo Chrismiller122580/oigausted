@@ -236,3 +236,20 @@ button, a, [role="button"] {
     transform: none !important;
   }
 }
+
+/* OigaGIG v2 homepage design tokens */
+:root {
+  --oiga-orange: #F97316;
+  --oiga-orange-hover: #EA580C;
+  --oiga-trust-green: #10B981;
+  --oiga-accent-yellow: #EAB308;
+}
+
+/* Hide scrollbars on horizontal scroll sections */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

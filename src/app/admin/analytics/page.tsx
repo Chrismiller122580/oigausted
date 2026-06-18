@@ -6,10 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   RefreshCw,
-  ExternalLink,
   Activity,
-  CheckCircle2,
-  AlertCircle,
   ArrowRight,
   Globe,
   Zap,
@@ -27,28 +24,7 @@ import type {
   FunnelStep,
   SummaryKpi,
 } from '@/lib/admin-analytics';
-
-function statusBadge(status: 'active' | 'configured' | 'missing') {
-  if (status === 'active') {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-        <CheckCircle2 className="h-3.5 w-3.5" /> Active
-      </span>
-    );
-  }
-  if (status === 'configured') {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400">
-        <CheckCircle2 className="h-3.5 w-3.5" /> Configured
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400">
-      <AlertCircle className="h-3.5 w-3.5" /> Not configured
-    </span>
-  );
-}
+import { AnalyticsIntegrationsPanel } from '@/components/admin/AnalyticsIntegrationsPanel';
 
 function formatValue(value: number, format: SummaryKpi['format']): string {
   if (format === 'currency') return `$${Math.round(value).toLocaleString('es-CO')}`;
@@ -238,6 +214,15 @@ export default function AdminAnalyticsPage() {
 
         {!loading && data && (
           <>
+            {/* Integrations — status of Vercel Analytics, Speed Insights, GA4 */}
+            <section className="mb-10">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Zap className="h-5 w-5 text-brand" />
+                Analytics integrations
+              </h2>
+              <AnalyticsIntegrationsPanel integrations={data.integrations} />
+            </section>
+
             {/* Summary KPIs */}
             <section className="mb-10">
               <h2 className="text-xl font-semibold mb-4">Key metrics</h2>
@@ -372,53 +357,6 @@ export default function AdminAnalyticsPage() {
                       <p className="text-xs text-muted-foreground">{s.label}</p>
                       <p className="text-2xl font-bold tabular-nums mt-1">{s.count.toLocaleString('es-CO')}</p>
                       <p className="text-xs text-muted-foreground mt-1">{s.share}% of all orders</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </section>
-
-            {/* Integrations */}
-            <section className="mb-10">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Zap className="h-5 w-5 text-orange-500" />
-                Integrations
-              </h2>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {data.integrations.map((integration) => (
-                  <Card key={integration.id} className="bg-card border-border">
-                    <CardContent className="p-5 flex flex-col h-full">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <h3 className="font-semibold">{integration.name}</h3>
-                        {statusBadge(integration.status)}
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">{integration.description}</p>
-                      {integration.detail && (
-                        <p className="text-xs font-mono text-muted-foreground mb-2 break-all">
-                          {integration.detail}
-                        </p>
-                      )}
-                      {integration.notes && (
-                        <ul className="text-xs text-muted-foreground space-y-1 mb-3 flex-1">
-                          {integration.notes.map((note) => (
-                            <li key={note} className="flex gap-1.5">
-                              <span className="text-orange-500">·</span>
-                              {note}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {integration.dashboardUrl && (
-                        <a
-                          href={integration.dashboardUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-sm text-orange-600 hover:text-orange-500 font-medium"
-                        >
-                          Open dashboard
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      )}
                     </CardContent>
                   </Card>
                 ))}
