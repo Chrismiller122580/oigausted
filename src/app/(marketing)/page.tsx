@@ -9,6 +9,7 @@ import { HowItWorks } from '@/components/homepage/HowItWorks';
 import { TestimonialsCarousel } from '@/components/homepage/TestimonialsCarousel';
 import { SellerPromoCTA } from '@/components/homepage/SellerPromoCTA';
 import { HomeFooter } from '@/components/homepage/HomeFooter';
+import { HomepageWelcomeSplash } from './HomepageWelcomeSplash';
 
 export const revalidate = 60;
 
@@ -144,6 +145,7 @@ export default async function MarketingHomePage() {
 
   return (
     <>
+      <HomepageWelcomeSplash />
       <HomeNavbar />
       <main>
         <HomeHero />
