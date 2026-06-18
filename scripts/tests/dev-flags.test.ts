@@ -9,10 +9,11 @@ const env = { ...process.env }
 process.env.ALLOW_DEV_PAYMENT_SIMULATE = 'true'
 process.env.NODE_ENV = 'production'
 process.env.VERCEL = '1'
-assert(allowDevPaymentSimulate(), 'explicit flag overrides production')
+assert(!allowDevPaymentSimulate(), 'production/Vercel never allows payment simulate')
 
 process.env.ALLOW_DEV_PAYMENT_SIMULATE = ''
 process.env.NODE_ENV = 'production'
+process.env.VERCEL = '1'
 assert(!allowDevPaymentSimulate(), 'production blocked without flag')
 
 process.env.NODE_ENV = 'development'

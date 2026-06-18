@@ -194,9 +194,16 @@ function OrderDetailClient() {
   const startPaymentPolling = () => {
     if (paymentPollRef.current) return;
     setIsPollingPayment(true);
+    let pollCount = 0;
 
     paymentPollRef.current = setInterval(async () => {
       try {
+        pollCount += 1;
+        // After a few polls, ask Wompi directly (webhook recovery path)
+        if (pollCount === 3 || pollCount % 8 === 0) {
+          await fetch(`/api/orders/${orderId}/check-wompi`, { method: 'POST' }).catch(() => {});
+        }
+
         const res = await fetch(`/api/orders/${orderId}`);
         if (!res.ok) return;
         const data = await res.json();
@@ -209,9 +216,12 @@ function OrderDetailClient() {
             clearInterval(paymentPollRef.current);
             paymentPollRef.current = null;
           }
-          trackEvent('payment_completed', { order_status: fresh.status });
-          toast.success(`Pago confirmado: ${fresh.status}`);
-          // Refresh other data like messages if needed
+          if (fresh.status === 'Paid') {
+            trackEvent('payment_completed', { order_status: fresh.status });
+            toast.success('Pago confirmado');
+          } else if (fresh.status === 'Cancelled') {
+            toast.error('El pago no se completó');
+          }
         }
       } catch (e) {
         // ignore transient fetch errors
@@ -555,11 +565,11 @@ function OrderDetailClient() {
                   </>
                 )}
 
-                {isBuyer && !isCompleted && order.status !== 'Cancelled' && ['Pending', 'Paid'].includes(order.status) && (
+                {isBuyer && order.status === 'Pending' && (
                   <Button onClick={() => updateStatus('Cancelled')} variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">Cancelar Pedido</Button>
                 )}
 
-                {!isSeller && !isCompleted && ! (isBuyer && ['Pending', 'Paid'].includes(order.status)) && (
+                {!isSeller && !isCompleted && !(isBuyer && order.status === 'Pending') && (
                   <p className="text-sm text-muted-foreground text-center py-2">El vendedor actualizará el progreso aquí.</p>
                 )}
 

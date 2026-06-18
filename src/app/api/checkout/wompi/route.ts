@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { devLog } from '@/lib/utils';
 import type { WompiCheckoutConfig } from '@/types/wompi';
 import { getAppBaseUrl } from '@/lib/app-url';
+import { OrderStatusLabel, prismaStatusToLabel } from '@/lib/order-status';
 
 const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
 const WOMPI_INTEGRITY_KEY = process.env.WOMPI_INTEGRITY_KEY || process.env.WOMPI_INTEGRITY_SECRET;
@@ -119,6 +120,13 @@ export async function POST(req: NextRequest) {
 
     if (order.buyerId !== userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if (prismaStatusToLabel(order.status) !== OrderStatusLabel.Pending) {
+      return NextResponse.json(
+        { error: 'Este pedido ya no está pendiente de pago' },
+        { status: 400 }
+      );
     }
 
     // Respect admin toggle for real payments

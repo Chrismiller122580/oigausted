@@ -190,14 +190,21 @@ export async function POST(request: Request) {
           reference: transaction.reference,
         })
 
-        // Webhook still returns 200 even if confirm was no-op (idempotent)
+        if (!confirmRes.success && !confirmRes.alreadyProcessed) {
+          devLog('[Wompi][Webhook] confirm failed — returning 500 for retry', confirmRes.error);
+          return NextResponse.json(
+            { error: confirmRes.error || 'Payment confirmation failed' },
+            { status: 500 }
+          );
+        }
+
         return NextResponse.json({ received: true, event, orderStatus: confirmRes.newStatus || 'Paid' })
       }
 
-      // Non-success terminal statuses: mark Cancelled (light path, no referral side effects)
+      // Non-success terminal statuses: cancel only if still awaiting payment
       if (['DECLINED', 'ERROR', 'VOIDED'].includes(transaction.status)) {
-        await prisma.order.update({
-          where: { id: orderId },
+        await prisma.order.updateMany({
+          where: { id: orderId, status: labelToPrismaStatus(OrderStatusLabel.Pending) },
           data: { status: labelToPrismaStatus(OrderStatusLabel.Cancelled), updatedAt: new Date() },
         }).catch(() => {})
 

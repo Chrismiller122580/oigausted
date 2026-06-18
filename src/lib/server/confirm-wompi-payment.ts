@@ -55,6 +55,20 @@ export async function confirmWompiPayment(
       return { success: true, alreadyProcessed: true, newStatus: currentLabel, message: 'Already processed' };
     }
 
+    if (currentLabel !== OrderStatusLabel.Pending) {
+      devLog(`[Wompi][confirm] Order ${orderId} in ${currentLabel}, cannot confirm payment`);
+      return {
+        success: false,
+        error: `Order is ${currentLabel}; only Pending orders can be confirmed as Paid`,
+      };
+    }
+
+    const expectedRef = `order_${orderId}`;
+    if (opts?.reference && opts.reference !== expectedRef) {
+      devLog(`[Wompi][confirm] Reference mismatch for ${orderId}: got ${opts.reference}`);
+      return { success: false, error: 'Transaction reference does not match this order' };
+    }
+
     if (opts?.amount != null) {
       const expectedCents = Math.round(order.price * 100);
       const receivedCents = Math.round(opts.amount * 100);
@@ -70,11 +84,28 @@ export async function confirmWompiPayment(
     // Only confirm to Paid on success path
     const updateData = { status: labelToPrismaStatus(OrderStatusLabel.Paid), updatedAt: new Date() };
 
-    // Atomic: update status + create referral earning if seller was referred (prevents orphans)
+    // Atomic: only flip Pending → Paid (prevents reverting In Progress / duplicate races)
     const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const u = await tx.order.update({
-        where: { id: orderId },
+      const pendingStatus = labelToPrismaStatus(OrderStatusLabel.Pending);
+      const { count } = await tx.order.updateMany({
+        where: { id: orderId, status: pendingStatus },
         data: updateData,
+      });
+
+      if (count === 0) {
+        const latest = await tx.order.findUnique({
+          where: { id: orderId },
+          select: { status: true },
+        });
+        const latestLabel = prismaStatusToLabel(latest?.status ?? current);
+        if (latestLabel === OrderStatusLabel.Paid || latestLabel === OrderStatusLabel.Completed) {
+          return null;
+        }
+        throw new Error(`Order cannot be confirmed from status ${latestLabel}`);
+      }
+
+      const u = await tx.order.findUnique({
+        where: { id: orderId },
         select: {
           id: true,
           status: true,
@@ -87,6 +118,8 @@ export async function confirmWompiPayment(
           seller: { select: { id: true, referredById: true } },
         },
       });
+
+      if (!u) throw new Error('Order not found after payment confirmation');
 
       // Referral earning inside the tx for atomicity (same pattern as before)
       if (u.seller?.referredById) {
@@ -113,6 +146,15 @@ export async function confirmWompiPayment(
 
       return u;
     });
+
+    if (!updated) {
+      return {
+        success: true,
+        alreadyProcessed: true,
+        newStatus: OrderStatusLabel.Paid,
+        message: 'Already processed',
+      };
+    }
 
     // Audit (best effort, after commit)
     await logAuditEvent({

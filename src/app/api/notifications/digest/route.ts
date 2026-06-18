@@ -19,13 +19,13 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // Vercel Cron protection + optional admin key
+  // Require CRON_SECRET bearer (Vercel sends this when CRON_SECRET env is set) or admin session.
+  // Do NOT trust x-vercel-cron alone — it can be spoofed by any HTTP client.
+  const cronSecret = process.env.CRON_SECRET?.trim();
   const authHeader = req.headers.get('authorization');
-  const vercelCronHeader = req.headers.get('x-vercel-cron');
-  const isVercelCron = vercelCronHeader === '1' || authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  const isCronAuth = !!cronSecret && authHeader === `Bearer ${cronSecret}`;
 
-  if (!isVercelCron) {
-    // Allow manual trigger from admin UI (for testing)
+  if (!isCronAuth) {
     const session = await getServerSession(authOptions);
     if (session?.user?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

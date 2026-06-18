@@ -4,6 +4,26 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { devLog } from '@/lib/utils';
 import { confirmWompiPayment } from '@/lib/server/confirm-wompi-payment';
+import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
+
+type WompiTransaction = {
+  id: string;
+  status: string;
+  reference?: string;
+  amount_in_cents?: number;
+  created_at?: string;
+  [key: string]: unknown;
+};
+
+function pickBestWompiTransaction(transactions: WompiTransaction[]): WompiTransaction | null {
+  if (!transactions.length) return null;
+  const sorted = [...transactions].sort((a, b) => {
+    const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return tb - ta;
+  });
+  return sorted.find((t) => t.status === 'APPROVED') ?? sorted[0];
+}
 
 export async function POST(
   req: NextRequest,
@@ -21,7 +41,7 @@ export async function POST(
   // Verify the caller owns the order (buyer or seller) or is admin
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    select: { buyerId: true, sellerId: true, status: true },
+    select: { buyerId: true, sellerId: true, status: true, price: true },
   });
 
   if (!order || (order.buyerId !== userId && order.sellerId !== userId && !isAdmin)) {
@@ -83,7 +103,7 @@ export async function POST(
     // - /transactions/{id} direct: { data: Transaction }
     const transaction = txIdFromBody
       ? (data?.data || null)
-      : (Array.isArray(data?.data) ? data.data[0] : null);
+      : pickBestWompiTransaction(Array.isArray(data?.data) ? data.data : []);
 
     if (!transaction) {
       return NextResponse.json({
@@ -119,13 +139,27 @@ export async function POST(
     // If Wompi reports APPROVED, run the FULL confirmation (Paid + referral + audit + notif).
     // This makes the "Consultar Wompi API" button a complete recovery path (same as webhook).
     // The helper is idempotent, so safe to call even if already Paid.
+    if (transaction.reference && transaction.reference !== reference) {
+      return NextResponse.json(
+        { error: 'Transaction reference does not match this order' },
+        { status: 400 }
+      );
+    }
+
     if (transaction.status === 'APPROVED') {
       const confirmRes = await confirmWompiPayment(orderId, {
         wompiTransactionId: transaction.id,
         wompiStatus: transaction.status,
         amount: transaction.amount_in_cents ? transaction.amount_in_cents / 100 : undefined,
-        reference: transaction.reference,
+        reference: transaction.reference || reference,
       });
+
+      if (!confirmRes.success && !confirmRes.alreadyProcessed) {
+        return NextResponse.json(
+          { success: false, error: confirmRes.error || 'Payment confirmation failed' },
+          { status: 400 }
+        );
+      }
 
       const message = confirmRes.alreadyProcessed
         ? 'Wompi shows APPROVED; order was already Paid.'
@@ -154,6 +188,16 @@ export async function POST(
           error: wompiError,
         },
       });
+    }
+
+    if (isErrorStatus) {
+      await prisma.order.updateMany({
+        where: { id: orderId, status: labelToPrismaStatus(OrderStatusLabel.Pending) },
+        data: {
+          status: labelToPrismaStatus(OrderStatusLabel.Cancelled),
+          updatedAt: new Date(),
+        },
+      }).catch(() => {});
     }
 
     // For other statuses or errors, just report back — surface error prominently if present

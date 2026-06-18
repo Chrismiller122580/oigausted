@@ -181,12 +181,11 @@ export async function PATCH(
             { status: 400 }
           );
         }
-        if (
-          statusLabel === OrderStatusLabel.Cancelled &&
-          current !== OrderStatusLabel.Pending &&
-          current !== OrderStatusLabel.Paid
-        ) {
-          return NextResponse.json({ error: 'Cannot cancel at this stage' }, { status: 400 });
+        if (statusLabel === OrderStatusLabel.Cancelled && current !== OrderStatusLabel.Pending) {
+          return NextResponse.json(
+            { error: 'Solo puedes cancelar pedidos pendientes de pago' },
+            { status: 400 }
+          );
         }
         if (statusLabel === OrderStatusLabel.InProgress && !isSeller) {
           return NextResponse.json({ error: 'Only seller can mark In Progress' }, { status: 403 });
@@ -203,6 +202,16 @@ export async function PATCH(
     }
 
     if (customFields !== undefined) {
+      const currentForFields = normalizeOrderStatus(existingOrder.status)
+      if (!isAdmin && currentForFields !== OrderStatusLabel.Pending) {
+        return NextResponse.json(
+          { error: 'No se pueden modificar los detalles después del pago' },
+          { status: 400 }
+        )
+      }
+      if (!isAdmin && !isBuyer) {
+        return NextResponse.json({ error: 'Solo el comprador puede actualizar los detalles' }, { status: 403 })
+      }
       updateData.customFields = customFields ? JSON.stringify(customFields) : null
       const gig = await prisma.gig.findUnique({
         where: { id: existingOrder.gigId },

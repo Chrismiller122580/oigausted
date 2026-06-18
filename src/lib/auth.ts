@@ -288,7 +288,7 @@ export const authOptions: NextAuthOptions = {
       // This lets saves reflect immediately without requiring a full re-login or page reload.
       if (trigger === 'update' && session) {
         const update = session as SessionUpdatePayload
-        if (update.role !== undefined) t.role = update.role
+        // Never trust client-provided role — prevents session.update({ role: 'admin' }) escalation
         if (update.name !== undefined) t.name = update.name
         if (update.tagline !== undefined) t.tagline = update.tagline
         const pic = update.profilePicture ?? update.image
