@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -16,6 +17,20 @@ const showcaseSelect = {
   createdAt: true,
 } as const
 
+const showcaseFallbackSelect = {
+  id: true,
+  title: true,
+  price: true,
+  category: true,
+  imageUrl: true,
+  isActive: true,
+  createdAt: true,
+} as const
+
+type ShowcaseGigRow = Prisma.GigGetPayload<{ select: typeof showcaseSelect }>
+type ShowcaseFallbackGigRow = Prisma.GigGetPayload<{ select: typeof showcaseFallbackSelect }>
+type OwnedGigRow = Prisma.GigGetPayload<{ select: { id: true } }>
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
@@ -28,7 +43,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Solo vendedores pueden acceder' }, { status: 403 })
     }
 
-    let gigs
+    let gigs: ShowcaseGigRow[]
     try {
       gigs = await prisma.gig.findMany({
         where: { sellerId, deletedAt: null },
@@ -37,21 +52,17 @@ export async function GET() {
       })
     } catch (e) {
       if (!isMissingShowcaseColumnError(e)) throw e
-      gigs = await prisma.gig.findMany({
+      const fallbackGigs: ShowcaseFallbackGigRow[] = await prisma.gig.findMany({
         where: { sellerId, deletedAt: null },
-        select: {
-          id: true,
-          title: true,
-          price: true,
-          category: true,
-          imageUrl: true,
-          isActive: true,
-          createdAt: true,
-        },
+        select: showcaseFallbackSelect,
         orderBy: { createdAt: 'desc' },
       })
       return NextResponse.json({
-        gigs: gigs.map((g) => ({ ...g, showOnProfile: true, profileShowcaseOrder: null })),
+        gigs: fallbackGigs.map((g: ShowcaseFallbackGigRow) => ({
+          ...g,
+          showOnProfile: true,
+          profileShowcaseOrder: null,
+        })),
         maxShowcase: PUBLIC_PROFILE_GIG_LIMIT,
         showcaseSupported: false,
       })
@@ -98,7 +109,7 @@ export async function PATCH(request: Request) {
       where: { sellerId, deletedAt: null },
       select: { id: true },
     })
-    const ownedIds = new Set(ownedGigs.map((g) => g.id))
+    const ownedIds = new Set(ownedGigs.map((g: OwnedGigRow) => g.id))
     if (!uniqueIds.every((id) => ownedIds.has(id))) {
       return NextResponse.json({ error: 'Uno o más servicios no te pertenecen' }, { status: 400 })
     }
@@ -107,7 +118,7 @@ export async function PATCH(request: Request) {
 
     try {
       await prisma.$transaction([
-        ...ownedGigs.map((g) =>
+        ...ownedGigs.map((g: OwnedGigRow) =>
           prisma.gig.update({
             where: { id: g.id },
             data: {
