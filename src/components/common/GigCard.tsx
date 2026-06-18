@@ -10,26 +10,26 @@ import { CategoryIcon } from "@/lib/icon-registry"
 interface Gig {
   id: string
   title: string
-  description?: string
+  description?: string | null
   price: number
-  category?: string
-  completionTime?: string
-  imageUrl?: string
+  category?: string | null
+  completionTime?: string | null
+  imageUrl?: string | null
   isActive?: boolean
   seller?: {
     id: string
-    name?: string
-    email?: string
-    businessName?: string
-    slug?: string
-    profilePicture?: string
-    rating?: number
-    reviewCount?: number
+    name?: string | null
+    email?: string | null
+    businessName?: string | null
+    slug?: string | null
+    profilePicture?: string | null
+    rating?: number | null
+    reviewCount?: number | null
     latitude?: number | null
     longitude?: number | null
     serviceRadiusKm?: number | null
     city?: string | null
-  }
+  } | null
 }
 
 export default function GigCard({ 
