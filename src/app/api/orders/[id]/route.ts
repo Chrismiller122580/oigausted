@@ -163,6 +163,9 @@ export async function PATCH(
           }
         }
         if (statusLabel === OrderStatusLabel.InProgress && current !== OrderStatusLabel.Paid) {
+          devLog(
+            `[orders PATCH] rejected In Progress for ${orderId}: current=${current} (requires Paid)`
+          );
           return NextResponse.json(
             { error: 'El pedido debe estar pagado antes de iniciar el trabajo' },
             { status: 400 }

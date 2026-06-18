@@ -48,7 +48,7 @@ if (dbUrl.includes('prisma_migration') || (dbUrl.includes('direct') && !dbUrl.in
   )
 }
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+globalForPrisma.prisma = prisma
 
 // Simple in-memory cache for the singleton PlatformConfig (rarely changes, hit on almost every admin + config + notif path).
 // This dramatically reduces DB connection usage in serverless (each API route is a new invocation).

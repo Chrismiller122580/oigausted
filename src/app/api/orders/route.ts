@@ -128,10 +128,7 @@ export async function POST(request: Request) {
         amount: computedPrice,
         buyerName: order.buyer?.name || 'Un comprador',
         orderId: order.id,
-        actions: [
-          { label: 'Ver Pedido', action: 'view_order' },
-          { label: 'Iniciar Pedido', action: 'start_order' },
-        ]
+        actions: [{ label: 'Ver Pedido', action: 'view_order' }]
       }
     );
 

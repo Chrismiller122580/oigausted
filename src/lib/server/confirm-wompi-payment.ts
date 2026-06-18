@@ -145,6 +145,31 @@ export async function confirmWompiPayment(
       }
     }
 
+    // Seller can start work only after payment — offer action here, not on Pending order creation
+    if (updated.sellerId) {
+      try {
+        await notifications.sendInApp(
+          updated.sellerId,
+          'order',
+          '¡Pago recibido!',
+          `El pedido por "${updated.gig?.title || 'el servicio'}" fue pagado. Ya puedes aceptar e iniciar el trabajo.`,
+          `/orders/${orderId}`,
+          {
+            gigTitle: updated.gig?.title,
+            amount: updated.price,
+            orderId,
+            buyerName: updated.buyer?.name,
+            actions: [
+              { label: 'Ver Pedido', action: 'view_order' },
+              { label: 'Aceptar e Iniciar', action: 'start_order' },
+            ],
+          }
+        );
+      } catch (nErr) {
+        devLog('[Wompi confirm] seller notif error (non-fatal):', nErr);
+      }
+    }
+
     // Best-effort: run the full referral helper (it guards duplicates + sends referrer email/notif)
     if (updated.seller?.referredById) {
       try {

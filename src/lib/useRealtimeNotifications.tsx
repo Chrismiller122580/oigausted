@@ -162,6 +162,56 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
     }
   }, [enableToasts, enableDesktop, enableSound]);
 
+  const patchOrderStatusFromNotification = async (
+    orderId: string,
+    targetStatus: 'In Progress' | 'Completed'
+  ): Promise<{ ok: boolean; message?: string }> => {
+    const orderRes = await fetch(`/api/orders/${orderId}`);
+    if (!orderRes.ok) {
+      return { ok: false, message: 'No se pudo cargar el pedido' };
+    }
+    const orderPayload = await orderRes.json().catch(() => ({}));
+    const currentStatus = orderPayload?.order?.status ?? orderPayload?.status;
+
+    if (targetStatus === 'In Progress') {
+      if (currentStatus === 'In Progress' || currentStatus === 'Completed') {
+        return { ok: true, message: 'El pedido ya está en progreso o completado' };
+      }
+      if (currentStatus !== 'Paid') {
+        return {
+          ok: false,
+          message: 'El pedido debe estar pagado antes de iniciar el trabajo',
+        };
+      }
+    }
+
+    if (targetStatus === 'Completed') {
+      if (currentStatus === 'Completed') {
+        return { ok: true, message: 'El pedido ya está completado' };
+      }
+      if (currentStatus !== 'Paid' && currentStatus !== 'In Progress') {
+        return {
+          ok: false,
+          message: 'Solo puedes completar pedidos pagados o en progreso',
+        };
+      }
+    }
+
+    const res = await fetch(`/api/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: targetStatus }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const message = typeof err.error === 'string' ? err.error : 'No se pudo actualizar el estado';
+      return { ok: false, message };
+    }
+
+    return { ok: true };
+  };
+
   // Handle rich actions from notifications (2027-grade quick actions)
   const handleNotificationAction = async (actionType: string, actionData: JsonObject | undefined, notif: RealtimeNotification) => {
     const orderId = (typeof actionData?.orderId === 'string' ? actionData.orderId : undefined) || notif.link?.split('/').pop();
@@ -175,12 +225,12 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
         case 'mark_order_completed':
         case 'complete_order':
           if (orderId) {
-            await fetch(`/api/orders/${orderId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ status: 'Completed' }),
-            });
-            toast.success('Pedido marcado como completado');
+            const result = await patchOrderStatusFromNotification(orderId, 'Completed');
+            if (result.ok) {
+              toast.success(result.message || 'Pedido marcado como completado');
+            } else {
+              toast.error(result.message || 'No se pudo completar el pedido');
+            }
             window.location.href = `/orders/${orderId}`;
           }
           break;
@@ -188,12 +238,12 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
         case 'mark_as_shipped':
         case 'ship_order':
           if (orderId) {
-            await fetch(`/api/orders/${orderId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ status: 'In Progress' }),
-            });
-            toast.success('Pedido marcado como enviado');
+            const result = await patchOrderStatusFromNotification(orderId, 'In Progress');
+            if (result.ok) {
+              toast.success(result.message || 'Pedido marcado como en progreso');
+            } else {
+              toast.error(result.message || 'No se pudo actualizar el pedido');
+            }
             window.location.href = `/orders/${orderId}`;
           }
           break;
@@ -201,12 +251,12 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
         case 'start_order':
         case 'mark_in_progress':
           if (orderId) {
-            await fetch(`/api/orders/${orderId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ status: 'In Progress' }),
-            });
-            toast.success('Pedido iniciado');
+            const result = await patchOrderStatusFromNotification(orderId, 'In Progress');
+            if (result.ok) {
+              toast.success(result.message || 'Pedido iniciado');
+            } else {
+              toast.error(result.message || 'No se pudo iniciar el pedido');
+            }
             window.location.href = `/orders/${orderId}`;
           }
           break;
