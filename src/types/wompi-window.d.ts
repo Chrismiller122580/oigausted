@@ -1,10 +1,8 @@
-import type { WompiCheckoutConfig, WompiPrepareResponse, WompiWidgetResult } from '@/types/wompi'
-
-type WompiWidgetConfig = Partial<WompiCheckoutConfig> & Record<string, unknown>
+import type { WompiWidgetConfig, WompiPrepareResponse, WompiWidgetResult } from '@/types/wompi'
 
 interface WompiCheckoutInstance {
   open: ((callback?: (result: WompiWidgetResult) => void) => void) &
-    ((config: WompiCheckoutConfig) => void)
+    ((config: WompiWidgetConfig) => void)
   close?: () => void
 }
 

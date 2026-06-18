@@ -1,7 +1,7 @@
-import type { WompiCheckoutConfig, WompiPrepareResponse } from '@/types/wompi'
+import type { WompiPrepareResponse, WompiWidgetConfig } from '@/types/wompi'
 
 /** Build the full WidgetCheckout constructor config from a /api/checkout/wompi response. */
-export function buildWompiWidgetConfig(config: WompiPrepareResponse): WompiCheckoutConfig {
+export function buildWompiWidgetConfig(config: WompiPrepareResponse): WompiWidgetConfig {
   const nested = config.checkoutData
   const integrity = config.integrity ?? nested?.signature?.integrity ?? ''
 

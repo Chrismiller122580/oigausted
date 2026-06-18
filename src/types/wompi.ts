@@ -51,6 +51,11 @@ export interface WompiCheckoutConfig {
   customerData?: { email?: string; fullName?: string }
 }
 
+/** WidgetCheckout constructor config (camelCase + optional Wompi kebab-case aliases). */
+export type WompiWidgetConfig = WompiCheckoutConfig & {
+  'redirect-url'?: string
+}
+
 /** POST /api/checkout/wompi response */
 export interface WompiPrepareResponse {
   reference?: string
