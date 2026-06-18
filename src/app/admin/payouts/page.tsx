@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG, aggregatePayouts } from '@/lib/payout';
+import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG, aggregatePayouts, type PayoutConfig } from '@/lib/payout';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import type { PayoutOrder, ReferralPayoutSummary } from '@/types/payout';
 
@@ -14,7 +14,6 @@ export default function AdminPayoutsPage() {
   const [referralPayouts, setReferralPayouts] = useState<ReferralPayoutSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [paidSearch, setPaidSearch] = useState('');
-
   // Local persistence for marked-paid payouts (workaround while prod DB may be missing sellerPayoutAt column)
   // Prevents "old" payouts from reappearing on refresh until migration adds the column.
   const [manuallyMarkedPaid, setManuallyMarkedPaid] = useState<Set<string>>(() => {
@@ -50,6 +49,16 @@ export default function AdminPayoutsPage() {
 
   const fetchCompleted = async () => {
     try {
+      let rates: PayoutConfig = DEFAULT_PAYOUT_CONFIG;
+      const configRes = await fetch('/api/admin/config').catch(() => null);
+      if (configRes?.ok) {
+        const cfg = await configRes.json();
+        rates = {
+          platformCommissionRate: cfg.commissionRate ?? DEFAULT_PAYOUT_CONFIG.platformCommissionRate,
+          referralCommissionRate: cfg.referralCommissionRate ?? DEFAULT_PAYOUT_CONFIG.referralCommissionRate,
+        };
+      }
+
       const res = await fetch('/api/orders?view=all'); // admin view: all orders
       const data = await res.json();
       const list = Array.isArray(data) ? data : [];
@@ -65,12 +74,11 @@ export default function AdminPayoutsPage() {
         } catch {}
       }
 
-      // Apply proper accounting
       const withBreakdown = completed.map((o: PayoutOrder) => {
         const breakdown = calculateOrderPayout(
           Number(o.price) || 0,
           !!o.seller?.referredById,
-          DEFAULT_PAYOUT_CONFIG
+          rates
         );
         return { ...o, breakdown };
       });
@@ -137,6 +145,12 @@ export default function AdminPayoutsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       }).catch(() => null);
+
+      if (!patchRes?.ok) {
+        const err = await patchRes?.json().catch(() => ({}));
+        toast.error(err?.error || 'No se pudo guardar el pago en la base de datos');
+        return;
+      }
 
       // If seller had a referrer, mark their referral earnings as Paid
       if (order.seller?.referredById) {

@@ -15,6 +15,7 @@ import type { WompiClientDebugState, WompiPrepareResponse, WompiWidgetResult } f
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 import { trackEvent } from '@/lib/analytics';
 import { buildWompiWidgetConfig } from '@/lib/wompi-widget';
+import { MapPin, AlertTriangle, CheckCircle } from 'lucide-react';
 
 export default function CheckoutPage() {
   const params = useParams();
@@ -703,10 +704,11 @@ export default function CheckoutPage() {
                       () => toast.error("No pudimos obtener tu ubicación.")
                     );
                   }}
-                  className="px-4 py-5 border border-border rounded-2xl text-sm hover:bg-muted flex items-center justify-center whitespace-nowrap"
+                  className="px-4 py-5 border border-border rounded-2xl text-sm hover:bg-muted flex items-center justify-center gap-1.5 whitespace-nowrap"
                   title="Usar mi ubicación actual"
                 >
-                  📍 Mi ubicación
+                  <MapPin className="h-4 w-4" />
+                  Mi ubicación
                 </button>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
@@ -781,13 +783,15 @@ export default function CheckoutPage() {
 
           {/* Payment mode status */}
           {realPaymentsEnabled === false && (
-            <div className="p-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 text-sm text-yellow-700 dark:text-yellow-300">
-              ⚠️ <strong>Modo de prueba activo</strong> — Los pagos reales están desactivados en el panel de administración. No se cobrará dinero real.
+            <div className="p-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 text-sm text-yellow-700 dark:text-yellow-300 flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <span><strong>Modo de prueba activo</strong> — Los pagos reales están desactivados en el panel de administración. No se cobrará dinero real.</span>
             </div>
           )}
           {realPaymentsEnabled === true && (
-            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-sm text-emerald-700 dark:text-emerald-300">
-              ✅ Pagos reales habilitados
+            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 flex-shrink-0" />
+              Pagos reales habilitados
             </div>
           )}
 
@@ -917,9 +921,12 @@ export default function CheckoutPage() {
           </p>
 
           {isWompiSandbox && (
-            <div className="mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-500 rounded-xl text-sm text-yellow-800 dark:text-yellow-200">
-              ⚠️ <strong>Modo Beta / Pruebas activado</strong><br />
-              Estás usando llaves de sandbox de Wompi. Los pagos no son reales.
+            <div className="mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-500 rounded-xl text-sm text-yellow-800 dark:text-yellow-200 flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <span>
+                <strong>Modo Beta / Pruebas activado</strong><br />
+                Estás usando llaves de sandbox de Wompi. Los pagos no son reales.
+              </span>
             </div>
           )}
 

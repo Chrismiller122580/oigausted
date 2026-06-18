@@ -6,7 +6,7 @@ import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { DollarSign, Package, Star, Plus, TrendingUp, Clock, Users } from 'lucide-react';
+import { DollarSign, Package, Star, Plus, TrendingUp, Users, Link2 } from 'lucide-react';
 import OnboardingTutorial from '@/components/common/OnboardingTutorial';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 import { getOrderStatusDisplayEs, OrderStatusLabel } from '@/lib/order-status';
@@ -103,7 +103,7 @@ export default function SellerDashboard() {
           <Card id="tutorial-public-profile" className="bg-gradient-to-br from-orange-50 to-white dark:from-orange-950/40 border-orange-200 dark:border-orange-900/60">
             <CardContent className="pt-6">
               <div className="flex items-center gap-2 text-orange-600 font-semibold mb-2">
-                🔗 Tu perfil público directo
+                <Link2 size={18} /> Tu perfil público directo
               </div>
               <p className="text-sm text-muted-foreground mb-3">
                 Comparte este enlace para que los clientes te encuentren sin intermediarios.

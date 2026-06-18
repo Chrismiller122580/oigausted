@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { MessageCircle, Package } from 'lucide-react';
+import { MessageCircle, Package, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -102,7 +102,9 @@ export default function BuyerOrdersPage() {
                     {order.gig?.imageUrl ? (
                       <img src={order.gig.imageUrl} className="w-full h-40 object-cover rounded-2xl" alt={order.gig.title} />
                     ) : (
-                      <div className="w-full h-40 bg-gray-100 rounded-2xl flex items-center justify-center text-4xl">📸</div>
+                      <div className="w-full h-40 bg-muted rounded-xl flex items-center justify-center">
+                        <ImageIcon className="h-10 w-10 text-muted-foreground/50" />
+                      </div>
                     )}
                   </div>
 

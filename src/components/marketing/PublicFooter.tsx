@@ -61,7 +61,7 @@ export function PublicFooter({ siteName = 'OigaGig' }: { siteName?: string }) {
 
         <div className="mt-8 pt-6 border-t border-border text-zinc-500 flex flex-col sm:flex-row justify-between gap-2">
           <span>© {new Date().getFullYear()} {siteName}</span>
-          <span>Colombia 🇨🇴 • Servicios locales • Pagos con Wompi</span>
+          <span>Colombia • Servicios locales • Pagos con Wompi</span>
         </div>
       </div>
     </footer>

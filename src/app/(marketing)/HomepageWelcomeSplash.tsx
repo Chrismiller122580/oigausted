@@ -97,7 +97,7 @@ export function HomepageWelcomeSplash() {
         className="relative z-10 w-full max-w-lg overflow-hidden rounded-3xl border border-border bg-card shadow-2xl"
         {...motionProps}
       >
-        <div className="relative bg-gradient-to-br from-orange-600 via-red-600 to-rose-600 px-6 py-8 text-white">
+        <div className="relative bg-gradient-to-br from-orange-600 to-orange-700 px-6 py-8 text-white">
           <button
             type="button"
             onClick={dismiss}
@@ -107,8 +107,8 @@ export function HomepageWelcomeSplash() {
             <X className="h-5 w-5" />
           </button>
 
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/20 px-4 py-1.5 text-sm backdrop-blur-md">
-            <span aria-hidden="true">🇨🇴</span>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/15 px-4 py-1.5 text-sm backdrop-blur-md">
+            <MapPin className="h-4 w-4" />
             <span>Hecho para Colombia</span>
           </div>
 
@@ -142,7 +142,7 @@ export function HomepageWelcomeSplash() {
           <div className="flex flex-col gap-3 pt-2">
             <Button
               asChild
-              className="h-12 w-full rounded-2xl bg-orange-600 text-base font-semibold hover:bg-orange-700"
+              className="h-12 w-full rounded-xl bg-brand text-base font-semibold hover:bg-brand/90"
             >
               <Link href="/signup" onClick={dismiss}>
                 Crear cuenta gratis

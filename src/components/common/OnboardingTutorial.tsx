@@ -3,13 +3,17 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { X, ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import {
+  X, ArrowLeft, ArrowRight, Check,
+  Hand, Search, CreditCard, Star, PartyPopper, Wrench, Package, Link2, Coins,
+  type LucideIcon,
+} from 'lucide-react';
 
 interface TutorialStep {
   title: string;
   description: string;
   tips: string[];
-  icon?: string;
+  icon?: LucideIcon;
   target?: string;      // CSS selector for element to highlight (e.g. '#tutorial-create-gig')
   placement?: 'top' | 'bottom' | 'left' | 'right';
 }
@@ -29,7 +33,7 @@ const buyerSteps: TutorialStep[] = [
       "Usa la ubicación para ver servicios locales",
       "Lee reseñas y calificaciones antes de contratar"
     ],
-    icon: "👋"
+    icon: Hand
   },
   {
     title: "Busca y Contacta",
@@ -39,7 +43,7 @@ const buyerSteps: TutorialStep[] = [
       "El botón 'Contactar' abre WhatsApp o chat",
       "Pregunta detalles antes de pagar"
     ],
-    icon: "🔍",
+    icon: Search,
     target: "#tutorial-explore-gigs",
     placement: "bottom"
   },
@@ -51,7 +55,7 @@ const buyerSteps: TutorialStep[] = [
       "Recibes confirmación inmediata",
       "El vendedor recibe el pago después de completar"
     ],
-    icon: "💳"
+    icon: CreditCard
   },
   {
     title: "Sigue tu Pedido y Califica",
@@ -61,7 +65,7 @@ const buyerSteps: TutorialStep[] = [
       "Chatea con el vendedor en la página del pedido",
       "Deja reseña para ayudar a otros compradores"
     ],
-    icon: "⭐",
+    icon: Star,
     target: "#tutorial-recent-orders",
     placement: "top"
   }
@@ -76,7 +80,7 @@ const sellerSteps: TutorialStep[] = [
       "Comparte el enlace para atraer clientes directos",
       "Los compradores pagan con Nequi/PayU"
     ],
-    icon: "🎉",
+    icon: PartyPopper,
     target: "#tutorial-public-profile",
     placement: "bottom"
   },
@@ -88,7 +92,7 @@ const sellerSteps: TutorialStep[] = [
       "Define campos extras para aumentar ingresos",
       "Activa 'isRemote' si ofreces servicios online"
     ],
-    icon: "🛠️",
+    icon: Wrench,
     target: "#tutorial-create-gig",
     placement: "bottom"
   },
@@ -100,7 +104,7 @@ const sellerSteps: TutorialStep[] = [
       "Chatea con el cliente en la página del pedido",
       "Marca como 'Completado' para liberar el pago"
     ],
-    icon: "📦"
+    icon: Package
   },
   {
     title: "Tu Perfil Público y Reputación",
@@ -110,7 +114,7 @@ const sellerSteps: TutorialStep[] = [
       "Comparte tu enlace en redes y tarjetas",
       "Responde rápido para mejorar tu calificación"
     ],
-    icon: "🔗"
+    icon: Link2
   },
   {
     title: "Gana más con Referidos",
@@ -120,7 +124,7 @@ const sellerSteps: TutorialStep[] = [
       "Comisión por defecto 5% (puede variar)",
       "Revisa tus ganancias en la sección de referidos"
     ],
-    icon: "💰",
+    icon: Coins,
     target: "#tutorial-referrals-nav",
     placement: "bottom"
   }
@@ -184,6 +188,7 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
   };
 
   const isHighlighting = !!targetRect && !!step.target;
+  const StepIcon = step.icon;
 
   // Position the callout card relative to the highlight (default bottom)
   const getCardStyle = () => {
@@ -266,7 +271,11 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
 
             <div className="p-5 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="text-2xl">{step.icon}</div>
+                {StepIcon && (
+                  <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center flex-shrink-0">
+                    <StepIcon size={20} />
+                  </div>
+                )}
                 <div>
                   <div className="text-xs text-muted-foreground">
                     {mode === 'buyer' ? 'Capacitación para Compradores' : 'Capacitación para Vendedores'} • Paso {currentStep + 1} de {steps.length}
@@ -345,7 +354,11 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
           <Card className="w-full max-w-2xl bg-card border-border shadow-2xl">
             <div className="p-6 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="text-3xl">{step.icon}</div>
+                {StepIcon && (
+                  <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center flex-shrink-0">
+                    <StepIcon size={24} />
+                  </div>
+                )}
                 <div>
                   <div className="text-sm text-muted-foreground">
                     {mode === 'buyer' ? 'Capacitación para Compradores' : 'Capacitación para Vendedores'} • Paso {currentStep + 1} de {steps.length}

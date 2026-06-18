@@ -332,7 +332,8 @@ export async function PATCH(
       return NextResponse.json({ error: 'Only admins can update payout fields' }, { status: 403 })
     }
 
-    // Best-effort update for sellerPayoutAt (separate to avoid breaking the tx if column missing in prod DB)
+    let payoutFieldsUpdateFailed = false;
+
     if (sellerPayoutAtUpdate !== undefined) {
       try {
         await prisma.order.update({
@@ -340,11 +341,11 @@ export async function PATCH(
           data: { sellerPayoutAt: sellerPayoutAtUpdate } as Prisma.OrderUpdateInput,
         });
       } catch (payoutErr) {
-        devLog('sellerPayoutAt update skipped (column may be missing in prod DB)', payoutErr);
+        payoutFieldsUpdateFailed = true;
+        devLog('sellerPayoutAt update failed', payoutErr);
       }
     }
 
-    // Best-effort update for wompiPayoutRef (Wompi transfer id/ref for seller payouts via Pagos a Terceros)
     if (wompiPayoutRefUpdate !== undefined) {
       try {
         await prisma.order.update({
@@ -352,8 +353,19 @@ export async function PATCH(
           data: { wompiPayoutRef: wompiPayoutRefUpdate } as Prisma.OrderUpdateInput,
         });
       } catch (refErr) {
-        devLog('wompiPayoutRef update skipped (column may be missing in prod DB)', refErr);
+        payoutFieldsUpdateFailed = true;
+        devLog('wompiPayoutRef update failed', refErr);
       }
+    }
+
+    if (
+      payoutFieldsUpdateFailed &&
+      (sellerPayoutAtUpdate !== undefined || wompiPayoutRefUpdate !== undefined)
+    ) {
+      return NextResponse.json(
+        { error: 'No se pudo guardar el pago. Verifica que la migración sellerPayoutAt esté aplicada.' },
+        { status: 500 }
+      );
     }
 
     if (!updatedOrder) {

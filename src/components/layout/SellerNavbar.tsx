@@ -11,6 +11,7 @@ import { usePathname } from 'next/navigation';
 import MobileMenu from './MobileMenu';
 import MobileBottomNav from './MobileBottomNav';
 import Logo from '@/components/common/Logo';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 export default function SellerNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
@@ -87,9 +88,12 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
                 <p className="font-semibold text-sm leading-none text-foreground">{session?.user?.name?.split(" ")[0] || 'Vendedor'}</p>
                 <p className="text-xs text-muted-foreground">Vendedor</p>
               </div>
-              <div className="w-9 h-9 bg-orange-100 dark:bg-orange-900/40 rounded-full flex items-center justify-center text-2xl hover:ring-2 hover:ring-orange-600 transition">
-                👤
-              </div>
+              <UserAvatar
+                src={session?.user?.image}
+                name={session?.user?.name}
+                size="sm"
+                className="cursor-pointer hover:ring-2 hover:ring-brand transition"
+              />
             </Link>
             <Link 
               href="/support" 

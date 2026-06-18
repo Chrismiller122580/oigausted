@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { toast } from 'sonner'
 import { CategoryIcon } from "@/lib/icon-registry"
+import { StarRating } from "@/components/ui/star-rating"
+import { UserAvatar } from "@/components/ui/user-avatar"
 
 interface Gig {
   id: string
@@ -57,8 +59,6 @@ export default function GigCard({
     gig.seller?.businessName ||
     "Vendedor"
 
-  const sellerInitial = sellerName[0]?.toUpperCase() || "V"
-
   const userId = session?.user?.id
   const isOwnGig = userId && gig.seller?.id === userId
 
@@ -91,17 +91,12 @@ export default function GigCard({
         {/* Seller info: avatar + name + rating */}
         <div className="mt-1 flex items-center justify-between gap-2 text-sm">
           <div className="flex min-w-0 items-center gap-2">
-            {gig.seller?.profilePicture ? (
-              <img 
-                src={gig.seller.profilePicture} 
-                alt={sellerName}
-                className="w-5 h-5 rounded-full object-cover border border-zinc-200 dark:border-zinc-700 flex-shrink-0" 
-              />
-            ) : (
-              <div className="w-5 h-5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 text-[10px] flex items-center justify-center font-semibold flex-shrink-0">
-                {sellerInitial}
-              </div>
-            )}
+            <UserAvatar
+              src={gig.seller?.profilePicture}
+              name={sellerName}
+              size="sm"
+              className="w-5 h-5 text-[10px] flex-shrink-0"
+            />
 
             {isOwnGig ? (
               <span className="truncate text-muted-foreground text-xs">{sellerName}</span>
@@ -118,11 +113,14 @@ export default function GigCard({
 
           {/* Rating badge */}
           {gig.seller?.rating && gig.seller.rating > 0 && (
-            <div className={`flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700 flex-shrink-0 ${compact ? 'text-[9px] px-1.5' : ''}`}>
-              ⭐ {gig.seller.rating.toFixed(1)}
-              {gig.seller.reviewCount && gig.seller.reviewCount > 0 && (
-                <span className="text-amber-500">({gig.seller.reviewCount})</span>
-              )}
+            <div className={`flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 flex-shrink-0 ${compact ? 'px-1.5' : ''}`}>
+              <StarRating
+                rating={gig.seller.rating}
+                size="sm"
+                showValue
+                reviewCount={gig.seller.reviewCount ?? undefined}
+                className="text-[10px]"
+              />
             </div>
           )}
         </div>
@@ -150,7 +148,7 @@ export default function GigCard({
               </div>
             )}
             {gig.category && (
-              <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full flex items-center gap-1">
+              <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-md flex items-center gap-1">
                 <CategoryIcon name={gig.category} className="w-3 h-3 mr-0.5 object-contain inline align-middle" />
                 {gig.category}
               </span>
@@ -163,7 +161,8 @@ export default function GigCard({
           <>
             <Button
               onClick={() => onAddToProject?.(gig)}
-              className="w-full bg-orange-600 hover:bg-orange-700"
+              variant="brand"
+              className="w-full"
               disabled={inProject || gig.isActive === false}
             >
               {inProject ? 'En tu proyecto' : 'Agregar al proyecto'}
@@ -177,14 +176,16 @@ export default function GigCard({
         ) : sellerView && isOwnGig ? (
           <Button
             onClick={() => router.push(`/create-gig?edit=${gig.id}`)}
-            className="w-full bg-orange-600 hover:bg-orange-700"
+            variant="brand"
+            className="w-full"
           >
             Editar gig
           </Button>
         ) : (
           <Button
             onClick={handleBuyNow}
-            className="w-full bg-orange-600 hover:bg-orange-700"
+            variant="brand"
+            className="w-full"
             disabled={isOwnGig || gig.isActive === false}
           >
             {isOwnGig ? "Tu propio gig" : (gig.isActive === false ? "Servicio pausado" : "Comprar Ahora")}

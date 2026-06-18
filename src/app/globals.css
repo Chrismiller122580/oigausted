@@ -78,6 +78,9 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-muted: var(--brand-muted);
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
@@ -123,6 +126,9 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --brand: oklch(0.62 0.19 45);
+  --brand-foreground: oklch(0.985 0 0);
+  --brand-muted: oklch(0.97 0.03 55);
 }
 
 .dark {
@@ -157,6 +163,9 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --brand: oklch(0.68 0.17 50);
+  --brand-foreground: oklch(0.985 0 0);
+  --brand-muted: oklch(0.25 0.04 50);
 }
 
 /* Mobile safe area utilities */
@@ -199,19 +208,19 @@ button, a, [role="button"] {
 
 /* Oiga GiG 1.0 Facelift - Premium landing visuals */
 .category-icon-wrap {
-  @apply flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50/80 dark:bg-orange-950/40 ring-1 ring-inset ring-orange-200/60 dark:ring-orange-900/40 transition-all;
+  @apply flex h-16 w-16 items-center justify-center rounded-xl bg-brand-muted ring-1 ring-inset ring-border transition-all;
 }
 
 .category-card {
-  @apply bg-card border border-border rounded-3xl p-6 hover:border-orange-500 hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300 flex flex-col items-center text-center min-h-[220px] active:scale-[0.985];
+  @apply bg-card border border-border rounded-2xl p-6 hover:border-brand hover:shadow-lg transition-all duration-200 flex flex-col items-center text-center min-h-[220px];
 }
 
 .stat-card {
-  @apply rounded-3xl bg-card p-6 shadow-sm border border-border/60 hover:border-orange-200 dark:hover:border-orange-900/50 transition-all hover:shadow-md;
+  @apply rounded-xl bg-card p-6 shadow-sm border border-border/60 hover:border-accent transition-all hover:shadow-md;
 }
 
 .testimonial-card {
-  @apply rounded-3xl border bg-card p-6 flex flex-col hover:shadow-lg transition-all hover:-translate-y-px;
+  @apply rounded-xl border bg-card p-6 flex flex-col hover:shadow-md transition-all;
 }
 
 .how-step {

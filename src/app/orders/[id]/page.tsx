@@ -8,13 +8,27 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { useGigCategories } from '@/lib/useGigCategories';
+
 import { parseCustomFields } from '@/lib/utils';
 import GoogleMap from '@/components/maps/GoogleMap';
-import { MapPin } from 'lucide-react';
+import {
+  MapPin,
+  ClipboardList,
+  MessageCircle,
+  TrendingUp,
+  Star,
+  Play,
+  CheckCircle,
+  CreditCard,
+  Paperclip,
+  Camera,
+} from 'lucide-react';
+import { IconTabs } from '@/components/ui/icon-tabs';
+import { CategoryIcon } from '@/lib/icon-registry';
+import { StarRating } from '@/components/ui/star-rating';
 import type { OrderDetail, OrderMessage, OrderReview, OrderTab } from '@/types/order';
 import type { WompiClientDebugState, WompiPrepareResponse, WompiWidgetResult } from '@/types/wompi';
-import type { GigCategory } from '@/lib/useGigCategories';
+
 import type { ChangeEvent } from 'react';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 import { trackEvent } from '@/lib/analytics';
@@ -26,7 +40,7 @@ function OrderDetailClient() {
   const searchParams = useSearchParams();
   const orderId = params.id as string;
   const { data: session } = useSession();
-  const { categories: gigCategories } = useGigCategories();
+
 
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [messages, setMessages] = useState<OrderMessage[]>([]);
@@ -288,7 +302,7 @@ function OrderDetailClient() {
       const data = await res.json();
       setMessages(prev => [...prev, data.message]);
       setNewMessage('');
-      toast.success('✅ Mensaje enviado');
+      toast.success('Mensaje enviado');
     } catch {
       toast.error('Error enviando mensaje');
     }
@@ -304,7 +318,7 @@ function OrderDetailClient() {
       if (!res.ok) throw new Error();
       const data = await res.json();
       setMessages(prev => [...prev, data.message]);
-      toast.success('📎 Archivo subido');
+      toast.success('Archivo subido');
     } catch {
       toast.error('Error subiendo archivo');
     }
@@ -382,9 +396,15 @@ function OrderDetailClient() {
     );
   }
 
-  const categoryInfo: Partial<GigCategory> = gigCategories.find(c => c.name === order.gig?.category) || {};
-  const emoji = categoryInfo.icon || '📦';
-  const isCleaningGig = order.gig?.category?.toLowerCase().includes("limpieza");
+  const categoryName = order.gig?.category || '';
+  const isCleaningGig = categoryName.toLowerCase().includes("limpieza");
+
+  const orderTabs = [
+    { key: 'overview' as const, label: 'Resumen', icon: ClipboardList },
+    { key: 'chat' as const, label: 'Chat', icon: MessageCircle },
+    { key: 'progress' as const, label: 'Progreso', icon: TrendingUp },
+    ...(isCompleted && isBuyer ? [{ key: 'review' as const, label: 'Reseña', icon: Star }] : []),
+  ];
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -396,11 +416,19 @@ function OrderDetailClient() {
         </a>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 bg-card p-6 rounded-3xl shadow">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 bg-card p-4 sm:p-6 rounded-xl border shadow-sm">
         <div className="flex items-center gap-4">
-          <span className="text-6xl">{emoji}</span>
+          {categoryName ? (
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-brand-muted shrink-0">
+              <CategoryIcon name={categoryName} className="h-10 w-10 object-contain" fallbackClassName="text-2xl" />
+            </div>
+          ) : (
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted shrink-0">
+              <ClipboardList className="h-7 w-7 text-muted-foreground" />
+            </div>
+          )}
           <div>
-            <h1 className="text-3xl font-bold">Pedido #{order.id.slice(0, 8)}</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Pedido #{order.id.slice(0, 8)}</h1>
             <p className="text-xl text-foreground">{order.gig?.title}</p>
             <p className="text-sm text-muted-foreground mt-1">
               {isBuyer ? 'Vendedor' : 'Comprador'}: {isBuyer ? (order.seller?.businessName || order.seller?.name) : (order.buyer?.name)}
@@ -408,7 +436,7 @@ function OrderDetailClient() {
           </div>
         </div>
         <div className="text-right">
-          <div className="text-5xl font-bold text-orange-600">
+          <div className="text-3xl font-bold text-brand tabular-nums">
             ${Number(order.price || 0).toLocaleString('es-CO')}
           </div>
           <div className="text-sm uppercase tracking-widest text-muted-foreground mt-1">
@@ -466,25 +494,12 @@ function OrderDetailClient() {
         </div>
       )}
 
-      {/* TABS */}
-      <div className="flex border-b mb-8 bg-card rounded-t-2xl">
-        {[
-          { key: 'overview', label: '📋 Resumen' },
-          { key: 'chat', label: '💬 Chat' },
-          { key: 'progress', label: '📈 Progreso' },
-          ...(isCompleted && isBuyer ? [{ key: 'review', label: '⭐ Reseña' }] : [])
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key as OrderTab)}
-            className={`flex-1 md:flex-none px-8 py-5 font-medium text-lg border-b-4 transition-all ${
-              activeTab === tab.key ? 'border-orange-600 text-orange-600' : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <IconTabs
+        tabs={orderTabs}
+        activeTab={activeTab}
+        onChange={setActiveTab}
+        className="mb-8"
+      />
 
       {/* OVERVIEW + BEFORE/AFTER */}
       {activeTab === 'overview' && (
@@ -537,7 +552,12 @@ function OrderDetailClient() {
 
             {isCleaningGig && (
               <Card className="mt-8">
-                <CardHeader><CardTitle>📸 Antes y Después</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Camera className="h-5 w-5 text-muted-foreground" />
+                    Antes y Después
+                  </CardTitle>
+                </CardHeader>
                 <CardContent className="text-muted-foreground py-8 text-center">
                   El vendedor subirá fotos aquí una vez completado.
                 </CardContent>
@@ -557,10 +577,16 @@ function OrderDetailClient() {
                       </p>
                     )}
                     {order.status === 'Paid' && (
-                      <Button onClick={() => updateStatus('In Progress')} className="w-full bg-blue-600 hover:bg-blue-700">🚀 Aceptar e Iniciar</Button>
+                      <Button onClick={() => updateStatus('In Progress')} className="w-full bg-blue-600 hover:bg-blue-700">
+                        <Play className="h-4 w-4" />
+                        Aceptar e Iniciar
+                      </Button>
                     )}
                     {order.status === 'In Progress' && (
-                      <Button onClick={() => updateStatus('Completed')} className="w-full">✅ Marcar como Completado</Button>
+                      <Button onClick={() => updateStatus('Completed')} className="w-full">
+                        <CheckCircle className="h-4 w-4" />
+                        Marcar como Completado
+                      </Button>
                     )}
                   </>
                 )}
@@ -770,7 +796,8 @@ function OrderDetailClient() {
                     }}
                     className="w-full bg-green-600 hover:bg-green-700"
                   >
-                    💳 Pagar ahora con Wompi
+                    <CreditCard className="h-4 w-4" />
+                    Pagar ahora con Wompi
                   </Button>
                 )}
 
@@ -1053,14 +1080,17 @@ function OrderDetailClient() {
       {activeTab === 'chat' && (
         <Card className="flex flex-col shadow-lg overflow-hidden min-h-[420px] max-h-[calc(100dvh-180px)] md:max-h-[620px]">
           <CardHeader className="border-b">
-            <CardTitle className="flex items-center gap-2">💬 Chat en Vivo</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-muted-foreground" />
+              Chat en Vivo
+            </CardTitle>
             <p className="text-sm text-muted-foreground">Comunicación directa con {isBuyer ? 'el vendedor' : 'el comprador'}</p>
           </CardHeader>
           
           <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-muted/30">
             {messages.length === 0 && (
               <div className="text-center py-16 text-muted-foreground">
-                <div className="text-4xl mb-3">💬</div>
+                <MessageCircle className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
                 <p>No hay mensajes aún.</p>
                 <p className="text-sm mt-1">¡Envía el primero para coordinar!</p>
               </div>
@@ -1085,7 +1115,7 @@ function OrderDetailClient() {
                           {msg.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                             <img src={msg.fileUrl} alt="adjunto" className="max-h-48 rounded-xl" />
                           ) : (
-                            <span className="underline">📎 Ver archivo adjunto</span>
+                            <span className="underline inline-flex items-center gap-1"><Paperclip className="h-3.5 w-3.5" /> Ver archivo adjunto</span>
                           )}
                         </a>
                       </div>
@@ -1100,8 +1130,8 @@ function OrderDetailClient() {
           </div>
 
           <div className="p-3 border-t bg-card flex gap-2 items-end safe-area-inset-bottom">
-            <label className="cursor-pointer flex items-center justify-center w-11 h-11 border rounded-2xl hover:bg-gray-100 text-xl flex-shrink-0 active:scale-95 transition" title="Adjuntar archivo">
-              📎
+            <label className="cursor-pointer flex items-center justify-center w-11 h-11 border rounded-xl hover:bg-muted flex-shrink-0 active:scale-95 transition" title="Adjuntar archivo">
+              <Paperclip className="h-4 w-4 text-muted-foreground" />
               <input type="file" onChange={uploadFile} className="hidden" />
             </label>
             <Textarea
@@ -1121,7 +1151,12 @@ function OrderDetailClient() {
       {/* PROGRESS TIMELINE */}
       {activeTab === 'progress' && (
         <Card className="shadow-lg">
-          <CardHeader><CardTitle>📈 Progreso del Pedido</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-muted-foreground" />
+              Progreso del Pedido
+            </CardTitle>
+          </CardHeader>
           <CardContent className="pt-8">
             <div className="space-y-8 relative pl-8 before:absolute before:left-4 before:top-0 before:bottom-0 before:w-0.5 before:bg-muted">
               {getOrderProgressSteps({
@@ -1166,10 +1201,16 @@ function OrderDetailClient() {
             {isSeller && (
               <div className="mt-12 flex flex-wrap gap-3">
                 {order.status === 'Paid' && (
-                  <Button onClick={() => updateStatus('In Progress')} size="lg">🚀 Iniciar Trabajo</Button>
+                  <Button onClick={() => updateStatus('In Progress')} size="lg">
+                    <Play className="h-4 w-4" />
+                    Iniciar Trabajo
+                  </Button>
                 )}
                 {order.status === 'In Progress' && (
-                  <Button onClick={() => updateStatus('Completed')} size="lg">✅ Marcar Completado</Button>
+                  <Button onClick={() => updateStatus('Completed')} size="lg">
+                    <CheckCircle className="h-4 w-4" />
+                    Marcar Completado
+                  </Button>
                 )}
                 {order.status === 'Pending' && (
                   <p className="text-sm text-muted-foreground">El trabajo se puede iniciar cuando el pago esté confirmado.</p>
@@ -1184,17 +1225,16 @@ function OrderDetailClient() {
       {activeTab === 'review' && isBuyer && isCompleted && (
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
-            <CardTitle>
-              {existingReview ? '⭐ Tu reseña' : '⭐ ¿Cómo te fue con el servicio?'}
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5 text-amber-400" />
+              {existingReview ? 'Tu reseña' : '¿Cómo te fue con el servicio?'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {existingReview ? (
               <div className="bg-green-50 border border-green-200 rounded-2xl p-6">
-                <div className="flex gap-1 text-3xl mb-4">
-                  {[1,2,3,4,5].map(n => (
-                    <span key={n}>{n <= existingReview.rating ? '⭐' : '☆'}</span>
-                  ))}
+                <div className="mb-4">
+                  <StarRating rating={existingReview.rating} size="lg" />
                 </div>
                 <p className="text-foreground text-lg">
                   {existingReview.comment || "No dejaste comentario."}
@@ -1205,17 +1245,12 @@ function OrderDetailClient() {
               </div>
             ) : (
               <>
-                <div className="flex gap-1 text-5xl">
-                  {[1,2,3,4,5].map(n => (
-                    <button 
-                      key={n} 
-                      onClick={() => setReviewRating(n)} 
-                      className="hover:scale-125 transition active:scale-95"
-                    >
-                      {n <= reviewRating ? '⭐' : '☆'}
-                    </button>
-                  ))}
-                </div>
+                <StarRating
+                  rating={reviewRating}
+                  size="lg"
+                  interactive
+                  onChange={setReviewRating}
+                />
                 <p className="text-sm text-muted-foreground -mt-1">Tu calificación: {reviewRating} / 5</p>
                 <Textarea
                   value={reviewText}

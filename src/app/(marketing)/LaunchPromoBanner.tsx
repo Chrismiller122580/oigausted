@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Gift } from 'lucide-react';
 
 const STORAGE_KEY = 'launch-promo-dismissed';
 
@@ -44,12 +44,10 @@ export function LaunchPromoBanner({ sellerCount, maxSlots = 50 }: LaunchPromoBan
   }
 
   return (
-    <div className="relative z-20 border-b border-yellow-400/40 bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-300 text-orange-950 shadow-sm">
+    <div className="relative z-20 border-b border-border bg-brand-muted text-foreground shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-center gap-3 text-sm sm:text-base">
+        <Gift className="h-4 w-4 text-brand shrink-0" />
         <p className="text-center leading-snug">
-          <span className="inline-block animate-pulse" aria-hidden="true">
-            🎁
-          </span>{' '}
           <strong>¡Primeros {maxSlots} vendedores reciben promoción gratis!</strong>{' '}
           <span className="hidden sm:inline">Solo quedan </span>
           <span className="font-bold text-orange-700">{remaining}</span>

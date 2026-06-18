@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { MessageCircle, Package } from 'lucide-react';
+import { MessageCircle, Package, ImageIcon, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -213,7 +213,9 @@ export default function SellerOrdersPage() {
                   {order.gig?.imageUrl ? (
                     <img src={order.gig.imageUrl} className="w-full h-40 object-cover rounded-2xl" alt={order.gig.title} />
                   ) : (
-                    <div className="w-full h-40 bg-muted rounded-2xl flex items-center justify-center text-4xl">📸</div>
+                    <div className="w-full h-40 bg-muted rounded-2xl flex items-center justify-center text-muted-foreground">
+                      <ImageIcon className="h-12 w-12 opacity-40" />
+                    </div>
                   )}
                 </div>
 
@@ -279,7 +281,7 @@ export default function SellerOrdersPage() {
                       onClick={() => updateOrderStatus(order.id, 'In Progress')}
                       className="w-full bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/25"
                     >
-                      🚀 Aceptar y Comenzar
+                      <Play size={16} /> Aceptar y Comenzar
                     </Button>
                   )}
 

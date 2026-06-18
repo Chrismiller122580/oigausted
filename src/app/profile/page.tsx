@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink, Eye, EyeOff, Lock } from "lucide-react";
+import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink, Eye, EyeOff, Lock, MessageCircle, Instagram } from "lucide-react";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { toast } from 'sonner';
 import MapsPollutionNuke from "@/components/maps/MapsPollutionNuke";
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
@@ -403,7 +404,7 @@ export default function ProfilePage() {
                   {formData.imageUrl ? (
                     <img src={formData.imageUrl} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-7xl bg-muted">👤</div>
+                    <UserAvatar name={formData.name} size="xl" className="w-full h-full rounded-none border-0 text-7xl" />
                   )}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
                     <Camera className="text-white" size={32} />
@@ -575,10 +576,11 @@ export default function ProfilePage() {
                             () => toast.error("No pudimos obtener tu ubicación.")
                           );
                         }}
-                        className="px-4 py-5 border border-border rounded-2xl text-sm hover:bg-muted flex items-center justify-center whitespace-nowrap"
+                        className="px-4 py-5 border border-border rounded-2xl text-sm hover:bg-muted flex items-center justify-center gap-1.5 whitespace-nowrap"
                         title="Usar mi ubicación actual"
                       >
-                        📍 Mi ubicación
+                        <MapPin className="h-4 w-4" />
+                        Mi ubicación
                       </button>
                     </div>
                   </div>
@@ -612,10 +614,10 @@ export default function ProfilePage() {
                 <p className="text-lg text-foreground leading-relaxed">{formData.bio || "Sin biografía aún."}</p>
 
                 <div className="flex flex-wrap gap-x-10 gap-y-4 text-lg">
-                  {formData.city && <div className="flex items-center gap-3"><MapPin /> {formData.city}</div>}
-                  {formData.phone && <div className="flex items-center gap-3"><Phone /> {formData.phone}</div>}
-                  {formData.whatsapp && <div className="flex items-center gap-3">💬 {formData.whatsapp}</div>}
-                  {formData.instagram && <div className="flex items-center gap-3">📷 {formData.instagram}</div>}
+                  {formData.city && <div className="flex items-center gap-3"><MapPin className="h-5 w-5 text-muted-foreground" /> {formData.city}</div>}
+                  {formData.phone && <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-muted-foreground" /> {formData.phone}</div>}
+                  {formData.whatsapp && <div className="flex items-center gap-3"><MessageCircle className="h-5 w-5 text-muted-foreground" /> {formData.whatsapp}</div>}
+                  {formData.instagram && <div className="flex items-center gap-3"><Instagram className="h-5 w-5 text-muted-foreground" /> {formData.instagram}</div>}
                 </div>
 
                 {/* Seller Reputation Section */}

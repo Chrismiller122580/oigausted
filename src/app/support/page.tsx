@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import Link from 'next/link';
 import OnboardingTutorial from '@/components/common/OnboardingTutorial';
+import { ShoppingBag, Briefcase } from 'lucide-react';
 
 interface Ticket {
   id: string;
@@ -351,7 +352,9 @@ export default function SupportPage() {
               <Card className="border-orange-200 dark:border-orange-900/50">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="text-2xl">🛒</div>
+                    <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center">
+                      <ShoppingBag size={20} />
+                    </div>
                     <div>
                       <div className="font-semibold text-lg">Para Compradores (4 pasos)</div>
                       <div className="text-xs text-muted-foreground">Nuevo en Oigagig</div>
@@ -377,7 +380,9 @@ export default function SupportPage() {
               <Card className="border-orange-200 dark:border-orange-900/50">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="text-2xl">💼</div>
+                    <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center">
+                      <Briefcase size={20} />
+                    </div>
                     <div>
                       <div className="font-semibold text-lg">Para Vendedores (5 pasos)</div>
                       <div className="text-xs text-muted-foreground">Al convertirte en vendedor desbloqueas estas herramientas</div>

@@ -136,7 +136,7 @@ export default async function AboutPage() {
             <div>
               <p className="font-medium">Cobertura</p>
               <p className="text-zinc-600 dark:text-zinc-400">
-                Bogotá, Medellín, Cali, Bucaramanga y ciudades de todo Colombia 🇨🇴
+                Bogotá, Medellín, Cali, Bucaramanga y ciudades de todo Colombia
               </p>
             </div>
           </li>

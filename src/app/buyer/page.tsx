@@ -2,7 +2,8 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ShoppingBag, Package, MessageCircle, Star, Clock } from "lucide-react"
+import { ShoppingBag, Package, MessageCircle, Star, Clock, RefreshCw, CheckCircle } from "lucide-react"
+import { StatCard } from "@/components/ui/stat-card"
 import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import OnboardingTutorial from "@/components/common/OnboardingTutorial"
@@ -91,63 +92,30 @@ export default function BuyerDashboard() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex justify-between items-center mb-12">
           <div>
-            <h1 className="text-5xl font-bold tracking-tight text-foreground">Hola, {userName} 👋</h1>
-            <p className="text-xl text-muted-foreground mt-3">¿Qué servicio necesitas hoy en Bucaramanga?</p>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Hola, {userName}</h1>
+            <p className="text-muted-foreground mt-2">¿Qué servicio necesitas hoy en Bucaramanga?</p>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          <Card>
-            <CardContent className="p-8 flex items-center gap-6">
-              <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-2xl flex items-center justify-center text-3xl">📦</div>
-              <div>
-                <p className="text-4xl font-bold text-foreground">{stats.orders}</p>
-                <p className="text-muted-foreground">Pedidos realizados</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-8 flex items-center gap-6">
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center text-3xl">🔄</div>
-              <div>
-                <p className="text-4xl font-bold text-foreground">{stats.inProgress}</p>
-                <p className="text-muted-foreground">En progreso</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-8 flex items-center gap-6">
-              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-3xl">✅</div>
-              <div>
-                <p className="text-4xl font-bold text-foreground">{stats.completed}</p>
-                <p className="text-muted-foreground">Completados</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className={stats.pendingReviews > 0 ? "border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/40" : ""}>
-            <CardContent className="p-8 flex items-center gap-6">
-              <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-2xl flex items-center justify-center text-3xl">⭐</div>
-              <div>
-                <p className="text-4xl font-bold text-foreground">{stats.pendingReviews}</p>
-                <p className="text-muted-foreground">Reseñas pendientes</p>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+          <StatCard icon={Package} iconColor="text-orange-400" label="Pedidos realizados" value={stats.orders} />
+          <StatCard icon={RefreshCw} iconColor="text-blue-400" label="En progreso" value={stats.inProgress} />
+          <StatCard icon={CheckCircle} iconColor="text-emerald-400" label="Completados" value={stats.completed} />
+          <StatCard icon={Star} iconColor="text-amber-400" label="Reseñas pendientes" value={stats.pendingReviews} highlight={stats.pendingReviews > 0} />
         </div>
 
         {/* Main CTA */}
-        <Card className="mb-12 bg-gradient-to-br from-orange-600 via-orange-700 to-red-600 text-white overflow-hidden">
-          <CardContent className="p-16 text-center">
-            <ShoppingBag className="h-20 w-20 mx-auto mb-8 opacity-90" />
-            <h2 className="text-5xl font-bold mb-6">Encuentra el servicio perfecto</h2>
-            <p className="text-2xl mb-10 max-w-2xl mx-auto opacity-90">
+        <Card className="mb-10 bg-gradient-to-br from-orange-600 to-orange-700 text-white overflow-hidden">
+          <CardContent className="p-8 sm:p-12 text-center">
+            <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-white/15">
+              <ShoppingBag className="h-8 w-8" />
+            </div>
+            <h2 className="text-2xl font-bold mb-3">Encuentra el servicio perfecto</h2>
+            <p className="text-base mb-8 max-w-2xl mx-auto text-white/90">
               Miles de gigs locales en Colombia. Encuentra freelancers confiables para tu proyecto.
             </p>
-            <Button asChild size="lg" id="tutorial-browse-all-gigs" className="bg-card text-orange-700 hover:bg-muted text-2xl px-16 py-8 rounded-3xl font-semibold shadow-xl">
+            <Button asChild size="lg" id="tutorial-browse-all-gigs" className="bg-card text-brand hover:bg-muted text-base px-8 py-3 rounded-xl font-semibold shadow-lg">
               <Link href="/gigs">Ver Todos los Gigs</Link>
             </Button>
           </CardContent>
@@ -229,26 +197,22 @@ export default function BuyerDashboard() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="hover:shadow-xl transition group">
-            <CardContent className="p-10">
-              <div className="bg-green-100 dark:bg-green-900/30 w-16 h-16 rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition">
-                <MessageCircle className="h-9 w-9 text-green-600 dark:text-green-400" />
-              </div>
-              <h3 className="text-3xl font-semibold mb-3 text-foreground">Chats Activos</h3>
-              <p className="text-muted-foreground mb-8">Habla directamente con los vendedores</p>
+          <Card className="hover:shadow-md transition">
+            <CardContent className="p-6 sm:p-8">
+              <MessageCircle className="h-8 w-8 text-emerald-400 mb-4" />
+              <h3 className="text-xl font-semibold mb-2 text-foreground">Chats Activos</h3>
+              <p className="text-muted-foreground mb-6 text-sm">Habla directamente con los vendedores</p>
               <Button asChild variant="outline" className="w-full">
                 <Link href="/orders">Ir a Mis Chats</Link>
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-xl transition group">
-            <CardContent className="p-10">
-              <div className="bg-blue-100 dark:bg-blue-900/30 w-16 h-16 rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition">
-                <Package className="h-9 w-9 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h3 className="text-3xl font-semibold mb-3 text-foreground">Todos tus pedidos</h3>
-              <p className="text-muted-foreground mb-8">Historial completo y seguimiento</p>
+          <Card className="hover:shadow-md transition">
+            <CardContent className="p-6 sm:p-8">
+              <Package className="h-8 w-8 text-blue-400 mb-4" />
+              <h3 className="text-xl font-semibold mb-2 text-foreground">Todos tus pedidos</h3>
+              <p className="text-muted-foreground mb-6 text-sm">Historial completo y seguimiento</p>
               <Button asChild variant="outline" className="w-full">
                 <Link href="/orders">Ver Mis Pedidos</Link>
               </Button>

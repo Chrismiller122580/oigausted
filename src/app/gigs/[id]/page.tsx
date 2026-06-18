@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock } from 'lucide-react';
+import { StarRating } from '@/components/ui/star-rating';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { parseJsonArrayField } from "@/lib/utils";
 import { getGigImages } from "@/lib/gig-images";
 import { GigImageGallery } from "@/components/common/GigImageGallery";
@@ -176,10 +178,8 @@ export default function GigDetailPage() {
                 <div className="space-y-4">
                   {reviews.map((review) => (
                     <div key={review.id || review.createdAt} className="bg-card border rounded-3xl p-6">
-                      <div className="flex gap-1 text-xl mb-3">
-                        {[1, 2, 3, 4, 5].map((n) => (
-                          <span key={n}>{n <= review.rating ? '⭐' : '☆'}</span>
-                        ))}
+                      <div className="mb-3">
+                        <StarRating rating={review.rating} size="md" />
                       </div>
                       {review.comment && (
                         <p className="text-foreground mb-4">"{review.comment}"</p>
@@ -263,20 +263,23 @@ export default function GigDetailPage() {
                 <p className="text-sm text-muted-foreground mb-3">Vendido por</p>
                 <Link href={`/sellers/${gig.seller?.slug || gig.seller?.id}`} className="group block">
                   <div className="flex items-center gap-4 hover:bg-muted -mx-2 px-2 py-2 rounded-2xl transition">
-                    <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0">
-                      👤
-                    </div>
+                    <UserAvatar
+                      name={gig.seller?.businessName || gig.seller?.name}
+                      size="lg"
+                      className="rounded-2xl flex-shrink-0"
+                    />
                     <div className="min-w-0">
                       <p className="font-semibold text-lg group-hover:text-emerald-600 transition">
                         {gig.seller?.businessName || gig.seller?.name || "Vendedor"}
                       </p>
                       {gig.seller?.rating && gig.seller.rating > 0 && (
-                        <div className="flex items-center gap-1 text-sm text-amber-600">
-                          ⭐ {gig.seller.rating.toFixed(1)}
-                          {(gig.seller.reviewCount ?? 0) > 0 && (
-                            <span className="text-muted-foreground">({gig.seller.reviewCount} reseñas)</span>
-                          )}
-                        </div>
+                        <StarRating
+                          rating={gig.seller.rating}
+                          size="sm"
+                          showValue
+                          reviewCount={gig.seller.reviewCount}
+                          className="text-sm"
+                        />
                       )}
                     </div>
                   </div>

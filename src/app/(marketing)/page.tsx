@@ -4,14 +4,14 @@ import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
 import { getGigCategories } from '@/lib/categories';
 import { getCategoryIcon } from '@/lib/icon-registry';
-import { Search, MessageCircle, ShieldCheck } from 'lucide-react';
+import { Search, MessageCircle, ShieldCheck, MapPin, Star, CreditCard, Sparkles, TrendingUp, Users, ArrowRight, Rocket } from 'lucide-react';
 import { AnimatedCategoryGrid, AnimatedTestimonials } from './LandingClient';
 import { LaunchPromoBanner } from './LaunchPromoBanner';
 import { HomepageWelcomeSplash } from './HomepageWelcomeSplash';
 import { PublicFooter } from '@/components/marketing/PublicFooter';
 
 export const metadata = {
-  title: 'OigaGig • Servicios entre colombianos • Acabamos de lanzar 🚀',
+  title: 'OigaGig • Servicios entre colombianos',
   description:
     'Conecta con gente de confianza en Colombia. Limpieza, transporte, diseño, comida y más. Pagos fáciles, chat directo y cero intermediarios. ¡Únete a la primera semana de OigaGig!',
   keywords: [
@@ -24,7 +24,7 @@ export const metadata = {
     'lanza tu negocio',
   ],
   openGraph: {
-    title: 'OigaGig • Servicios entre colombianos • Acabamos de lanzar 🚀',
+    title: 'OigaGig • Servicios entre colombianos',
     description:
       'Conecta con gente de confianza en Colombia. Pagos fáciles, chat directo y cero intermediarios. ¡Únete a la primera semana de OigaGig!',
     images: [
@@ -40,7 +40,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'OigaGig • Acabamos de lanzar 🚀',
+    title: 'OigaGig • Servicios entre colombianos',
     description:
       'Conecta con gente de confianza en Colombia. Pagos fáciles, chat directo y cero intermediarios.',
     images: ['/logo.png'],
@@ -169,62 +169,64 @@ export default async function MarketingHomePage() {
       <LaunchPromoBanner sellerCount={stats.sellers} maxSlots={launchPromoMaxSlots} />
       <HomepageWelcomeSplash />
 
-      {/* HERO - Warm Colombian welcome + launch energy */}
-      <section className="relative bg-gradient-to-br from-orange-600 via-red-600 to-rose-600 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(#ffffff33_1px,transparent_1px)] [background-size:20px_20px]"></div>
-        {/* Subtle brand accent overlay for depth */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/10" />
+      {/* HERO */}
+      <section className="relative bg-gradient-to-br from-orange-600 to-orange-700 text-white overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(#ffffff22_1px,transparent_1px)] [background-size:20px_20px]"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/15" />
 
-        <div className="max-w-7xl mx-auto px-6 pt-20 pb-16 relative z-10">
+        <div className="max-w-7xl mx-auto px-6 pt-16 pb-14 relative z-10">
           <div className="grid lg:grid-cols-[1fr_minmax(280px,420px)] gap-10 lg:gap-14 items-center">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-sm mb-6 border border-white/30">
-                🇨🇴 ¡Bienvenidos, familia! • OigaGig acaba de nacer y ya está listo para ti
+              <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md px-4 py-2 rounded-full text-sm mb-6 border border-white/25">
+                <MapPin className="h-4 w-4" />
+                Servicios locales en Colombia
               </div>
 
-              <h1 className="text-5xl md:text-6xl font-bold leading-[1.05] tracking-tighter mb-6 drop-shadow-sm">
+              <h1 className="text-4xl md:text-5xl font-bold leading-tight tracking-tight mb-6">
                 El servicio que necesitas,
                 <br />
-                <span className="text-yellow-200">hecho por gente de confianza!</span>
+                <span className="text-white/90">hecho por profesionales de confianza</span>
               </h1>
 
-              <p className="text-xl md:text-2xl text-white/95 mb-8 max-w-2xl">
+              <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl">
                 Conecta directamente con profesionales locales en Bogotá, Medellín, Cali, Bucaramanga y todo Colombia.
-                <br />
-                Sin intermediarios. Pagos seguros. Chat real. Y sobre todo… <strong>gente como tú.</strong>
+                Sin intermediarios. Pagos seguros. Chat directo.
               </p>
 
-              <div className="mb-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-white/90 text-sm">
-                <span>⭐ Ya hay {stats.gigs.toLocaleString('es-CO')} gigs activos y creciendo</span>
-                <span>💬 Chat directo por WhatsApp</span>
-                <span>💳 Paga fácil con Wompi • Nequi • PSE</span>
-                <span className="font-semibold text-yellow-300">🎉 ¡Acabamos de lanzar!</span>
+              <div className="mb-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-white/85 text-sm">
+                <span className="inline-flex items-center gap-1.5"><Star className="h-4 w-4" /> {stats.gigs.toLocaleString('es-CO')} gigs activos</span>
+                <span className="inline-flex items-center gap-1.5"><MessageCircle className="h-4 w-4" /> Chat por WhatsApp</span>
+                <span className="inline-flex items-center gap-1.5"><CreditCard className="h-4 w-4" /> Wompi • Nequi • PSE</span>
+                <span className="inline-flex items-center gap-1.5 font-medium"><Sparkles className="h-4 w-4" /> Plataforma en crecimiento</span>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Link
                   href="/gigs"
-                  className="bg-white text-orange-600 hover:bg-white/95 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl active:scale-[0.985] transition-all"
+                  className="bg-white text-orange-700 hover:bg-white/95 font-semibold text-base px-8 py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all"
                 >
-                  🔍 Ver todos los servicios disponibles →
+                  <Search className="h-5 w-5" />
+                  Ver todos los servicios
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
 
                 <Link
                   href="/create-gig"
-                  className="border-2 border-white/70 hover:bg-white/10 font-semibold text-lg px-10 py-4 rounded-2xl flex items-center justify-center transition-all backdrop-blur active:scale-[0.985]"
+                  className="border border-white/60 hover:bg-white/10 font-semibold text-base px-8 py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all backdrop-blur"
                 >
-                  🚀 Quiero ofrecer mis servicios y empezar a ganar plata
+                  <Rocket className="h-5 w-5" />
+                  Ofrecer mis servicios
                 </Link>
               </div>
 
-              <p className="mt-8 text-sm text-white/70 flex items-center gap-2">
-                ❤️ Hecho con cariño por y para colombianos • Primera semana de lanzamiento • Únete a los primeros
+              <p className="mt-6 text-sm text-white/65">
+                Hecho en Colombia • Pagos seguros • Reseñas verificadas
               </p>
             </div>
 
             <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-              <div className="absolute -inset-6 bg-yellow-300/25 blur-3xl rounded-full -z-10" aria-hidden="true" />
-              <div className="relative overflow-hidden rounded-3xl shadow-2xl ring-2 ring-white/30 border border-white/20">
+              <div className="absolute -inset-4 bg-white/10 blur-3xl rounded-full -z-10" aria-hidden="true" />
+              <div className="relative overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/25 border border-white/15">
                 <Image
                   src="/world-cup-hero.jpg"
                   alt="Celebración Copa Mundial 2026 — Colombia"
@@ -243,8 +245,8 @@ export default async function MarketingHomePage() {
       <section className="max-w-7xl mx-auto px-6 py-16">
         <div className="flex items-end justify-between mb-10">
           <div>
-            <h2 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">Categorías populares</h2>
-            <p className="text-zinc-600 dark:text-zinc-400 mt-2 text-lg">Con calificaciones reales de usuarios locales</p>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">Categorías populares</h2>
+            <p className="text-muted-foreground mt-1">Con calificaciones reales de usuarios locales</p>
           </div>
           <Link href="/gigs" className="text-orange-600 hover:text-orange-700 hover:underline font-semibold flex items-center gap-1 text-sm transition-colors">
             Ver todas → 
@@ -259,17 +261,20 @@ export default async function MarketingHomePage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {[
-              { label: "Gigs activos", value: stats.gigs.toLocaleString('es-CO'), icon: "📈" },
-              { label: "Reseñas reales", value: stats.reviews.toLocaleString('es-CO'), icon: "⭐" },
-              { label: "Ciudades", value: stats.cities.toLocaleString('es-CO'), icon: "📍" },
-              { label: "Profesionales", value: stats.sellers.toLocaleString('es-CO'), icon: "👥" },
-            ].map((stat, idx) => (
-              <div key={idx} className="stat-card flex flex-col items-center text-center py-7">
-                <div className="text-5xl mb-3">{stat.icon}</div>
-                <div className="text-4xl font-bold text-orange-600 tracking-tighter">{stat.value}</div>
-                <div className="mt-1.5 text-sm font-medium text-muted-foreground">{stat.label}</div>
-              </div>
-            ))}
+              { label: "Gigs activos", value: stats.gigs.toLocaleString('es-CO'), icon: TrendingUp, color: "text-emerald-400" },
+              { label: "Reseñas reales", value: stats.reviews.toLocaleString('es-CO'), icon: Star, color: "text-amber-400" },
+              { label: "Ciudades", value: stats.cities.toLocaleString('es-CO'), icon: MapPin, color: "text-blue-400" },
+              { label: "Profesionales", value: stats.sellers.toLocaleString('es-CO'), icon: Users, color: "text-indigo-400" },
+            ].map((stat, idx) => {
+              const Icon = stat.icon;
+              return (
+                <div key={idx} className="stat-card flex flex-col items-center text-center py-6">
+                  <Icon className={`h-8 w-8 mb-3 ${stat.color}`} />
+                  <div className="text-3xl font-bold text-brand tracking-tight tabular-nums">{stat.value}</div>
+                  <div className="mt-1.5 text-sm font-medium text-muted-foreground">{stat.label}</div>
+                </div>
+              );
+            })}
           </div>
           <p className="mt-6 text-center text-xs text-muted-foreground tracking-wide">
             DATOS ACTUALIZADOS EN TIEMPO REAL • RESEÑAS VERIFICADAS POST-SERVICIO
@@ -280,8 +285,8 @@ export default async function MarketingHomePage() {
       {/* TESTIMONIALS - More attractive with quote styling and premium cards */}
       <section className="max-w-7xl mx-auto px-6 py-16">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">Lo que dicen quienes ya confiaron</h2>
-          <p className="text-zinc-600 dark:text-zinc-400 mt-2 text-lg">Reseñas reales de personas y negocios en Colombia</p>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">Lo que dicen quienes ya confiaron</h2>
+          <p className="text-muted-foreground mt-1">Reseñas reales de personas y negocios en Colombia</p>
         </div>
 
         <AnimatedTestimonials testimonials={testimonials} />
@@ -290,8 +295,8 @@ export default async function MarketingHomePage() {
       {/* CÓMO FUNCIONA - Visually upgraded with lucide icons and better polish */}
       <section className="max-w-7xl mx-auto px-6 py-16 bg-card dark:bg-card border-y">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">Así de fácil es usar Oigagig</h2>
-          <p className="text-zinc-600 dark:text-zinc-400 mt-2 text-lg">En 3 pasos encuentras o publicas el servicio que necesitas</p>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">Así de fácil es usar Oigagig</h2>
+          <p className="text-muted-foreground mt-1">En 3 pasos encuentras o publicas el servicio que necesitas</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -302,11 +307,11 @@ export default async function MarketingHomePage() {
           ].map((item, i) => {
             const Icon = item.icon;
             return (
-              <div key={i} className="how-step bg-background rounded-3xl p-8 border border-border/70 flex flex-col items-center text-center hover:border-orange-200 transition-colors">
-                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400">
-                  <Icon className="h-8 w-8" />
+              <div key={i} className="how-step bg-background rounded-xl p-6 border border-border flex flex-col items-center text-center hover:border-accent transition-colors">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-muted text-brand">
+                  <Icon className="h-6 w-6" />
                 </div>
-                <h3 className="font-semibold text-2xl mb-3">{item.title}</h3>
+                <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">{item.desc}</p>
               </div>
             );
@@ -317,15 +322,15 @@ export default async function MarketingHomePage() {
       {/* FINAL CTA - Stronger visual weight */}
       <section className="max-w-7xl mx-auto px-6 py-20 text-center">
         <div className="max-w-2xl mx-auto">
-          <h2 className="text-4xl font-bold tracking-tight mb-4">¿Listo para empezar?</h2>
-          <p className="text-xl text-zinc-600 dark:text-zinc-400 mb-8">
+          <h2 className="text-2xl font-bold tracking-tight mb-3">¿Listo para empezar?</h2>
+          <p className="text-lg text-muted-foreground mb-8">
             Miles de personas ya están conectando con profesionales de confianza en su ciudad.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/gigs"
-              className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-10 py-4 rounded-2xl text-lg shadow-md hover:shadow-xl active:scale-[0.985] transition-all"
+              className="bg-brand hover:bg-brand/90 text-brand-foreground font-semibold px-8 py-3.5 rounded-xl text-base shadow-md hover:shadow-lg transition-all"
             >
               Explorar servicios
             </Link>

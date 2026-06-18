@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save, Users } from "lucide-react";
+import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save, Users, PartyPopper, Link2, Store } from "lucide-react";
 // import GrokAssistant from "@/components/common/GrokAssistant"; // AI tool hidden per request (floating button disabled)
 import { toast } from 'sonner';
 import { slugify } from '@/lib/utils';
@@ -245,7 +245,7 @@ export default function MiNegocioPage() {
           <div className="mb-6 sm:mb-8 p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-orange-600 text-white flex flex-col sm:flex-row sm:items-center gap-4 shadow-lg">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 font-semibold text-base sm:text-lg">
-                🎉 ¡Nuevo! Tu perfil público directo
+                <PartyPopper size={20} /> ¡Nuevo! Tu perfil público directo
               </div>
               <p className="text-orange-100 mt-1 text-sm">
                 Ahora tienes tu propia dirección web personal (ej: oigagig.com/sellers/tu-negocio). 
@@ -275,8 +275,8 @@ export default function MiNegocioPage() {
         {/* PROMINENT "Your Direct Web Address" - Let sellers know to use & share it */}
         <div id="public-link-section" className="mb-8 sm:mb-10 bg-gradient-to-br from-orange-50 to-white dark:from-orange-950/30 dark:to-background border border-orange-200 dark:border-orange-900/50 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-sm">
           <div className="flex items-start gap-3 sm:gap-4">
-            <div className="flex w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 items-center justify-center flex-shrink-0 text-lg sm:text-xl">
-              🔗
+            <div className="flex w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 items-center justify-center flex-shrink-0">
+              <Link2 className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -398,7 +398,11 @@ export default function MiNegocioPage() {
                     <img src={formData.profilePicture} alt="Logo del Negocio" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight">
-                      {formData.businessName ? formData.businessName.trim()[0].toUpperCase() : '🏪'}
+                      {formData.businessName ? (
+                        formData.businessName.trim()[0].toUpperCase()
+                      ) : (
+                        <Store className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20" />
+                      )}
                     </div>
                   )}
                 </div>
@@ -472,10 +476,11 @@ export default function MiNegocioPage() {
                           );
                         }}
                         disabled={!isEditing}
-                        className="w-full sm:w-auto px-4 py-3 sm:py-5 border border-border rounded-xl sm:rounded-2xl text-sm hover:bg-muted disabled:opacity-60 flex items-center justify-center whitespace-nowrap shrink-0"
+                        className="w-full sm:w-auto px-4 py-3 sm:py-5 border border-border rounded-xl sm:rounded-2xl text-sm hover:bg-muted disabled:opacity-60 flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
                         title="Usar mi ubicación actual"
                       >
-                        📍 Mi ubicación
+                        <MapPin className="h-4 w-4" />
+                        Mi ubicación
                       </button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">Usaremos esto para mostrar "Gigs cerca de ti" a los compradores. (Sin Google Maps)</p>

@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useGigCategories } from '@/lib/useGigCategories';
 import { toast } from 'sonner';
 import { trackEvent } from '@/lib/analytics';
-import { MapPin } from 'lucide-react';
+import { MapPin, Camera, Sparkles, X } from 'lucide-react';
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 import type { CheckoutFormData, DynamicFieldDef, DynamicFieldOption, GigAddonOption } from '@/types/gig-fields';
 import type { ChangeEvent, FormEvent } from 'react';
@@ -235,7 +235,7 @@ function CreateGigClient() {
       }
       if (data.description) {
         setDescription(data.description);
-        toast.success("✅ Descripción generada con Grok");
+        toast.success("Descripción generada con Grok");
       } else {
         toast.error("Grok no devolvió descripción");
       }
@@ -471,7 +471,7 @@ function CreateGigClient() {
                         setCustomOptions(customOptions.filter((_, i) => i !== index));
                       }}
                     >
-                      ✕
+                      <X size={14} />
                     </Button>
                   </div>
                 ))}
@@ -537,7 +537,7 @@ function CreateGigClient() {
                       className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white w-7 h-7 rounded-full text-sm"
                       aria-label={`Quitar foto ${index + 1}`}
                     >
-                      ✕
+                      <X size={14} />
                     </button>
                   </div>
                 ))}
@@ -546,7 +546,7 @@ function CreateGigClient() {
 
             {images.length < MAX_GIG_IMAGES && (
               <label className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-orange-400 rounded-2xl p-8 cursor-pointer transition">
-                <div className="text-4xl mb-2">📷</div>
+                <Camera className="h-10 w-10 mb-2 text-muted-foreground" />
                 <span className="font-medium">
                   {images.length === 0 ? 'Subir fotos del servicio' : 'Agregar más fotos'}
                 </span>
@@ -579,9 +579,14 @@ function CreateGigClient() {
               variant="outline" 
               onClick={generateWithGrok} 
               disabled={generating || !title || !category}
-              className="text-sm"
+              className="text-sm gap-1.5"
             >
-              {generating ? "Generando..." : "✨ Generar descripción con IA"}
+              {generating ? "Generando..." : (
+                <>
+                  <Sparkles size={16} />
+                  Generar descripción con IA
+                </>
+              )}
             </Button>
           </div>
           <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={6} />
@@ -654,9 +659,10 @@ function CreateGigClient() {
                           () => toast.error("No se pudo obtener la ubicación")
                         );
                       }}
-                      className="px-4 py-5 border border-border rounded-2xl text-sm hover:bg-muted flex items-center justify-center whitespace-nowrap"
+                      className="px-4 py-5 border border-border rounded-2xl text-sm hover:bg-muted flex items-center justify-center gap-1.5 whitespace-nowrap"
                     >
-                      📍 Mi ubicación
+                      <MapPin className="h-4 w-4" />
+                      Mi ubicación
                     </button>
                   </div>
                 </div>

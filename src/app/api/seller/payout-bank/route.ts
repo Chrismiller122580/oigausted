@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, getPlatformConfig } from '@/lib/prisma';
+import { DEFAULT_PAYOUT_CONFIG } from '@/lib/payout';
 import { devLog } from '@/lib/utils';
 import type { Prisma } from '@prisma/client';
 
@@ -46,7 +47,14 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ bank: user || {} });
+    const config = await getPlatformConfig();
+    return NextResponse.json({
+      bank: user || {},
+      rates: {
+        platformCommissionRate: config?.commissionRate ?? DEFAULT_PAYOUT_CONFIG.platformCommissionRate,
+        referralCommissionRate: config?.referralCommissionRate ?? DEFAULT_PAYOUT_CONFIG.referralCommissionRate,
+      },
+    });
   } catch (e: unknown) {
     devLog('[payout-bank] GET error', e);
     return NextResponse.json({ error: 'Failed to load' }, { status: 500 });

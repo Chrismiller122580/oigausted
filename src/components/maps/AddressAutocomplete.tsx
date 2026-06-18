@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { MapPin } from 'lucide-react';
 
 interface AddressAutocompleteProps {
   value: string;
@@ -76,10 +77,15 @@ export default function AddressAutocomplete({
           type="button"
           onClick={handleBrowserLocation}
           disabled={useBrowserLocation}
-          className="px-4 py-5 border border-border rounded-2xl text-sm hover:bg-muted disabled:opacity-60 flex items-center justify-center whitespace-nowrap"
+          className="px-4 py-5 border border-border rounded-2xl text-sm hover:bg-muted disabled:opacity-60 flex items-center justify-center gap-1.5 whitespace-nowrap"
           title="Usar mi ubicación actual (solo coordenadas)"
         >
-          {useBrowserLocation ? "..." : "📍 Mi ubicación"}
+          {useBrowserLocation ? "..." : (
+            <>
+              <MapPin className="h-4 w-4" />
+              Mi ubicación
+            </>
+          )}
         </button>
       </div>
 

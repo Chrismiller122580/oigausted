@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Check, ChevronDown, ChevronUp, Eye, LayoutGrid, Plus, Save } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, Eye, LayoutGrid, Plus, Save, Wrench } from 'lucide-react'
 import { toast } from 'sonner'
 
 type ShowcaseGig = {
@@ -228,7 +228,9 @@ export default function ShowcaseGigPicker({ publicProfileHref }: { publicProfile
                     {gig.imageUrl ? (
                       <img src={gig.imageUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xl sm:text-2xl">🛠️</div>
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        <Wrench className="h-6 w-6 sm:h-8 sm:w-8" />
+                      </div>
                     )}
                   </div>
 

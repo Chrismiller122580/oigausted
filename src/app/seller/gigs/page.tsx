@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus, Pause, Play, Edit2, Trash2, Eye, Search } from 'lucide-react';
+import { Plus, Pause, Play, Edit2, Trash2, Eye, Search, Link2, Wrench, PackageOpen } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface GigWithStats {
@@ -159,7 +159,11 @@ export default function SellerGigsManagement() {
         {/* Public profile promo in gigs management */}
         <div className="mb-8 p-4 rounded-2xl bg-gradient-to-r from-orange-50 to-white dark:from-orange-950/40 border border-orange-100 dark:border-orange-900/50 flex flex-col sm:flex-row sm:items-center gap-3 text-sm">
           <div className="flex-1">
-            <span className="font-medium">🔗 Tus clientes pueden contactarte directamente</span> usando tu perfil público personalizado.
+            <span className="font-medium inline-flex items-center gap-1.5">
+              <Link2 size={16} className="text-orange-600" />
+              Tus clientes pueden contactarte directamente
+            </span>{' '}
+            usando tu perfil público personalizado.
           </div>
           <Link href="/seller/profile">
             <Button size="sm" variant="outline" className="border-orange-300">Ver mi enlace y QR público</Button>
@@ -246,8 +250,8 @@ export default function SellerGigsManagement() {
                         className="w-full h-full object-contain" 
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-6xl text-gray-300">
-                        🛠️
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        <Wrench className="h-16 w-16 opacity-40" />
                       </div>
                     )}
                     
@@ -331,7 +335,17 @@ export default function SellerGigsManagement() {
           </div>
         ) : (
           <div className="text-center py-20 bg-card rounded-3xl border">
-            <div className="text-6xl mb-6">📭</div>
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <div className="w-14 h-14 rounded-2xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center">
+                <Link2 size={28} />
+              </div>
+              <div className="w-14 h-14 rounded-2xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center">
+                <Wrench size={28} />
+              </div>
+              <div className="w-14 h-14 rounded-2xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center">
+                <PackageOpen size={28} />
+              </div>
+            </div>
             <h3 className="text-2xl font-semibold mb-2 text-foreground">No tienes servicios aquí</h3>
             <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
               {searchTerm || statusFilter !== 'all' 

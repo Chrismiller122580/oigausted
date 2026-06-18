@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useGigCategories } from "@/lib/useGigCategories";
 import { getCurrentLocation, calculateDistance } from "@/lib/distance";
 import LocationPermissionPrompt from "@/components/maps/LocationPermissionPrompt";
-import { MapPin, Wifi, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, Wifi, X, ChevronLeft, ChevronRight, LayoutGrid } from "lucide-react";
 import { CategoryIcon } from "@/lib/icon-registry";
 
 type GigListItem = {
@@ -342,7 +342,9 @@ function GigsClient() {
                     : "border-border bg-card hover:border-orange-300 hover:bg-muted"
                 }`}
               >
-                <div className="text-3xl mb-1">🔎</div>
+                <div className="mb-1 flex h-8 w-8 items-center justify-center">
+                  <LayoutGrid className={`h-7 w-7 ${selectedCategory === "Todas" ? "text-white" : "text-foreground"}`} />
+                </div>
                 <div className="text-[11px] font-medium text-center leading-tight">Todas</div>
                 <div className={`text-[10px] mt-0.5 ${selectedCategory === "Todas" ? "text-orange-200" : "text-muted-foreground"}`}>
                   {gigs.length}

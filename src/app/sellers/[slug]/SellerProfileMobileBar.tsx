@@ -1,6 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { MessageCircle } from 'lucide-react';
 
 type Props = {
   whatsapp?: string | null;
@@ -30,7 +31,7 @@ export default function SellerProfileMobileBar({ whatsapp, hasGigs }: Props) {
             rel="noopener noreferrer"
             className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] text-white font-semibold text-sm h-12 px-3 active:scale-[0.98] !min-w-0"
           >
-            💬 WhatsApp
+            <MessageCircle size={18} /> WhatsApp
           </a>
         )}
         {hasGigs && (

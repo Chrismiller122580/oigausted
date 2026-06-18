@@ -6,7 +6,7 @@ import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DollarSign, TrendingUp, Calendar, Download, Package, Users, Landmark } from 'lucide-react';
-import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG, aggregatePayouts } from '@/lib/payout';
+import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG, aggregatePayouts, type PayoutConfig } from '@/lib/payout';
 import { toast } from 'sonner';
 
 export default function SellerEarningsPage() {
@@ -25,6 +25,8 @@ export default function SellerEarningsPage() {
     pending: 0,
   });
   const [transactions, setTransactions] = useState<Array<Record<string, unknown> & { id: string; amount?: number }>>([]);
+  const [reportRows, setReportRows] = useState<Array<{ id: string; date: string; gig: string; gross: number; net: number; status: string }>>([]);
+  const [commissionRate, setCommissionRate] = useState(DEFAULT_PAYOUT_CONFIG.platformCommissionRate);
   const [loading, setLoading] = useState(true);
 
   // Seller payout bank details (for Wompi seller payouts from admin)
@@ -47,18 +49,34 @@ export default function SellerEarningsPage() {
 
   const fetchEarnings = async () => {
     try {
+      let rates: PayoutConfig = DEFAULT_PAYOUT_CONFIG;
+      const bankRes = await fetch('/api/seller/payout-bank').catch(() => null);
+      if (bankRes?.ok) {
+        const bankData = await bankRes.json();
+        if (bankData.rates) {
+          rates = {
+            platformCommissionRate: bankData.rates.platformCommissionRate ?? DEFAULT_PAYOUT_CONFIG.platformCommissionRate,
+            referralCommissionRate: bankData.rates.referralCommissionRate ?? DEFAULT_PAYOUT_CONFIG.referralCommissionRate,
+          };
+          setCommissionRate(rates.platformCommissionRate);
+        }
+        if (bankData.bank) {
+          setBankForm((prev) => ({ ...prev, ...bankData.bank }));
+          setBankSaved(!!bankData.bank.payoutAccountNumber);
+        }
+      }
+
       const res = await fetch('/api/orders?role=seller');
       const data = await res.json();
       const sellerOrders = Array.isArray(data) ? data : [];
 
       const completedOrders = sellerOrders.filter(o => o.status === 'Completed');
 
-      // Proper accounting using centralized payout logic
       const completedWithBreakdown = completedOrders.map(o => {
         const breakdown = calculateOrderPayout(
           Number(o.price) || 0,
-          !!o.seller?.referredById, // seller was referred → referral fee applies
-          DEFAULT_PAYOUT_CONFIG
+          !!o.seller?.referredById,
+          rates
         );
         return { ...o, breakdown };
       });
@@ -73,10 +91,10 @@ export default function SellerEarningsPage() {
       );
       const thisMonthNet = aggregatePayouts(thisMonthOrders.map(o => o.breakdown)).netToSeller;
 
-      // Pending gross (for display) - all Completed contribute to earned; no separate paymentStatus field
-      const pendingAmount = sellerOrders
-        .filter(o => o.status === 'Completed')
-        .reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+      const unpaidCompleted = completedWithBreakdown.filter(
+        (o: { sellerPayoutAt?: string | null }) => !o.sellerPayoutAt
+      );
+      const pendingAmount = aggregatePayouts(unpaidCompleted.map(o => o.breakdown)).netToSeller;
 
       setEarnings({
         total: aggregated.netToSeller,
@@ -88,19 +106,30 @@ export default function SellerEarningsPage() {
         referralFees: aggregated.referralFee,
       });
 
-      // Build transaction list from completed orders
-      const tx = completedOrders
+      const tx = completedWithBreakdown
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 15)
-        .map(o => ({
+        .map((o) => ({
           id: o.id,
           date: new Date(o.createdAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }),
           gig: o.gig?.title || 'Servicio',
-          amount: Number(o.price) || 0,
-          status: 'Pagado', // Completed orders are considered settled for earnings display
+          amount: o.breakdown.netToSeller,
+          status: o.sellerPayoutAt ? 'Pagado' : 'Pendiente',
         }));
 
       setTransactions(tx);
+      setReportRows(
+        completedWithBreakdown
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .map((o) => ({
+            id: o.id,
+            date: new Date(o.createdAt).toLocaleDateString('es-CO'),
+            gig: o.gig?.title || 'Servicio',
+            gross: o.breakdown.grossAmount,
+            net: o.breakdown.netToSeller,
+            status: o.sellerPayoutAt ? 'Pagado' : 'Pendiente',
+          }))
+      );
 
       // Fetch referral earnings
       const refRes = await fetch('/api/referrals');
@@ -118,18 +147,24 @@ export default function SellerEarningsPage() {
     }
   };
 
-  // Load/save seller bank payout info (used by admin when paying via Wompi)
-  const loadBank = async () => {
-    try {
-      const res = await fetch('/api/seller/payout-bank');
-      if (res.ok) {
-        const json = await res.json();
-        if (json.bank) {
-          setBankForm((prev) => ({ ...prev, ...json.bank }));
-          setBankSaved(!!json.bank.payoutAccountNumber);
-        }
-      }
-    } catch {}
+  const downloadReport = () => {
+    if (reportRows.length === 0) {
+      toast.error('No hay transacciones para exportar');
+      return;
+    }
+    const header = ['Fecha', 'Pedido', 'Bruto (COP)', 'Neto (COP)', 'Estado', 'ID'];
+    const lines = reportRows.map((r) =>
+      [r.date, `"${r.gig.replace(/"/g, '""')}"`, r.gross, r.net, r.status, r.id].join(',')
+    );
+    const csv = [header.join(','), ...lines].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ganancias-oigagig-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Reporte descargado');
   };
 
   const saveBank = async () => {
@@ -154,11 +189,6 @@ export default function SellerEarningsPage() {
     }
   };
 
-  useEffect(() => {
-    // Load bank after main earnings (non-blocking)
-    if (!loading) loadBank();
-  }, [loading]);
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -179,7 +209,7 @@ export default function SellerEarningsPage() {
             <h1 className="text-5xl font-bold text-foreground">Mis Ganancias</h1>
             <p className="text-xl text-muted-foreground mt-2">Resumen financiero como vendedor</p>
           </div>
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2" onClick={downloadReport} disabled={reportRows.length === 0}>
             <Download size={18} /> Descargar Reporte
           </Button>
         </div>
@@ -194,10 +224,7 @@ export default function SellerEarningsPage() {
               <p className="text-xs text-muted-foreground mt-1">
                 Bruto: ${(earnings.grossTotal || 0).toLocaleString('es-CO')}
                 {earnings.platformFees > 0 && (
-                  <> • Plataforma: -${(earnings.platformFees || 0).toLocaleString('es-CO')}</>
-                )}
-                {earnings.referralFees > 0 && (
-                  <> • Referidos: -${(earnings.referralFees || 0).toLocaleString('es-CO')}</>
+                  <> • Comisión plataforma: -${(earnings.platformFees || 0).toLocaleString('es-CO')}</>
                 )}
               </p>
             </CardContent>
@@ -340,8 +367,8 @@ export default function SellerEarningsPage() {
           Los pagos netos a vendedores se registran en el panel Admin (Payouts) usando Wompi. Completa tus datos bancarios arriba para agilizar el proceso. Reportes de SFTP de Wompi pueden usarse para reconciliación.
 
           <div className="mt-6 text-xs text-muted-foreground border-t pt-4">
-            <strong>Nota sobre comisiones:</strong> Tus ganancias netas consideran la comisión de plataforma (12%) 
-            y, si aplica, la comisión por referido (5%). Los números arriba son estimaciones basadas en la configuración actual.
+            <strong>Nota sobre comisiones:</strong> Tus ganancias netas descontan solo la comisión de plataforma ({(commissionRate * 100).toFixed(0)}%).
+            La comisión por referido la paga la plataforma, no se descuenta de tu pago. &quot;Pendiente de Pago&quot; son pedidos completados que el admin aún no ha girado.
           </div>
         </div>
       </div>

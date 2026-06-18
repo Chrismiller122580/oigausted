@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { calculateOrderPayout, aggregatePayouts, DEFAULT_PAYOUT_CONFIG } from '@/lib/payout';
+import { calculateOrderPayout, aggregatePayouts, DEFAULT_PAYOUT_CONFIG, type PayoutConfig } from '@/lib/payout';
 
 export default function AdminEarnings() {
   const [stats, setStats] = useState<Record<string, number> | null>(null);
@@ -13,7 +13,13 @@ export default function AdminEarnings() {
     Promise.all([
       fetch('/api/admin/stats').then(r => r.ok ? r.json() : null).catch(() => null),
       fetch('/api/orders?view=all').then(r => r.ok ? r.json() : []).catch(() => []),
-    ]).then(([statsData, ordersData]) => {
+      fetch('/api/admin/config').then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([statsData, ordersData, configData]) => {
+      const rates: PayoutConfig = {
+        platformCommissionRate: configData?.commissionRate ?? DEFAULT_PAYOUT_CONFIG.platformCommissionRate,
+        referralCommissionRate: configData?.referralCommissionRate ?? DEFAULT_PAYOUT_CONFIG.referralCommissionRate,
+      };
+
       const list = Array.isArray(ordersData) ? ordersData : [];
       const completed = list.filter((o: { status?: string }) => o.status === 'Completed');
 
@@ -21,7 +27,7 @@ export default function AdminEarnings() {
         calculateOrderPayout(
           Number(o.price) || 0,
           !!o.seller?.referredById,
-          DEFAULT_PAYOUT_CONFIG
+          rates
         )
       );
       const aggregated = aggregatePayouts(breakdowns);

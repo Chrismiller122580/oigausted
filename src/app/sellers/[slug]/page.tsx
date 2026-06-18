@@ -11,6 +11,9 @@ import {
 } from '@/lib/seller-profile';
 import ProfileShare from './ProfileShare';
 import SellerProfileMobileBar from './SellerProfileMobileBar';
+import { StarRating } from '@/components/ui/star-rating';
+import { UserAvatar } from '@/components/ui/user-avatar';
+import { MessageCircle, Instagram } from 'lucide-react';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -87,7 +90,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
               {seller.profilePicture ? (
                 <img src={seller.profilePicture} alt={displayName} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-4xl sm:text-6xl font-bold opacity-95">{displayName[0]}</span>
+                <UserAvatar name={displayName} size="xl" className="w-full h-full rounded-none border-0 text-4xl sm:text-6xl" />
               )}
             </div>
 
@@ -96,7 +99,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
                 {displayName}
               </h1>
               <div className="mt-2 inline-flex bg-white/20 backdrop-blur px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium items-center gap-1.5 border border-white/30">
-                ⭐ {avgRating.toFixed(1)} <span className="opacity-80">({reviews.length} reseñas)</span>
+                <StarRating rating={avgRating} size="sm" showValue reviewCount={reviews.length} className="text-white [&_span]:text-white [&_svg]:fill-white [&_svg]:text-white" />
               </div>
 
               <p className="text-white/90 mt-3 text-sm sm:text-lg md:text-xl">
@@ -117,7 +120,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
                     rel="noopener noreferrer"
                     className="border-2 border-white/70 hover:bg-white/10 px-5 py-3 rounded-2xl text-sm font-medium transition inline-flex items-center justify-center gap-2 backdrop-blur active:scale-[0.985] !min-w-0 w-full max-w-xs"
                   >
-                    📷 Ver en Instagram
+                    <Instagram size={18} /> Ver en Instagram
                   </a>
                 </div>
               )}
@@ -131,7 +134,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
                       rel="noopener noreferrer"
                       className="bg-white text-orange-600 font-semibold px-6 py-3 rounded-2xl text-sm hover:bg-white/95 transition-all inline-flex items-center justify-center gap-2 shadow-lg active:scale-[0.985] !min-w-0"
                     >
-                      💬 Contactar por WhatsApp
+                      <MessageCircle size={18} /> Contactar por WhatsApp
                     </a>
                   )}
                   {seller.instagram && (
@@ -141,7 +144,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
                       rel="noopener noreferrer"
                       className="border-2 border-white/70 hover:bg-white/10 px-5 py-3 rounded-2xl text-sm font-medium transition inline-flex items-center justify-center gap-2 backdrop-blur active:scale-[0.985] !min-w-0"
                     >
-                      📷 Ver en Instagram
+                      <Instagram size={18} /> Ver en Instagram
                     </a>
                   )}
                 </div>
@@ -222,7 +225,12 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
                           className="w-5 h-5 rounded-full object-cover border flex-shrink-0" 
                         />
                       ) : (
-                        <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[9px] flex-shrink-0">👤</div>
+                        <UserAvatar
+                          src={review.reviewer?.profilePicture}
+                          name={review.reviewer?.name}
+                          size="sm"
+                          className="w-5 h-5 text-[9px] flex-shrink-0"
+                        />
                       )}
                       <span className="font-medium text-foreground truncate">{review.reviewer?.name || 'Cliente'}</span>
                     </div>

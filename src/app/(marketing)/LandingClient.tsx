@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import type { ReactNode } from 'react';
+import { StarRating } from '@/components/ui/star-rating';
 
 /* Client-only animated pieces for the Oiga GiG 1.0 facelift landing.
    These use framer-motion for entrance staggers and hover lifts.
@@ -29,7 +29,7 @@ export function AnimatedCategoryGrid({ popularCategories }: { popularCategories:
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: Math.min(index * 0.035, 0.4) }}
-            whileHover={{ y: -4 }}
+            whileHover={{ y: -2 }}
           >
             <Link
               href={`/gigs?categoria=${encodeURIComponent(cat.name)}`}
@@ -55,8 +55,8 @@ export function AnimatedCategoryGrid({ popularCategories }: { popularCategories:
               </p>
 
               {cat.avgRating ? (
-                <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-0.5 text-xs text-amber-700 font-medium">
-                  ⭐ {cat.avgRating} <span className="text-amber-500">({cat.reviewCount})</span>
+                <div className="mt-3">
+                  <StarRating rating={cat.avgRating} size="sm" showValue reviewCount={cat.reviewCount} />
                 </div>
               ) : (
                 <div className="mt-3 text-xs text-zinc-400">Disponible ahora</div>
@@ -85,7 +85,9 @@ export function AnimatedTestimonials({ testimonials }: { testimonials: LandingTe
           whileHover={{ y: -3 }}
           className="testimonial-card"
         >
-          <div className="flex text-amber-500 mb-3 text-lg tracking-[2px]">★★★★★</div>
+          <div className="mb-3">
+            <StarRating rating={5} size="sm" />
+          </div>
           <p className="text-sm text-zinc-700 dark:text-zinc-300 flex-1 leading-relaxed">“{t.quote}”</p>
           <div className="mt-5 pt-4 border-t text-xs">
             <div className="font-semibold text-zinc-900 dark:text-white">{t.name}</div>

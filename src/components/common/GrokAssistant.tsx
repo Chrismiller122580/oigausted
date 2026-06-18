@@ -39,9 +39,11 @@ export default function GrokAssistant() {
 
       {isOpen && (
         <div className="fixed bottom-24 right-6 w-96 bg-card rounded-3xl shadow-2xl border border-border overflow-hidden z-50 flex flex-col text-foreground" style={{ height: "480px" }}>
-          <div className="bg-yellow-600 text-white p-4 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-card/60 rounded-xl flex items-center justify-center">🤖</div>
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                <Bot size={20} />
+              </div>
               <div>
                 <p className="font-medium">Grok AI Assistant</p>
                 <p className="text-xs opacity-80">Ayuda con tu negocio</p>
