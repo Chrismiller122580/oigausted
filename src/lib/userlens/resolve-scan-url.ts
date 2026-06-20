@@ -1,6 +1,24 @@
 const CODESPACES_HOST_RE =
   /^(.+)-(\d+)\.(app\.github\.dev|githubpreview\.dev)$/i;
 
+export function validateScanUrl(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) throw new Error('URL is required');
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new Error('Invalid URL format');
+  }
+
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new Error('Only http and https URLs are allowed');
+  }
+
+  return parsed.toString();
+}
+
 export interface ResolvedScanTarget {
   requestedUrl: string;
   scanUrl: string;

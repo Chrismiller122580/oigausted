@@ -7,7 +7,9 @@ import type {
   AxeViolation,
   LighthouseCategoryScore,
 } from '@/types/userlens';
-import { resolveScanTarget } from '@/lib/userlens/resolve-scan-url';
+import { resolveScanTarget, validateScanUrl } from '@/lib/userlens/resolve-scan-url';
+
+export { validateScanUrl };
 
 const SCAN_TIMEOUT_MS = 45_000;
 const DEBUG_PORT = 9222;
@@ -25,24 +27,6 @@ const VIEWPORTS: Record<UserLensViewport, { width: number; height: number }> = {
   desktop: { width: 1280, height: 720 },
   mobile: { width: 390, height: 844 },
 };
-
-export function validateScanUrl(input: string): string {
-  const trimmed = input.trim();
-  if (!trimmed) throw new Error('URL is required');
-
-  let parsed: URL;
-  try {
-    parsed = new URL(trimmed);
-  } catch {
-    throw new Error('Invalid URL format');
-  }
-
-  if (!['http:', 'https:'].includes(parsed.protocol)) {
-    throw new Error('Only http and https URLs are allowed');
-  }
-
-  return parsed.toString();
-}
 
 function addRedirectWarnings(requestedUrl: string, finalUrl: string, warnings: string[]) {
   try {

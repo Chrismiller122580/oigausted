@@ -3,7 +3,11 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 import { saveUserLensReport } from '@/lib/userlens/reports-store';
-import { runUserLensScan, validateScanUrl } from '@/lib/userlens/scanner';
+import { validateScanUrl } from '@/lib/userlens/resolve-scan-url';
+import {
+  classifyUserLensScanError,
+  getUserLensScanSupport,
+} from '@/lib/userlens/runtime';
 import type { LighthouseCategory, UserLensScanRequest } from '@/types/userlens';
 
 export const dynamic = 'force-dynamic';
@@ -16,10 +20,30 @@ const VALID_CATEGORIES: LighthouseCategory[] = [
   'seo',
 ];
 
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || session.user.role !== 'admin') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  return NextResponse.json(getUserLensScanSupport());
+}
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const support = getUserLensScanSupport();
+  if (!support.supported) {
+    return NextResponse.json(
+      {
+        error: support.reason,
+        hint: support.hint,
+      },
+      { status: 503 },
+    );
   }
 
   let body: UserLensScanRequest;
@@ -48,6 +72,7 @@ export async function POST(req: NextRequest) {
     : VALID_CATEGORIES;
 
   try {
+    const { runUserLensScan } = await import('@/lib/userlens/scanner');
     const result = await runUserLensScan({
       url: body.url,
       viewport,
@@ -89,18 +114,16 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ...result, reportId, fixItemCount });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Scan failed';
-    const isBrowserMissing =
-      message.includes('Executable doesn\'t exist') ||
-      message.includes('browserType.launch');
+    console.error('UserLens scan failed:', err);
+    const { status, message } = classifyUserLensScanError(err);
+    const support = getUserLensScanSupport();
 
     return NextResponse.json(
       {
-        error: isBrowserMissing
-          ? 'Playwright browsers are not installed on this server. Run: npx playwright install chromium'
-          : message,
+        error: message,
+        ...(support.hint && status === 503 ? { hint: support.hint } : {}),
       },
-      { status: isBrowserMissing ? 503 : 500 },
+      { status },
     );
   }
 }

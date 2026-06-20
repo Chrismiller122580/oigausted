@@ -106,11 +106,34 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<UserLensScanResult | null>(null);
   const [history, setHistory] = useState<string[]>([]);
+  const [scanSupport, setScanSupport] = useState<{
+    supported: boolean;
+    reason?: string;
+    hint?: string;
+  } | null>(null);
 
   const displayUrl = url || getDefaultScanUrl(clientOrigin);
+  const scansDisabled = scanning || scanSupport?.supported === false;
 
   useEffect(() => {
     setHistory(readScanHistory());
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/admin/userlens/scan')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data && typeof data.supported === 'boolean') {
+          setScanSupport(data);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const saveHistory = (scannedUrl: string) => {
@@ -152,7 +175,8 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Scan failed');
+        const detail = [data.error, data.hint].filter(Boolean).join(' ');
+        throw new Error(detail || 'Scan failed');
       }
 
       const scanResult = data as UserLensScanResult & {
@@ -193,6 +217,16 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
         </div>
       )}
 
+      {scanSupport?.supported === false && (
+        <div className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div className="space-y-1">
+            <p className="font-medium">{scanSupport.reason}</p>
+            {scanSupport.hint && <p className="text-amber-900/90 dark:text-amber-100/90">{scanSupport.hint}</p>}
+          </div>
+        </div>
+      )}
+
       <Card className="border-border">
         <CardHeader>
           <CardTitle>Run scan</CardTitle>
@@ -213,9 +247,9 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
                 placeholder="https://example.com"
                 value={displayUrl}
                 onChange={(e) => setUrl(e.target.value)}
-                disabled={scanning}
+                disabled={scansDisabled}
               />
-              <Button onClick={() => runScan()} disabled={scanning} className="shrink-0">
+              <Button onClick={() => runScan()} disabled={scansDisabled} className="shrink-0">
                 {scanning ? (
                   <>
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -238,7 +272,7 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
               size="sm"
               variant={viewport === 'desktop' ? 'default' : 'outline'}
               onClick={() => setViewport('desktop')}
-              disabled={scanning}
+              disabled={scansDisabled}
             >
               <Monitor className="h-4 w-4 mr-1" />
               Desktop
@@ -248,7 +282,7 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
               size="sm"
               variant={viewport === 'mobile' ? 'default' : 'outline'}
               onClick={() => setViewport('mobile')}
-              disabled={scanning}
+              disabled={scansDisabled}
             >
               <Smartphone className="h-4 w-4 mr-1" />
               Mobile
@@ -266,7 +300,7 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
                   type="checkbox"
                   checked={selectedCategories.includes(cat.id)}
                   onChange={() => toggleCategory(cat.id)}
-                  disabled={scanning}
+                  disabled={scansDisabled}
                   className="rounded border-border"
                 />
                 {cat.label}
@@ -282,7 +316,7 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
                   key={h}
                   type="button"
                   onClick={() => runScan(h)}
-                  disabled={scanning}
+                  disabled={scansDisabled}
                   className="text-xs px-2 py-1 rounded-full bg-muted hover:bg-accent transition-colors truncate max-w-[200px]"
                   title={h}
                 >
