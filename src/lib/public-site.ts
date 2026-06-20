@@ -1,8 +1,15 @@
 import type { Metadata } from 'next';
 import { getPlatformConfig } from '@/lib/prisma';
 
-export const PUBLIC_SITE_URL =
-  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://oigagig.com';
+export function getSiteUrl(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+  return raw?.replace(/\/$/, '') || 'https://oigagig.com';
+}
+
+export const PUBLIC_SITE_URL = getSiteUrl();
 
 export interface PublicSiteInfo {
   siteName: string;

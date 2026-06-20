@@ -2,6 +2,7 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  productionBrowserSourceMaps: true,
   images: {
     remotePatterns: [
       {
@@ -12,7 +13,15 @@ const nextConfig: NextConfig = {
   },
   // Treat ssh2-sftp-client as external so its native binaries aren't bundled by webpack
   // (required for SFTP support in API routes; the dynamic import + this config avoids build failures)
-  serverExternalPackages: ['ssh2', 'ssh2-sftp-client'],
+  serverExternalPackages: [
+    'ssh2',
+    'ssh2-sftp-client',
+    'playwright',
+    'playwright-core',
+    'lighthouse',
+    'axe-core',
+    'chrome-launcher',
+  ],
 
 
 }

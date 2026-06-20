@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { getAnalyticsConsent, setAnalyticsConsent } from '@/lib/analytics-consent'
+import { brandButtonClass } from '@/lib/design-tokens'
 
 export default function CookieConsent() {
   const [visible, setVisible] = useState(false)
@@ -33,7 +34,7 @@ export default function CookieConsent() {
         </p>
         <p className="text-xs text-muted-foreground mt-2">
           Más información en nuestra{' '}
-          <Link href="/privacy" className="text-orange-600 hover:underline">
+          <Link href="/privacy" className="text-orange-700 hover:text-orange-800 hover:underline">
             política de privacidad
           </Link>
           .
@@ -42,7 +43,7 @@ export default function CookieConsent() {
           <Button variant="outline" size="sm" onClick={() => choose('essential')}>
             Solo esenciales
           </Button>
-          <Button size="sm" className="bg-orange-600 hover:bg-orange-700" onClick={() => choose('accepted')}>
+          <Button size="sm" className={brandButtonClass} onClick={() => choose('accepted')}>
             Aceptar analíticas
           </Button>
         </div>

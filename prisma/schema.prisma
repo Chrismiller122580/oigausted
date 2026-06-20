@@ -88,6 +88,10 @@ model User {
   // Marketing / broadcasts sent by this admin
   marketingCampaigns MarketingCampaign[]
 
+  // UserLens UX audit reports & fix-queue reviews
+  userLensReports     UserLensReport[]
+  userLensFixReviews  UserLensFixItem[]  @relation("UserLensFixReviewer")
+
   // Per-user custom referral commission rate (overrides global if set)
   customReferralRate Float?  // e.g. 0.07 for 7%. Null = use PlatformConfig.referralCommissionRate (default 5%)
 
@@ -477,4 +481,52 @@ model FaqItem {
   order     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// UserLens scan reports (Lighthouse + axe) — persisted for admin review & Composer fix queue
+model UserLensReport {
+  id          String   @id @default(cuid())
+  scannedById String?
+  scannedBy   User?    @relation(fields: [scannedById], references: [id], onDelete: SetNull)
+  url         String
+  scanUrl     String?
+  finalUrl    String
+  title       String?
+  viewport    String
+  scannedAt   DateTime
+  loadTimeMs  Int
+  summary     Json?
+  result      Json
+  createdAt   DateTime @default(now())
+  fixItems    UserLensFixItem[]
+
+  @@index([scannedAt])
+  @@index([finalUrl])
+  @@index([scannedById])
+}
+
+// Actionable issues extracted from scans — admins approve/reject for Composer to fix later
+model UserLensFixItem {
+  id           String   @id @default(cuid())
+  reportId     String
+  report       UserLensReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  source       String
+  category     String?
+  auditId      String?
+  severity     String?
+  title        String
+  description  String   @db.Text
+  targets      Json?
+  status       String   @default("pending")
+  reviewedById String?
+  reviewedBy   User?    @relation("UserLensFixReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  reviewNotes  String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([reportId])
+  @@index([status])
+  @@index([severity])
+  @@index([createdAt])
 }

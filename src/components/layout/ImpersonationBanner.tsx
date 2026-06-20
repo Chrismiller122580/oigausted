@@ -10,9 +10,7 @@ import { Button } from '@/components/ui/button';
  * Clicking "Stop" restores the original admin identity via session.update().
  */
 export default function ImpersonationBanner() {
-  const { data: session, update, status } = useSession();
-
-  if (status !== 'authenticated') return null;
+  const { data: session, update } = useSession();
 
   const user = session?.user;
   if (!user?.impersonatorId) return null;

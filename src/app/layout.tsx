@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import "./globals.css";
 import NavbarWrapper from "@/components/layout/NavbarWrapper";
 import SessionProviderWrapper from "@/components/providers/SessionProviderWrapper";
@@ -15,8 +17,10 @@ const inter = Inter({ subsets: ["latin"] });
 
 // Dynamic metadata powered by admin settings (branding)
 export async function generateMetadata(): Promise<Metadata> {
-  let siteName = "Oigagig";
-  let siteTagline = "Conecta con profesionales locales en Colombia";
+  let siteName = "OigaGIG";
+  const defaultDescription =
+    "El profesional que necesitas, con gente de confianza a un Oiga de distancia. Servicios locales en Bogotá, Medellín, Cali y toda Colombia. Pagos seguros con Wompi.";
+  let siteTagline = defaultDescription;
   let appUrl = "https://oigagig.com";
 
   // Proactively ensure the PlatformConfig singleton exists on the very first
@@ -32,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
     if (res.ok) {
       const cfg = await res.json();
       if (cfg.siteName) siteName = cfg.siteName;
-      if (cfg.siteTagline) siteTagline = cfg.siteTagline;
+      if (cfg.siteTagline?.trim()) siteTagline = cfg.siteTagline.trim();
       if (cfg._meta?.payment?.appUrl) appUrl = cfg._meta.payment.appUrl;
     }
   } catch (e) {
@@ -113,11 +117,12 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getServerSession(authOptions);
   // Global guard against the Google Maps legacy Places Autocomplete widget.
   // The legacy widget (from stale bundles or accidental 'places' lib load) injects
   // .pac-container DOM nodes that React does not own. React unmount/reconcile then throws
@@ -169,13 +174,9 @@ export default function RootLayout({
         // Run immediately
         neutralizeGoogleMaps();
         
-        // Run again after DOM mutations (covers async script loads / late bundles)
-        var mo = new MutationObserver(function() {
-          neutralizeGoogleMaps();
-        });
-        mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
-        
-        // Periodic nuke for first 10s (catches late injection from code chunks)
+        // Periodic nuke for first 10s (catches late injection from code chunks).
+        // Intentionally no MutationObserver on document — observing the full subtree
+        // fired on every React update and contributed to DOM reconciliation errors.
         var cleanupInterval = setInterval(function() {
           var g = window.google;
           if (g && g.maps && g.maps.places) {
@@ -190,12 +191,11 @@ export default function RootLayout({
               };
             } catch(e) {}
           }
-        }, 300);
+        }, 1000);
         
         setTimeout(function() {
           clearInterval(cleanupInterval);
-          try { mo.disconnect(); } catch(e) {}
-        }, 10000);
+        }, 3000);
         
         // console.debug suppressed for prod (guard still active)
       } catch (e) {
@@ -227,7 +227,7 @@ export default function RootLayout({
         )}
       </head>
       <body className={`${inter.className} pb-safe-area-inset-bottom`}>
-        <SessionProviderWrapper>
+        <SessionProviderWrapper session={session}>
           <MaintenanceBanner />
           <NavbarWrapper>
             {children}

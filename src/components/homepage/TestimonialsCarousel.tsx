@@ -128,8 +128,8 @@ export function TestimonialsCarousel({ testimonials }: TestimonialsCarouselProps
                   }}
                   className={`h-2 rounded-full transition-all ${
                     i === current
-                      ? 'w-6 bg-orange-500'
-                      : 'w-2 bg-slate-300 dark:bg-slate-600 hover:bg-orange-300'
+                      ? 'w-6 bg-orange-800'
+                      : 'w-2 bg-slate-300 dark:bg-slate-600 hover:bg-orange-400'
                   }`}
                 />
               ))}
@@ -153,6 +153,8 @@ export function TestimonialsCarousel({ testimonials }: TestimonialsCarouselProps
             <button
               key={i}
               type="button"
+              aria-label={`Ver testimonio de ${item.name}`}
+              aria-pressed={i === current}
               onClick={() => {
                 setDirection(i > current ? 1 : -1);
                 setCurrent(i);

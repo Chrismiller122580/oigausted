@@ -1,7 +1,9 @@
 import type { MetadataRoute } from 'next';
-import { PUBLIC_SITE_URL } from '@/lib/public-site';
+import { getSiteUrl } from '@/lib/public-site';
 
 export default function robots(): MetadataRoute.Robots {
+  const siteUrl = getSiteUrl();
+
   return {
     rules: [
       {
@@ -22,7 +24,6 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: `${PUBLIC_SITE_URL}/sitemap.xml`,
-    host: PUBLIC_SITE_URL,
+    sitemap: `${siteUrl}/sitemap.xml`,
   };
 }

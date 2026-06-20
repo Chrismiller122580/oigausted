@@ -2,14 +2,19 @@
  * OigaGIG v2 design tokens — single source for homepage brand colors & constants.
  */
 
+/** WCAG AA–safe orange (≥4.5:1 with white text). */
 export const brand = {
-  orange: '#F97316',
-  orangeHover: '#EA580C',
+  orange: '#C2410C',
+  orangeHover: '#9A3412',
   trustGreen: '#10B981',
   accentYellow: '#EAB308',
   slateLight: '#F8FAFC', // slate-50
   slateDark: '#020617', // slate-950
 } as const;
+
+/** Shared Tailwind classes for primary CTAs (buttons with white label text). */
+export const brandButtonClass =
+  'bg-orange-800 hover:bg-orange-900 text-white dark:bg-orange-700 dark:hover:bg-orange-800';
 
 export const colombianCities = [
   { id: 'bogota', label: 'Bogotá', slug: 'Bogotá' },

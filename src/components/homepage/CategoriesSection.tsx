@@ -31,7 +31,7 @@ export function CategoriesSection({ categories }: CategoriesSectionProps) {
             Profesionales verificados en tu ciudad
           </p>
         </div>
-        <Button variant="ghost" asChild className="hidden sm:inline-flex text-orange-600 hover:text-orange-700">
+        <Button variant="ghost" asChild className="hidden sm:inline-flex text-orange-700 hover:text-orange-800">
           <Link href="/gigs">
             Ver todas
             <ArrowRight className="ml-1 h-4 w-4" />
@@ -89,7 +89,7 @@ export function CategoriesSection({ categories }: CategoriesSectionProps) {
                   </div>
 
                   <div className="p-4 flex flex-col flex-1">
-                    <h3 className="font-semibold text-sm sm:text-base leading-snug group-hover:text-orange-600 transition-colors line-clamp-2">
+                    <h3 className="font-semibold text-sm sm:text-base leading-snug group-hover:text-orange-800 transition-colors line-clamp-2">
                       {cat.name}
                     </h3>
                     {cat.description && (

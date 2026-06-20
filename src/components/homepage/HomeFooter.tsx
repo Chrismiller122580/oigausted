@@ -35,7 +35,7 @@ export function HomeFooter({ siteName = 'OigaGIG' }: { siteName?: string }) {
             <p className="text-sm leading-relaxed text-slate-400 mb-4">
               Conectando Colombia, un servicio a la vez. Hecho con cariño por y para colombianos.
             </p>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+            <div className="flex items-center gap-2 text-xs text-slate-400">
               <MapPin className="h-3.5 w-3.5" aria-hidden />
               Bogotá • Medellín • Cali • Toda Colombia
             </div>
@@ -63,7 +63,7 @@ export function HomeFooter({ siteName = 'OigaGIG' }: { siteName?: string }) {
           ))}
         </div>
 
-        <div className="mt-10 pt-6 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500">
+        <div className="mt-10 pt-6 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-400">
           <span>
             © {new Date().getFullYear()} {siteName}. Todos los derechos reservados.
           </span>

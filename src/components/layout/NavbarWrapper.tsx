@@ -17,21 +17,12 @@ import SellerNavbar from './SellerNavbar';
 import ImpersonationBanner from './ImpersonationBanner';
 
 export default function NavbarWrapper({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password' || pathname?.startsWith('/login/') || false;
-
-  if (status === "loading") {
-    return <div className="min-h-[64px] bg-background border-b border-border flex items-center justify-center text-sm text-muted-foreground">Loading...</div>;
-  }
-
-  const role = String(session?.user?.role || '').toLowerCase().trim();
-
-  // The impersonation banner (if active) is always rendered at the very top.
-  // It is self-contained and will only show when the current session has impersonatorId.
-  // This works even when the effective role is buyer/seller (the admin is "wearing" that identity).
   const banner = <ImpersonationBanner />;
+  const role = String(session?.user?.role || '').toLowerCase().trim();
 
   if (role === 'admin') {
     return (

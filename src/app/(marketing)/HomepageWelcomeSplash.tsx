@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Search, MessageCircle, ShieldCheck, X, Star, BadgeCheck, Lock, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { heroCollageImages, trustBadges } from '@/lib/design-tokens';
+import { brandButtonClass, heroCollageImages, trustBadges } from '@/lib/design-tokens';
 import { cn } from '@/lib/utils';
 
 const STORAGE_KEY = 'homepage-welcome-seen';
@@ -176,7 +176,7 @@ export function HomepageWelcomeSplash() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 text-orange-600 dark:text-orange-400" aria-hidden />
+                      <Icon className="h-4 w-4 text-orange-700 dark:text-orange-300" aria-hidden />
                       <p className="font-semibold text-sm text-foreground">{step.title}</p>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
@@ -186,30 +186,28 @@ export function HomepageWelcomeSplash() {
             })}
           </ul>
 
-          <div
-            className="mt-4 flex flex-wrap justify-center gap-2"
-            role="list"
+          <ul
+            className="mt-4 flex flex-wrap justify-center gap-2 list-none m-0 p-0"
             aria-label="Garantías de confianza"
           >
             {trustBadges.map((badge) => {
               const Icon = trustIcons[badge.icon];
               return (
-                <span
+                <li
                   key={badge.label}
-                  role="listitem"
                   className="inline-flex items-center gap-1 rounded-full border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
                 >
                   <Icon className="h-3 w-3 text-[#EAB308]" aria-hidden />
                   {badge.label}
-                </span>
+                </li>
               );
             })}
-          </div>
+          </ul>
 
           <div className="mt-5 flex flex-col gap-2.5">
             <Button
               asChild
-              className="h-12 w-full rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold shadow-lg"
+              className={cn(brandButtonClass, 'h-12 w-full rounded-xl font-semibold shadow-lg')}
             >
               <Link href="/gigs" onClick={dismiss}>
                 Buscar servicios

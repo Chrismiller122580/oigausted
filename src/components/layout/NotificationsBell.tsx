@@ -18,7 +18,7 @@ interface AppNotification {
 }
 
 export function NotificationsBell() {
-  const { data: session, status: sessionStatus } = useSession();
+  const { data: session } = useSession();
 
   const { 
     notifications: realtimeNotifs, 
@@ -226,7 +226,7 @@ export function NotificationsBell() {
   // Do not render the bell UI (or trigger any side effects that assume auth)
   // for unauthenticated users. Combined with guards in useRealtimeNotifications
   // and the fetch effects, this eliminates 401 noise on public pages.
-  if (sessionStatus === 'loading' || !session?.user) {
+  if (!session?.user) {
     return null;
   }
 

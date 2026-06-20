@@ -40,11 +40,11 @@ const statConfig = [
   { key: 'gigs' as const, label: 'Gigs activos', icon: TrendingUp, color: 'text-[#10B981]' },
   { key: 'reviews' as const, label: 'Reseñas reales', icon: Star, color: 'text-[#EAB308]' },
   { key: 'cities' as const, label: 'Ciudades', icon: MapPin, color: 'text-sky-500' },
-  { key: 'sellers' as const, label: 'Profesionales', icon: Users, color: 'text-orange-500' },
+  { key: 'sellers' as const, label: 'Profesionales', icon: Users, color: 'text-orange-700' },
 ];
 
 export function StatsAndPopular({ stats, popularGigs }: StatsAndPopularProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLUListElement>(null);
 
   const scroll = (dir: 'left' | 'right') => {
     const el = scrollRef.current;
@@ -117,22 +117,20 @@ export function StatsAndPopular({ stats, popularGigs }: StatsAndPopularProps) {
           </div>
         </div>
 
-        <div
+        <ul
           ref={scrollRef}
-          className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0"
-          role="list"
+          className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 list-none m-0 p-0"
           aria-label="Servicios populares"
         >
           {popularGigs.length > 0 ? (
             popularGigs.map((gig, index) => (
-              <motion.div
+              <motion.li
                 key={gig.id}
                 initial={{ opacity: 0, x: 20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.06 }}
                 className="snap-start shrink-0 w-[260px] sm:w-[280px]"
-                role="listitem"
               >
                 <Link href={`/gigs/${gig.id}`} className="group block h-full">
                   <article className="rounded-2xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60 bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col">
@@ -157,7 +155,7 @@ export function StatsAndPopular({ stats, popularGigs }: StatsAndPopularProps) {
                       )}
                     </div>
                     <div className="p-4 flex flex-col flex-1">
-                      <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-orange-600 transition-colors">
+                      <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-orange-700 transition-colors">
                         {gig.title}
                       </h3>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -175,25 +173,25 @@ export function StatsAndPopular({ stats, popularGigs }: StatsAndPopularProps) {
                         </div>
                       ) : null}
                       <div className="mt-auto pt-3 flex items-center justify-between">
-                        <span className="font-bold text-orange-600">
+                        <span className="font-bold text-orange-700">
                           ${gig.price.toLocaleString('es-CO')}
                         </span>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-orange-500 transition-colors" />
+                        <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-orange-800 transition-colors" />
                       </div>
                     </div>
                   </article>
                 </Link>
-              </motion.div>
+              </motion.li>
             ))
           ) : (
-            <div className="w-full py-12 text-center text-muted-foreground text-sm">
+            <li className="w-full py-12 text-center text-muted-foreground text-sm">
               Pronto habrá servicios populares en tu zona.{' '}
-              <Link href="/gigs" className="text-orange-600 hover:underline">
+              <Link href="/gigs" className="text-orange-700 hover:text-orange-800 hover:underline">
                 Explorar todos
               </Link>
-            </div>
+            </li>
           )}
-        </div>
+        </ul>
       </div>
     </section>
   );

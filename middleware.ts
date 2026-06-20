@@ -12,6 +12,15 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
+  // NextAuth sometimes sends users to /api/auth/error — redirect to our friendly page
+  if (pathname === '/api/auth/error') {
+    const error = request.nextUrl.searchParams.get('error') || 'Default'
+    const url = request.nextUrl.clone()
+    url.pathname = '/login/error'
+    url.search = `error=${encodeURIComponent(error)}`
+    return NextResponse.redirect(url)
+  }
+
   try {
     const state = await fetchMaintenanceState(appUrl)
 

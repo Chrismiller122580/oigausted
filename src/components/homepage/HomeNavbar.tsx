@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/ui/mode-toggle';
+import { brandButtonClass } from '@/lib/design-tokens';
+import { cn } from '@/lib/utils';
 import { MegaSearchBar } from './MegaSearchBar';
 
 export function HomeNavbar() {
@@ -24,7 +26,7 @@ export function HomeNavbar() {
           <span className="text-xl" aria-hidden>
             🧡
           </span>
-          <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-orange-700 to-orange-500 bg-clip-text text-transparent">
             OigaGIG
           </span>
         </Link>
@@ -47,7 +49,7 @@ export function HomeNavbar() {
           <Button variant="ghost" asChild size="sm" className="hidden sm:inline-flex">
             <Link href="/login">Ingresar</Link>
           </Button>
-          <Button asChild size="sm" className="bg-orange-600 hover:bg-orange-700 text-white font-medium">
+          <Button asChild size="sm" className={cn(brandButtonClass, 'font-medium')}>
             <Link href="/signup">Registrarme</Link>
           </Button>
           <Button

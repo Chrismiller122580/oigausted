@@ -40,6 +40,7 @@ export function ModeToggle() {
       size="icon"
       onClick={toggleTheme}
       className="h-9 w-9 hover:bg-accent transition-colors"
+      aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       title={isDark ? "Switch to light mode" : "Switch to dark mode"}
     >
       <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

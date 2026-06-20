@@ -1,15 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getGigCategories } from '@/lib/categories';
 import { getCategoryIcon } from '@/lib/icon-registry';
-import { HomeNavbar } from '@/components/homepage/HomeNavbar';
-import { HomeHero } from '@/components/homepage/HomeHero';
-import { CategoriesSection } from '@/components/homepage/CategoriesSection';
-import { StatsAndPopular } from '@/components/homepage/StatsAndPopular';
-import { HowItWorks } from '@/components/homepage/HowItWorks';
-import { TestimonialsCarousel } from '@/components/homepage/TestimonialsCarousel';
-import { SellerPromoCTA } from '@/components/homepage/SellerPromoCTA';
-import { HomeFooter } from '@/components/homepage/HomeFooter';
-import { HomepageWelcomeSplash } from './HomepageWelcomeSplash';
+import { MarketingHomeView } from './MarketingHomeView';
 
 export const revalidate = 60;
 
@@ -144,18 +136,11 @@ export default async function MarketingHomePage() {
   ];
 
   return (
-    <>
-      <HomepageWelcomeSplash />
-      <HomeNavbar />
-      <main>
-        <HomeHero />
-        <CategoriesSection categories={popularCategories} />
-        <StatsAndPopular stats={stats} popularGigs={popularGigs} />
-        <HowItWorks />
-        <TestimonialsCarousel testimonials={testimonials} />
-        <SellerPromoCTA />
-      </main>
-      <HomeFooter />
-    </>
+    <MarketingHomeView
+      categories={popularCategories}
+      stats={stats}
+      popularGigs={popularGigs}
+      testimonials={testimonials}
+    />
   );
 }

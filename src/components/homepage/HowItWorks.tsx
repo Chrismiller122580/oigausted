@@ -75,7 +75,7 @@ export function HowItWorks() {
                 </span>
               </div>
 
-              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-600">
+              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300">
                 <Icon className="h-5 w-5" aria-hidden />
               </div>
 

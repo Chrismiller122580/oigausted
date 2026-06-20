@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getCurrentLocation } from '@/lib/distance';
-import { colombianCities } from '@/lib/design-tokens';
+import { brandButtonClass, colombianCities } from '@/lib/design-tokens';
 
 interface MegaSearchBarProps {
   variant?: 'hero' | 'compact';
@@ -112,7 +112,7 @@ export function MegaSearchBar({
             size="icon"
             onClick={handleGeolocation}
             disabled={geoLoading}
-            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-orange-500 hover:text-orange-600"
+            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-orange-700 hover:text-orange-800"
             title="Usar mi ubicación"
             aria-label="Usar mi ubicación"
           >
@@ -126,12 +126,21 @@ export function MegaSearchBar({
 
         <Button
           type="submit"
+          aria-label="Buscar servicios"
           className={cn(
-            'bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold shrink-0',
+            brandButtonClass,
+            'font-semibold shrink-0',
             isHero ? 'h-12 px-8 rounded-xl text-base' : 'h-9 rounded-lg'
           )}
         >
-          {isHero ? 'Buscar' : <Search className="h-4 w-4" />}
+          {isHero ? (
+            'Buscar'
+          ) : (
+            <>
+              <Search className="h-4 w-4" aria-hidden />
+              <span className="sr-only">Buscar</span>
+            </>
+          )}
         </Button>
       </div>
     </form>

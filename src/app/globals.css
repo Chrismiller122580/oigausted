@@ -126,7 +126,7 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --brand: oklch(0.62 0.19 45);
+  --brand: oklch(0.52 0.17 45);
   --brand-foreground: oklch(0.985 0 0);
   --brand-muted: oklch(0.97 0.03 55);
 }
@@ -163,7 +163,7 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
-  --brand: oklch(0.68 0.17 50);
+  --brand: oklch(0.55 0.16 45);
   --brand-foreground: oklch(0.985 0 0);
   --brand-muted: oklch(0.25 0.04 50);
 }
@@ -239,8 +239,8 @@ button, a, [role="button"] {
 
 /* OigaGIG v2 homepage design tokens */
 :root {
-  --oiga-orange: #F97316;
-  --oiga-orange-hover: #EA580C;
+  --oiga-orange: #C2410C;
+  --oiga-orange-hover: #9A3412;
   --oiga-trust-green: #10B981;
   --oiga-accent-yellow: #EAB308;
 }

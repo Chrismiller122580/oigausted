@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "updatedAt": "2026-06-20T00:00:00.000Z",
+  "instructions": "Cursor/Composer: read fixQueue. Fix items with status \"approved\" first, then \"pending\" if asked. Set status to \"fixed\" in the admin toolbox after shipping. Do not auto-fix \"rejected\" or \"deferred\" items.",
+  "fixQueue": [],
+  "recentReports": []
+}

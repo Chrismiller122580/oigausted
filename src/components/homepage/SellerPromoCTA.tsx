@@ -21,7 +21,7 @@ export function SellerPromoCTA() {
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-600 via-orange-500 to-amber-500 p-8 sm:p-12 text-white text-center shadow-2xl"
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-800 via-orange-700 to-orange-600 p-8 sm:p-12 text-white text-center shadow-2xl"
       >
         {/* Decorative pattern */}
         <div

@@ -33,13 +33,15 @@ export default function LoginPage() {
   useEffect(() => {
     const urlError = new URLSearchParams(window.location.search).get('error');
     if (urlError) {
-      const friendlyMessage = 
-        urlError === 'OAuthSignin' 
+      const friendlyMessage =
+        urlError === 'OAuthSignin'
           ? 'Google sign-in failed. This is common in temporary dev environments (changing URLs). Try the email/password form instead.'
-          : 'There was a problem signing in. Please try again.';
-      
+          : urlError === 'CredentialsSignin'
+            ? 'Invalid email or password. For local dev use admin@local.dev / AdminLocal123!'
+            : 'There was a problem signing in. Please try again.';
+
       setError(friendlyMessage);
-      
+
       // Clean the URL
       window.history.replaceState({}, '', '/login');
     }
@@ -71,11 +73,27 @@ export default function LoginPage() {
     const fromQuery = new URLSearchParams(window.location.search).get('callbackUrl');
     const callbackUrl = fromQuery || getAuthCallbackUrl('/');
 
-    await signIn('credentials', {
-      email,
+    const result = await signIn('credentials', {
+      email: email.trim().toLowerCase(),
       password,
       callbackUrl,
+      redirect: false,
     });
+
+    setIsLoading(false);
+
+    if (result?.error) {
+      setError(
+        result.error === 'CredentialsSignin'
+          ? 'Invalid email or password. For local dev use admin@local.dev / AdminLocal123!'
+          : 'There was a problem signing in. Please try again.',
+      );
+      return;
+    }
+
+    if (result?.ok) {
+      window.location.assign(callbackUrl);
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -107,6 +125,11 @@ export default function LoginPage() {
         <CardContent>
           <div className="mb-4">
             <p className="text-sm font-medium text-foreground mb-3">Sign in with your account</p>
+            {process.env.NODE_ENV === 'development' && (
+              <div className="rounded-xl border border-orange-200 bg-orange-50 dark:bg-orange-950/30 dark:border-orange-800 px-3 py-2 text-xs text-orange-900 dark:text-orange-200">
+                <strong>Local dev:</strong> admin@local.dev / AdminLocal123!
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

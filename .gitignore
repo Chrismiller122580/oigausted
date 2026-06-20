@@ -53,3 +53,7 @@ prisma/*.db
 next-env.d.ts
 
 /src/generated/prisma
+
+# UserLens raw report dumps (large screenshots); composer-queue.json is tracked
+/data/userlens/reports/
+/data/userlens/reports-index.jsonl
