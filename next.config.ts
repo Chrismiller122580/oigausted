@@ -19,12 +19,14 @@ const nextConfig: NextConfig = {
     'playwright',
     'playwright-core',
     '@sparticuz/chromium',
+    '@sparticuz/chromium-min',
     'lighthouse',
     'axe-core',
     'chrome-launcher',
   ],
   outputFileTracingIncludes: {
-    '/api/**/*': ['./node_modules/@sparticuz/chromium/**'],
+    '/api/admin/userlens/scan': ['./node_modules/@sparticuz/chromium/bin/**'],
+    '/api/admin/userlens/scan/route': ['./node_modules/@sparticuz/chromium/bin/**'],
   },
 }
 

@@ -57,3 +57,4 @@ next-env.d.ts
 # UserLens raw report dumps (large screenshots); composer-queue.json is tracked
 /data/userlens/reports/
 /data/userlens/reports-index.jsonl
+/public/chromium-pack.tar
