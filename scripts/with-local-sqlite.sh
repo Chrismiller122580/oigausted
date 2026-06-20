@@ -54,6 +54,8 @@ node -e '
   s = s.replace(/deliveryLog     Json\?     \/\/ structured delivery attempts \(resend ids, timestamps, channels\)/, "deliveryLog     String?   // JSON string (local sqlite)");
   // Catch any remaining Json? for sqlite dev (data, deliveryLog, customFields etc become String for sqlite)
   s = s.replace(/(\w+)\s+Json\?/g, "$1       String?");
+  // Required Json fields (e.g. UserLensReport.result)
+  s = s.replace(/(\w+)\s+Json\b/g, "$1       String");
   // Remove Postgres-specific @db.Text annotations for sqlite
   s = s.replace(/\s+@db\.Text/g, "");
   // SQLite connector does not support Prisma enums — keep Order.status as String locally

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Inter } from "next/font/google";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -204,29 +205,26 @@ export default async function RootLayout({
     })();
   `;
 
+  const wompiPublicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY?.trim();
+  const wompiInitScript = wompiPublicKey
+    ? `(function(){try{var k=${JSON.stringify(wompiPublicKey)};window.WOMPI_PUBLIC_KEY=k;if(window.$wompi){window.$wompi.publicKey=k;}}catch(e){}})();`
+    : null;
+
   return (
     <html lang="es" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: mapsGuardScript }} />
-        {/* Set Wompi public key as early as possible in <head> so that the Wompi widget script (and its internal bundles like v1.js) can see it during their own initialization, preventing merchants/undefined and init 422 errors. */}
-        {process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY && (
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                (function() {
-                  try {
-                    window.WOMPI_PUBLIC_KEY = '${process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY}';
-                    if (window.$wompi) {
-                      window.$wompi.publicKey = '${process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY}';
-                    }
-                  } catch(e) {}
-                })();
-              `
-            }}
-          />
-        )}
-      </head>
       <body className={`${inter.className} pb-safe-area-inset-bottom`}>
+        <Script
+          id="maps-guard"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: mapsGuardScript }}
+        />
+        {wompiInitScript ? (
+          <Script
+            id="wompi-public-key"
+            strategy="beforeInteractive"
+            dangerouslySetInnerHTML={{ __html: wompiInitScript }}
+          />
+        ) : null}
         <SessionProviderWrapper session={session}>
           <MaintenanceBanner />
           <NavbarWrapper>

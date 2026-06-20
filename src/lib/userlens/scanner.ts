@@ -1,3 +1,4 @@
+import '@/lib/userlens/server-only';
 import type {
   LighthouseCategory,
   UserLensScanRequest,
