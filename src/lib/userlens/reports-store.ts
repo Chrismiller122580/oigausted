@@ -97,6 +97,42 @@ function mapFixItem(
   };
 }
 
+function isPsiScanResult(result: UserLensScanResult): boolean {
+  return result.warnings.some(
+    (warning) =>
+      warning.includes('PageSpeed Insights') || warning.includes('Cloud scan via Google'),
+  );
+}
+
+export async function findCachedPsiScan(
+  url: string,
+  viewport: string,
+  maxAgeHours: number,
+): Promise<{ reportId: string; fixItemCount: number; result: UserLensScanResult } | null> {
+  const since = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
+
+  const report = await prisma.userLensReport.findFirst({
+    where: {
+      url,
+      viewport,
+      scannedAt: { gte: since },
+    },
+    orderBy: { scannedAt: 'desc' },
+    include: { _count: { select: { fixItems: true } } },
+  });
+
+  if (!report) return null;
+
+  const result = report.result as UserLensScanResult;
+  if (!isPsiScanResult(result)) return null;
+
+  return {
+    reportId: report.id,
+    fixItemCount: report._count.fixItems,
+    result,
+  };
+}
+
 export async function saveUserLensReport(
   result: UserLensScanResult,
   scannedById?: string,

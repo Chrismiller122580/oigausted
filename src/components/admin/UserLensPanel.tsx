@@ -104,6 +104,7 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
     CATEGORIES.map((c) => c.id),
   );
   const [scanning, setScanning] = useState(false);
+  const [forceRefresh, setForceRefresh] = useState(false);
   const [result, setResult] = useState<UserLensScanResult | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [scanSupport, setScanSupport] = useState<{
@@ -172,6 +173,7 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
           url: scanUrl,
           viewport,
           categories: selectedCategories,
+          forceRefresh: isCloudScan ? forceRefresh : undefined,
         }),
       });
 
@@ -184,16 +186,21 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
       const scanResult = data as UserLensScanResult & {
         reportId?: string;
         fixItemCount?: number;
+        fromCache?: boolean;
       };
       setResult(scanResult);
       setUrl(scanUrl);
       saveHistory(scanUrl);
       const queued = scanResult.fixItemCount ?? 0;
-      toast.success(
-        queued > 0
-          ? `Scan saved — ${queued} issue${queued === 1 ? '' : 's'} added to fix toolbox`
-          : 'Scan saved — no new issues detected',
-      );
+      if (scanResult.fromCache) {
+        toast.message('Loaded cached scan (quota-safe)');
+      } else {
+        toast.success(
+          queued > 0
+            ? `Scan saved — ${queued} issue${queued === 1 ? '' : 's'} added to fix toolbox`
+            : 'Scan saved — no new issues detected',
+        );
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Scan failed');
     } finally {
@@ -318,6 +325,19 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
               </label>
             ))}
           </div>
+
+          {isCloudScan && (
+            <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={forceRefresh}
+                onChange={(e) => setForceRefresh(e.target.checked)}
+                disabled={scansDisabled}
+                className="rounded border-border"
+              />
+              Force fresh API call (uses Google PageSpeed quota)
+            </label>
+          )}
 
           {history.length > 0 && (
             <div className="flex flex-wrap gap-2 items-center">

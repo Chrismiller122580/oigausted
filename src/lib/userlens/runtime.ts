@@ -31,7 +31,7 @@ export function getUserLensScanSupport(): UserLensScanSupport {
       supported: true,
       mode,
       hint:
-        'Cloud scan via Google PageSpeed Insights. Use a public URL (e.g. https://oigagig.com). Screenshots and axe DOM analysis are not included.',
+        'Cloud scan via Google PageSpeed Insights. Recent scans are cached to save quota. Add PAGESPEED_INSIGHTS_API_KEY in Vercel for your own GCP quota.',
     };
   }
 
@@ -70,11 +70,12 @@ export function classifyUserLensScanError(err: unknown): {
     };
   }
 
-  if (lower.includes('rate limit') || lower.includes('quota')) {
-    return {
-      status: 503,
-      message,
-    };
+  if (
+    lower.includes('rate limit') ||
+    lower.includes('quota exceeded') ||
+    lower.includes('queries per day')
+  ) {
+    return { status: 503, message };
   }
 
   return { status: 500, message };

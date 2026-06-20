@@ -10,6 +10,8 @@ export interface UserLensScanRequest {
   url: string;
   viewport?: UserLensViewport;
   categories?: LighthouseCategory[];
+  /** PSI cloud mode only — bypass cache and call Google API (uses quota). */
+  forceRefresh?: boolean;
 }
 
 export interface LighthouseCategoryScore {

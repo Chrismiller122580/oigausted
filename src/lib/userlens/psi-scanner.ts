@@ -1,10 +1,13 @@
 import '@/lib/userlens/server-only';
 import type { LighthouseCategory, UserLensScanRequest, UserLensScanResult } from '@/types/userlens';
 import { extractLighthouseCategories, extractLighthouseMetrics } from '@/lib/userlens/lighthouse-parse';
+import { findCachedPsiScan } from '@/lib/userlens/reports-store';
 import { assertPublicScanUrl, validateScanUrl } from '@/lib/userlens/resolve-scan-url';
 
 const PSI_ENDPOINT = 'https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPagespeed';
 const PSI_TIMEOUT_MS = 55_000;
+const DEFAULT_CACHE_HOURS = 12;
+const STALE_CACHE_HOURS = 24 * 7;
 
 const PSI_CATEGORY: Record<LighthouseCategory, string> = {
   performance: 'PERFORMANCE',
@@ -12,6 +15,13 @@ const PSI_CATEGORY: Record<LighthouseCategory, string> = {
   'best-practices': 'BEST_PRACTICES',
   seo: 'SEO',
 };
+
+export interface UserLensPsiScanOutcome {
+  result: UserLensScanResult;
+  fromCache: boolean;
+  reportId?: string;
+  fixItemCount?: number;
+}
 
 function getPsiApiKey(): string | undefined {
   return (
@@ -22,19 +32,48 @@ function getPsiApiKey(): string | undefined {
   );
 }
 
-export async function runUserLensPsiScan(
-  request: UserLensScanRequest,
-): Promise<UserLensScanResult> {
-  const url = validateScanUrl(request.url);
-  assertPublicScanUrl(url);
+function getPsiCacheHours(): number {
+  const raw = process.env.USERLENS_PSI_CACHE_HOURS?.trim();
+  const parsed = raw ? Number(raw) : DEFAULT_CACHE_HOURS;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_CACHE_HOURS;
+}
 
-  const viewport = request.viewport ?? 'desktop';
-  const categories = request.categories ?? [
-    'performance',
-    'accessibility',
-    'best-practices',
-    'seo',
-  ];
+function isQuotaExceeded(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('quota exceeded') ||
+    lower.includes('rate limit') ||
+    lower.includes('queries per day')
+  );
+}
+
+function formatQuotaError(): string {
+  const hasKey = !!getPsiApiKey();
+  return hasKey
+    ? 'Google PageSpeed Insights daily quota exceeded for your API key. Cached scans are returned when available; otherwise wait for the quota reset (midnight Pacific) or create a new GCP project + API key.'
+    : 'Google PageSpeed Insights daily quota exceeded. Add your own PAGESPEED_INSIGHTS_API_KEY in Vercel (free GCP project), or wait for the quota reset (midnight Pacific). Cached scans are returned when available.';
+}
+
+function withCacheWarning(
+  result: UserLensScanResult,
+  message: string,
+): UserLensScanResult {
+  const warnings = result.warnings.filter(
+    (warning) => !warning.startsWith('Returned cached scan') && !warning.startsWith('Google PSI daily quota'),
+  );
+
+  return {
+    ...result,
+    warnings: [message, ...warnings],
+  };
+}
+
+async function fetchPsiScan(
+  url: string,
+  viewport: UserLensScanRequest['viewport'],
+  categories: LighthouseCategory[],
+): Promise<UserLensScanResult> {
+  const resolvedViewport = viewport ?? 'desktop';
   const warnings: string[] = [
     'Cloud scan via Google PageSpeed Insights (Lighthouse). Screenshots and axe DOM analysis are not available in this mode.',
   ];
@@ -42,11 +81,11 @@ export async function runUserLensPsiScan(
   const apiKey = getPsiApiKey();
   if (!apiKey) {
     warnings.push(
-      'No PAGESPEED_INSIGHTS_API_KEY configured — using the public quota, which may rate-limit heavy use.',
+      'No PAGESPEED_INSIGHTS_API_KEY configured — sharing Google public quota, which is very limited.',
     );
   }
 
-  const params = new URLSearchParams({ url, strategy: viewport });
+  const params = new URLSearchParams({ url, strategy: resolvedViewport });
   for (const category of categories) {
     params.append('category', PSI_CATEGORY[category]);
   }
@@ -78,14 +117,11 @@ export async function runUserLensPsiScan(
   } | null;
 
   if (!response.ok) {
-    const apiMessage = payload?.error?.message;
-    if (response.status === 429) {
-      throw new Error(
-        apiMessage ||
-          'PageSpeed Insights rate limit reached. Add PAGESPEED_INSIGHTS_API_KEY in Vercel env vars.',
-      );
+    const apiMessage = payload?.error?.message || `PageSpeed Insights request failed (${response.status})`;
+    if (response.status === 429 || isQuotaExceeded(apiMessage)) {
+      throw new Error(formatQuotaError());
     }
-    throw new Error(apiMessage || `PageSpeed Insights request failed (${response.status})`);
+    throw new Error(apiMessage);
   }
 
   const lhr = payload?.lighthouseResult;
@@ -106,7 +142,7 @@ export async function runUserLensPsiScan(
     url,
     finalUrl,
     title,
-    viewport,
+    viewport: resolvedViewport,
     scannedAt: new Date().toISOString(),
     loadTimeMs,
     screenshotBase64: null,
@@ -122,4 +158,59 @@ export async function runUserLensPsiScan(
     },
     warnings,
   };
+}
+
+export async function runUserLensPsiScan(
+  request: UserLensScanRequest,
+): Promise<UserLensPsiScanOutcome> {
+  const url = validateScanUrl(request.url);
+  assertPublicScanUrl(url);
+
+  const viewport = request.viewport ?? 'desktop';
+  const categories = request.categories ?? [
+    'performance',
+    'accessibility',
+    'best-practices',
+    'seo',
+  ];
+
+  if (!request.forceRefresh) {
+    const cached = await findCachedPsiScan(url, viewport, getPsiCacheHours());
+    if (cached) {
+      const scannedAt = new Date(cached.result.scannedAt).toLocaleString();
+      return {
+        fromCache: true,
+        reportId: cached.reportId,
+        fixItemCount: cached.fixItemCount,
+        result: withCacheWarning(
+          cached.result,
+          `Returned cached scan from ${scannedAt} to conserve PageSpeed Insights quota.`,
+        ),
+      };
+    }
+  }
+
+  try {
+    const result = await fetchPsiScan(url, viewport, categories);
+    return { fromCache: false, result };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Scan failed';
+    if (!isQuotaExceeded(message)) throw err;
+
+    const stale = await findCachedPsiScan(url, viewport, STALE_CACHE_HOURS);
+    if (stale) {
+      const scannedAt = new Date(stale.result.scannedAt).toLocaleString();
+      return {
+        fromCache: true,
+        reportId: stale.reportId,
+        fixItemCount: stale.fixItemCount,
+        result: withCacheWarning(
+          stale.result,
+          `Google PSI daily quota exceeded — showing last saved scan from ${scannedAt}.`,
+        ),
+      };
+    }
+
+    throw new Error(message);
+  }
 }

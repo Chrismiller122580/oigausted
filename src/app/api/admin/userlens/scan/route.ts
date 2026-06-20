@@ -66,29 +66,38 @@ export async function POST(req: NextRequest) {
     url: body.url,
     viewport,
     categories: categories.length ? categories : VALID_CATEGORIES,
+    forceRefresh: body.forceRefresh === true,
   };
 
   try {
     let result;
+    let fromCache = false;
+    let reportId: string | null = null;
+    let fixItemCount = 0;
+
     if (scanMode === 'remote') {
       const { runRemoteUserLensScan } = await import('@/lib/userlens/remote-scanner');
       result = await runRemoteUserLensScan(scanRequest);
     } else if (scanMode === 'psi') {
       const { runUserLensPsiScan } = await import('@/lib/userlens/psi-scanner');
-      result = await runUserLensPsiScan(scanRequest);
+      const outcome = await runUserLensPsiScan(scanRequest);
+      result = outcome.result;
+      fromCache = outcome.fromCache;
+      reportId = outcome.reportId ?? null;
+      fixItemCount = outcome.fixItemCount ?? 0;
     } else {
       const { runUserLensScan } = await import('@/lib/userlens/scanner');
       result = await runUserLensScan(scanRequest);
     }
 
-    let reportId: string | null = null;
-    let fixItemCount = 0;
-    try {
-      const saved = await saveUserLensReport(result, session.user.id);
-      reportId = saved.reportId;
-      fixItemCount = saved.fixItemCount;
-    } catch (saveErr) {
-      console.error('UserLens: failed to persist report', saveErr);
+    if (!fromCache) {
+      try {
+        const saved = await saveUserLensReport(result, session.user.id);
+        reportId = saved.reportId;
+        fixItemCount = saved.fixItemCount;
+      } catch (saveErr) {
+        console.error('UserLens: failed to persist report', saveErr);
+      }
     }
 
     await logAuditEvent({
@@ -115,7 +124,7 @@ export async function POST(req: NextRequest) {
       userAgent: req.headers.get('user-agent'),
     });
 
-    return NextResponse.json({ ...result, reportId, fixItemCount, scanMode });
+    return NextResponse.json({ ...result, reportId, fixItemCount, scanMode, fromCache });
   } catch (err) {
     console.error('UserLens scan failed:', err);
     const { status, message } = classifyUserLensScanError(err);
