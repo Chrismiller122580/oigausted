@@ -37,7 +37,7 @@ interface UseRealtimeNotificationsOptions {
 let globalEventSource: EventSource | null = null;
 let connectionCount = 0;
 let sseErrorLogged = false;
-let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
+let reconnectTimeoutId: number | null = null;
 
 // Global dedup for toasts across hook instances (prevents multiples from responsive nav renders etc.)
 const globalShownIds: Set<string> =
