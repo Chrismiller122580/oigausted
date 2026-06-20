@@ -18,12 +18,14 @@ const nextConfig: NextConfig = {
     'ssh2-sftp-client',
     'playwright',
     'playwright-core',
+    '@sparticuz/chromium',
     'lighthouse',
     'axe-core',
     'chrome-launcher',
   ],
-
-
+  outputFileTracingIncludes: {
+    '/api/**/*': ['./node_modules/@sparticuz/chromium/**'],
+  },
 }
 
 export default nextConfig

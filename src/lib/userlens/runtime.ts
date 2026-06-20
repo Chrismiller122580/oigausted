@@ -11,7 +11,7 @@ export interface UserLensScanSupport {
 
 export function getUserLensScanMode(): UserLensScanMode {
   if (process.env.USERLENS_REMOTE_SCANNER_URL?.trim()) return 'remote';
-  if (process.env.VERCEL === '1') return 'psi';
+  if (process.env.USERLENS_SCAN_MODE === 'psi') return 'psi';
   return 'playwright';
 }
 
@@ -31,14 +31,17 @@ export function getUserLensScanSupport(): UserLensScanSupport {
       supported: true,
       mode,
       hint:
-        'Cloud scan via Google PageSpeed Insights. Recent scans are cached to save quota. Add PAGESPEED_INSIGHTS_API_KEY in Vercel for your own GCP quota.',
+        'PageSpeed Insights mode (set USERLENS_SCAN_MODE=playwright for full Playwright scans). Public URLs only.',
     };
   }
 
+  const onVercel = process.env.VERCEL === '1';
   return {
     supported: true,
     mode,
-    hint: 'Full browser scan with Playwright, Lighthouse, and axe-core.',
+    hint: onVercel
+      ? 'Full browser scan on Vercel via Playwright + @sparticuz/chromium. Scan public URLs like https://oigagig.com.'
+      : 'Full browser scan with Playwright, Lighthouse, and axe-core.',
   };
 }
 
@@ -56,6 +59,7 @@ export function classifyUserLensScanError(err: unknown): {
     lower.includes('browserType.launch') ||
     lower.includes('spawn enoent') ||
     lower.includes('failed to launch') ||
+    lower.includes('no browser binary found') ||
     lower.includes('playwright browsers are not installed') ||
     lower.includes('task timed out after') ||
     lower.includes('timed out after 60 seconds') ||
@@ -66,7 +70,7 @@ export function classifyUserLensScanError(err: unknown): {
     return {
       status: 503,
       message:
-        'Playwright browsers are not installed on this server. Run: npx playwright install chromium',
+        'Browser launch failed on this server. On Vercel, ensure @sparticuz/chromium is deployed. Locally run: npx playwright install chromium',
     };
   }
 

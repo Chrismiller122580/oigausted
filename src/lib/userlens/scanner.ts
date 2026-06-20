@@ -6,13 +6,13 @@ import type {
   UserLensViewport,
   AxeViolation,
 } from '@/types/userlens';
+import { launchUserLensBrowser, USERLENS_DEBUG_PORT } from '@/lib/userlens/browser';
 import { extractLighthouseCategories, extractLighthouseMetrics } from '@/lib/userlens/lighthouse-parse';
-import { resolveScanTarget, validateScanUrl } from '@/lib/userlens/resolve-scan-url';
+import { assertPublicScanUrl, resolveScanTarget, validateScanUrl } from '@/lib/userlens/resolve-scan-url';
 
 export { validateScanUrl };
 
 const SCAN_TIMEOUT_MS = 45_000;
-const DEBUG_PORT = 9222;
 
 let cachedAxeSource: string | null = null;
 
@@ -83,7 +83,17 @@ export async function runUserLensScan(
   request: UserLensScanRequest,
 ): Promise<UserLensScanResult> {
   const url = validateScanUrl(request.url);
-  const { scanUrl, rewritten } = resolveScanTarget(url);
+  const onServerless = process.env.VERCEL === '1';
+  let scanUrl = url;
+  let rewritten = false;
+
+  if (onServerless) {
+    assertPublicScanUrl(url);
+  } else {
+    const resolved = resolveScanTarget(url);
+    scanUrl = resolved.scanUrl;
+    rewritten = resolved.rewritten;
+  }
   const viewport = request.viewport ?? 'desktop';
   const categories = request.categories ?? [
     'performance',
@@ -99,13 +109,8 @@ export async function runUserLensScan(
     );
   }
 
-  const { chromium } = await import('playwright');
   const axeSource = await getAxeSource();
-
-  const browser = await chromium.launch({
-    headless: true,
-    args: [`--remote-debugging-port=${DEBUG_PORT}`, '--no-sandbox'],
-  });
+  const browser = await launchUserLensBrowser();
 
   try {
     const context = await browser.newContext({
@@ -178,7 +183,7 @@ export async function runUserLensScan(
       const runnerResult = await lighthouse(
         finalUrl,
         {
-          port: DEBUG_PORT,
+          port: USERLENS_DEBUG_PORT,
           output: 'json',
           logLevel: 'error',
           onlyCategories: categories,

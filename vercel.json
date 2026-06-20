@@ -1,5 +1,11 @@
 {
   "buildCommand": "prisma generate --no-engine && ./scripts/prisma-safe-migrate.sh && next build",
+  "functions": {
+    "src/app/api/admin/userlens/scan/route.ts": {
+      "memory": 3008,
+      "maxDuration": 60
+    }
+  },
   "crons": [
     {
       "path": "/api/notifications/digest?frequency=daily",

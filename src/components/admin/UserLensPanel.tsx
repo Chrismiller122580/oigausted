@@ -236,13 +236,17 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
         </div>
       )}
 
-      {isCloudScan && scanSupport?.hint && (
+      {scanSupport?.hint && scanSupport.mode !== 'psi' && (
         <div className="flex gap-3 rounded-lg border border-sky-300 bg-sky-50 p-4 text-sm text-sky-950 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-100">
           <ScanSearch className="mt-0.5 h-5 w-5 shrink-0" />
-          <div className="space-y-1">
-            <p className="font-medium">Cloud scan mode</p>
-            <p className="text-sky-900/90 dark:text-sky-100/90">{scanSupport.hint}</p>
-          </div>
+          <p className="text-sky-900/90 dark:text-sky-100/90">{scanSupport.hint}</p>
+        </div>
+      )}
+
+      {isCloudScan && scanSupport?.hint && (
+        <div className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <p className="text-amber-900/90 dark:text-amber-100/90">{scanSupport.hint}</p>
         </div>
       )}
 
@@ -250,9 +254,8 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
         <CardHeader>
           <CardTitle>Run scan</CardTitle>
           <CardDescription>
-            Admin-only UX audits. Production uses Google PageSpeed Insights; local/Codespaces use
-            Playwright + Lighthouse + axe-core. Scan a public URL like{' '}
-            <code className="text-xs">https://oigagig.com</code> from this panel.
+            Admin-only. Playwright + Lighthouse + axe-core — same stack as fitme UserLens. On Vercel,
+            scan public URLs like <code className="text-xs">https://oigagig.com</code>.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
