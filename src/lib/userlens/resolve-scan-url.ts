@@ -19,6 +19,34 @@ export function validateScanUrl(input: string): string {
   return parsed.toString();
 }
 
+function isPrivateOrLocalHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '::1') {
+    return true;
+  }
+  if (host.endsWith('.local')) return true;
+
+  const ipv4 = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (!ipv4) return false;
+
+  const a = Number(ipv4[1]);
+  const b = Number(ipv4[2]);
+  if (a === 10) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  return false;
+}
+
+/** Cloud scanners (PageSpeed Insights) can only reach publicly routable URLs. */
+export function assertPublicScanUrl(input: string): void {
+  const parsed = new URL(validateScanUrl(input));
+  if (isPrivateOrLocalHost(parsed.hostname)) {
+    throw new Error(
+      'Cloud scans require a public URL (for example https://oigagig.com). Localhost and private networks are not reachable from Vercel.',
+    );
+  }
+}
+
 export interface ResolvedScanTarget {
   requestedUrl: string;
   scanUrl: string;

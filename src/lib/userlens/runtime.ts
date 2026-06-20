@@ -1,27 +1,45 @@
 import '@/lib/userlens/server-only';
 
+export type UserLensScanMode = 'playwright' | 'psi' | 'remote';
+
 export interface UserLensScanSupport {
   supported: boolean;
+  mode: UserLensScanMode;
   reason?: string;
   hint?: string;
 }
 
-/** Playwright + Lighthouse require a full Chromium binary — not available on Vercel serverless. */
-export function getUserLensScanSupport(): UserLensScanSupport {
-  if (process.env.USERLENS_REMOTE_SCANNER_URL?.trim()) {
-    return { supported: true };
-  }
+export function getUserLensScanMode(): UserLensScanMode {
+  if (process.env.USERLENS_REMOTE_SCANNER_URL?.trim()) return 'remote';
+  if (process.env.VERCEL === '1') return 'psi';
+  return 'playwright';
+}
 
-  if (process.env.VERCEL === '1') {
+export function getUserLensScanSupport(): UserLensScanSupport {
+  const mode = getUserLensScanMode();
+
+  if (mode === 'remote') {
     return {
-      supported: false,
-      reason: 'UserLens scans cannot run on Vercel serverless functions.',
-      hint:
-        'Start the app locally or in Codespaces (`npm run dev`), open /admin/userlens, and scan https://oigagig.com or your forwarded Codespaces URL.',
+      supported: true,
+      mode,
+      hint: 'Full browser scan via remote scanner service.',
     };
   }
 
-  return { supported: true };
+  if (mode === 'psi') {
+    return {
+      supported: true,
+      mode,
+      hint:
+        'Cloud scan via Google PageSpeed Insights. Use a public URL (e.g. https://oigagig.com). Screenshots and axe DOM analysis are not included.',
+    };
+  }
+
+  return {
+    supported: true,
+    mode,
+    hint: 'Full browser scan with Playwright, Lighthouse, and axe-core.',
+  };
 }
 
 export function classifyUserLensScanError(err: unknown): {
@@ -45,12 +63,17 @@ export function classifyUserLensScanError(err: unknown): {
     (lower.includes('timeout') && lower.includes('exceeded'));
 
   if (isEnvironmentLimited) {
-    const support = getUserLensScanSupport();
     return {
       status: 503,
-      message: support.supported
-        ? 'Playwright browsers are not installed on this server. Run: npx playwright install chromium'
-        : [support.reason, support.hint].filter(Boolean).join(' '),
+      message:
+        'Playwright browsers are not installed on this server. Run: npx playwright install chromium',
+    };
+  }
+
+  if (lower.includes('rate limit') || lower.includes('quota')) {
+    return {
+      status: 503,
+      message,
     };
   }
 

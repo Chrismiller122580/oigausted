@@ -108,12 +108,14 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
   const [history, setHistory] = useState<string[]>([]);
   const [scanSupport, setScanSupport] = useState<{
     supported: boolean;
+    mode?: 'playwright' | 'psi' | 'remote';
     reason?: string;
     hint?: string;
   } | null>(null);
 
   const displayUrl = url || getDefaultScanUrl(clientOrigin);
   const scansDisabled = scanning || scanSupport?.supported === false;
+  const isCloudScan = scanSupport?.mode === 'psi';
 
   useEffect(() => {
     setHistory(readScanHistory());
@@ -227,14 +229,23 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
         </div>
       )}
 
+      {isCloudScan && scanSupport?.hint && (
+        <div className="flex gap-3 rounded-lg border border-sky-300 bg-sky-50 p-4 text-sm text-sky-950 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-100">
+          <ScanSearch className="mt-0.5 h-5 w-5 shrink-0" />
+          <div className="space-y-1">
+            <p className="font-medium">Cloud scan mode</p>
+            <p className="text-sky-900/90 dark:text-sky-100/90">{scanSupport.hint}</p>
+          </div>
+        </div>
+      )}
+
       <Card className="border-border">
         <CardHeader>
           <CardTitle>Run scan</CardTitle>
           <CardDescription>
-            Admin-only. Scans with Playwright + Lighthouse + axe-core. In Codespaces, github.dev
-            URLs rewrite to localhost. Dev-mode scores are higher than production — run{' '}
-            <code className="text-xs">npm run build &amp;&amp; npm start</code> for realistic
-            performance numbers.
+            Admin-only UX audits. Production uses Google PageSpeed Insights; local/Codespaces use
+            Playwright + Lighthouse + axe-core. Scan a public URL like{' '}
+            <code className="text-xs">https://oigagig.com</code> from this panel.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">

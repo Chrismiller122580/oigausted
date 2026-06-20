@@ -6,9 +6,10 @@ import { saveUserLensReport } from '@/lib/userlens/reports-store';
 import { validateScanUrl } from '@/lib/userlens/resolve-scan-url';
 import {
   classifyUserLensScanError,
+  getUserLensScanMode,
   getUserLensScanSupport,
 } from '@/lib/userlens/runtime';
-import type { LighthouseCategory, UserLensScanRequest } from '@/types/userlens';
+import type { LighthouseCategory, UserLensScanRequest, UserLensViewport } from '@/types/userlens';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -35,17 +36,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const support = getUserLensScanSupport();
-  if (!support.supported) {
-    return NextResponse.json(
-      {
-        error: support.reason,
-        hint: support.hint,
-      },
-      { status: 503 },
-    );
-  }
-
   let body: UserLensScanRequest;
   try {
     body = await req.json();
@@ -64,20 +54,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  const viewport = body.viewport === 'mobile' ? 'mobile' : 'desktop';
+  const viewport: UserLensViewport = body.viewport === 'mobile' ? 'mobile' : 'desktop';
   const categories = Array.isArray(body.categories)
     ? body.categories.filter((c): c is LighthouseCategory =>
         VALID_CATEGORIES.includes(c as LighthouseCategory),
       )
     : VALID_CATEGORIES;
 
+  const scanMode = getUserLensScanMode();
+  const scanRequest = {
+    url: body.url,
+    viewport,
+    categories: categories.length ? categories : VALID_CATEGORIES,
+  };
+
   try {
-    const { runUserLensScan } = await import('@/lib/userlens/scanner');
-    const result = await runUserLensScan({
-      url: body.url,
-      viewport,
-      categories: categories.length ? categories : VALID_CATEGORIES,
-    });
+    let result;
+    if (scanMode === 'remote') {
+      const { runRemoteUserLensScan } = await import('@/lib/userlens/remote-scanner');
+      result = await runRemoteUserLensScan(scanRequest);
+    } else if (scanMode === 'psi') {
+      const { runUserLensPsiScan } = await import('@/lib/userlens/psi-scanner');
+      result = await runUserLensPsiScan(scanRequest);
+    } else {
+      const { runUserLensScan } = await import('@/lib/userlens/scanner');
+      result = await runUserLensScan(scanRequest);
+    }
 
     let reportId: string | null = null;
     let fixItemCount = 0;
@@ -97,6 +99,7 @@ export async function POST(req: NextRequest) {
       details: {
         reportId,
         fixItemCount,
+        scanMode,
         finalUrl: result.finalUrl,
         viewport: result.viewport,
         loadTimeMs: result.loadTimeMs,
@@ -112,18 +115,11 @@ export async function POST(req: NextRequest) {
       userAgent: req.headers.get('user-agent'),
     });
 
-    return NextResponse.json({ ...result, reportId, fixItemCount });
+    return NextResponse.json({ ...result, reportId, fixItemCount, scanMode });
   } catch (err) {
     console.error('UserLens scan failed:', err);
     const { status, message } = classifyUserLensScanError(err);
-    const support = getUserLensScanSupport();
 
-    return NextResponse.json(
-      {
-        error: message,
-        ...(support.hint && status === 503 ? { hint: support.hint } : {}),
-      },
-      { status },
-    );
+    return NextResponse.json({ error: message }, { status });
   }
 }
