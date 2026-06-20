@@ -37,6 +37,7 @@ interface UseRealtimeNotificationsOptions {
 let globalEventSource: EventSource | null = null;
 let connectionCount = 0;
 let sseErrorLogged = false;
+let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 // Global dedup for toasts across hook instances (prevents multiples from responsive nav renders etc.)
 const globalShownIds: Set<string> =
@@ -72,6 +73,7 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
   const [isConnected, setIsConnected] = useState(false);
   const lastNotificationIds = useRef<Set<string>>(new Set());
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const scheduleReconnectRef = useRef<(delayMs?: number) => void>(() => {});
 
   const isAuthed = sessionStatus === 'authenticated' && !!session?.user;
 
@@ -327,16 +329,8 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
     }
   };
 
-  // Connect to SSE (primary real-time channel)
-  const connectSSE = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    if (!isAuthed) return;
-
-    connectionCount++;
-    if (globalEventSource) {
-      setIsConnected(true);
-      return;
-    }
+  const openEventSource = useCallback(() => {
+    if (typeof window === 'undefined' || !isAuthed || globalEventSource) return;
 
     try {
       const es = new EventSource('/api/notifications/stream');
@@ -344,8 +338,6 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
 
       es.onopen = () => {
         setIsConnected(true);
-        console.log('[Notifications] SSE connected');
-        // Reset error log flag on successful reconnect
         sseErrorLogged = false;
       };
 
@@ -353,7 +345,6 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
         try {
           const notif: RealtimeNotification = JSON.parse(event.data);
 
-          // Dedupe
           if (lastNotificationIds.current.has(notif.id)) return;
           lastNotificationIds.current.add(notif.id);
 
@@ -371,24 +362,56 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
         // Connection alive
       });
 
-      es.onerror = (e) => {
+      es.addEventListener('reconnect', () => {
         setIsConnected(false);
-        // Do not close the EventSource here - browser's EventSource automatically
-        // retries with backoff on errors. We keep the reference so reconnects
-        // can succeed and fire onopen again. Polling runs in parallel as reliable backup.
-        // Log only once per "drop" to avoid spam; transient errors are normal on Vercel/prod.
+        es.close();
+        globalEventSource = null;
+        scheduleReconnectRef.current(1000);
+      });
+
+      es.onerror = () => {
+        setIsConnected(false);
         if (!sseErrorLogged) {
-          console.warn('[Notifications] SSE error - auto-retrying (polling as backup)');
+          console.warn('[Notifications] SSE dropped - reconnecting (polling as backup)');
           sseErrorLogged = true;
         }
-        // Do NOT close or null here. Let browser retry. Cleanup on unmount will handle close.
+        if (globalEventSource === es) {
+          es.close();
+          globalEventSource = null;
+          scheduleReconnectRef.current(1000);
+        }
       };
-
     } catch (err) {
       console.error('Failed to connect SSE', err);
       setIsConnected(false);
     }
-  }, [showNotificationToast, onNewNotification]);
+  }, [isAuthed, showNotificationToast, onNewNotification]);
+
+  const scheduleReconnect = useCallback((delayMs = 1000) => {
+    if (typeof window === 'undefined' || !isAuthed) return;
+    if (reconnectTimeoutId !== null) return;
+
+    reconnectTimeoutId = window.setTimeout(() => {
+      reconnectTimeoutId = null;
+      openEventSource();
+    }, delayMs);
+  }, [isAuthed, openEventSource]);
+
+  scheduleReconnectRef.current = scheduleReconnect;
+
+  // Connect to SSE (primary real-time channel)
+  const connectSSE = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    if (!isAuthed) return;
+
+    connectionCount++;
+    if (globalEventSource) {
+      setIsConnected(true);
+      return;
+    }
+
+    openEventSource();
+  }, [isAuthed, openEventSource]);
 
   // Fallback polling (when SSE fails or as backup)
   const startPollingFallback = useCallback(() => {
@@ -438,9 +461,15 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
     // Cleanup
     return () => {
       connectionCount--;
-      if (connectionCount <= 0 && globalEventSource) {
-        globalEventSource.close();
-        globalEventSource = null;
+      if (connectionCount <= 0) {
+        if (reconnectTimeoutId !== null) {
+          clearTimeout(reconnectTimeoutId);
+          reconnectTimeoutId = null;
+        }
+        if (globalEventSource) {
+          globalEventSource.close();
+          globalEventSource = null;
+        }
       }
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
