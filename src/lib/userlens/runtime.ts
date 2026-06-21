@@ -1,4 +1,6 @@
 import '@/lib/userlens/server-only';
+import fs from 'fs';
+import path from 'path';
 
 export type UserLensScanMode = 'playwright' | 'psi' | 'remote';
 
@@ -7,6 +9,11 @@ export interface UserLensScanSupport {
   mode: UserLensScanMode;
   reason?: string;
   hint?: string;
+  runtime?: {
+    vercel: boolean;
+    arch: string;
+    chromiumBinBundled: boolean;
+  };
 }
 
 export function getUserLensScanMode(): UserLensScanMode {
@@ -17,12 +24,15 @@ export function getUserLensScanMode(): UserLensScanMode {
 
 export function getUserLensScanSupport(): UserLensScanSupport {
   const mode = getUserLensScanMode();
+  const onVercel = process.env.VERCEL === '1';
+  const chromiumBinBundled = getServerlessBinCandidates().some((candidate) => fs.existsSync(candidate));
 
   if (mode === 'remote') {
     return {
       supported: true,
       mode,
       hint: 'Full browser scan via remote scanner service.',
+      runtime: { vercel: onVercel, arch: process.arch, chromiumBinBundled },
     };
   }
 
@@ -32,62 +42,83 @@ export function getUserLensScanSupport(): UserLensScanSupport {
       mode,
       hint:
         'PageSpeed Insights mode (set USERLENS_SCAN_MODE=playwright for full Playwright scans). Public URLs only.',
+      runtime: { vercel: onVercel, arch: process.arch, chromiumBinBundled },
     };
   }
 
-  const onVercel = process.env.VERCEL === '1';
   return {
     supported: true,
     mode,
     hint: onVercel
       ? 'Full browser scan on Vercel via Playwright + @sparticuz/chromium. Scan public URLs like https://oigagig.com.'
       : 'Full browser scan with Playwright, Lighthouse, and axe-core.',
+    runtime: { vercel: onVercel, arch: process.arch, chromiumBinBundled },
   };
+}
+
+function getServerlessBinCandidates(): string[] {
+  const cwd = process.cwd();
+  return [
+    path.join(cwd, 'node_modules/@sparticuz/chromium/bin'),
+    '/var/task/node_modules/@sparticuz/chromium/bin',
+  ];
 }
 
 export function classifyUserLensScanError(err: unknown): {
   status: number;
   message: string;
+  detail: string;
 } {
-  const message = err instanceof Error ? err.message : 'Scan failed';
-  const lower = message.toLowerCase();
+  const detail = err instanceof Error ? err.message : 'Scan failed';
+  const lower = detail.toLowerCase();
 
   if (lower.includes('cloud scans require a public url')) {
     return {
       status: 400,
+      detail,
       message:
         'Cloud scans require a public URL (e.g. https://oigagig.com). Localhost and private networks are not reachable from Vercel.',
     };
   }
 
-  const isEnvironmentLimited =
-    lower.includes("executable doesn't exist") ||
-    lower.includes('browsers.json') ||
-    lower.includes('failed to load external module playwright') ||
-    lower.includes('browserType.launch') ||
-    lower.includes('spawn enoent') ||
-    lower.includes('failed to launch') ||
-    lower.includes('no browser binary found') ||
-    lower.includes('playwright browsers are not installed') ||
+  const isTimeout =
+    lower.includes('function_invocation_timeout') ||
     lower.includes('task timed out after') ||
     lower.includes('timed out after 60 seconds') ||
-    lower.includes('function_invocation_timeout') ||
-    (lower.includes('timeout') && lower.includes('exceeded'));
+    lower.includes('timed out after 120 seconds') ||
+    lower.includes('timed out after 300 seconds') ||
+    (lower.includes('timeout') &&
+      lower.includes('exceeded') &&
+      !lower.includes('browsertype.launch'));
 
-  if (isEnvironmentLimited) {
+  if (isTimeout) {
+    return {
+      status: 504,
+      detail,
+      message:
+        'Scan timed out on Vercel. Warm starts are faster — try again, or scan a lighter public URL like https://oigagig.com.',
+    };
+  }
+
+  const isBrowserLaunch =
+    lower.includes('browsertype.launch') ||
+    lower.includes('failed to launch') ||
+    lower.includes("executable doesn't exist") ||
+    lower.includes('the input directory') ||
+    lower.includes('spawn enoent') ||
+    lower.includes('no browser binary found') ||
+    lower.includes('failed to load chromium') ||
+    lower.includes('playwright browsers are not installed');
+
+  if (isBrowserLaunch) {
     const onVercel = process.env.VERCEL === '1';
-    const isChromiumPackFailure =
-      lower.includes('failed to load chromium from') ||
-      lower.includes('cannot resolve chromium-pack.tar');
+    const hint = onVercel
+      ? 'Vercel scan failed to start Chromium. Ensure the deployment includes @sparticuz/chromium/bin and scan public URLs only (https://oigagig.com).'
+      : 'Locally run: npm install or npx playwright install chromium';
 
-    let hint =
-      'Locally run: npm install (installs Chromium via postinstall) or npx playwright install chromium';
-    if (onVercel || isChromiumPackFailure) {
-      hint =
-        'On Vercel, redeploy after these changes. Build must run node scripts/chromium-pack.mjs. Scan public URLs only (e.g. https://oigagig.com). Optional env: CHROMIUM_PACK_URL=https://oigagig.com/chromium-pack.tar';
-    }
     return {
       status: 503,
+      detail,
       message: `Browser launch failed on this server. ${hint}`,
     };
   }
@@ -97,8 +128,8 @@ export function classifyUserLensScanError(err: unknown): {
     lower.includes('quota exceeded') ||
     lower.includes('queries per day')
   ) {
-    return { status: 503, message };
+    return { status: 503, detail, message: detail };
   }
 
-  return { status: 500, message };
+  return { status: 500, detail, message: detail };
 }

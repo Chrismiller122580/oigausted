@@ -179,7 +179,7 @@ export default function UserLensPanel({ embedded = false }: { embedded?: boolean
 
       const data = await res.json();
       if (!res.ok) {
-        const detail = [data.error, data.hint].filter(Boolean).join(' ');
+        const detail = [data.error, data.detail, data.hint].filter(Boolean).join(' — ');
         throw new Error(detail || 'Scan failed');
       }
 

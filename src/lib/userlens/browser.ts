@@ -14,16 +14,22 @@ const LOCAL_CHROMIUM_ARGS = [
 
 const SPARTICUZ_CHROMIUM_VERSION = '149.0.0';
 
-const CHROMIUM_PACK_FALLBACK_URLS = [
-  'https://oigagig.com/chromium-pack.tar',
-  `https://github.com/Sparticuz/chromium/releases/download/v${SPARTICUZ_CHROMIUM_VERSION}/chromium-v${SPARTICUZ_CHROMIUM_VERSION}-pack.x64.tar`,
-];
+type SparticuzChromium = {
+  setGraphicsMode: boolean;
+  args: string[];
+  executablePath: (location?: string) => Promise<string>;
+};
 
 let cachedExecutablePath: string | null = null;
+let cachedSparticuzArgs: string[] | null = null;
 let executablePathPromise: Promise<string> | null = null;
 
 function isServerlessRuntime(): boolean {
   return process.env.VERCEL === '1' || !!process.env.AWS_LAMBDA_FUNCTION_VERSION;
+}
+
+function getChromiumArchSuffix(): 'x64' | 'arm64' {
+  return process.arch === 'arm64' ? 'arm64' : 'x64';
 }
 
 function getServerlessBinCandidates(): string[] {
@@ -37,63 +43,129 @@ function getServerlessBinCandidates(): string[] {
 }
 
 function resolveChromiumPackUrls(): string[] {
+  const arch = getChromiumArchSuffix();
   const urls: string[] = [];
 
   if (process.env.CHROMIUM_PACK_URL?.trim()) {
     urls.push(process.env.CHROMIUM_PACK_URL.trim());
   }
 
-  const hosts = [
-    process.env.VERCEL_URL?.trim(),
-    process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim(),
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '').replace(/\/$/, ''),
-  ].filter(Boolean);
+  if (arch === 'x64') {
+    const hosts = [
+      process.env.VERCEL_URL?.trim(),
+      process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim(),
+      process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '').replace(/\/$/, ''),
+    ].filter(Boolean);
 
-  for (const host of hosts) {
-    urls.push(`https://${host}/chromium-pack.tar`);
+    for (const host of hosts) {
+      urls.push(`https://${host}/chromium-pack.tar`);
+    }
+
+    urls.push('https://oigagig.com/chromium-pack.tar');
   }
 
-  urls.push(...CHROMIUM_PACK_FALLBACK_URLS);
+  urls.push(
+    `https://github.com/Sparticuz/chromium/releases/download/v${SPARTICUZ_CHROMIUM_VERSION}/chromium-v${SPARTICUZ_CHROMIUM_VERSION}-pack.${arch}.tar`,
+  );
+
   return [...new Set(urls)];
 }
 
-async function resolveServerlessExecutablePath(): Promise<string> {
-  if (cachedExecutablePath) return cachedExecutablePath;
-  if (executablePathPromise) return executablePathPromise;
+async function tryResolveExecutablePath(
+  chromium: SparticuzChromium,
+  location?: string,
+): Promise<string | null> {
+  try {
+    return await chromium.executablePath(location);
+  } catch (err) {
+    const label = location ?? 'default';
+    console.warn(`[UserLens] Chromium executablePath(${label}) failed:`, err);
+    return null;
+  }
+}
 
-  executablePathPromise = (async () => {
-    const chromiumMin = (await import('@sparticuz/chromium-min')).default;
-    chromiumMin.setGraphicsMode = false;
+async function resolveServerlessChromium(): Promise<{
+  executablePath: string;
+  args: string[];
+}> {
+  if (cachedExecutablePath && cachedSparticuzArgs) {
+    return { executablePath: cachedExecutablePath, args: cachedSparticuzArgs };
+  }
 
-    for (const binPath of getServerlessBinCandidates()) {
-      if (!fs.existsSync(binPath)) continue;
-      try {
-        cachedExecutablePath = await chromiumMin.executablePath(binPath);
-        return cachedExecutablePath;
-      } catch {
-        // try next candidate
+  if (!executablePathPromise) {
+    executablePathPromise = (async () => {
+      const arch = getChromiumArchSuffix();
+      console.log('[UserLens] Resolving Chromium', {
+        arch,
+        cwd: process.cwd(),
+        binCandidates: getServerlessBinCandidates().map((candidate) => ({
+          path: candidate,
+          exists: fs.existsSync(candidate),
+        })),
+      });
+
+      if (arch === 'x64') {
+        const chromium = (await import('@sparticuz/chromium')).default as SparticuzChromium;
+        chromium.setGraphicsMode = false;
+
+        let executablePath = await tryResolveExecutablePath(chromium);
+        if (!executablePath) {
+          for (const binPath of getServerlessBinCandidates()) {
+            if (!fs.existsSync(binPath)) continue;
+            executablePath = await tryResolveExecutablePath(chromium, binPath);
+            if (executablePath) break;
+          }
+        }
+
+        if (executablePath) {
+          cachedSparticuzArgs = chromium.args;
+          return executablePath;
+        }
       }
-    }
 
-    const packUrls = resolveChromiumPackUrls();
-    let lastError: unknown;
-    for (const packUrl of packUrls) {
-      try {
-        cachedExecutablePath = await chromiumMin.executablePath(packUrl);
-        return cachedExecutablePath;
-      } catch (err) {
-        lastError = err;
+      const chromiumMin = (await import('@sparticuz/chromium-min')).default as SparticuzChromium;
+      chromiumMin.setGraphicsMode = false;
+
+      if (arch === 'x64') {
+        for (const binPath of getServerlessBinCandidates()) {
+          if (!fs.existsSync(binPath)) continue;
+          const executablePath = await tryResolveExecutablePath(chromiumMin, binPath);
+          if (executablePath) {
+            cachedSparticuzArgs = chromiumMin.args;
+            return executablePath;
+          }
+        }
       }
-    }
 
-    executablePathPromise = null;
-    const message = lastError instanceof Error ? lastError.message : String(lastError ?? 'unknown');
-    throw new Error(
-      `Failed to load Chromium (tried ${packUrls.join(', ')}). Ensure build runs node scripts/chromium-pack.mjs or set CHROMIUM_PACK_URL. ${message}`,
-    );
-  })();
+      const packUrls = resolveChromiumPackUrls();
+      let lastError: unknown;
+      for (const packUrl of packUrls) {
+        try {
+          const executablePath = await chromiumMin.executablePath(packUrl);
+          cachedSparticuzArgs = chromiumMin.args;
+          return executablePath;
+        } catch (err) {
+          lastError = err;
+          console.warn(`[UserLens] Chromium pack download failed (${packUrl}):`, err);
+        }
+      }
 
-  return executablePathPromise;
+      executablePathPromise = null;
+      const message = lastError instanceof Error ? lastError.message : String(lastError ?? 'unknown');
+      throw new Error(
+        `Failed to load Chromium (arch=${arch}, tried ${packUrls.join(', ')}). ${message}`,
+      );
+    })();
+  }
+
+  const executablePath = await executablePathPromise;
+  if (!cachedSparticuzArgs) {
+    const chromiumMin = (await import('@sparticuz/chromium-min')).default as SparticuzChromium;
+    cachedSparticuzArgs = chromiumMin.args;
+  }
+
+  cachedExecutablePath = executablePath;
+  return { executablePath, args: cachedSparticuzArgs };
 }
 
 function attachUserDataCleanup(browser: Browser, userDataDir: string): Browser {
@@ -110,22 +182,27 @@ export async function launchUserLensBrowser(): Promise<Browser> {
   const { chromium } = await import('playwright-core');
 
   if (isServerlessRuntime()) {
-    const chromiumMin = (await import('@sparticuz/chromium-min')).default;
-    const executablePath = await resolveServerlessExecutablePath();
+    const { executablePath, args } = await resolveServerlessChromium();
     const userDataDir = `/tmp/pw-${randomUUID()}`;
 
-    const browser = await chromium.launch({
-      args: [
-        ...chromiumMin.args,
-        `--remote-debugging-port=${USERLENS_DEBUG_PORT}`,
-        '--disable-dev-shm-usage',
-        `--user-data-dir=${userDataDir}`,
-      ],
-      executablePath,
-      headless: true,
-    });
+    try {
+      const browser = await chromium.launch({
+        args: [
+          ...args,
+          `--remote-debugging-port=${USERLENS_DEBUG_PORT}`,
+          '--disable-dev-shm-usage',
+          `--user-data-dir=${userDataDir}`,
+        ],
+        executablePath,
+        headless: true,
+        timeout: 30_000,
+      });
 
-    return attachUserDataCleanup(browser, userDataDir);
+      return attachUserDataCleanup(browser, userDataDir);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`browserType.launch: ${message} (executable: ${executablePath})`);
+    }
   }
 
   let primaryError: unknown;

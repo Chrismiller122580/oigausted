@@ -12,7 +12,7 @@ import { assertPublicScanUrl, resolveScanTarget, validateScanUrl } from '@/lib/u
 
 export { validateScanUrl };
 
-const SCAN_TIMEOUT_MS = 45_000;
+const SCAN_TIMEOUT_MS = process.env.VERCEL === '1' ? 30_000 : 45_000;
 
 let cachedAxeSource: string | null = null;
 
@@ -133,7 +133,7 @@ export async function runUserLensScan(
 
     const navStart = Date.now();
     const response = await page.goto(scanUrl, {
-      waitUntil: 'load',
+      waitUntil: onServerless ? 'domcontentloaded' : 'load',
       timeout: SCAN_TIMEOUT_MS,
     });
     await page.waitForTimeout(1000);

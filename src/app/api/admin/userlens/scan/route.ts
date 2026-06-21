@@ -12,7 +12,8 @@ import {
 import type { LighthouseCategory, UserLensScanRequest, UserLensViewport } from '@/types/userlens';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const runtime = 'nodejs';
+export const maxDuration = 300;
 
 const VALID_CATEGORIES: LighthouseCategory[] = [
   'performance',
@@ -127,8 +128,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ...result, reportId, fixItemCount, scanMode, fromCache });
   } catch (err) {
     console.error('UserLens scan failed:', err);
-    const { status, message } = classifyUserLensScanError(err);
+    const { status, message, detail } = classifyUserLensScanError(err);
 
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message, detail }, { status });
   }
 }
