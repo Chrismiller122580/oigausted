@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions, isAdmin } from '@/lib/auth';
+import { requireAdminFromDb } from '@/lib/admin-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
@@ -8,8 +8,8 @@ import { createImpersonationToken } from '@/lib/impersonation';
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!isAdmin(session) || !session?.user?.id) {
+    const session = await requireAdminFromDb();
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 

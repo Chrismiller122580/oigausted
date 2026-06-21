@@ -1,16 +1,14 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { requireAdminFromDb } from '@/lib/admin-auth';
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await requireAdminFromDb();
 
-  // Basic admin protection for beta
-  if (!session?.user || session.user.role !== 'admin') {
+  if (!session?.user) {
     redirect('/login?callbackUrl=/admin');
   }
 

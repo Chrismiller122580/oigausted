@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
- import { getServerSession } from 'next-auth';
+import { requireAdminFromDb } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG, aggregatePayouts } from '@/lib/payout';
@@ -7,8 +7,8 @@ import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (session?.user?.role !== 'admin') {
+    const session = await requireAdminFromDb();
+    if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

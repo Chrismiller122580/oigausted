@@ -1,5 +1,12 @@
-import type { OrderStatus } from '@prisma/client'
 import { isSqliteDatabase } from '@/lib/utils'
+
+/** Values stored in Order.status (Postgres enum / SQLite TEXT). */
+export type PrismaOrderStatus =
+  | 'Pending'
+  | 'Paid'
+  | 'In_Progress'
+  | 'Completed'
+  | 'Cancelled'
 
 /** API / UI string values (backward compatible). */
 export const OrderStatusLabel = {
@@ -12,7 +19,7 @@ export const OrderStatusLabel = {
 
 export type OrderStatusLabelValue = (typeof OrderStatusLabel)[keyof typeof OrderStatusLabel]
 
-const POSTGRES_STATUS_MAP: Record<OrderStatusLabelValue, OrderStatus> = {
+const POSTGRES_STATUS_MAP: Record<OrderStatusLabelValue, PrismaOrderStatus> = {
   [OrderStatusLabel.Pending]: 'Pending',
   [OrderStatusLabel.Paid]: 'Paid',
   [OrderStatusLabel.InProgress]: 'In_Progress',
@@ -33,14 +40,14 @@ export function isOrderStatusLabel(s: string): s is OrderStatusLabelValue {
 }
 
 /** Convert API label to Prisma Order.status (Postgres enum / SQLite TEXT). */
-export function labelToPrismaStatus(label: OrderStatusLabelValue): OrderStatus {
+export function labelToPrismaStatus(label: OrderStatusLabelValue): PrismaOrderStatus {
   if (isSqliteDatabase()) {
-    return label as unknown as OrderStatus
+    return label as PrismaOrderStatus
   }
   return POSTGRES_STATUS_MAP[label]
 }
 
-export function prismaStatusToLabel(status: OrderStatus | string): OrderStatusLabelValue {
+export function prismaStatusToLabel(status: PrismaOrderStatus | string): OrderStatusLabelValue {
   if (
     status === 'In_Progress' ||
     status === 'InProgress' ||

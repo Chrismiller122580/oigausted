@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions, isAdmin } from '@/lib/auth';
+import { requireAdminFromDb } from '@/lib/admin-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { devLog, slugify } from '@/lib/utils';
 import { logAuditEvent } from '@/lib/audit';
@@ -8,8 +8,8 @@ import { notifications } from '@/lib/notifications';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!isAdmin(session)) {
+    const session = await requireAdminFromDb();
+    if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -61,8 +61,8 @@ export async function GET(req: NextRequest) {
 // PATCH - Update user role or basic fields (admin only)
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!isAdmin(session) || !session?.user?.id) {
+    const session = await requireAdminFromDb();
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -278,8 +278,8 @@ export async function PATCH(req: NextRequest) {
 // DELETE user (admin only, with safeguards)
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!isAdmin(session) || !session?.user?.id) {
+    const session = await requireAdminFromDb();
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 

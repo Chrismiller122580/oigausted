@@ -52,6 +52,14 @@ export function classifyUserLensScanError(err: unknown): {
   const message = err instanceof Error ? err.message : 'Scan failed';
   const lower = message.toLowerCase();
 
+  if (lower.includes('cloud scans require a public url')) {
+    return {
+      status: 400,
+      message:
+        'Cloud scans require a public URL (e.g. https://oigagig.com). Localhost and private networks are not reachable from Vercel.',
+    };
+  }
+
   const isEnvironmentLimited =
     lower.includes("executable doesn't exist") ||
     lower.includes('browsers.json') ||
@@ -67,10 +75,20 @@ export function classifyUserLensScanError(err: unknown): {
     (lower.includes('timeout') && lower.includes('exceeded'));
 
   if (isEnvironmentLimited) {
+    const onVercel = process.env.VERCEL === '1';
+    const isChromiumPackFailure =
+      lower.includes('failed to load chromium from') ||
+      lower.includes('cannot resolve chromium-pack.tar');
+
+    let hint =
+      'Locally run: npm install (installs Chromium via postinstall) or npx playwright install chromium';
+    if (onVercel || isChromiumPackFailure) {
+      hint =
+        'On Vercel, redeploy after these changes. Build must run node scripts/chromium-pack.mjs. Scan public URLs only (e.g. https://oigagig.com). Optional env: CHROMIUM_PACK_URL=https://oigagig.com/chromium-pack.tar';
+    }
     return {
       status: 503,
-      message:
-        'Browser launch failed on this server. On Vercel, ensure @sparticuz/chromium is deployed. Locally run: npx playwright install chromium',
+      message: `Browser launch failed on this server. ${hint}`,
     };
   }
 

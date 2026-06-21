@@ -1,22 +1,13 @@
-import { getServerSession } from 'next-auth';
+
+import { requireAdminFromDb } from '@/lib/admin-auth';
 import { NextRequest, NextResponse } from 'next/server';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { parseJsonArrayField, toPrismaJson } from '@/lib/utils';
 import { gigCategories as staticGigCategories } from '@/lib/gig-categories';
 import type { Category } from '@prisma/client';
 
-async function requireAdmin() {
-  const session = await getServerSession(authOptions);
-  const role = session?.user?.role;
-  if (!session?.user || role !== 'admin') {
-    return null;
-  }
-  return session;
-}
-
 export async function GET() {
-  const session = await requireAdmin();
+  const session = await requireAdminFromDb();
   if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
@@ -49,7 +40,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await requireAdmin();
+  const session = await requireAdminFromDb();
   if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
@@ -143,7 +134,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const session = await requireAdmin();
+  const session = await requireAdminFromDb();
   if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
@@ -176,7 +167,7 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const session = await requireAdmin();
+  const session = await requireAdminFromDb();
   if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }

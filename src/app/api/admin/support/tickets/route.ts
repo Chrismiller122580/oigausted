@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
- import { getServerSession } from 'next-auth';
+import { requireAdminFromDb } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
@@ -10,8 +10,8 @@ import type { Prisma } from '@prisma/client';
 // GET: List all support tickets (admin only), with optional filters
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (session?.user?.role !== 'admin') {
+    const session = await requireAdminFromDb();
+    if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -56,9 +56,9 @@ export async function GET(request: NextRequest) {
 // PATCH: Update a ticket (status, adminReply, resolve)
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await requireAdminFromDb();
     const adminId = session?.user?.id;
-    if (session?.user?.role !== 'admin' || !adminId) {
+    if (!adminId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 

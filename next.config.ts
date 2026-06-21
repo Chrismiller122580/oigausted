@@ -25,8 +25,14 @@ const nextConfig: NextConfig = {
     'chrome-launcher',
   ],
   outputFileTracingIncludes: {
-    '/api/admin/userlens/scan': ['./node_modules/@sparticuz/chromium/bin/**'],
-    '/api/admin/userlens/scan/route': ['./node_modules/@sparticuz/chromium/bin/**'],
+    '/api/admin/userlens/scan': [
+      './node_modules/@sparticuz/chromium/bin/**',
+      'node_modules/@sparticuz/chromium/bin/**',
+    ],
+    '/api/admin/userlens/scan/route': [
+      './node_modules/@sparticuz/chromium/bin/**',
+      'node_modules/@sparticuz/chromium/bin/**',
+    ],
   },
 }
 

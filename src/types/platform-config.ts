@@ -5,6 +5,7 @@ export type PublicPlatformConfig = Pick<
   PlatformConfig,
   | 'maintenanceMode'
   | 'maintenanceMessage'
+  | 'maintenanceBypassIps'
   | 'siteName'
   | 'siteTagline'
   | 'logoUrl'

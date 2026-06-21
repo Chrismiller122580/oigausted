@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminFromDb } from '@/lib/admin-auth';
 import { logAuditEvent } from '@/lib/audit';
-import { requireAdminSession } from '@/lib/userlens/admin-auth';
 import { updateFixItemStatus } from '@/lib/userlens/reports-store';
 import type { FixItemStatus } from '@/types/userlens';
 
@@ -18,7 +18,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await requireAdminSession();
+  const session = await requireAdminFromDb();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdminSession } from '@/lib/userlens/admin-auth';
+import { requireAdminFromDb } from '@/lib/admin-auth';
 import {
   buildComposerQueue,
   getComposerQueuePath,
@@ -9,7 +9,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const session = await requireAdminSession();
+  const session = await requireAdminFromDb();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -22,7 +22,7 @@ export async function GET() {
 }
 
 export async function POST() {
-  const session = await requireAdminSession();
+  const session = await requireAdminFromDb();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

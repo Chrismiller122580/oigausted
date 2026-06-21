@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { requireAdminFromDb, verifyAdminFromDb } from '@/lib/admin-auth';
 import { prisma, getPlatformConfig, type PlatformConfigRow } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
@@ -16,7 +17,10 @@ function errMessage(e: unknown): string {
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const isAdmin = session?.user?.role === 'admin';
+    const isAdmin =
+      !!session?.user?.id &&
+      session.user.role === 'admin' &&
+      (await verifyAdminFromDb(session.user.id));
 
     const { searchParams } = new URL(req.url);
     const forceFresh = searchParams.has('fresh') || searchParams.has('bust');
@@ -47,6 +51,7 @@ export async function GET(req: NextRequest) {
       const publicConfig: PublicPlatformConfig = {
         maintenanceMode: config.maintenanceMode,
         maintenanceMessage: config.maintenanceMessage,
+        maintenanceBypassIps: config.maintenanceBypassIps || '',
         siteName: config.siteName || 'Oigagig',
         siteTagline: config.siteTagline || 'Conecta con profesionales locales en Colombia',
         logoUrl: sanitizeLogoUrl(config.logoUrl),
@@ -173,7 +178,7 @@ export async function GET(req: NextRequest) {
       });
     } catch (finalErr) {
       console.error('Config GET ultimate fallback error (returning plain 200):', finalErr);
-      return new Response('{"maintenanceMode":false,"maintenanceMessage":"Estamos realizando mejoras. Volveremos pronto.","siteName":"Oigagig","siteTagline":"Conecta con profesionales locales en Colombia","logoUrl":null,"allowNewSignups":true,"referralsEnabled":true,"globalPushNotificationsEnabled":true,"globalEmailNotificationsEnabled":true,"wompiRealPaymentsEnabled":false,"wompiSftpEnabled":false,"tutorialsEnabled":true}', {
+      return new Response('{"maintenanceMode":false,"maintenanceMessage":"Estamos realizando mejoras. Volveremos pronto.","maintenanceBypassIps":"","siteName":"Oigagig","siteTagline":"Conecta con profesionales locales en Colombia","logoUrl":null,"allowNewSignups":true,"referralsEnabled":true,"globalPushNotificationsEnabled":true,"globalEmailNotificationsEnabled":true,"wompiRealPaymentsEnabled":false,"wompiSftpEnabled":false,"tutorialsEnabled":true}', {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -183,8 +188,8 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (session?.user?.role !== 'admin') {
+    const session = await requireAdminFromDb();
+    if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions, isAdmin } from '@/lib/auth';
+import { requireAdminFromDb } from '@/lib/admin-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
@@ -27,10 +27,10 @@ function parseSegment(segment: string | undefined, city?: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!isAdmin(session) || !session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-  }
+  const session = await requireAdminFromDb();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
 
   const adminId = session.user.id;
   const adminEmail = session.user.email;

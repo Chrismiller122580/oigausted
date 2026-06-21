@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { requireAdminFromDb } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { devLog } from '@/lib/utils';
 import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (session?.user?.role !== 'admin') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-  }
+  const session = await requireAdminFromDb();
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    }
   try {
     const [pendingOrders, openTickets, recentReferrals] = await Promise.all([
       prisma.order.count({ where: { status: labelToPrismaStatus(OrderStatusLabel.Pending) } }),

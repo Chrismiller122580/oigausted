@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { requireAdminFromDb } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
 import crypto from 'crypto';
@@ -92,9 +92,8 @@ function errMessage(e: unknown): string {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const isAdmin = session?.user?.role === 'admin';
-  if (!isAdmin) {
+  const session = await requireAdminFromDb();
+  if (!session) {
     return NextResponse.json({ error: 'Admin only' }, { status: 403 });
   }
 

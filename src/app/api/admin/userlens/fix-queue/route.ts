@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminSession } from '@/lib/userlens/admin-auth';
+import { requireAdminFromDb } from '@/lib/admin-auth';
 import { listFixQueueItems } from '@/lib/userlens/reports-store';
 import type { FixItemStatus } from '@/types/userlens';
 
@@ -14,7 +14,7 @@ const VALID_STATUSES: FixItemStatus[] = [
 ];
 
 export async function GET(req: NextRequest) {
-  const session = await requireAdminSession();
+  const session = await requireAdminFromDb();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

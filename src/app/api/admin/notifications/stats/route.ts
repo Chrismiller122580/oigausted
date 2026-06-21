@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
- import { getServerSession } from 'next-auth';
+import { requireAdminFromDb } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 // Admin-only notification analytics
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (session?.user?.role !== 'admin') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-  }
+  const session = await requireAdminFromDb();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
 
   try {
     const now = new Date();
