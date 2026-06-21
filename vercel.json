@@ -1,5 +1,5 @@
 {
-  "buildCommand": "prisma generate --no-engine && ./scripts/prisma-safe-migrate.sh && node scripts/chromium-pack.mjs && next build",
+  "buildCommand": "prisma generate --no-engine && ./scripts/prisma-safe-migrate.sh && node scripts/chromium-pack.mjs && next build --webpack",
   "functions": {
     "src/app/api/admin/userlens/scan/route.ts": {
       "memory": 3008,

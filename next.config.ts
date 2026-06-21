@@ -28,10 +28,14 @@ const nextConfig: NextConfig = {
     '/api/admin/userlens/scan': [
       './node_modules/@sparticuz/chromium/bin/**',
       'node_modules/@sparticuz/chromium/bin/**',
+      './node_modules/playwright-core/**',
+      'node_modules/playwright-core/**',
     ],
     '/api/admin/userlens/scan/route': [
       './node_modules/@sparticuz/chromium/bin/**',
       'node_modules/@sparticuz/chromium/bin/**',
+      './node_modules/playwright-core/**',
+      'node_modules/playwright-core/**',
     ],
   },
 }
