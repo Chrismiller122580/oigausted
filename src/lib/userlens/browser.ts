@@ -1,10 +1,10 @@
 import '@/lib/userlens/server-only';
 import { randomUUID } from 'node:crypto';
-import { createRequire } from 'node:module';
 import { rm } from 'node:fs/promises';
 import fs from 'fs';
 import path from 'path';
 import type { Browser } from 'playwright-core';
+import playwrightBrowsersManifest from '@/lib/userlens/playwright-browsers.json';
 
 export const USERLENS_DEBUG_PORT = 9222;
 
@@ -29,7 +29,7 @@ function isServerlessRuntime(): boolean {
   return process.env.VERCEL === '1' || !!process.env.AWS_LAMBDA_FUNCTION_VERSION;
 }
 
-/** Playwright 1.60+ loads browsers.json via dynamic require; Vercel NFT often omits it. */
+/** Vercel NFT may omit browsers.json; write bundled manifest before importing playwright-core. */
 function ensurePlaywrightBrowsersJson(): void {
   if (!isServerlessRuntime()) return;
 
@@ -40,24 +40,16 @@ function ensurePlaywrightBrowsersJson(): void {
 
   if (targets.some((target) => fs.existsSync(target))) return;
 
-  try {
-    const nodeRequire = createRequire(path.join(process.cwd(), 'package.json'));
-    const pkgDir = path.dirname(nodeRequire.resolve('playwright-core/package.json'));
-    const source = path.join(pkgDir, 'browsers.json');
-    if (!fs.existsSync(source)) return;
-
-    for (const target of targets) {
-      try {
-        fs.mkdirSync(path.dirname(target), { recursive: true });
-        fs.copyFileSync(source, target);
-        console.log('[UserLens] Ensured browsers.json at', target);
-        return;
-      } catch {
-        // try next target path
-      }
+  const payload = `${JSON.stringify(playwrightBrowsersManifest, null, 2)}\n`;
+  for (const target of targets) {
+    try {
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, payload, 'utf8');
+      console.log('[UserLens] Wrote browsers.json to', target);
+      return;
+    } catch (err) {
+      console.warn('[UserLens] Could not write browsers.json to', target, err);
     }
-  } catch (err) {
-    console.warn('[UserLens] Could not ensure browsers.json:', err);
   }
 }
 
