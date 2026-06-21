@@ -3,9 +3,7 @@ import { getGigCategories } from '@/lib/categories';
 import { getCategoryIcon } from '@/lib/icon-registry';
 import { MarketingHomeView } from './MarketingHomeView';
 
-export const revalidate = 60;
-
-export default async function MarketingHomePage() {
+export default async function MarketingHomePageServer() {
   const allCategories = await getGigCategories();
   const topCategoryNames = allCategories.slice(0, 12).map((c) => c.name);
 
