@@ -1,5 +1,6 @@
 import '@/lib/userlens/server-only';
 import { randomUUID } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { rm } from 'node:fs/promises';
 import fs from 'fs';
 import path from 'path';
@@ -26,6 +27,38 @@ let executablePathPromise: Promise<string> | null = null;
 
 function isServerlessRuntime(): boolean {
   return process.env.VERCEL === '1' || !!process.env.AWS_LAMBDA_FUNCTION_VERSION;
+}
+
+/** Playwright 1.60+ loads browsers.json via dynamic require; Vercel NFT often omits it. */
+function ensurePlaywrightBrowsersJson(): void {
+  if (!isServerlessRuntime()) return;
+
+  const targets = [
+    path.join(process.cwd(), 'node_modules/playwright-core/browsers.json'),
+    '/var/task/node_modules/playwright-core/browsers.json',
+  ];
+
+  if (targets.some((target) => fs.existsSync(target))) return;
+
+  try {
+    const nodeRequire = createRequire(path.join(process.cwd(), 'package.json'));
+    const pkgDir = path.dirname(nodeRequire.resolve('playwright-core/package.json'));
+    const source = path.join(pkgDir, 'browsers.json');
+    if (!fs.existsSync(source)) return;
+
+    for (const target of targets) {
+      try {
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.copyFileSync(source, target);
+        console.log('[UserLens] Ensured browsers.json at', target);
+        return;
+      } catch {
+        // try next target path
+      }
+    }
+  } catch (err) {
+    console.warn('[UserLens] Could not ensure browsers.json:', err);
+  }
 }
 
 function getChromiumArchSuffix(): 'x64' | 'arm64' {
@@ -179,6 +212,7 @@ function attachUserDataCleanup(browser: Browser, userDataDir: string): Browser {
 
 /** Launch Chromium for UserLens — bundled bin or chromium-pack.tar on Vercel, local Playwright elsewhere. */
 export async function launchUserLensBrowser(): Promise<Browser> {
+  ensurePlaywrightBrowsersJson();
   const { chromium } = await import('playwright-core');
 
   if (isServerlessRuntime()) {
