@@ -112,7 +112,10 @@ export async function PATCH(req: NextRequest) {
 
     const data: Prisma.GigUpdateInput = {};
     if (isActive !== undefined) data.isActive = Boolean(isActive);
-    if (deletedAt !== undefined) data.deletedAt = deletedAt ? new Date(deletedAt) : null;
+    if (deletedAt !== undefined) {
+      data.deletedAt = deletedAt ? new Date(deletedAt) : null;
+      if (deletedAt) data.isActive = false;
+    }
     if (title !== undefined) data.title = title;
     if (price !== undefined) data.price = Number(price);
     if (description !== undefined) data.description = description || null;
@@ -196,7 +199,7 @@ export async function DELETE(req: NextRequest) {
 
     const updated = await prisma.gig.update({
       where: { id: gigId },
-      data: { deletedAt: now }
+      data: { deletedAt: now, isActive: false }
     });
 
     const adminId = session.user.id;

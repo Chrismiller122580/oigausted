@@ -1,18 +1,45 @@
 import { prisma } from '@/lib/prisma';
 import { getGigCategories } from '@/lib/categories';
 import { getCategoryIcon } from '@/lib/icon-registry';
+import {
+  isMissingDeletedAtColumn,
+  publicGigWhere,
+  publicGigWhereFallback,
+} from '@/lib/public-gigs';
+import type { Prisma } from '@prisma/client';
 import { MarketingHomeView } from './MarketingHomeView';
+
+async function resolvePublicGigWhere(): Promise<Prisma.GigWhereInput> {
+  const where = publicGigWhere();
+  try {
+    await prisma.gig.count({ where });
+    return where;
+  } catch (e) {
+    if (isMissingDeletedAtColumn(e)) {
+      console.warn('[Homepage] deletedAt filter unavailable, using isActive-only fallback');
+      return publicGigWhereFallback();
+    }
+    throw e;
+  }
+}
 
 export default async function MarketingHomePageServer() {
   const allCategories = await getGigCategories();
   const topCategoryNames = allCategories.slice(0, 12).map((c) => c.name);
 
-  // Pro counts per category
+  let publicWhere: Prisma.GigWhereInput = publicGigWhereFallback();
+  try {
+    publicWhere = await resolvePublicGigWhere();
+  } catch (e) {
+    console.error('Failed to resolve public gig filters for homepage:', e);
+  }
+
+  // Pro counts per category (active gigs only)
   let proCountMap: Record<string, number> = {};
   try {
     const gigCounts = await prisma.gig.groupBy({
       by: ['category'],
-      where: { isActive: true, category: { in: topCategoryNames } },
+      where: { ...publicWhere, category: { in: topCategoryNames } },
       _count: { id: true },
     });
     proCountMap = Object.fromEntries(
@@ -37,18 +64,18 @@ export default async function MarketingHomePageServer() {
     };
   });
 
-  // Live stats
+  // Live stats (active gigs only)
   let stats = { gigs: 0, reviews: 0, cities: 0, sellers: 0 };
   try {
     const [totalGigs, totalReviews, cityAgg, totalSellers] = await Promise.all([
-      prisma.gig.count({ where: { isActive: true } }),
+      prisma.gig.count({ where: publicWhere }),
       prisma.review.count(),
       prisma.gig.findMany({
-        where: { isActive: true, city: { not: null } },
+        where: { ...publicWhere, city: { not: null } },
         select: { city: true },
         distinct: ['city'],
       }),
-      prisma.user.count({ where: { role: 'seller' } }),
+      prisma.user.count({ where: { role: 'seller', isActive: true } }),
     ]);
     stats = {
       gigs: totalGigs,
@@ -60,7 +87,7 @@ export default async function MarketingHomePageServer() {
     console.error('Failed to load homepage stats:', e);
   }
 
-  // Popular gigs for horizontal scroll
+  // Popular gigs for horizontal scroll (active, non-deleted only)
   let popularGigs: {
     id: string;
     title: string;
@@ -78,7 +105,7 @@ export default async function MarketingHomePageServer() {
 
   try {
     popularGigs = await prisma.gig.findMany({
-      where: { isActive: true },
+      where: publicWhere,
       orderBy: { createdAt: 'desc' },
       take: 12,
       select: {

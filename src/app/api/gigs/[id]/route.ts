@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { devLog, parseJsonArrayField } from '@/lib/utils';
+import { publicGigWhere } from '@/lib/public-gigs';
 import { getGigImages, normalizeGigImagePayload, parseGigImagesField } from '@/lib/gig-images';
 import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
 
@@ -61,6 +62,31 @@ export async function GET(
 
     if (!gig) {
       return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
+    }
+
+    const session = await getServerSession(authOptions);
+    const isAdmin = session?.user?.role === 'admin';
+    if (!isAdmin) {
+      try {
+        const visible = await prisma.gig.count({
+          where: { id, ...publicGigWhere() },
+        });
+        if (visible === 0) {
+          return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
+        }
+      } catch (dbErr: unknown) {
+        const errMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+        if (errMsg.includes('deletedAt')) {
+          const visible = await prisma.gig.count({
+            where: { id, isActive: true },
+          });
+          if (visible === 0) {
+            return NextResponse.json({ error: 'Gig no encontrado' }, { status: 404 });
+          }
+        } else {
+          throw dbErr;
+        }
+      }
     }
 
     const imageList = getGigImages(gig)
