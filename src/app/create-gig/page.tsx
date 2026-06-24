@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useGigCategories } from '@/lib/useGigCategories';
@@ -364,24 +364,26 @@ function CreateGigClient() {
           </div>
           <div>
             <Label>Categoría</Label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecciona una categoría" />
-              </SelectTrigger>
-              <SelectContent position="popper" className="max-h-72 w-[var(--radix-select-trigger-width)]">
-                {categoriesLoading ? (
-                  <div className="py-2 px-3 text-sm text-muted-foreground">Cargando categorías...</div>
-                ) : gigCategories.length > 0 ? (
-                  gigCategories.map(cat => (
-                    <SelectItem key={cat.name} value={cat.name}>
-                      {cat.icon} {cat.name}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <div className="py-2 px-3 text-sm text-muted-foreground">No hay categorías disponibles</div>
-                )}
-              </SelectContent>
-            </Select>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              disabled={categoriesLoading}
+              required
+              className="w-full border rounded-md p-3 text-base bg-background"
+            >
+              <option value="" disabled>
+                {categoriesLoading
+                  ? 'Cargando categorías...'
+                  : gigCategories.length > 0
+                    ? 'Selecciona una categoría'
+                    : 'No hay categorías disponibles'}
+              </option>
+              {gigCategories.map((cat) => (
+                <option key={cat.name} value={cat.name}>
+                  {cat.icon} {cat.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -391,8 +393,8 @@ function CreateGigClient() {
               <CardTitle>Detalles específicos de {selectedCategory.name}</CardTitle>
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-6">
-              {categoryFields.map((field: DynamicFieldDef, i: number) => (
-                <div key={i}>
+              {categoryFields.map((field: DynamicFieldDef) => (
+                <div key={field.key}>
                   <Label>{field.label} {field.extraPrice ? `(+$${field.extraPrice})` : ''}</Label>
                   {field.type === 'number' && (
                     <Input 
