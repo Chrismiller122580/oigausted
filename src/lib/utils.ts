@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { Prisma } from "@prisma/client"
-import type { DynamicFieldDef } from "@/types/gig-fields"
+import type { DynamicFieldDef, DynamicFieldOption } from "@/types/gig-fields"
 import type { JsonObject, JsonValue } from "@/types/json"
 
 export function cn(...inputs: ClassValue[]) {
@@ -53,6 +53,32 @@ export function parseJsonArrayField<T = DynamicFieldDef>(value: unknown): T[] {
     }
   }
   return []
+}
+
+/** Normalize select options that may be stored as a JSON string or malformed value. */
+export function normalizeFieldOptions(options: unknown): DynamicFieldOption[] {
+  if (!options) return []
+  if (Array.isArray(options)) return options
+  if (typeof options === 'string') {
+    try {
+      const parsed = JSON.parse(options)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+/** Ensure category dynamic fields (and nested select options) are safe for UI iteration. */
+export function normalizeGigCategoryFields(fields: unknown): DynamicFieldDef[] {
+  return parseJsonArrayField<DynamicFieldDef>(fields).map((field) => ({
+    ...field,
+    options:
+      field.type === 'select'
+        ? normalizeFieldOptions(field.options)
+        : field.options,
+  }))
 }
 
 /**

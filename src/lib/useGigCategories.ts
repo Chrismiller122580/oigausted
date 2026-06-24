@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { DynamicFieldDef } from '@/types/gig-fields';
+import { normalizeGigCategoryFields } from '@/lib/utils';
 
 export interface GigCategory {
   name: string;
@@ -30,7 +31,13 @@ export function useGigCategories() {
         const res = await fetch('/api/categories', { cache: 'no-store' });
         const data = await res.json();
         if (!cancelled) {
-          setCategories(data.categories || []);
+          const categories = (data.categories || []).map(
+            (cat: GigCategory) => ({
+              ...cat,
+              fields: normalizeGigCategoryFields(cat.fields),
+            })
+          );
+          setCategories(categories);
         }
       } catch (e: unknown) {
         if (!cancelled) {

@@ -1,5 +1,5 @@
 import { prisma } from './prisma';
-import { parseJsonArrayField, toPrismaJson } from './utils';
+import { normalizeGigCategoryFields, toPrismaJson } from './utils';
 import { gigCategories as staticGigCategories } from './gig-categories'; // fallback / seed source
 import type { DynamicFieldDef } from '@/types/gig-fields';
 import type { Category } from '@prisma/client';
@@ -16,7 +16,7 @@ function mapDbCategory(c: Category): GigCategory {
     name: c.name,
     icon: c.icon || '🛠️',
     description: c.description || undefined,
-    fields: parseJsonArrayField<DynamicFieldDef>(c.fields),
+    fields: normalizeGigCategoryFields(c.fields),
   };
 }
 
@@ -24,7 +24,7 @@ function mapStaticCategories(): GigCategory[] {
   return staticGigCategories.map((c) => ({
     name: c.name,
     icon: c.icon,
-    fields: parseJsonArrayField<DynamicFieldDef>(c.fields),
+    fields: normalizeGigCategoryFields(c.fields),
   }));
 }
 

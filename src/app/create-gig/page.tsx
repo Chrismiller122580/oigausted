@@ -17,7 +17,7 @@ import { MapPin, Camera, Sparkles, X } from 'lucide-react';
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 import type { CheckoutFormData, DynamicFieldDef, DynamicFieldOption, GigAddonOption } from '@/types/gig-fields';
 import type { ChangeEvent, FormEvent } from 'react';
-import { parseJsonArrayField } from '@/lib/utils';
+import { normalizeGigCategoryFields, normalizeFieldOptions, parseJsonArrayField } from '@/lib/utils';
 import { getGigImages, MAX_GIG_IMAGES } from '@/lib/gig-images';
 
 function CreateGigClient() {
@@ -55,6 +55,9 @@ function CreateGigClient() {
   const searchParams = useSearchParams();
   const { categories: gigCategories, loading: categoriesLoading } = useGigCategories();
   const selectedCategory = gigCategories.find(c => c.name === category);
+  const categoryFields = selectedCategory
+    ? normalizeGigCategoryFields(selectedCategory.fields)
+    : [];
 
   // Clear dynamic form values when category changes (prevents stale data from previous category polluting pricing)
   useEffect(() => {
@@ -65,24 +68,24 @@ function CreateGigClient() {
 
   const calculateTotal = () => {
     let total = basePrice || 0;
-    if (selectedCategory) {
-      selectedCategory.fields.forEach((field: DynamicFieldDef) => {
-        const val = formData[field.key];
-        if (!val) return;
+    categoryFields.forEach((field: DynamicFieldDef) => {
+      const val = formData[field.key];
+      if (!val) return;
 
-        if (field.type === 'number' && val) {
-          total += Number(val) * (field.extraPrice || 0);
-        } else if (field.type === 'checkbox' && val) {
-          total += field.extraPrice || 0;
-        } else if (field.type === 'select' && field.options) {
-          // Support both string options and {label, extraPrice} objects
-          const chosen = field.options?.find((o: DynamicFieldOption) => (typeof o === 'string' ? o === val : o.label === val));
-          if (chosen && typeof chosen === 'object' && chosen.extraPrice) {
-            total += chosen.extraPrice;
-          }
+      if (field.type === 'number' && val) {
+        total += Number(val) * (field.extraPrice || 0);
+      } else if (field.type === 'checkbox' && val) {
+        total += field.extraPrice || 0;
+      } else if (field.type === 'select') {
+        const options = normalizeFieldOptions(field.options);
+        const chosen = options.find((o: DynamicFieldOption) =>
+          typeof o === 'string' ? o === val : o.label === val
+        );
+        if (chosen && typeof chosen === 'object' && chosen.extraPrice) {
+          total += chosen.extraPrice;
         }
-      });
-    }
+      }
+    });
     customOptions.forEach(opt => {
       if (opt.extraPrice) total += Number(opt.extraPrice || 0);
     });
@@ -265,8 +268,8 @@ function CreateGigClient() {
       category,
       images,
       imageUrl: images[0] || null,
-      fields: selectedCategory?.fields?.length
-        ? selectedCategory.fields
+      fields: categoryFields.length
+        ? categoryFields
         : (isEditing ? savedFields : []),
       addons: customOptions.filter(o => o.name?.trim()),
       completionTime,
@@ -382,13 +385,13 @@ function CreateGigClient() {
           </div>
         </div>
 
-        {selectedCategory && (
+        {selectedCategory && categoryFields.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Detalles específicos de {selectedCategory.name}</CardTitle>
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-6">
-              {selectedCategory.fields.map((field: DynamicFieldDef, i: number) => (
+              {categoryFields.map((field: DynamicFieldDef, i: number) => (
                 <div key={i}>
                   <Label>{field.label} {field.extraPrice ? `(+$${field.extraPrice})` : ''}</Label>
                   {field.type === 'number' && (
@@ -410,14 +413,14 @@ function CreateGigClient() {
                       <span>{field.label}</span>
                     </label>
                   )}
-                  {field.type === 'select' && field.options && (
+                  {field.type === 'select' && (
                     <select 
                       value={String(formData[field.key] ?? '')} 
                       onChange={(e) => handleSmartFieldChange(field.key, e.target.value)}
                       className="mt-1 w-full border rounded-md p-2"
                     >
                       <option value="">Seleccionar...</option>
-                      {field.options?.map((opt: DynamicFieldOption, idx: number) => {
+                      {normalizeFieldOptions(field.options).map((opt: DynamicFieldOption, idx: number) => {
                         const label = typeof opt === 'string' ? opt : opt.label;
                         const price = typeof opt === 'object' && opt.extraPrice ? ` (+$${opt.extraPrice})` : '';
                         return <option key={idx} value={label}>{label}{price}</option>;
