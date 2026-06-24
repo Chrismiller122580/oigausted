@@ -42,7 +42,7 @@ function mergeMissingStaticCategories(dbCategories: GigCategory[]): GigCategory[
 export async function syncMissingStaticCategories(): Promise<void> {
   try {
     const existing = await prisma.category.findMany({ select: { name: true } });
-    const existingNames = new Set(existing.map((c) => c.name));
+    const existingNames = new Set(existing.map((c: Pick<Category, 'name'>) => c.name));
     const missing = staticGigCategories.filter((c) => !existingNames.has(c.name));
     if (missing.length === 0) return;
 
