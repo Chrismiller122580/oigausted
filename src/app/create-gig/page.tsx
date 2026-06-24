@@ -362,10 +362,10 @@ function CreateGigClient() {
           <div>
             <Label>Categoría</Label>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Selecciona una categoría" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" className="max-h-72 w-[var(--radix-select-trigger-width)]">
                 {categoriesLoading ? (
                   <div className="py-2 px-3 text-sm text-muted-foreground">Cargando categorías...</div>
                 ) : gigCategories.length > 0 ? (

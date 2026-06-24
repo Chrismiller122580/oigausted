@@ -50,7 +50,7 @@ function getTools(categoryName: string) {
   if (name.includes('delivery') || name.includes('mensajer')) {
     return ['maps', 'liveLocation'];
   }
-  if (name.includes('transporte') || name.includes('mudanza')) {
+  if (name.includes('transporte') || name.includes('mudanza') || name.includes('turismo')) {
     return ['maps'];
   }
   if (name.includes('plomer') || name.includes('fontaner') || name.includes('electric') || name.includes('repar')) {
@@ -76,6 +76,13 @@ function getUpgrades(categoryName: string) {
   if (name.includes('delivery') || name.includes('mensajer') || name.includes('transporte')) {
     return [
       { name: 'Entrega exprés', price: 15000, description: '50% más rápido' },
+      ...base,
+    ];
+  }
+  if (name.includes('turismo')) {
+    return [
+      { name: 'Tour privado exclusivo', price: 50000, description: 'Solo para tu grupo' },
+      { name: 'Fotos profesionales incluidas', price: 30000, description: 'Recuerdos del recorrido' },
       ...base,
     ];
   }

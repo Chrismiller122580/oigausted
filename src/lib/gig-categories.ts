@@ -178,6 +178,21 @@ export const gigCategories = [
       { key: "guests", label: "Número de invitados", type: "number", extraPrice: 15000 },
       { key: "hours", label: "Horas de coordinación", type: "number", extraPrice: 45000 }
     ]
+  },
+  {
+    name: "Turismo",
+    icon: "🗺️",
+    fields: [
+      { key: "people", label: "Número de personas", type: "number", extraPrice: 20000 },
+      { key: "hours", label: "Duración del tour (horas)", type: "number", extraPrice: 35000 },
+      { key: "transport", label: "Transporte incluido", type: "checkbox", extraPrice: 45000 },
+      { key: "language", label: "Idioma del guía", type: "select", options: [
+        { label: "Español", extraPrice: 0 },
+        { label: "Inglés", extraPrice: 15000 },
+        { label: "Francés", extraPrice: 20000 },
+        { label: "Portugués", extraPrice: 15000 }
+      ] }
+    ]
   }
 ];
 
