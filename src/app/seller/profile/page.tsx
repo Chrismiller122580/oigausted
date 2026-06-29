@@ -352,7 +352,7 @@ export default function MiNegocioPage() {
 
               <div className="mt-3 text-xs text-orange-700/70 dark:text-orange-300/70">
                 Tip: Actualiza el <strong>Nombre del Negocio</strong> arriba para mejorar tu enlace (ej: <span className="font-mono">plomeria-juan-bucaramanga</span>). 
-                Compártelo en WhatsApp, Instagram, tarjetas de presentación y flyers.
+                Compártelo en redes, tarjetas de presentación y flyers con tu enlace de Oigagig.
               </div>
             </div>
           </div>
