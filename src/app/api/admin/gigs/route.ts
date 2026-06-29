@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminFromDb } from '@/lib/admin-auth';
+import { requireAdminPanelSession } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
@@ -9,7 +9,7 @@ import type { JsonObject } from '@/types/json';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await requireAdminFromDb();
+    const session = await requireAdminPanelSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
 // PATCH for moderation actions (full edit, isActive toggle, soft delete/restore)
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await requireAdminFromDb();
+    const session = await requireAdminPanelSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
@@ -174,7 +174,7 @@ export async function PATCH(req: NextRequest) {
 // DELETE gig (admin moderation) - now performs soft delete to support restore
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await requireAdminFromDb();
+    const session = await requireAdminPanelSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }

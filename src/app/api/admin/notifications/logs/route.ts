@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminFromDb } from '@/lib/admin-auth';
+import { requireAdminPanelSession } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
@@ -7,7 +7,7 @@ import type { Prisma } from '@prisma/client';
 // GET /api/admin/notifications/logs
 // Advanced filtering for notification logs (2027-grade admin tooling)
 export async function GET(req: NextRequest) {
-  const session = await requireAdminFromDb();
+  const session = await requireAdminPanelSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }

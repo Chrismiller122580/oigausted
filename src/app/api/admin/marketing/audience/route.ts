@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminFromDb } from '@/lib/admin-auth';
+import { requireAdminPanelSession } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import {
@@ -10,7 +10,7 @@ import {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await requireAdminFromDb();
+    const session = await requireAdminPanelSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }

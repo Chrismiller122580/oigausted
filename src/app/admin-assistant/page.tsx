@@ -49,11 +49,11 @@ export default function AdminAssistantOverviewPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Coming soon</CardTitle>
+          <CardTitle>Quick links</CardTitle>
         </CardHeader>
         <CardContent className="text-muted-foreground text-sm">
-          Admin assistant tools (orders, support, marketing, safe settings) will be built out in upcoming sprints.
-          Use the sidebar to navigate to each section.
+          Use the sidebar to manage orders, support tickets, users, marketing, and safe settings.
+          Sensitive actions (user roles, payment keys, impersonation) remain admin-only.
         </CardContent>
       </Card>
     </div>

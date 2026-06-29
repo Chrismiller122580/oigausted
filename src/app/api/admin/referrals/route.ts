@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { requireAdminFromDb } from '@/lib/admin-auth'
+import { requireAdminPanelSession } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 import { devLog, toPrismaJsonField } from '@/lib/utils'
 import type { Prisma } from '@prisma/client'
 
 export async function GET(request: Request) {
-  const session = await requireAdminFromDb()
+  const session = await requireAdminPanelSession()
   if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
@@ -187,7 +187,7 @@ export async function GET(request: Request) {
 
 // PATCH to mark earnings as Paid (admin action for payouts)
 export async function PATCH(request: Request) {
-  const session = await requireAdminFromDb()
+  const session = await requireAdminPanelSession()
   if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }

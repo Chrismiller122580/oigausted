@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminFromDb } from '@/lib/admin-auth';
+import { requireAdminPanelSession } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { notifications } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
@@ -8,7 +8,7 @@ import { logAuditEvent } from '@/lib/audit';
 // Admin-only endpoint to send manual notifications to any user
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireAdminFromDb();
+    const session = await requireAdminPanelSession();
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }

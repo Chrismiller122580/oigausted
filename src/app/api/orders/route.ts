@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
  import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { verifyAdminPanelAccess } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
@@ -173,8 +174,10 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url);
     const role = url.searchParams.get('role') || 'buyer';
-    const isAdmin = session?.user?.role === 'admin';
-    const viewAll = url.searchParams.get('view') === 'all' && isAdmin;
+    const panelAccess = session?.user?.id
+      ? await verifyAdminPanelAccess(session.user.id, session)
+      : false;
+    const viewAll = url.searchParams.get('view') === 'all' && panelAccess;
 
     let where: Prisma.OrderWhereInput = {};
     if (viewAll) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { verifyAdminFromDb, verifyAdminPanelAccess } from '@/lib/admin-auth'
 import { notifications } from '@/lib/notifications'
 import { logAuditEvent } from '@/lib/audit'
 import { devLog, toPrismaJsonField } from '@/lib/utils'
@@ -91,7 +92,9 @@ export async function GET(
     }
 
     const userId = session?.user?.id
-    const isAdmin = session?.user?.role === 'admin'
+    const isAdmin = userId && session
+      ? await verifyAdminPanelAccess(userId, session)
+      : false
     if (!isAdmin && order.buyerId !== userId && order.sellerId !== userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
@@ -136,7 +139,9 @@ export async function PATCH(
     if (!existingOrder) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
-    const isAdmin = session?.user?.role === 'admin'
+    const isAdmin = userId
+      ? await verifyAdminPanelAccess(userId, session)
+      : false
     if (!isAdmin && existingOrder.buyerId !== userId && existingOrder.sellerId !== userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
@@ -446,9 +451,12 @@ export async function DELETE(
     const resolvedParams = await params
     const orderId = resolvedParams.id
     const session = await getServerSession(authOptions);
-    const isAdmin = session?.user?.role === 'admin';
+    const userId = session?.user?.id;
+    const isFullAdmin = userId && session?.user?.role === 'admin'
+      ? await verifyAdminFromDb(userId)
+      : false;
 
-    if (!isAdmin) {
+    if (!isFullAdmin) {
       return NextResponse.json({ error: 'Only admins can delete orders' }, { status: 403 });
     }
 
@@ -469,9 +477,8 @@ export async function DELETE(
 
     await prisma.order.delete({ where: { id: orderId } });
 
-    const adminId = session.user.id;
     await logAuditEvent({
-      performedById: adminId,
+      performedById: userId!,
       action: 'ORDER_DELETED',
       targetType: 'Order',
       targetId: orderId,

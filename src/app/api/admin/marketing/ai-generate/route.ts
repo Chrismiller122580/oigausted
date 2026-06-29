@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminFromDb } from '@/lib/admin-auth';
+import { requireAdminPanelSession } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
 import { normalizeGeneratedCampaign } from '@/lib/marketing-campaign-types';
@@ -17,7 +17,7 @@ interface GenerateRequest {
 const GROK_MODEL = "grok-3-mini"; // fast + smart enough for creative marketing
 
 export async function POST(req: NextRequest) {
-  const session = await requireAdminFromDb();
+  const session = await requireAdminPanelSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
