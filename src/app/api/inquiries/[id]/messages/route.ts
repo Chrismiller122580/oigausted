@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -79,7 +80,7 @@ export async function POST(
     }
 
     const isFromBuyer = userId === thread.buyerId
-    const message = await prisma.$transaction(async (tx) => {
+    const message = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const created = await tx.inquiryMessage.create({
         data: {
           threadId,

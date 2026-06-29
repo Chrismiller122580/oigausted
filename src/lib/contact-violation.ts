@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { logAuditEvent } from '@/lib/audit'
 import { notifyAdminsContactViolation } from '@/lib/admin-notifications'
@@ -14,7 +15,7 @@ export async function recordContactViolation(
 ): Promise<{ violationCount: number; flagged: boolean }> {
   const redacted = redactSnippet(snippet)
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.contactViolation.create({
       data: {
         userId,
