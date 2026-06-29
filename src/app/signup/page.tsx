@@ -13,6 +13,7 @@ import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl"
 import { Eye, EyeOff } from "lucide-react"
 import { usePlatformConfig } from "@/components/providers/PlatformConfigProvider"
 import { trackEvent } from "@/lib/analytics"
+import TurnstileWidget from "@/components/security/TurnstileWidget"
 
 function SignUpClient() {
   const router = useRouter()
@@ -29,6 +30,9 @@ function SignUpClient() {
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [turnstileEnabled, setTurnstileEnabled] = useState(false);
+  const [turnstileSiteKey, setTurnstileSiteKey] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const { config: platformConfig } = usePlatformConfig();
   const signupsEnabled = platformConfig?.allowNewSignups ?? true;
   const siteName = platformConfig?.siteName || 'Oigagig';
@@ -36,8 +40,15 @@ function SignUpClient() {
   useEffect(() => {
     fetch('/api/auth/config')
       .then(r => r.json())
-      .then(g => setGoogleEnabled(g.googleEnabled ?? false))
-      .catch(() => setGoogleEnabled(false));
+      .then(g => {
+        setGoogleEnabled(g.googleEnabled ?? false);
+        setTurnstileEnabled(!!g.turnstileEnabled);
+        setTurnstileSiteKey(g.turnstileSiteKey ?? null);
+      })
+      .catch(() => {
+        setGoogleEnabled(false);
+        setTurnstileEnabled(false);
+      });
   }, []);
 
   // Handle NextAuth error redirects (e.g. ?error=OAuthSignin) also on signup
@@ -61,6 +72,12 @@ function SignUpClient() {
     setLoading(true)
     setError("")
 
+    if (turnstileEnabled && !turnstileToken) {
+      setError("Completa la verificación anti-bot antes de continuar.")
+      setLoading(false)
+      return
+    }
+
     try {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
@@ -68,6 +85,7 @@ function SignUpClient() {
         body: JSON.stringify({
           ...formData,
           referralCode: refCode || undefined,
+          turnstileToken,
         }),
       })
 
@@ -181,7 +199,19 @@ function SignUpClient() {
                 <Button type="button" variant={formData.role === "seller" ? "default" : "outline"} onClick={() => setFormData({ ...formData, role: "seller" })} className="flex-1 py-6 text-base" disabled={!signupsEnabled}>Vendedor</Button>
               </div>
             </div>
-            <Button type="submit" className="w-full py-6 text-lg bg-orange-600 hover:bg-orange-700 rounded-2xl font-semibold" disabled={loading || !signupsEnabled}>
+            {turnstileEnabled && turnstileSiteKey && (
+              <TurnstileWidget
+                siteKey={turnstileSiteKey}
+                onToken={setTurnstileToken}
+                onExpire={() => setTurnstileToken(null)}
+                onError={() => setTurnstileToken(null)}
+              />
+            )}
+            <Button
+              type="submit"
+              className="w-full py-6 text-lg bg-orange-600 hover:bg-orange-700 rounded-2xl font-semibold"
+              disabled={loading || !signupsEnabled || (turnstileEnabled && !turnstileToken)}
+            >
               {loading ? "Creando cuenta..." : "Crear Cuenta"}
             </Button>
           </form>

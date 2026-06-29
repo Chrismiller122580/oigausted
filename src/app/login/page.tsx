@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
+import TurnstileWidget from '@/components/security/TurnstileWidget';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -19,6 +20,9 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [turnstileEnabled, setTurnstileEnabled] = useState(false);
+  const [turnstileSiteKey, setTurnstileSiteKey] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -51,8 +55,15 @@ export default function LoginPage() {
   useEffect(() => {
     fetch('/api/auth/config')
       .then(res => res.json())
-      .then(data => setGoogleEnabled(data.googleEnabled ?? false))
-      .catch(() => setGoogleEnabled(false));
+      .then(data => {
+        setGoogleEnabled(data.googleEnabled ?? false);
+        setTurnstileEnabled(!!data.turnstileEnabled);
+        setTurnstileSiteKey(data.turnstileSiteKey ?? null);
+      })
+      .catch(() => {
+        setGoogleEnabled(false);
+        setTurnstileEnabled(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -72,6 +83,27 @@ export default function LoginPage() {
 
     const fromQuery = new URLSearchParams(window.location.search).get('callbackUrl');
     const callbackUrl = fromQuery || getAuthCallbackUrl('/');
+
+    if (turnstileEnabled && !turnstileToken) {
+      setError('Completa la verificación anti-bot antes de continuar.');
+      setIsLoading(false);
+      return;
+    }
+
+    const preLogin = await fetch('/api/auth/pre-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        turnstileToken,
+      }),
+    });
+    const preData = await preLogin.json().catch(() => ({}));
+    if (!preLogin.ok) {
+      setError(preData.error || 'Demasiados intentos. Espera un momento e intenta de nuevo.');
+      setIsLoading(false);
+      return;
+    }
 
     const result = await signIn('credentials', {
       email: email.trim().toLowerCase(),
@@ -175,10 +207,19 @@ export default function LoginPage() {
               </div>
             )}
 
+            {turnstileEnabled && turnstileSiteKey && (
+              <TurnstileWidget
+                siteKey={turnstileSiteKey}
+                onToken={setTurnstileToken}
+                onExpire={() => setTurnstileToken(null)}
+                onError={() => setTurnstileToken(null)}
+              />
+            )}
+
             <Button
               type="submit"
               className="w-full bg-orange-600 hover:bg-orange-700 text-base py-6 mt-2"
-              disabled={isLoading}
+              disabled={isLoading || (turnstileEnabled && !turnstileToken)}
             >
               {isLoading ? (
                 <>

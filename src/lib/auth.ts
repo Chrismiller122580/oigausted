@@ -7,6 +7,8 @@ import { verifyImpersonationToken } from './impersonation'
 import type { NextAuthOptions, Session } from 'next-auth'
 import type { JWT } from 'next-auth/jwt'
 import { getUserRole, isStaffRole, isUserRole, type UserRole } from './session'
+import { logAuditEvent } from './audit'
+import { checkRateLimit, RATE_LIMITS } from './rate-limit'
 
 type AuthProvider = ReturnType<typeof CredentialsProvider> | ReturnType<typeof GoogleProvider>
 
@@ -110,9 +112,22 @@ const providers: AuthProvider[] = [
         return null
       }
 
+      const email = credentials.email.toLowerCase()
+
       try {
+        const emailLimit = await checkRateLimit({
+          action: ['LOGIN_ATTEMPT', 'LOGIN_FAILURE'],
+          email,
+          maxAttempts: RATE_LIMITS.loginPerEmail.max,
+          windowMs: RATE_LIMITS.loginPerEmail.windowMs,
+        })
+        if (!emailLimit.allowed) {
+          devLog('[auth] Login rate limited for email:', email)
+          return null
+        }
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase() },
+          where: { email },
           select: {
             id: true,
             name: true,
@@ -124,22 +139,34 @@ const providers: AuthProvider[] = [
           }
         })
 
+        const logLoginFailure = () =>
+          logAuditEvent({
+            performedById: null,
+            action: 'LOGIN_FAILURE',
+            targetType: 'User',
+            details: { email },
+          }).catch(() => {})
+
         if (!user) {
-          devLog('[auth] No user found for email:', credentials.email.toLowerCase())
+          devLog('[auth] No user found for email:', email)
+          await logLoginFailure()
           return null
         }
         if (user.isActive === false) {
           devLog('[auth] User account is deactivated:', user.email)
+          await logLoginFailure()
           return null
         }
         if (!user.password) {
           devLog('[auth] User has no password set (OAuth-only account?):', user.email)
+          await logLoginFailure()
           return null
         }
 
         const isValid = await bcrypt.compare(credentials.password, user.password)
         if (!isValid) {
           devLog('[auth] Password mismatch for:', user.email)
+          await logLoginFailure()
           return null
         }
 

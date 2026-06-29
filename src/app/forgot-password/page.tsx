@@ -1,16 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import TurnstileWidget from '@/components/security/TurnstileWidget';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [turnstileEnabled, setTurnstileEnabled] = useState(false);
+  const [turnstileSiteKey, setTurnstileSiteKey] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/config')
+      .then((r) => r.json())
+      .then((data) => {
+        setTurnstileEnabled(!!data.turnstileEnabled);
+        setTurnstileSiteKey(data.turnstileSiteKey ?? null);
+      })
+      .catch(() => setTurnstileEnabled(false));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,13 +34,18 @@ export default function ForgotPasswordPage() {
       return;
     }
 
+    if (turnstileEnabled && !turnstileToken) {
+      toast.error('Completa la verificación anti-bot antes de continuar.');
+      return;
+    }
+
     setSubmitted(true);
     
     try {
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, turnstileToken }),
       });
       const data = await res.json();
 
@@ -71,7 +90,20 @@ export default function ForgotPasswordPage() {
                 />
               </div>
 
-              <Button type="submit" className="w-full py-6 text-lg bg-orange-600 hover:bg-orange-700">
+              {turnstileEnabled && turnstileSiteKey && (
+                <TurnstileWidget
+                  siteKey={turnstileSiteKey}
+                  onToken={setTurnstileToken}
+                  onExpire={() => setTurnstileToken(null)}
+                  onError={() => setTurnstileToken(null)}
+                />
+              )}
+
+              <Button
+                type="submit"
+                className="w-full py-6 text-lg bg-orange-600 hover:bg-orange-700"
+                disabled={turnstileEnabled && !turnstileToken}
+              >
                 Send reset instructions
               </Button>
 

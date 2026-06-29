@@ -4,28 +4,13 @@ import bcrypt from 'bcryptjs'
 import { notifications } from '@/lib/notifications'
 import { logAuditEvent } from '@/lib/audit'
 import { notifyAdminsNewSignup } from '@/lib/admin-notifications'
-
-const SIGNUP_WINDOW_MS = 15 * 60 * 1000
-const MAX_SIGNUP_ATTEMPTS = 5
-
-async function checkSignupRateLimit(ip: string): Promise<{ allowed: boolean; retryAfter?: number }> {
-  const since = new Date(Date.now() - SIGNUP_WINDOW_MS)
-  const count = await prisma.auditLog.count({
-    where: {
-      action: 'SIGNUP_ATTEMPT',
-      ipAddress: ip,
-      createdAt: { gte: since },
-    },
-  })
-  if (count >= MAX_SIGNUP_ATTEMPTS) {
-    return { allowed: false, retryAfter: Math.ceil(SIGNUP_WINDOW_MS / 1000) }
-  }
-  return { allowed: true }
-}
+import { checkRateLimit, getRequestIp, RATE_LIMITS } from '@/lib/rate-limit'
+import { verifyTurnstileToken } from '@/lib/turnstile'
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password, referralCode, role: requestedRole } = await request.json()
+    const { name, email, password, referralCode, role: requestedRole, turnstileToken } =
+      await request.json()
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: "Faltan campos requeridos (nombre, email, contraseña)" }, { status: 400 })
@@ -36,11 +21,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "La contraseña debe tener al menos 8 caracteres" }, { status: 400 })
     }
 
-    const ip = (request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-      || request.headers.get('x-real-ip')
-      || 'unknown')
+    const ip = getRequestIp(request.headers)
 
-    const rateLimit = await checkSignupRateLimit(ip)
+    const turnstile = await verifyTurnstileToken(turnstileToken, ip)
+    if (!turnstile.ok) {
+      return NextResponse.json({ error: turnstile.error }, { status: 400 })
+    }
+
+    const rateLimit = await checkRateLimit({
+      action: 'SIGNUP_ATTEMPT',
+      ip,
+      maxAttempts: RATE_LIMITS.signupPerIp.max,
+      windowMs: RATE_LIMITS.signupPerIp.windowMs,
+    })
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: `Too many signup attempts. Please try again in ${rateLimit.retryAfter} seconds.` },
