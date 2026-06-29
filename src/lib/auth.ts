@@ -52,6 +52,23 @@ declare module 'next-auth/jwt' {
   }
 }
 
+/** Keep JWT marketplace role in sync with DB (role changes must survive page refresh). */
+async function syncMarketplaceRoleFromDb(t: JWT): Promise<void> {
+  if (!t.id || t.impersonatedUserId) return
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: t.id as string },
+      select: { role: true, staffRole: true },
+    })
+    if (dbUser) {
+      if (isUserRole(dbUser.role)) t.role = dbUser.role
+      t.staffRole = isStaffRole(dbUser.staffRole) ? dbUser.staffRole : undefined
+    }
+  } catch (e) {
+    devLog('[auth] jwt role sync failed (non-fatal)', e)
+  }
+}
+
 type ExtendedSessionUser = Session['user'] & {
   bio?: string | null
   staffRole?: string | null
@@ -381,6 +398,8 @@ export const authOptions: NextAuthOptions = {
             }
           }
         }
+
+        await syncMarketplaceRoleFromDb(t)
       }
 
       // === Impersonation override (applies on every token resolution / refresh) ===
@@ -465,7 +484,7 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      // No per-request role/profile refetch to reduce DB load on every getServerSession (role changes require re-login or explicit session update)
+      await syncMarketplaceRoleFromDb(t)
       return token
     },
 

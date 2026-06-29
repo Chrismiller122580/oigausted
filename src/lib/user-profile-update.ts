@@ -147,6 +147,17 @@ export async function applyUserProfileUpdate(
 ): Promise<User | null> {
   const updateData = buildUpdateData(input)
 
+  // Saving business info from seller profile should persist seller role (not only in session)
+  if (input.businessName !== undefined && String(input.businessName).trim()) {
+    const current = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    })
+    if (current?.role === 'buyer') {
+      updateData.role = 'seller'
+    }
+  }
+
   if (input.businessName !== undefined) {
     const { slug, slugSafe } = await resolveSlug(userId, input.businessName)
     if (slugSafe) {

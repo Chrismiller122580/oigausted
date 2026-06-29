@@ -38,6 +38,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, businessName: true },
+    })
+
+    if (existingUser?.role === 'seller') {
+      return NextResponse.json({
+        success: true,
+        message: 'Already a seller',
+        user: {
+          id: userId,
+          role: 'seller',
+          businessName: existingUser.businessName,
+        },
+      })
+    }
+
     const trimmedBusinessName = businessName.trim();
     let slug = slugify(trimmedBusinessName);
     let slugSafe = false;

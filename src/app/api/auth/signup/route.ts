@@ -25,7 +25,7 @@ async function checkSignupRateLimit(ip: string): Promise<{ allowed: boolean; ret
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password, referralCode } = await request.json()
+    const { name, email, password, referralCode, role: requestedRole } = await request.json()
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: "Faltan campos requeridos (nombre, email, contraseña)" }, { status: 400 })
@@ -70,8 +70,7 @@ export async function POST(request: NextRequest) {
       console.warn('Could not check allowNewSignups gate');
     }
 
-    // All signups start as buyer; seller promotion goes through /api/user/become-seller
-    const safeRole = 'buyer' as const
+    const safeRole = requestedRole === 'seller' ? 'seller' : 'buyer'
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } })
@@ -92,6 +91,9 @@ export async function POST(request: NextRequest) {
           email,
           role: safeRole,
           password: hashedPassword,
+          ...(safeRole === 'seller' && {
+            businessName: String(name).trim() || 'Mi Negocio',
+          }),
         }
       })
 
