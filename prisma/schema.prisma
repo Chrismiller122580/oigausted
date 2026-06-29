@@ -45,6 +45,7 @@ model User {
   tagline       String?
   email         String?   @unique
   role          String    @default("buyer")
+  staffRole     String?   // null | accountant | admin_assistant (additive staff tools)
   phone         String?
   idNumber      String?
   address       String?

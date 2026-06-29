@@ -9,6 +9,7 @@ import {
   Receipt, ShieldCheck, AlertCircle, FileText, List,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getStaffPortalPath, isStaffRole } from '@/lib/session';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -27,6 +28,10 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
     onClose();
     signOut({ callbackUrl: '/' });
   };
+
+  const staffRole = session?.user?.staffRole;
+  const staffPortalHref = isStaffRole(staffRole) ? getStaffPortalPath(staffRole) : null;
+  const staffPortalLabel = staffRole === 'accountant' ? 'Portal Finanzas' : 'Portal Staff';
 
   return (
     <div className="md:hidden fixed inset-0 z-[100] bg-background">
@@ -61,6 +66,11 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
 
         {role === 'buyer' && (
           <>
+            {staffPortalHref && (
+              <Link href={staffPortalHref} onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border font-medium text-orange-700">
+                <Briefcase size={22} /> {staffPortalLabel}
+              </Link>
+            )}
             <Link href="/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Bell size={22} /> Notificaciones
             </Link>
@@ -96,6 +106,11 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
 
         {role === 'seller' && (
           <>
+            {staffPortalHref && (
+              <Link href={staffPortalHref} onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border font-medium text-orange-700">
+                <Briefcase size={22} /> {staffPortalLabel}
+              </Link>
+            )}
             <Link href="/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Bell size={22} /> Notificaciones
             </Link>

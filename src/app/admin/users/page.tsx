@@ -14,6 +14,7 @@ interface User {
   name: string | null;
   email: string;
   role: string;
+  staffRole?: string | null;
   businessName?: string | null;
   city?: string | null;
   phone?: string | null;
@@ -51,6 +52,7 @@ export default function AdminUsersPage() {
   // Role quick change (kept for speed)
   const [roleEditingId, setRoleEditingId] = useState<string | null>(null);
   const [newRole, setNewRole] = useState<string>('');
+  const [newStaffRole, setNewStaffRole] = useState<string>('');
 
   const fetchUsers = async () => {
     try {
@@ -86,6 +88,7 @@ export default function AdminUsersPage() {
   const startRoleEdit = (user: User) => {
     setRoleEditingId(user.id);
     setNewRole(user.role);
+    setNewStaffRole(user.staffRole || '');
   };
 
   const saveRole = async (userId: string) => {
@@ -93,7 +96,11 @@ export default function AdminUsersPage() {
       const res = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, role: newRole })
+        body: JSON.stringify({
+          userId,
+          role: newRole,
+          staffRole: newStaffRole || null,
+        })
       });
 
       if (res.ok) {
@@ -111,6 +118,7 @@ export default function AdminUsersPage() {
   const cancelEdit = () => {
     setRoleEditingId(null);
     setNewRole('');
+    setNewStaffRole('');
   };
 
   // Full user editing
@@ -411,27 +419,43 @@ export default function AdminUsersPage() {
                     <td className="p-4 text-foreground">{user.email}</td>
                     <td className="p-4">
                       {roleEditingId === user.id ? (
-                        <select
-                          value={newRole}
-                          onChange={(e) => setNewRole(e.target.value)}
-                          className="bg-muted border border-border rounded px-3 py-1 text-foreground"
-                        >
-                          <option value="buyer">Buyer</option>
-                          <option value="seller">Seller</option>
-                          <option value="admin">Admin</option>
-                          <option value="accountant">Accountant</option>
-                          <option value="admin_assistant">Admin Assistant</option>
-                        </select>
+                        <div className="flex flex-col gap-1">
+                          <select
+                            value={newRole}
+                            onChange={(e) => setNewRole(e.target.value)}
+                            className="bg-muted border border-border rounded px-3 py-1 text-foreground text-xs"
+                          >
+                            <option value="buyer">Buyer</option>
+                            <option value="seller">Seller</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                          <select
+                            value={newStaffRole}
+                            onChange={(e) => setNewStaffRole(e.target.value)}
+                            className="bg-muted border border-border rounded px-3 py-1 text-foreground text-xs"
+                          >
+                            <option value="">No staff role</option>
+                            <option value="accountant">Accountant</option>
+                            <option value="admin_assistant">Admin Assistant</option>
+                          </select>
+                        </div>
                       ) : (
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold capitalize ${
-                          user.role === 'admin' ? 'bg-purple-600 text-white' :
-                          user.role === 'seller' ? 'bg-orange-600 text-white' :
-                          user.role === 'accountant' ? 'bg-emerald-600 text-white' :
-                          user.role === 'admin_assistant' ? 'bg-indigo-600 text-white' :
-                          'bg-blue-600 text-white'
-                        }`}>
-                          {user.role}
-                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold capitalize ${
+                            user.role === 'admin' ? 'bg-purple-600 text-white' :
+                            user.role === 'seller' ? 'bg-orange-600 text-white' :
+                            'bg-blue-600 text-white'
+                          }`}>
+                            {user.role}
+                          </span>
+                          {user.staffRole && (
+                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold capitalize ${
+                              user.staffRole === 'accountant' ? 'bg-emerald-600 text-white' : 'bg-indigo-600 text-white'
+                            }`}>
+                              {user.staffRole.replace('_', ' ')}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </td>
                     <td className="p-4">
@@ -525,6 +549,13 @@ export default function AdminUsersPage() {
                             <option value="buyer">Comprador</option>
                             <option value="seller">Vendedor</option>
                             <option value="admin">Admin</option>
+                          </select>
+                          <select
+                            value={newStaffRole}
+                            onChange={(e) => setNewStaffRole(e.target.value)}
+                            className="bg-muted border border-border rounded px-2 py-1 text-xs"
+                          >
+                            <option value="">Sin staff</option>
                             <option value="accountant">Accountant</option>
                             <option value="admin_assistant">Admin Assistant</option>
                           </select>

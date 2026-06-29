@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation';
-import { requireRoleFromDb } from '@/lib/staff-auth';
+import { requireStaffRoleFromDb } from '@/lib/staff-auth';
 
 export default async function AccountantLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await requireRoleFromDb('accountant');
+  const session = await requireStaffRoleFromDb('accountant');
 
   if (!session?.user) {
     redirect('/login?callbackUrl=/accountant');

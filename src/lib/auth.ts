@@ -6,7 +6,7 @@ import { devLog } from './utils'
 import { verifyImpersonationToken } from './impersonation'
 import type { NextAuthOptions, Session } from 'next-auth'
 import type { JWT } from 'next-auth/jwt'
-import { getUserRole, isUserRole, type UserRole } from './session'
+import { getUserRole, isStaffRole, isUserRole, type UserRole } from './session'
 
 type AuthProvider = ReturnType<typeof CredentialsProvider> | ReturnType<typeof GoogleProvider>
 
@@ -54,6 +54,7 @@ declare module 'next-auth/jwt' {
 
 type ExtendedSessionUser = Session['user'] & {
   bio?: string | null
+  staffRole?: string | null
   latitude?: number | null
   longitude?: number | null
   serviceRadiusKm?: number | null
@@ -100,6 +101,7 @@ const providers: AuthProvider[] = [
             name: true,
             email: true,
             role: true,
+            staffRole: true,
             password: true,
             isActive: true,
           }
@@ -130,6 +132,7 @@ const providers: AuthProvider[] = [
           name: user.name,
           email: user.email,
           role: user.role,
+          staffRole: user.staffRole,
         }
       } catch (err) {
         console.error('[auth] Unexpected error in Credentials authorize:', err)
@@ -166,7 +169,7 @@ export const authOptions: NextAuthOptions = {
         try {
           const existing = await prisma.user.findUnique({
             where: { email },
-            select: { id: true, role: true, isActive: true }
+            select: { id: true, role: true, staffRole: true, isActive: true }
           })
 
           if (existing?.isActive === false) {
@@ -215,6 +218,7 @@ export const authOptions: NextAuthOptions = {
             } else {
               user.role = existing.role
             }
+            ;(user as { staffRole?: string | null }).staffRole = existing.staffRole
             user.id = existing.id
           }
         } catch (err) {
@@ -232,6 +236,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         t.id = user.id
         t.role = user.role || "buyer"
+        const signInStaffRole = (user as { staffRole?: string | null }).staffRole
+        t.staffRole = isStaffRole(signInStaffRole) ? signInStaffRole : undefined
         // Populate profile fields at signin time only (avoids per-request DB in session)
         // If profile edited later, client can refresh session or re-login for instant reflect
         try {
@@ -239,6 +245,8 @@ export const authOptions: NextAuthOptions = {
             where: { id: user.id as string },
             select: {
               name: true,
+              role: true,
+              staffRole: true,
               tagline: true,
               profilePicture: true,
               coverImageUrl: true,
@@ -258,6 +266,8 @@ export const authOptions: NextAuthOptions = {
             }
           })
           if (dbUser) {
+            if (isUserRole(dbUser.role)) t.role = dbUser.role
+            t.staffRole = isStaffRole(dbUser.staffRole) ? dbUser.staffRole : undefined
             t.name = dbUser.name
             t.tagline = dbUser.tagline
             t.profilePicture = dbUser.profilePicture
@@ -337,7 +347,7 @@ export const authOptions: NextAuthOptions = {
               const realAdmin = await prisma.user.findUnique({
                 where: { id: realAdminId },
                 select: {
-                  id: true, name: true, role: true, email: true,
+                  id: true, name: true, role: true, staffRole: true, email: true,
                   tagline: true, profilePicture: true, businessName: true,
                   bio: true, phone: true, whatsapp: true, instagram: true, facebook: true,
                   city: true, latitude: true, longitude: true, serviceRadiusKm: true,
@@ -347,6 +357,7 @@ export const authOptions: NextAuthOptions = {
               if (realAdmin) {
                 t.id = realAdmin.id
                 t.role = realAdmin.role || 'admin'
+                t.staffRole = isStaffRole(realAdmin.staffRole) ? realAdmin.staffRole : undefined
                 t.name = realAdmin.name
                 t.email = realAdmin.email
                 t.tagline = realAdmin.tagline
@@ -402,6 +413,7 @@ export const authOptions: NextAuthOptions = {
               id: true,
               name: true,
               role: true,
+              staffRole: true,
               email: true,
               tagline: true,
               profilePicture: true,
@@ -428,6 +440,7 @@ export const authOptions: NextAuthOptions = {
             // Override visible session identity with the impersonated user
             t.id = target.id
             t.role = target.role || 'buyer'
+            t.staffRole = isStaffRole(target.staffRole) ? target.staffRole : undefined
             t.name = target.name
             t.email = target.email
             t.tagline = target.tagline
@@ -461,16 +474,18 @@ export const authOptions: NextAuthOptions = {
       const effectiveUserId = t?.id as string | undefined
 
       let dbRole: string | undefined
+      let dbStaffRole: string | null | undefined
       if (effectiveUserId) {
         try {
           const activeUser = await prisma.user.findUnique({
             where: { id: effectiveUserId },
-            select: { isActive: true, role: true },
+            select: { isActive: true, role: true, staffRole: true },
           })
           if (activeUser?.isActive === false) {
             return { ...session, user: undefined, expired: true }
           }
           dbRole = activeUser?.role
+          dbStaffRole = activeUser?.staffRole
         } catch (e) {
           devLog('[auth] session isActive check failed (non-fatal)', e)
         }
@@ -485,6 +500,11 @@ export const authOptions: NextAuthOptions = {
           : isUserRole(t.role)
             ? t.role
             : 'buyer'
+        su.staffRole = isStaffRole(dbStaffRole)
+          ? dbStaffRole
+          : isStaffRole(t.staffRole)
+            ? t.staffRole
+            : null
 
         // Profile fields come from token (populated at signin/jwt to avoid N+1 DB per session)
         if (t.name) su.name = t.name

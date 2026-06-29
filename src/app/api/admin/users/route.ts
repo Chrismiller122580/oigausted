@@ -17,9 +17,15 @@ export async function GET(req: NextRequest) {
     const roleFilter = searchParams.get('role');
     const activeFilter = searchParams.get('active'); // 'true' | 'false'
 
+    const isStaffFilter = roleFilter === 'accountant' || roleFilter === 'admin_assistant';
+
     const users = await prisma.user.findMany({
       where: {
-        ...(roleFilter && { role: roleFilter }),
+        ...(isStaffFilter
+          ? { staffRole: roleFilter }
+          : roleFilter
+            ? { role: roleFilter }
+            : {}),
         ...(activeFilter && { isActive: activeFilter === 'true' }),
       },
       select: {
@@ -27,6 +33,7 @@ export async function GET(req: NextRequest) {
         name: true,
         email: true,
         role: true,
+        staffRole: true,
         businessName: true,
         // slug: true, // omitted for prod DB compatibility until migration
         phone: true,
@@ -70,7 +77,8 @@ export async function PATCH(req: NextRequest) {
 
     const { 
       userId, 
-      role, 
+      role,
+      staffRole,
       name, 
       email,
       tagline,
@@ -93,9 +101,13 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'userId requerido' }, { status: 400 });
     }
 
-    const VALID_ROLES = ['buyer', 'seller', 'admin', 'accountant', 'admin_assistant'] as const;
+    const VALID_ROLES = ['buyer', 'seller', 'admin'] as const;
+    const VALID_STAFF_ROLES = ['accountant', 'admin_assistant'] as const;
     if (role && !VALID_ROLES.includes(role)) {
-      return NextResponse.json({ error: 'Rol no válido' }, { status: 400 });
+      return NextResponse.json({ error: 'Rol de marketplace no válido' }, { status: 400 });
+    }
+    if (staffRole !== undefined && staffRole !== null && staffRole !== '' && !VALID_STAFF_ROLES.includes(staffRole)) {
+      return NextResponse.json({ error: 'Rol de staff no válido' }, { status: 400 });
     }
 
     // Email uniqueness check if changing email
@@ -122,6 +134,9 @@ export async function PATCH(req: NextRequest) {
 
     const updateData: import('@prisma/client').Prisma.UserUpdateInput = {
       ...(role && { role }),
+      ...(staffRole !== undefined && {
+        staffRole: staffRole === '' || staffRole === null ? null : staffRole,
+      }),
       ...(name !== undefined && { name }),
       ...(email !== undefined && { email: email.toLowerCase().trim() }),
       ...(tagline !== undefined && { tagline }),
@@ -193,7 +208,8 @@ export async function PATCH(req: NextRequest) {
           name: true, 
           tagline: true,
           email: true, 
-          role: true, 
+          role: true,
+          staffRole: true,
           businessName: true,
           // slug: true, // omitted for prod DB compatibility until migration
           phone: true,
@@ -219,7 +235,7 @@ export async function PATCH(req: NextRequest) {
           where: { id: userId },
           data: updateData,
           select: { 
-            id: true, name: true, tagline: true, email: true, role: true, businessName: true,
+            id: true, name: true, tagline: true, email: true, role: true, staffRole: true, businessName: true,
             phone: true, whatsapp: true, instagram: true, facebook: true,
             bio: true, nit: true, city: true, latitude: true, longitude: true,
             serviceRadiusKm: true, customReferralRate: true
@@ -237,7 +253,7 @@ export async function PATCH(req: NextRequest) {
 
     // Choose more specific action when possible (matches schema examples + better filtering on audit page)
     let action = 'USER_UPDATED';
-    if (role) action = 'USER_ROLE_CHANGED';
+    if (role || staffRole !== undefined) action = 'USER_ROLE_CHANGED';
     else if (isActive !== undefined) action = isActive ? 'USER_ACTIVATED' : 'USER_DEACTIVATED';
     else if (customReferralRate !== undefined) action = 'USER_REFERRAL_RATE_UPDATED';
 
@@ -249,6 +265,7 @@ export async function PATCH(req: NextRequest) {
       details: {
         changedFields: Object.keys({
           ...(role && { role }),
+          ...(staffRole !== undefined && { staffRole }),
           ...(name !== undefined && { name }),
           ...(businessName !== undefined && { businessName }),
           ...(phone !== undefined && { phone }),
@@ -265,12 +282,17 @@ export async function PATCH(req: NextRequest) {
     });
 
     // Notify the affected user if their role changed
-    if (role) {
+    if (role || staffRole !== undefined) {
+      const parts = [];
+      if (role) parts.push(`marketplace: ${role}`);
+      if (staffRole !== undefined) {
+        parts.push(`staff: ${staffRole || 'ninguno'}`);
+      }
       await notifications.sendInApp(
         userId,
         'system',
         'Tu rol ha sido actualizado',
-        `Tu cuenta ahora tiene el rol de ${role}.`,
+        `Tu cuenta ahora tiene ${parts.join(', ')}.`,
         `/profile`
       );
     }

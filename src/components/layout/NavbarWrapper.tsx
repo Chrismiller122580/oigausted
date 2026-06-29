@@ -10,13 +10,13 @@ import { ModeToggle } from '@/components/ui/mode-toggle';
 import MobileMenu from './MobileMenu';
 import Logo from '@/components/common/Logo';
 
-// Same-folder imports (all files are in layout/)
 import AdminNavbar from './AdminNavbar';
 import AdminAssistantNavbar from './AdminAssistantNavbar';
 import AccountantNavbar from './AccountantNavbar';
 import BuyerNavbar from './BuyerNavbar';
 import SellerNavbar from './SellerNavbar';
 import ImpersonationBanner from './ImpersonationBanner';
+import { isStaffRole, isUserRole } from '@/lib/session';
 
 export default function NavbarWrapper({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
@@ -24,7 +24,10 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password' || pathname?.startsWith('/login/') || false;
   const banner = <ImpersonationBanner />;
-  const role = String(session?.user?.role || '').toLowerCase().trim();
+
+  const rawRole = String(session?.user?.role || '').toLowerCase().trim();
+  const role = isUserRole(rawRole) ? rawRole : 'buyer';
+  const staffRole = isStaffRole(session?.user?.staffRole) ? session.user.staffRole : null;
 
   if (role === 'admin') {
     return (
@@ -34,7 +37,8 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
       </>
     );
   }
-  if (role === 'accountant') {
+
+  if (pathname.startsWith('/accountant') && staffRole === 'accountant') {
     return (
       <>
         {banner}
@@ -42,7 +46,8 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
       </>
     );
   }
-  if (role === 'admin_assistant') {
+
+  if (pathname.startsWith('/admin-assistant') && staffRole === 'admin_assistant') {
     return (
       <>
         {banner}
@@ -50,6 +55,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
       </>
     );
   }
+
   if (role === 'seller') {
     return (
       <>
@@ -58,6 +64,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
       </>
     );
   }
+
   if (role === 'buyer') {
     return (
       <>
@@ -67,7 +74,6 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
     );
   }
 
-  // Homepage v2 ships its own sticky navbar — skip the default public bar on /
   const isHomepage = pathname === '/';
 
   if (isHomepage) {
@@ -79,7 +85,6 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
     );
   }
 
-  // Public navbar
   return (
     <>
       {banner}
@@ -96,7 +101,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
 
             <div className="md:hidden flex items-center gap-2">
               {!isAuthPage && <ModeToggle />}
-              <button 
+              <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 aria-label="Toggle menu"
                 className="p-2"
@@ -108,11 +113,10 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
         </div>
       </nav>
 
-      {/* Mobile Menu for public users */}
-      <MobileMenu 
-        isOpen={isMobileMenuOpen} 
-        onClose={() => setIsMobileMenuOpen(false)} 
-        role="public" 
+      <MobileMenu
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        role="public"
       />
 
       <main>{children}</main>

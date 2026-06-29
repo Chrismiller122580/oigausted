@@ -12,6 +12,7 @@ import MobileMenu from './MobileMenu';
 import MobileBottomNav from './MobileBottomNav';
 import Logo from '@/components/common/Logo';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { StaffPortalLink } from './StaffPortalLink';
 
 export default function BuyerNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
@@ -84,6 +85,7 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
                 </Link>
               )}
 
+              <StaffPortalLink className="hidden lg:flex p-2 rounded-md hover:bg-accent" />
               <Link 
                 href="/support" 
                 className="hidden lg:inline text-muted-foreground hover:text-foreground transition p-2 rounded-md hover:bg-accent flex items-center gap-1.5" 
