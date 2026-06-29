@@ -1,9 +1,8 @@
 import { track as vercelTrack } from '@vercel/analytics'
 import { hasGoogleAnalyticsConsent } from '@/lib/analytics-consent'
+import { GA_MEASUREMENT_ID } from '@/lib/ga-config'
 
 export type AnalyticsEventProps = Record<string, string | number | boolean | undefined>
-
-const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
 
 type GtagWindow = Window & {
   gtag?: (...args: unknown[]) => void

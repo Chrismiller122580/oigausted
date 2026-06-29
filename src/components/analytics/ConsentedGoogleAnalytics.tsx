@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react'
 import { GoogleAnalytics } from '@next/third-parties/google'
 import { getAnalyticsConsent } from '@/lib/analytics-consent'
-
-const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+import { GA_MEASUREMENT_ID } from '@/lib/ga-config'
 
 export default function ConsentedGoogleAnalytics() {
   const [enabled, setEnabled] = useState(false)

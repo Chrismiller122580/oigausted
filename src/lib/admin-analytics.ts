@@ -1,5 +1,6 @@
 import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status'
 import { prisma } from '@/lib/prisma'
+import { GA_MEASUREMENT_ID } from '@/lib/ga-config'
 
 export type AnalyticsIntegration = {
   id: string
@@ -333,7 +334,7 @@ function buildFunnelDropOffs(steps: FunnelStep[]): FunnelDropOff[] {
 }
 
 export function getAnalyticsIntegrations(): AnalyticsIntegration[] {
-  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim()
+  const gaId = GA_MEASUREMENT_ID
   const vercelAnalyticsUrl =
     process.env.ADMIN_VERCEL_ANALYTICS_URL?.trim() || 'https://vercel.com/dashboard'
   const vercelSpeedUrl =
