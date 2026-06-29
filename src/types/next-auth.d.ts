@@ -5,7 +5,7 @@ declare module "next-auth" {
     expired?: boolean
     user: {
       id: string
-      role?: "buyer" | "seller" | "admin" | "accountant" | "admin_assistant" | "accountant" | "admin_assistant"
+      role?: "buyer" | "seller" | "admin" | "accountant" | "admin_assistant"
       tagline?: string | null
       bio?: string | null
       businessName?: string | null

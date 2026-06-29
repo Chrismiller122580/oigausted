@@ -6,7 +6,7 @@ import { devLog } from './utils'
 import { verifyImpersonationToken } from './impersonation'
 import type { NextAuthOptions, Session } from 'next-auth'
 import type { JWT } from 'next-auth/jwt'
-import type { UserRole } from './session'
+import { getUserRole, isUserRole, type UserRole } from './session'
 
 type AuthProvider = ReturnType<typeof CredentialsProvider> | ReturnType<typeof GoogleProvider>
 
@@ -71,9 +71,7 @@ export function isAdmin(userOrSession: SessionLike): boolean {
 }
 
 export function getSessionRole(session: SessionLike): UserRole {
-  const role = session?.user?.role
-  if (role === 'admin' || role === 'seller' || role === 'buyer') return role
-  return 'buyer'
+  return getUserRole(session as Session | null | undefined)
 }
 
 export function isSeller(session: SessionLike): boolean {
@@ -462,15 +460,17 @@ export const authOptions: NextAuthOptions = {
       const t = token as JWT
       const effectiveUserId = t?.id as string | undefined
 
+      let dbRole: string | undefined
       if (effectiveUserId) {
         try {
           const activeUser = await prisma.user.findUnique({
             where: { id: effectiveUserId },
-            select: { isActive: true },
+            select: { isActive: true, role: true },
           })
           if (activeUser?.isActive === false) {
             return { ...session, user: undefined, expired: true }
           }
+          dbRole = activeUser?.role
         } catch (e) {
           devLog('[auth] session isActive check failed (non-fatal)', e)
         }
@@ -479,7 +479,12 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         const su = session.user as ExtendedSessionUser
         su.id = t.id as string
-        su.role = (t.role === 'admin' || t.role === 'seller' || t.role === 'buyer' ? t.role : 'buyer')
+        // Prefer DB role so admin role changes apply without forcing a re-login
+        su.role = isUserRole(dbRole)
+          ? dbRole
+          : isUserRole(t.role)
+            ? t.role
+            : 'buyer'
 
         // Profile fields come from token (populated at signin/jwt to avoid N+1 DB per session)
         if (t.name) su.name = t.name
