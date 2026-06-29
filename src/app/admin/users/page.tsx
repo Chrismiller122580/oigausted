@@ -346,6 +346,8 @@ export default function AdminUsersPage() {
               <option value="buyer">Buyers</option>
               <option value="seller">Sellers</option>
               <option value="admin">Admins</option>
+              <option value="accountant">Accountants</option>
+              <option value="admin_assistant">Admin Assistants</option>
             </select>
 
             <select
@@ -417,11 +419,16 @@ export default function AdminUsersPage() {
                           <option value="buyer">Buyer</option>
                           <option value="seller">Seller</option>
                           <option value="admin">Admin</option>
+                          <option value="accountant">Accountant</option>
+                          <option value="admin_assistant">Admin Assistant</option>
                         </select>
                       ) : (
                         <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold capitalize ${
                           user.role === 'admin' ? 'bg-purple-600 text-white' :
-                          user.role === 'seller' ? 'bg-orange-600 text-white' : 'bg-blue-600 text-white'
+                          user.role === 'seller' ? 'bg-orange-600 text-white' :
+                          user.role === 'accountant' ? 'bg-emerald-600 text-white' :
+                          user.role === 'admin_assistant' ? 'bg-indigo-600 text-white' :
+                          'bg-blue-600 text-white'
                         }`}>
                           {user.role}
                         </span>
@@ -518,6 +525,8 @@ export default function AdminUsersPage() {
                             <option value="buyer">Comprador</option>
                             <option value="seller">Vendedor</option>
                             <option value="admin">Admin</option>
+                            <option value="accountant">Accountant</option>
+                            <option value="admin_assistant">Admin Assistant</option>
                           </select>
                           <Button size="sm" onClick={() => saveRole(user.id)} className="bg-emerald-600 text-xs px-2">✓</Button>
                           <Button size="sm" variant="outline" onClick={cancelEdit} className="text-xs px-2">✕</Button>

@@ -5,7 +5,7 @@ declare module "next-auth" {
     expired?: boolean
     user: {
       id: string
-      role?: "buyer" | "seller" | "admin"
+      role?: "buyer" | "seller" | "admin" | "accountant" | "admin_assistant" | "accountant" | "admin_assistant"
       tagline?: string | null
       bio?: string | null
       businessName?: string | null
@@ -33,7 +33,7 @@ declare module "next-auth" {
 
   interface User {
     id: string
-    role?: "buyer" | "seller" | "admin"
+    role?: "buyer" | "seller" | "admin" | "accountant" | "admin_assistant"
     businessName?: string | null
     profilePicture?: string | null
     rating?: number
@@ -49,7 +49,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id: string
-    role?: "buyer" | "seller" | "admin"
+    role?: "buyer" | "seller" | "admin" | "accountant" | "admin_assistant"
     name?: string | null
     email?: string | null
     profilePicture?: string | null

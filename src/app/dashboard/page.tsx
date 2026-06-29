@@ -23,6 +23,10 @@ export default function DashboardRedirect() {
       router.replace("/buyer")
     } else if (role === "admin") {
       router.replace("/admin")
+    } else if (role === "accountant") {
+      router.replace("/accountant")
+    } else if (role === "admin_assistant") {
+      router.replace("/admin-assistant")
     } else {
       router.replace("/login")
     }

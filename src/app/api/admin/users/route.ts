@@ -93,6 +93,11 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'userId requerido' }, { status: 400 });
     }
 
+    const VALID_ROLES = ['buyer', 'seller', 'admin', 'accountant', 'admin_assistant'] as const;
+    if (role && !VALID_ROLES.includes(role)) {
+      return NextResponse.json({ error: 'Rol no válido' }, { status: 400 });
+    }
+
     // Email uniqueness check if changing email
     if (email) {
       const existing = await prisma.user.findUnique({ 
