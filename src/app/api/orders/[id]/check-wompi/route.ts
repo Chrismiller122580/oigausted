@@ -22,7 +22,9 @@ function pickBestWompiTransaction(transactions: WompiTransaction[]): WompiTransa
     const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
     return tb - ta;
   });
-  return sorted.find((t) => t.status === 'APPROVED') ?? sorted[0];
+  // Always use the newest transaction so a declined retry is not ignored
+  // in favor of an older APPROVED attempt on the same reference.
+  return sorted[0];
 }
 
 export async function POST(

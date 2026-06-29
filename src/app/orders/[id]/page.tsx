@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
+import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider
 import { trackEvent } from '@/lib/analytics';
 import { buildWompiWidgetConfig } from '@/lib/wompi-widget';
 import { getOrderProgressSteps } from '@/lib/order-progress';
+import { getOrderStatusDisplayEs } from '@/lib/order-status';
 
 function OrderDetailClient() {
   const params = useParams();
@@ -54,6 +56,7 @@ function OrderDetailClient() {
 
   // Polling for Wompi payment confirmation (smart non-bypass UX)
   const [isPollingPayment, setIsPollingPayment] = useState(false);
+  const [paymentUnconfirmed, setPaymentUnconfirmed] = useState(false);
   const paymentPollRef = useRef<NodeJS.Timeout | null>(null);
 
   // For the Wompi debugger panel
@@ -134,6 +137,27 @@ function OrderDetailClient() {
   const isAdmin = session?.user?.role === 'admin';
   const isCompleted = order?.status === 'Completed';
 
+  const showPaymentStatusToast = (status: string) => {
+    if (status === 'Paid') {
+      trackEvent('payment_completed', { order_status: status });
+      toast.success('Pago confirmado');
+    } else if (status === 'Cancelled') {
+      toast.error('El pago no se completó');
+    }
+  };
+
+  const syncWompiPayment = async (transactionId?: string) => {
+    await fetch(`/api/orders/${orderId}/check-wompi`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(transactionId ? { transactionId } : {}),
+    }).catch(() => {});
+    const fresh = await fetch(`/api/orders/${orderId}`).then((r) => r.json());
+    const upd = fresh.order || fresh;
+    setOrder(upd);
+    return upd;
+  };
+
   useEffect(() => {
     if (!orderId) return;
     Promise.all([
@@ -169,8 +193,17 @@ function OrderDetailClient() {
       // start polling the order status so the user sees the update without manual refresh.
       const currentOrder = orderData.order || orderData;
       if (currentOrder?.status === 'Pending') {
+        const fromWompi = searchParams.get('from') === 'wompi';
         const createdRecently = currentOrder.createdAt && (Date.now() - new Date(currentOrder.createdAt).getTime() < 1000 * 60 * 10);
-        if (createdRecently || searchParams.get('from') === 'wompi' || searchParams.get('tab') === 'overview') {
+        if (fromWompi) {
+          syncWompiPayment().then((upd) => {
+            if (upd.status !== 'Pending') {
+              showPaymentStatusToast(upd.status);
+            } else {
+              startPaymentPolling();
+            }
+          }).catch(() => startPaymentPolling());
+        } else if (createdRecently || searchParams.get('tab') === 'overview') {
           startPaymentPolling();
         }
       }
@@ -226,16 +259,12 @@ function OrderDetailClient() {
         if (fresh.status !== 'Pending') {
           setOrder(fresh);
           setIsPollingPayment(false);
+          setPaymentUnconfirmed(false);
           if (paymentPollRef.current) {
             clearInterval(paymentPollRef.current);
             paymentPollRef.current = null;
           }
-          if (fresh.status === 'Paid') {
-            trackEvent('payment_completed', { order_status: fresh.status });
-            toast.success('Pago confirmado');
-          } else if (fresh.status === 'Cancelled') {
-            toast.error('El pago no se completó');
-          }
+          showPaymentStatusToast(fresh.status);
         }
       } catch (e) {
         // ignore transient fetch errors
@@ -243,11 +272,22 @@ function OrderDetailClient() {
     }, 4000); // every 4s
 
     // Auto-stop after ~2 minutes
-    setTimeout(() => {
-      if (paymentPollRef.current) {
-        clearInterval(paymentPollRef.current);
-        paymentPollRef.current = null;
-        setIsPollingPayment(false);
+    setTimeout(async () => {
+      if (!paymentPollRef.current) return;
+      clearInterval(paymentPollRef.current);
+      paymentPollRef.current = null;
+      setIsPollingPayment(false);
+      if (searchParams.get('from') === 'wompi') {
+        try {
+          const res = await fetch(`/api/orders/${orderId}`);
+          if (res.ok) {
+            const data = await res.json();
+            const fresh = data.order || data;
+            if (fresh.status === 'Pending') {
+              setPaymentUnconfirmed(true);
+            }
+          }
+        } catch {}
       }
     }, 1000 * 120);
   };
@@ -440,10 +480,36 @@ function OrderDetailClient() {
             ${Number(order.price || 0).toLocaleString('es-CO')}
           </div>
           <div className="text-sm uppercase tracking-widest text-muted-foreground mt-1">
-            {order.status}
+            {getOrderStatusDisplayEs(order.status)}
           </div>
         </div>
       </div>
+
+      {order.status === 'Cancelled' && isBuyer && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 dark:bg-red-950/30 p-4 text-sm text-red-800 dark:text-red-300">
+          <p className="font-medium">Pago no completado o pedido cancelado.</p>
+          <p className="mt-1 text-red-700/80 dark:text-red-400/80">
+            Si tu banco rechazó el pago, puedes intentar de nuevo con un nuevo pedido.
+          </p>
+          {order.gigId && (
+            <Link
+              href={`/checkout/${order.gigId}`}
+              className="mt-3 inline-block text-red-700 dark:text-red-300 font-medium underline underline-offset-2"
+            >
+              Crear nuevo pedido
+            </Link>
+          )}
+        </div>
+      )}
+
+      {order.status === 'Pending' && paymentUnconfirmed && isBuyer && (
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 p-4 text-sm text-amber-800 dark:text-amber-300">
+          <p className="font-medium">No pudimos confirmar el pago.</p>
+          <p className="mt-1 text-amber-700/80 dark:text-amber-400/80">
+            Si tu banco rechazó la transacción, el pedido puede seguir pendiente unos minutos. Intenta pagar de nuevo o contacta soporte si el problema continúa.
+          </p>
+        </div>
+      )}
 
       {/* Payment confirmation — visual-only while Wompi webhook/polling updates status */}
       {order.status === 'Pending' && isPollingPayment && (
@@ -768,15 +834,14 @@ function OrderDetailClient() {
                                 }
                                 setTimeout(async () => {
                                   try {
-                                    const fresh = await fetch(`/api/orders/${orderId}`).then(r => r.json());
-                                    const upd = fresh.order || fresh;
-                                    setOrder(upd);
+                                    const txId = result?.transaction?.id;
+                                    const upd = await syncWompiPayment(txId);
+                                    setPaymentUnconfirmed(false);
                                     if (upd.status === 'Pending') {
-                                      fetch(`/api/orders/${orderId}/check-wompi`, { method: 'POST' }).catch(() => {});
                                       startPaymentPolling();
                                     } else {
                                       setIsPollingPayment(false);
-                                      toast.success(`Estado actualizado: ${upd.status}`);
+                                      showPaymentStatusToast(upd.status);
                                     }
                                   } catch {}
                                 }, 1500);

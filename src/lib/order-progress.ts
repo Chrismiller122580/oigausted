@@ -51,6 +51,13 @@ function statusIndex(status: OrderStatusLabelValue): number {
   }
 }
 
+function stepLabel(key: OrderProgressStepKey, statusLabel: OrderStatusLabelValue): string {
+  if (key === 'paid' && statusLabel === OrderStatusLabel.Pending) {
+    return 'Esperando pago'
+  }
+  return STEP_LABELS[key]
+}
+
 export function getOrderProgressSteps({
   status,
   createdAt,
@@ -68,10 +75,15 @@ export function getOrderProgressSteps({
   if (label === OrderStatusLabel.Cancelled) {
     return STEP_KEYS.map((key) => ({
       key,
-      label: STEP_LABELS[key],
+      label: key === 'paid' ? 'Pago no completado' : STEP_LABELS[key],
       done: key === 'created',
-      current: false,
-      date: key === 'created' && createdAt ? String(createdAt) : null,
+      current: key === 'paid',
+      date:
+        key === 'created' && createdAt
+          ? String(createdAt)
+          : key === 'paid' && updatedAt
+            ? String(updatedAt)
+            : null,
     }))
   }
 
@@ -112,7 +124,7 @@ export function getOrderProgressSteps({
 
     return {
       key,
-      label: STEP_LABELS[key],
+      label: stepLabel(key, label),
       done,
       current: currentKey !== null && !done && key === currentKey,
       date,
@@ -137,3 +149,15 @@ export const ORDER_PROGRESS_MILESTONE_LABELS = [
   'Completado',
   'Aprobado',
 ] as const
+
+/** Milestone labels for order list progress bar — reflects unpaid vs paid state. */
+export function getOrderProgressMilestoneLabels(status: string): string[] {
+  const label = prismaStatusToLabel(status)
+  if (label === OrderStatusLabel.Pending) {
+    return ['Creado', 'Esperando pago', 'Aceptado', 'En progreso', 'Completado', 'Aprobado']
+  }
+  if (label === OrderStatusLabel.Cancelled) {
+    return ['Creado', 'Pago no completado', '—', '—', '—', '—']
+  }
+  return [...ORDER_PROGRESS_MILESTONE_LABELS]
+}

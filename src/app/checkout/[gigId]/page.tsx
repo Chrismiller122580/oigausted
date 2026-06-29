@@ -417,18 +417,24 @@ export default function CheckoutPage() {
             }
             // Post-payment: let webhook or check-wompi update order, then go to order page
             const targetOrderId = order?.id;
+            const txId = result?.transaction?.id;
             setTimeout(async () => {
               try {
                 if (targetOrderId) {
-                  await fetch(`/api/orders/${targetOrderId}/check-wompi`, { method: 'POST' }).catch(() => {});
+                  await fetch(`/api/orders/${targetOrderId}/check-wompi`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(txId ? { transactionId: txId } : {}),
+                  }).catch(() => {});
                   const fresh = await fetch(`/api/orders/${targetOrderId}`).then(r => r.json());
-                  if (fresh?.order?.status && fresh.order.status !== 'Pending') {
-                    trackEvent('payment_completed', { order_status: fresh.order.status });
-                    toast.success(`Pago detectado: ${fresh.order.status}. Redirigiendo...`);
-                    router.push(`/orders/${targetOrderId}?from=wompi`);
-                  } else {
-                    router.push(`/orders/${targetOrderId}?from=wompi`);
+                  const status = fresh?.order?.status ?? fresh?.status;
+                  if (status === 'Paid') {
+                    trackEvent('payment_completed', { order_status: status });
+                    toast.success('Pago confirmado. Redirigiendo...');
+                  } else if (status === 'Cancelled') {
+                    toast.error('El pago no se completó. Redirigiendo...');
                   }
+                  router.push(`/orders/${targetOrderId}?from=wompi`);
                 } else {
                   router.push('/orders');
                 }

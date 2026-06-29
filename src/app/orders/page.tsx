@@ -10,7 +10,8 @@ import { Progress } from '@/components/ui/progress';
 import { parseCustomFields } from '@/lib/utils';
 import type { OrderDetail } from '@/types/order';
 import type { OrderReview } from '@/types/order';
-import { getOrderProgressPercent, ORDER_PROGRESS_MILESTONE_LABELS } from '@/lib/order-progress';
+import { getOrderProgressPercent, getOrderProgressMilestoneLabels } from '@/lib/order-progress';
+import { getOrderStatusDisplayEs } from '@/lib/order-status';
 
 export default function BuyerOrdersPage() {
   const { data: session, status } = useSession();
@@ -113,7 +114,7 @@ export default function BuyerOrdersPage() {
                       <h3 className="font-semibold text-2xl line-clamp-2">{order.gig?.title}</h3>
                       <div className="flex items-center gap-2">
                         <span className={`px-5 py-2 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-                          {order.status}
+                          {getOrderStatusDisplayEs(order.status)}
                         </span>
                         {needsReview(order) && (
                           <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
@@ -128,8 +129,8 @@ export default function BuyerOrdersPage() {
                     <div className="mt-6">
                       <Progress value={progress} className="h-3" />
                       <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 text-[10px] sm:text-xs text-muted-foreground mt-2">
-                        {ORDER_PROGRESS_MILESTONE_LABELS.map((label) => (
-                          <span key={label} className="text-center truncate">{label}</span>
+                        {getOrderProgressMilestoneLabels(order.status).map((label, i) => (
+                          <span key={`${order.id}-${i}`} className="text-center truncate">{label}</span>
                         ))}
                       </div>
                     </div>
