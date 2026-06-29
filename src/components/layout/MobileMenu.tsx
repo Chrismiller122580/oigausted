@@ -3,13 +3,17 @@
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp, MessageCircle, Settings, Tag, Briefcase, Bell, Megaphone, Activity, ScanSearch } from 'lucide-react';
+import {
+  X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp,
+  MessageCircle, Settings, Tag, Briefcase, Bell, Megaphone, Activity, ScanSearch,
+  Receipt, ShieldCheck, AlertCircle, FileText, List,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  role?: 'buyer' | 'seller' | 'admin' | 'public';
+  role?: 'buyer' | 'seller' | 'admin' | 'public' | 'accountant' | 'admin-assistant';
 }
 
 export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileMenuProps) {
@@ -130,6 +134,103 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
               <Button 
                 onClick={handleSignOut} 
                 variant="outline" 
+                className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200"
+              >
+                <LogOut size={20} /> Cerrar Sesión
+              </Button>
+            </div>
+          </>
+        )}
+
+        {role === 'accountant' && (
+          <>
+            <Link href="/accountant" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Home size={22} /> Overview
+            </Link>
+            <Link href="/accountant/payouts" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <DollarSign size={22} /> Payouts
+            </Link>
+            <Link href="/accountant/payroll" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Receipt size={22} /> Payroll
+            </Link>
+            <Link href="/accountant/earnings" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <TrendingUp size={22} /> Earnings & Reports
+            </Link>
+            <Link href="/accountant/invoices" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <FileText size={22} /> Invoices & Billing
+            </Link>
+            <Link href="/accountant/transactions" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <BarChart3 size={22} /> Transactions
+            </Link>
+            <Link href="/accountant/tax" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <ShieldCheck size={22} /> Tax Documents
+            </Link>
+            <Link href="/accountant/disputes" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <AlertCircle size={22} /> Payment Disputes
+            </Link>
+            <Link href="/accountant/users-finance" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Users size={22} /> Seller Payouts
+            </Link>
+            <Link href="/accountant/analytics" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <BarChart3 size={22} /> Finance Analytics
+            </Link>
+            <Link href="/accountant/settings" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Settings size={22} /> Accounting Settings
+            </Link>
+            <div className="pt-6">
+              <Button
+                onClick={handleSignOut}
+                variant="outline"
+                className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200"
+              >
+                <LogOut size={20} /> Cerrar Sesión
+              </Button>
+            </div>
+          </>
+        )}
+
+        {role === 'admin-assistant' && (
+          <>
+            <Link href="/admin-assistant" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Home size={22} /> Overview
+            </Link>
+            <Link href="/admin-assistant/users" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Users size={22} /> Users (View)
+            </Link>
+            <Link href="/admin-assistant/orders" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <List size={22} /> Orders
+            </Link>
+            <Link href="/admin-assistant/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Package size={22} /> Gigs
+            </Link>
+            <Link href="/admin-assistant/categories" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Tag size={22} /> Categories
+            </Link>
+            <Link href="/admin-assistant/marketing" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Megaphone size={22} /> Marketing
+            </Link>
+            <Link href="/admin-assistant/payouts" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <DollarSign size={22} /> Payouts
+            </Link>
+            <Link href="/admin-assistant/earnings" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <TrendingUp size={22} /> Earnings & Reports
+            </Link>
+            <Link href="/admin-assistant/support" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <MessageCircle size={22} /> Support
+            </Link>
+            <Link href="/admin-assistant/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Bell size={22} /> Notifications
+            </Link>
+            <Link href="/admin-assistant/analytics" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <BarChart3 size={22} /> Reports
+            </Link>
+            <Link href="/admin-assistant/settings" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Settings size={22} /> Safe Settings
+            </Link>
+            <div className="pt-6">
+              <Button
+                onClick={handleSignOut}
+                variant="outline"
                 className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200"
               >
                 <LogOut size={20} /> Cerrar Sesión

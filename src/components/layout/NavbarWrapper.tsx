@@ -12,6 +12,8 @@ import Logo from '@/components/common/Logo';
 
 // Same-folder imports (all files are in layout/)
 import AdminNavbar from './AdminNavbar';
+import AdminAssistantNavbar from './AdminAssistantNavbar';
+import AccountantNavbar from './AccountantNavbar';
 import BuyerNavbar from './BuyerNavbar';
 import SellerNavbar from './SellerNavbar';
 import ImpersonationBanner from './ImpersonationBanner';
@@ -29,6 +31,22 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
       <>
         {banner}
         <AdminNavbar>{children}</AdminNavbar>
+      </>
+    );
+  }
+  if (role === 'accountant') {
+    return (
+      <>
+        {banner}
+        <AccountantNavbar>{children}</AccountantNavbar>
+      </>
+    );
+  }
+  if (role === 'admin_assistant') {
+    return (
+      <>
+        {banner}
+        <AdminAssistantNavbar>{children}</AdminAssistantNavbar>
       </>
     );
   }
