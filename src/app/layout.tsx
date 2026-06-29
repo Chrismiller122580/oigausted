@@ -9,6 +9,7 @@ import SessionProviderWrapper from "@/components/providers/SessionProviderWrappe
 import MaintenanceBanner from "@/components/layout/MaintenanceBanner";
 import { Toaster } from "sonner"; // 2027-grade beautiful toasts
 import { ensurePlatformConfig } from "@/lib/prisma"; // one-off ensure of PlatformConfig singleton (maintenanceMode etc.) on first boot/request
+import { getPublicSiteInfo, getSiteUrl } from "@/lib/public-site";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import ConsentedGoogleAnalytics from "@/components/analytics/ConsentedGoogleAnalytics";
@@ -31,18 +32,12 @@ export async function generateMetadata(): Promise<Metadata> {
   ensurePlatformConfig().catch(() => { /* non-fatal */ });
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/admin/config`, {
-      next: { revalidate: 300 }, // cache for 5 minutes
-    });
-    if (res.ok) {
-      const cfg = await res.json();
-      if (cfg.siteName) siteName = cfg.siteName;
-      if (cfg.siteTagline?.trim()) siteTagline = cfg.siteTagline.trim();
-      if (cfg._meta?.payment?.appUrl) appUrl = cfg._meta.payment.appUrl;
-    }
+    const info = await getPublicSiteInfo();
+    siteName = info.siteName;
+    if (info.siteTagline?.trim()) siteTagline = info.siteTagline.trim();
+    appUrl = getSiteUrl();
   } catch (e) {
-    // Log the error so it appears in Vercel logs with digest if this causes a render issue
-    console.error('generateMetadata config fetch failed:', e);
+    console.error('generateMetadata config load failed:', e);
   }
 
   const fullTitle = `${siteName} — ${siteTagline}`;
@@ -205,26 +200,14 @@ export default async function RootLayout({
     })();
   `;
 
-  const wompiPublicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY?.trim();
-  const wompiInitScript = wompiPublicKey
-    ? `(function(){try{var k=${JSON.stringify(wompiPublicKey)};window.WOMPI_PUBLIC_KEY=k;if(window.$wompi){window.$wompi.publicKey=k;}}catch(e){}})();`
-    : null;
-
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.className} pb-safe-area-inset-bottom`}>
         <Script
           id="maps-guard"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{ __html: mapsGuardScript }}
         />
-        {wompiInitScript ? (
-          <Script
-            id="wompi-public-key"
-            strategy="beforeInteractive"
-            dangerouslySetInnerHTML={{ __html: wompiInitScript }}
-          />
-        ) : null}
         <SessionProviderWrapper session={session}>
           <MaintenanceBanner />
           <NavbarWrapper>

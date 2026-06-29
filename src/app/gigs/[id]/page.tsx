@@ -1,143 +1,80 @@
-'use client';
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
+import { ArrowLeft, Clock } from 'lucide-react'
+import { GigImageGallery } from '@/components/common/GigImageGallery'
+import GigDetailActions from '@/components/gigs/GigDetailActions'
+import { StarRating } from '@/components/ui/star-rating'
+import { UserAvatar } from '@/components/ui/user-avatar'
+import {
+  getPublicGigById,
+  getSellerReviewsForGigPage,
+  type GigPageReview,
+} from '@/lib/gig-queries'
+import type { DynamicFieldDef } from '@/types/gig-fields'
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useSession } from 'next-auth/react';
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock } from 'lucide-react';
-import StartInquiryButton from '@/components/common/StartInquiryButton';
-import { StarRating } from '@/components/ui/star-rating';
-import { UserAvatar } from '@/components/ui/user-avatar';
-import { parseJsonArrayField } from "@/lib/utils";
-import { getGigImages } from "@/lib/gig-images";
-import { GigImageGallery } from "@/components/common/GigImageGallery";
-import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
-import { toast } from 'sonner';
-import type { DynamicFieldDef } from '@/types/gig-fields';
-import type { OrderReview } from '@/types/order';
+export const revalidate = 60
 
-interface GigDetail {
-  id: string;
-  title: string;
-  description?: string;
-  price: number;
-  category: string;
-  isActive?: boolean;
-  fields?: unknown;
-  addons?: unknown;
-  sellerId?: string;
-  imageUrl?: string | null;
-  images?: string[];
-  completionTime?: string | null;
-  seller?: {
-    id: string;
-    name?: string | null;
-    businessName?: string | null;
-    slug?: string | null;
-    rating?: number;
-    reviewCount?: number;
-  };
+type PageProps = { params: Promise<{ id: string }> }
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params
+  const gig = await getPublicGigById(id)
+  if (!gig) return { title: 'Servicio no encontrado' }
+
+  const description =
+    gig.description?.slice(0, 160) ||
+    `${gig.title} — servicio local en Oigagig`
+
+  return {
+    title: gig.title,
+    description,
+    openGraph: {
+      title: gig.title,
+      description,
+      images: gig.images[0] ? [{ url: gig.images[0] }] : undefined,
+    },
+  }
 }
 
-export default function GigDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const { data: session, status } = useSession();
+export default async function GigDetailPage({ params }: PageProps) {
+  const { id } = await params
+  const gig = await getPublicGigById(id)
 
-  const [gig, setGig] = useState<GigDetail | null>(null);
-  const [reviews, setReviews] = useState<OrderReview[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (status === "loading") return;
-    fetchGig();
-  }, [status, params.id]);
-
-  const fetchGig = async () => {
-    try {
-      const res = await fetch(`/api/gigs/${params.id}`);
-      if (!res.ok) throw new Error("Gig no encontrado");
-      const data = await res.json();
-      const loadedGig = data.gig || data;
-      setGig(loadedGig);
-
-      if (loadedGig && loadedGig.isActive === false) {
-        setError('Este servicio está pausado temporalmente por el vendedor.');
-      }
-
-      // Load reviews for this seller (or this specific gig)
-      if (loadedGig?.seller?.id) {
-        const reviewsRes = await fetch(`/api/reviews?sellerId=${loadedGig.seller.id}&limit=4`);
-        const reviewsData = await reviewsRes.json();
-        setReviews(reviewsData.reviews || []);
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al cargar el gig");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBuyNow = () => {
-    if (!gig) return;
-
-    if (gig.isActive === false) {
-      toast.error('Este servicio está pausado y no se puede comprar.');
-      return;
-    }
-
-    if (!session?.user) {
-      router.push(`/login?callbackUrl=${encodeURIComponent(getAuthCallbackUrl(`/gigs/${params.id}`))}`);
-      return;
-    }
-
-    router.push(`/checkout/${gig.id}`);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-lg text-muted-foreground">Cargando servicio...</p>
-        </div>
-      </div>
-    );
+  if (!gig) {
+    notFound()
   }
 
-  if (error || !gig) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 text-xl mb-4">{error || "Gig no encontrado"}</p>
-          <Link href="/gigs" className="text-emerald-600 hover:underline">
-            Volver al listado de gigs
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const reviews: GigPageReview[] = gig.seller?.id
+    ? await getSellerReviewsForGigPage(gig.seller.id, 4)
+    : []
 
-  const userId = session?.user?.id;
-  const isOwnGig = userId && (userId === gig.sellerId || userId === gig.seller?.id);
+  const pausedNotice = !gig.isActive
+    ? 'Este servicio está pausado temporalmente por el vendedor.'
+    : null
 
-  const gigFields = parseJsonArrayField(gig?.fields);
-  const gigAddons = parseJsonArrayField(gig?.addons);
-  const gigImages = getGigImages(gig);
+  const gigFields = gig.fields as DynamicFieldDef[]
 
   return (
     <div className="bg-background py-8">
       <div className="max-w-7xl mx-auto px-6">
-        <Link href="/gigs" className="flex items-center gap-2 text-emerald-600 hover:underline mb-8 inline-block">
+        <Link
+          href="/gigs"
+          className="flex items-center gap-2 text-emerald-600 hover:underline mb-8 inline-block"
+        >
           <ArrowLeft size={20} /> Volver a todos los gigs
         </Link>
 
+        {pausedNotice && (
+          <p className="text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-6">
+            {pausedNotice}
+          </p>
+        )}
+
         <div className="grid lg:grid-cols-5 gap-12">
           <div className="lg:col-span-3 space-y-10">
-            {gigImages.length > 0 && (
-              <GigImageGallery images={gigImages} alt={gig.title} />
+            {gig.images.length > 0 && (
+              <GigImageGallery images={gig.images} alt={gig.title} priority />
             )}
 
             <div>
@@ -160,11 +97,10 @@ export default function GigDetailPage() {
             <div>
               <h2 className="text-2xl font-semibold mb-4">Descripción</h2>
               <p className="text-foreground leading-relaxed text-lg whitespace-pre-line">
-                {gig.description || "Sin descripción"}
+                {gig.description || 'Sin descripción'}
               </p>
             </div>
 
-            {/* Reviews Section */}
             <div>
               <h2 className="text-2xl font-semibold mb-4 flex items-center justify-between">
                 Reseñas
@@ -178,12 +114,12 @@ export default function GigDetailPage() {
               {reviews.length > 0 ? (
                 <div className="space-y-4">
                   {reviews.map((review) => (
-                    <div key={review.id || review.createdAt} className="bg-card border rounded-3xl p-6">
+                    <div key={review.id} className="bg-card border rounded-3xl p-6">
                       <div className="mb-3">
                         <StarRating rating={review.rating} size="md" />
                       </div>
                       {review.comment && (
-                        <p className="text-foreground mb-4">"{review.comment}"</p>
+                        <p className="text-foreground mb-4">&ldquo;{review.comment}&rdquo;</p>
                       )}
                       <div className="text-sm text-muted-foreground flex items-center justify-between">
                         <span>— {review.reviewer?.name || 'Cliente anónimo'}</span>
@@ -218,15 +154,15 @@ export default function GigDetailPage() {
               <div>
                 <h2 className="text-2xl font-semibold mb-6">Opciones del servicio</h2>
                 <div className="grid gap-4">
-                  {gigFields.map((field: DynamicFieldDef, index: number) => (
+                  {gigFields.map((field, index) => (
                     <div key={index} className="bg-card p-6 rounded-3xl border">
                       <p className="text-sm uppercase tracking-widest text-muted-foreground mb-1">
                         {field.label || field.key}
                       </p>
                       <p className="text-lg font-medium text-foreground">
-                        {field.extraPrice 
-                          ? `+$${field.extraPrice.toLocaleString('es-CO')} COP` 
-                          : "Incluido"}
+                        {field.extraPrice
+                          ? `+$${field.extraPrice.toLocaleString('es-CO')} COP`
+                          : 'Incluido'}
                       </p>
                       {field.type && (
                         <p className="text-xs text-muted-foreground mt-1">Tipo: {field.type}</p>
@@ -241,66 +177,51 @@ export default function GigDetailPage() {
           <div className="lg:col-span-2">
             <div className="bg-card rounded-3xl p-8 shadow-sm border lg:sticky lg:top-8">
               <div className="text-5xl sm:text-6xl font-bold text-emerald-600 mb-1">
-                ${gig.price?.toLocaleString("es-CO")}
+                ${gig.price.toLocaleString('es-CO')}
               </div>
               <p className="text-muted-foreground mb-10">COP</p>
 
-              {!isOwnGig ? (
-                <div className="space-y-3 mb-8">
-                  <Button
-                    onClick={handleBuyNow}
-                    size="lg"
-                    className="w-full py-8 text-xl bg-emerald-600 hover:bg-emerald-700 rounded-3xl font-semibold"
-                    disabled={gig.isActive === false}
+              <GigDetailActions
+                gigId={gig.id}
+                sellerId={gig.sellerId}
+                isActive={gig.isActive}
+              />
+
+              {gig.seller && (
+                <div className="border-t pt-8">
+                  <p className="text-sm text-muted-foreground mb-3">Vendido por</p>
+                  <Link
+                    href={`/sellers/${gig.seller.slug || gig.seller.id}`}
+                    className="group block"
                   >
-                    {gig.isActive === false ? 'Servicio pausado' : 'Comprar ahora'}
-                  </Button>
-                  {gig.isActive !== false && (
-                    <StartInquiryButton
-                      gigId={gig.id}
-                      fullWidth
-                      size="lg"
-                      label="Chatear con vendedor"
-                      className="py-6 text-lg rounded-3xl"
-                    />
-                  )}
-                </div>
-              ) : (
-                <div className="bg-amber-50 border border-amber-200 text-amber-700 p-6 rounded-3xl mb-8 text-center font-medium">
-                  Este es tu propio gig • No puedes comprarlo
+                    <div className="flex items-center gap-4 hover:bg-muted -mx-2 px-2 py-2 rounded-2xl transition">
+                      <UserAvatar
+                        name={gig.seller.businessName || gig.seller.name}
+                        size="lg"
+                        className="rounded-2xl flex-shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <p className="font-semibold text-lg group-hover:text-emerald-600 transition">
+                          {gig.seller.businessName || gig.seller.name || 'Vendedor'}
+                        </p>
+                        {gig.seller.rating != null && gig.seller.rating > 0 && (
+                          <StarRating
+                            rating={gig.seller.rating}
+                            size="sm"
+                            showValue
+                            reviewCount={gig.seller.reviewCount}
+                            className="text-sm"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </Link>
                 </div>
               )}
-
-              <div className="border-t pt-8">
-                <p className="text-sm text-muted-foreground mb-3">Vendido por</p>
-                <Link href={`/sellers/${gig.seller?.slug || gig.seller?.id}`} className="group block">
-                  <div className="flex items-center gap-4 hover:bg-muted -mx-2 px-2 py-2 rounded-2xl transition">
-                    <UserAvatar
-                      name={gig.seller?.businessName || gig.seller?.name}
-                      size="lg"
-                      className="rounded-2xl flex-shrink-0"
-                    />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-lg group-hover:text-emerald-600 transition">
-                        {gig.seller?.businessName || gig.seller?.name || "Vendedor"}
-                      </p>
-                      {gig.seller?.rating && gig.seller.rating > 0 && (
-                        <StarRating
-                          rating={gig.seller.rating}
-                          size="sm"
-                          showValue
-                          reviewCount={gig.seller.reviewCount}
-                          className="text-sm"
-                        />
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

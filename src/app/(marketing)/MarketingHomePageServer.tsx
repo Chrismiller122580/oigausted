@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { getGigCategories } from '@/lib/categories';
 import { getCategoryIcon } from '@/lib/icon-registry';
@@ -23,7 +24,8 @@ async function resolvePublicGigWhere(): Promise<Prisma.GigWhereInput> {
   }
 }
 
-export default async function MarketingHomePageServer() {
+const loadMarketingHomeData = unstable_cache(
+  async () => {
   const allCategories = await getGigCategories();
   const topCategoryNames = allCategories.slice(0, 12).map((c) => c.name);
 
@@ -160,12 +162,26 @@ export default async function MarketingHomePageServer() {
     },
   ];
 
+  return {
+    categories: popularCategories,
+    stats,
+    popularGigs,
+    testimonials,
+  };
+  },
+  ['marketing-home-data'],
+  { revalidate: 60, tags: ['homepage'] }
+);
+
+export default async function MarketingHomePageServer() {
+  const data = await loadMarketingHomeData();
+
   return (
     <MarketingHomeView
-      categories={popularCategories}
-      stats={stats}
-      popularGigs={popularGigs}
-      testimonials={testimonials}
+      categories={data.categories}
+      stats={data.stats}
+      popularGigs={data.popularGigs}
+      testimonials={data.testimonials}
     />
   );
 }

@@ -10,7 +10,16 @@ export default function CookieConsent() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    setVisible(getAnalyticsConsent() === null)
+    const showIfNeeded = () => {
+      if (getAnalyticsConsent() === null) setVisible(true)
+    }
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(showIfNeeded, { timeout: 3000 })
+      return () => window.cancelIdleCallback(id)
+    }
+
+    const t = setTimeout(showIfNeeded, 2000)
+    return () => clearTimeout(t)
   }, [])
 
   if (!visible) return null

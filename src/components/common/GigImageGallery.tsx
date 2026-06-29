@@ -1,21 +1,49 @@
 'use client'
 
 import { useRef, useState, useCallback } from 'react'
+import Image from 'next/image'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface GigImageGalleryProps {
   images: string[]
   alt: string
   className?: string
+  priority?: boolean
 }
 
-const mainImageClass =
-  'w-full h-auto max-h-[min(70vh,560px)] object-contain'
-const slideClass =
-  'w-full flex-shrink-0 snap-center flex items-center justify-center bg-muted min-h-[200px] max-h-[min(70vh,560px)]'
-const frameClass = 'rounded-3xl overflow-hidden shadow-xl bg-muted flex items-center justify-center'
+const frameClass =
+  'rounded-3xl overflow-hidden shadow-xl bg-muted flex items-center justify-center relative'
+const mainSizes = '(max-width: 768px) 100vw, 60vw'
 
-export function GigImageGallery({ images, alt, className = '' }: GigImageGalleryProps) {
+function GalleryImage({
+  src,
+  alt,
+  priority = false,
+  className = 'object-contain',
+}: {
+  src: string
+  alt: string
+  priority?: boolean
+  className?: string
+}) {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      sizes={mainSizes}
+      priority={priority}
+      className={className}
+    />
+  )
+}
+
+export function GigImageGallery({
+  images,
+  alt,
+  className = '',
+  priority = false,
+}: GigImageGalleryProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
 
@@ -38,26 +66,16 @@ export function GigImageGallery({ images, alt, className = '' }: GigImageGallery
 
   if (!images.length) return null
 
-  const onImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    e.currentTarget.src = 'https://placehold.co/800x450?text=Sin+Imagen'
-  }
-
   if (images.length === 1) {
     return (
-      <div className={`${frameClass} ${className}`}>
-        <img
-          src={images[0]}
-          alt={alt}
-          className={mainImageClass}
-          onError={onImageError}
-        />
+      <div className={`${frameClass} aspect-[4/3] max-h-[min(70vh,560px)] ${className}`}>
+        <GalleryImage src={images[0]} alt={alt} priority={priority} />
       </div>
     )
   }
 
   return (
     <div className={className}>
-      {/* Mobile: swipeable carousel */}
       <div className="md:hidden relative">
         <div
           ref={scrollRef}
@@ -65,12 +83,14 @@ export function GigImageGallery({ images, alt, className = '' }: GigImageGallery
           className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth rounded-3xl shadow-xl bg-muted [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {images.map((url, index) => (
-            <div key={`${url}-${index}`} className={slideClass}>
-              <img
+            <div
+              key={`${url}-${index}`}
+              className="w-full flex-shrink-0 snap-center relative aspect-[4/3] max-h-[min(70vh,560px)] bg-muted"
+            >
+              <GalleryImage
                 src={url}
                 alt={`${alt} - foto ${index + 1}`}
-                className={mainImageClass}
-                onError={onImageError}
+                priority={priority && index === 0}
               />
             </div>
           ))}
@@ -111,14 +131,12 @@ export function GigImageGallery({ images, alt, className = '' }: GigImageGallery
         </p>
       </div>
 
-      {/* Desktop: main image + thumbnails */}
       <div className="hidden md:block space-y-3">
-        <div className={frameClass}>
-          <img
+        <div className={`${frameClass} aspect-[4/3] max-h-[min(70vh,560px)]`}>
+          <GalleryImage
             src={images[activeIndex]}
             alt={`${alt} - foto ${activeIndex + 1}`}
-            className={mainImageClass}
-            onError={onImageError}
+            priority={priority && activeIndex === 0}
           />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -127,11 +145,13 @@ export function GigImageGallery({ images, alt, className = '' }: GigImageGallery
               key={`${url}-thumb-${index}`}
               type="button"
               onClick={() => setActiveIndex(index)}
-              className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 bg-muted flex items-center justify-center transition ${
-                index === activeIndex ? 'border-orange-600' : 'border-transparent opacity-70 hover:opacity-100'
+              className={`relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 bg-muted transition ${
+                index === activeIndex
+                  ? 'border-orange-600'
+                  : 'border-transparent opacity-70 hover:opacity-100'
               }`}
             >
-              <img src={url} alt="" className="max-w-full max-h-full object-contain" onError={onImageError} />
+              <Image src={url} alt="" fill sizes="80px" className="object-contain" />
             </button>
           ))}
         </div>

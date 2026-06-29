@@ -1,4 +1,5 @@
 "use client"
+import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
@@ -80,11 +81,13 @@ export default function GigCard({
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       {gig.imageUrl && (
-        <div className={`w-full ${compact ? 'h-32' : 'h-48'} bg-muted flex items-center justify-center overflow-hidden`}>
-          <img
+        <div className={`relative w-full ${compact ? 'h-32' : 'h-48'} bg-muted overflow-hidden`}>
+          <Image
             src={gig.imageUrl}
             alt={gig.title}
-            className="w-full h-full object-contain"
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
+            className="object-contain"
           />
         </div>
       )}

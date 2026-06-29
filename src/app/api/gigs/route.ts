@@ -61,14 +61,21 @@ export async function GET(req: NextRequest) {
 
     devLog(`📦 /api/gigs returned ${gigs.length}/${total} gigs (page ${page})`);
 
-    return NextResponse.json({
-      gigs: gigsWithSeller || [],
-      count: gigsWithSeller.length,
-      total,
-      page,
-      limit,
-      hasMore: skip + gigs.length < total,
-    });
+    return NextResponse.json(
+      {
+        gigs: gigsWithSeller || [],
+        count: gigsWithSeller.length,
+        total,
+        page,
+        limit,
+        hasMore: skip + gigs.length < total,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+        },
+      }
+    );
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error);
     devLog("/api/gigs failed:", errMsg);

@@ -59,13 +59,24 @@ export function HomepageWelcomeSplash() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
-    try {
-      if (localStorage.getItem(STORAGE_KEY) !== '1') {
+
+    const showIfNeeded = () => {
+      try {
+        if (localStorage.getItem(STORAGE_KEY) !== '1') {
+          setVisible(true);
+        }
+      } catch {
         setVisible(true);
       }
-    } catch {
-      setVisible(true);
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(showIfNeeded, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
     }
+
+    const t = setTimeout(showIfNeeded, 2000);
+    return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
