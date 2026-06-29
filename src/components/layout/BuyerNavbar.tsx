@@ -59,6 +59,12 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
               >
                 <Package size={18} /> Mis Pedidos
               </Link>
+              <Link 
+                href="/messages" 
+                className={`flex items-center gap-2 transition ${isActive('/messages') ? 'text-foreground font-semibold border-b-2 border-orange-600 pb-1' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <MessageCircle size={18} /> Mensajes
+              </Link>
             </div>
 
             {/* Desktop User Area */}

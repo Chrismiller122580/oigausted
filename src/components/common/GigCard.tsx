@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { toast } from 'sonner'
+import StartInquiryButton from '@/components/common/StartInquiryButton'
 import { CategoryIcon } from "@/lib/icon-registry"
 import { StarRating } from "@/components/ui/star-rating"
 import { UserAvatar } from "@/components/ui/user-avatar"
@@ -42,6 +43,7 @@ export default function GigCard({
   mode = 'buyer',
   inProject = false,
   onAddToProject,
+  showChatButton = false,
 }: { 
   gig: Gig; 
   sellerView?: boolean;
@@ -50,6 +52,7 @@ export default function GigCard({
   mode?: 'buyer' | 'network';
   inProject?: boolean;
   onAddToProject?: (gig: Gig) => void;
+  showChatButton?: boolean;
 }) {
   const router = useRouter()
   const { data: session } = useSession()
@@ -183,6 +186,13 @@ export default function GigCard({
           >
             Editar gig
           </Button>
+        ) : showChatButton && !isOwnGig && gig.isActive !== false ? (
+          <div className="flex flex-col gap-2 w-full">
+            <Button onClick={handleBuyNow} variant="brand" className="w-full">
+              Comprar Ahora
+            </Button>
+            <StartInquiryButton gigId={gig.id} fullWidth size="sm" label="Chatear en Oigagig" />
+          </div>
         ) : (
           <Button
             onClick={handleBuyNow}

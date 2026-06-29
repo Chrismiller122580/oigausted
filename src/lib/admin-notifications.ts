@@ -325,6 +325,49 @@ export async function notifyAdminsBecomeSeller({
   })
 }
 
+export async function notifyAdminsContactViolation({
+  userId,
+  userName,
+  userEmail,
+  contextType,
+  contextId,
+  violationTypes,
+  snippet,
+  violationCount,
+  flagged,
+}: {
+  userId: string
+  userName?: string | null
+  userEmail?: string | null
+  contextType: 'order' | 'inquiry'
+  contextId: string
+  violationTypes: string[]
+  snippet: string
+  violationCount: number
+  flagged: boolean
+}) {
+  const displayName = userName || userEmail || 'Usuario'
+  const contextLabel = contextType === 'order' ? 'pedido' : 'consulta'
+  await notifyAdmins({
+    title: 'Intento de compartir contacto',
+    message: `${displayName} intentó compartir datos de contacto en un ${contextLabel} (${violationTypes.join(', ')}).`,
+    link: '/admin/users',
+    emailSubject: `Contacto bloqueado: ${displayName}`,
+    eventLabel: 'Violación de contacto',
+    ctaLabel: 'Ver usuarios',
+    ctaHref: '/admin/users',
+    emailBodyHtml: `
+      <p><strong>${escapeHtml(displayName)}</strong> intentó compartir información de contacto fuera de la plataforma.</p>
+      <p><strong>Contexto:</strong> ${escapeHtml(contextType)} (${escapeHtml(contextId)})<br>
+         <strong>Tipos:</strong> ${escapeHtml(violationTypes.join(', '))}<br>
+         <strong>Intentos:</strong> ${violationCount}${flagged ? ' — <span style="color:#b45309;">usuario marcado</span>' : ''}</p>
+      <p style="background:#f8f8f8;padding:16px;border-radius:8px;white-space:pre-wrap;">${escapeHtml(snippet)}</p>
+      <p><strong>Usuario ID:</strong> ${escapeHtml(userId)}</p>
+    `,
+    data: { userId, contextType, contextId, violationTypes, violationCount, flagged },
+  })
+}
+
 export async function notifyAdminsReferralPayout({
   requesterName,
   requesterEmail,

@@ -20,11 +20,13 @@ export function slugify(text: string): string {
   if (!text) return '';
   return text
     .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, '') // remove non-word chars except spaces and -
-    .replace(/[\s_-]+/g, '-') // collapse spaces, _, - into single -
-    .replace(/^-+|-+$/g, ''); // trim leading/trailing -
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 /** True only for standard UUID user ids — not long business slugs like "cortland-blackstone-sas404". */

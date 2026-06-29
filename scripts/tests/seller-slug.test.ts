@@ -18,6 +18,10 @@ assert(
   'business name slugifies to expected public path'
 )
 assert(
+  slugify('Café José') === 'cafe-jose',
+  'accented business name slugifies without diacritics'
+)
+assert(
   isSlugPrefixMatch('cortland-blackstone-sas', 'cortland-blackstone-sas404'),
   'short public path matches stored slug with trailing digits'
 )

@@ -439,9 +439,10 @@ export default function MiNegocioPage() {
                       className="w-full px-4 py-3 sm:px-6 sm:py-5 bg-background border border-border text-foreground rounded-xl sm:rounded-2xl focus:border-orange-500" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">WhatsApp</label>
+                    <label className="block text-sm font-medium mb-2">WhatsApp (interno)</label>
                     <input name="whatsapp" value={formData.whatsapp} onChange={handleChange} disabled={!isEditing}
                       className="w-full px-4 py-3 sm:px-6 sm:py-5 bg-background border border-border text-foreground rounded-xl sm:rounded-2xl focus:border-orange-500" placeholder="+57 ..." />
+                    <p className="text-xs text-muted-foreground mt-1">No se muestra a compradores. Ellos te contactan por el chat de Oigagig.</p>
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium mb-2">Ubicación principal</label>
@@ -502,9 +503,10 @@ export default function MiNegocioPage() {
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Instagram</label>
+                    <label className="block text-sm font-medium mb-2">Instagram (interno)</label>
                     <input name="instagram" value={formData.instagram} onChange={handleChange} disabled={!isEditing}
                       className="w-full px-4 py-3 sm:px-6 sm:py-5 bg-background border border-border text-foreground rounded-xl sm:rounded-2xl focus:border-orange-500" placeholder="@tu_negocio" />
+                    <p className="text-xs text-muted-foreground mt-1">Tampoco aparece en tu perfil público.</p>
                   </div>
                 </div>
               </div>

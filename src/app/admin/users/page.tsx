@@ -23,6 +23,8 @@ interface User {
   isActive?: boolean;
   createdAt: string;
   customReferralRate?: number | null;
+  contactViolationCount?: number;
+  contactFlaggedAt?: string | null;
   _count?: {
     gigs: number;
     ordersAsBuyer: number;
@@ -391,6 +393,18 @@ export default function AdminUsersPage() {
                     <td className="p-4">
                       <div className="font-medium">{user.name || 'No name'}</div>
                       <div className="text-xs text-muted-foreground">{new Date(user.createdAt).toLocaleDateString('es-CO')}</div>
+                      {(user.contactViolationCount ?? 0) > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                            {user.contactViolationCount} violación{(user.contactViolationCount ?? 0) !== 1 ? 'es' : ''} chat
+                          </span>
+                          {user.contactFlaggedAt && (
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200">
+                              Marcado
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="p-4 text-foreground">{user.email}</td>
                     <td className="p-4">

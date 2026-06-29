@@ -13,7 +13,7 @@ import ProfileShare from './ProfileShare';
 import SellerProfileMobileBar from './SellerProfileMobileBar';
 import { StarRating } from '@/components/ui/star-rating';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { MessageCircle, Instagram } from 'lucide-react';
+
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -65,12 +65,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
     : 0;
 
   const displayName = seller.businessName || seller.name || 'Vendedor Local';
-  const hasContact = seller.whatsapp || seller.instagram;
-
-  // Use slug for URLs if available, fallback to id for backward compat.
-  // Cast because ID-based lookup paths deliberately omit 'slug' from the Prisma select
-  // (to avoid "column does not exist" errors on drifted prod DBs). Slug path includes it.
-  const sellerSlugOrId = ('slug' in seller && seller.slug) ? seller.slug : seller.id;
+  const sellerSlugOrId = seller.slug || seller.id;
 
   // Build the canonical public URL on the server (for the share client component)
   const headersList = await headers();
@@ -112,43 +107,9 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
                 </p>
               )}
 
-              {seller.instagram && (
-                <div className="flex sm:hidden justify-center mt-4">
-                  <a
-                    href={`https://instagram.com/${seller.instagram.replace('@', '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="border-2 border-white/70 hover:bg-white/10 px-5 py-3 rounded-2xl text-sm font-medium transition inline-flex items-center justify-center gap-2 backdrop-blur active:scale-[0.985] !min-w-0 w-full max-w-xs"
-                  >
-                    <Instagram size={18} /> Ver en Instagram
-                  </a>
-                </div>
-              )}
-
-              {hasContact && (
-                <div className="hidden sm:flex flex-col sm:flex-row flex-wrap gap-3 mt-6">
-                  {seller.whatsapp && (
-                    <a 
-                      href={`https://wa.me/${seller.whatsapp.replace(/\D/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-white text-orange-600 font-semibold px-6 py-3 rounded-2xl text-sm hover:bg-white/95 transition-all inline-flex items-center justify-center gap-2 shadow-lg active:scale-[0.985] !min-w-0"
-                    >
-                      <MessageCircle size={18} /> Contactar por WhatsApp
-                    </a>
-                  )}
-                  {seller.instagram && (
-                    <a 
-                      href={`https://instagram.com/${seller.instagram.replace('@','')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="border-2 border-white/70 hover:bg-white/10 px-5 py-3 rounded-2xl text-sm font-medium transition inline-flex items-center justify-center gap-2 backdrop-blur active:scale-[0.985] !min-w-0"
-                    >
-                      <Instagram size={18} /> Ver en Instagram
-                    </a>
-                  )}
-                </div>
-              )}
+              <p className="mt-4 text-sm text-white/80 max-w-xl mx-auto md:mx-0">
+                Coordina con {displayName} usando el chat de Oigagig — sin salir de la plataforma.
+              </p>
             </div>
 
             <div className="hidden md:flex md:ml-auto flex-col gap-3 w-full md:w-auto">
@@ -162,7 +123,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
         </div>
       </div>
 
-      <SellerProfileMobileBar whatsapp={seller.whatsapp} hasGigs={gigs.length > 0} />
+      <SellerProfileMobileBar firstGigId={gigs[0]?.id} hasGigs={gigs.length > 0} />
 
       {/* Gigs Grid */}
       <div id="seller-gigs" className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 scroll-mt-20">
@@ -184,7 +145,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
         {gigs.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {gigs.map((gig: (typeof gigs)[number]) => (
-              <GigCard key={gig.id} gig={gig} />
+              <GigCard key={gig.id} gig={gig} showChatButton />
             ))}
           </div>
         ) : (

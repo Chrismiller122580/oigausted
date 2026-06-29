@@ -322,7 +322,7 @@ export default function SupportPage() {
                   <Card className="bg-card border-border">
                     <CardContent className="p-5">
                       <p className="font-semibold mb-1">¿Cómo contacto al vendedor?</p>
-                      <p className="text-sm text-muted-foreground">Usa el botón "Contactar" en el gig o en la página del pedido. Abre WhatsApp directo con el número del vendedor. También hay chat interno en /orders/[id].</p>
+                      <p className="text-sm text-muted-foreground">Usa &quot;Chatear en Oigagig&quot; en el servicio o perfil del vendedor para preguntar antes de comprar. Después del pago, coordina la entrega en el chat del pedido (/orders/[id]).</p>
                     </CardContent>
                   </Card>
                   <Card className="bg-card border-border">
@@ -362,7 +362,7 @@ export default function SupportPage() {
                   </div>
                   <ol className="list-decimal ml-5 space-y-2 text-sm">
                     <li><strong>Explora gigs:</strong> Ve a /gigs, filtra por categoría, precio o cerca de ti usando ubicación.</li>
-                    <li><strong>Contacta:</strong> Lee reseñas, haz preguntas por WhatsApp o chat antes de pagar.</li>
+                    <li><strong>Contacta:</strong> Lee reseñas y usa el chat de Oigagig antes de pagar (sin compartir teléfonos ni correos).</li>
                     <li><strong>Paga seguro:</strong> Elige Nequi/PayU en checkout. Tu dinero está protegido hasta que confirmes el servicio.</li>
                     <li><strong>Sigue y califica:</strong> Revisa estado en "Mis Pedidos". Al completar, deja una reseña honesta para ayudar a la comunidad.</li>
                   </ol>
@@ -389,7 +389,7 @@ export default function SupportPage() {
                     </div>
                   </div>
                   <ol className="list-decimal ml-5 space-y-2 text-sm">
-                    <li><strong>Configura tu negocio:</strong> En Perfil completa nombre del negocio, WhatsApp, ubicación y foto de portada. Tu slug público se genera automáticamente.</li>
+                    <li><strong>Configura tu negocio:</strong> En Perfil completa nombre del negocio, ubicación y foto de portada. Tu URL pública (slug) se genera automáticamente. Los compradores te escriben por Mensajes en la app.</li>
                     <li><strong>Crea gigs:</strong> Publica servicios con precio base + campos dinámicos (horas, habitaciones, etc.). Sube fotos atractivas.</li>
                     <li><strong>Recibe y gestiona pedidos:</strong> Te notificamos. Acepta, chatea con el cliente y actualiza estado a "En Progreso" → "Completado".</li>
                     <li><strong>Cobra:</strong> Al completar liberamos el pago a tu cuenta (Nequi configurado). Revisa ganancias y referidos.</li>

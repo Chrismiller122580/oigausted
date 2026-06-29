@@ -122,6 +122,13 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
           <span className="mt-0.5">Explorar</span>
         </Link>
         <Link 
+          href="/messages" 
+          className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/messages') ? 'text-orange-600' : 'text-muted-foreground'}`}
+        >
+          <MessageCircle size={22} />
+          <span className="mt-0.5">Mensajes</span>
+        </Link>
+        <Link 
           href="/orders" 
           className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/orders') ? 'text-orange-600' : 'text-muted-foreground'}`}
         >

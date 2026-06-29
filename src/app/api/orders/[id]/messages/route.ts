@@ -5,6 +5,11 @@ import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
 import { put } from '@vercel/blob';
 import { validateUploadFile } from '@/lib/upload-validation';
+import {
+  CONTACT_BLOCKED_MESSAGE,
+  detectContactInfo,
+} from '@/lib/contact-moderation';
+import { recordContactViolation } from '@/lib/contact-violation';
 
 export async function GET(
   request: Request,
@@ -108,6 +113,17 @@ export async function POST(
       // JSON text message
       const body = await request.json().catch(() => ({}));
       content = body.content || body.text || '';
+    }
+
+    if (content.trim()) {
+      const detection = detectContactInfo(content);
+      if (detection.blocked) {
+        await recordContactViolation(userId, 'order', orderId, detection.types, content);
+        return NextResponse.json(
+          { error: CONTACT_BLOCKED_MESSAGE, blocked: true, types: detection.types },
+          { status: 422 }
+        );
+      }
     }
 
     // Determine direction (best effort using order)

@@ -27,7 +27,7 @@ interface OnboardingTutorialProps {
 const buyerSteps: TutorialStep[] = [
   {
     title: "Bienvenido a Oigagig",
-    description: "Oigagig conecta compradores con profesionales locales en Colombia. Todo con chat directo por WhatsApp, pagos seguros con Nequi/PayU y reseñas reales.",
+    description: "Oigagig conecta compradores con profesionales locales en Colombia. Chat seguro en la app, pagos con Wompi y reseñas reales.",
     tips: [
       "Explora gigs por categoría o cerca de ti",
       "Usa la ubicación para ver servicios locales",
@@ -40,7 +40,7 @@ const buyerSteps: TutorialStep[] = [
     description: "Encuentra el servicio que necesitas. Mira el botón resaltado abajo y haz clic en 'Explorar Gigs' para ver opciones cerca de ti.",
     tips: [
       "Usa filtros de categoría, precio y distancia",
-      "El botón 'Contactar' abre WhatsApp o chat",
+      "El botón 'Chatear en Oigagig' abre mensajes en la app",
       "Pregunta detalles antes de pagar"
     ],
     icon: Search,
@@ -110,7 +110,7 @@ const sellerSteps: TutorialStep[] = [
     title: "Tu Perfil Público y Reputación",
     description: "Actualiza tu información de negocio, radio de servicio y foto de portada. Las reseñas construyen confianza.",
     tips: [
-      "Agrega tu WhatsApp y ubicación para más contactos",
+      "Responde mensajes en /messages y completa tu ubicación",
       "Comparte tu enlace en redes y tarjetas",
       "Responde rápido para mejorar tu calificación"
     ],

@@ -115,9 +115,14 @@ export default function BuyerDashboard() {
             <p className="text-base mb-8 max-w-2xl mx-auto text-white/90">
               Miles de gigs locales en Colombia. Encuentra freelancers confiables para tu proyecto.
             </p>
-            <Button asChild size="lg" id="tutorial-browse-all-gigs" className="bg-card text-brand hover:bg-muted text-base px-8 py-3 rounded-xl font-semibold shadow-lg">
-              <Link href="/gigs">Ver Todos los Gigs</Link>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button asChild size="lg" id="tutorial-browse-all-gigs" className="bg-card text-brand hover:bg-muted text-base px-8 py-3 rounded-xl font-semibold shadow-lg">
+                <Link href="/gigs">Ver Todos los Gigs</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="border-white/40 text-white hover:bg-white/10 text-base px-8 py-3 rounded-xl font-semibold">
+                <Link href="/messages">Mis Mensajes</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

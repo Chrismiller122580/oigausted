@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock } from 'lucide-react';
+import StartInquiryButton from '@/components/common/StartInquiryButton';
 import { StarRating } from '@/components/ui/star-rating';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { parseJsonArrayField } from "@/lib/utils";
@@ -245,14 +246,25 @@ export default function GigDetailPage() {
               <p className="text-muted-foreground mb-10">COP</p>
 
               {!isOwnGig ? (
-                <Button
-                  onClick={handleBuyNow}
-                  size="lg"
-                  className="w-full py-8 text-xl bg-emerald-600 hover:bg-emerald-700 rounded-3xl font-semibold mb-8"
-                  disabled={gig.isActive === false}
-                >
-                  {gig.isActive === false ? 'Servicio pausado' : 'Comprar ahora'}
-                </Button>
+                <div className="space-y-3 mb-8">
+                  <Button
+                    onClick={handleBuyNow}
+                    size="lg"
+                    className="w-full py-8 text-xl bg-emerald-600 hover:bg-emerald-700 rounded-3xl font-semibold"
+                    disabled={gig.isActive === false}
+                  >
+                    {gig.isActive === false ? 'Servicio pausado' : 'Comprar ahora'}
+                  </Button>
+                  {gig.isActive !== false && (
+                    <StartInquiryButton
+                      gigId={gig.id}
+                      fullWidth
+                      size="lg"
+                      label="Chatear con vendedor"
+                      className="py-6 text-lg rounded-3xl"
+                    />
+                  )}
+                </div>
               ) : (
                 <div className="bg-amber-50 border border-amber-200 text-amber-700 p-6 rounded-3xl mb-8 text-center font-medium">
                   Este es tu propio gig • No puedes comprarlo

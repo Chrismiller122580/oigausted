@@ -111,6 +111,13 @@ model User {
   payoutDocumentNumber  String?
   payoutPhone           String?
   payoutEmail           String?
+
+  // Contact moderation (chat / inquiry)
+  contactViolationCount Int       @default(0)
+  contactFlaggedAt      DateTime?
+  buyerInquiries        InquiryThread[]  @relation("BuyerInquiries")
+  sellerInquiries       InquiryThread[]  @relation("SellerInquiries")
+  contactViolations     ContactViolation[]
 }
 
 model PasswordResetToken {
@@ -264,6 +271,7 @@ model Gig {
   sellerId        String
   seller          User     @relation(fields: [sellerId], references: [id])
   orders          Order[]
+  inquiries       InquiryThread[]
 
   // Geolocation
   city            String?
@@ -528,5 +536,56 @@ model UserLensFixItem {
   @@index([reportId])
   @@index([status])
   @@index([severity])
+  @@index([createdAt])
+}
+
+// Pre-order buyer ↔ seller messaging about a gig
+model InquiryThread {
+  id        String   @id @default(uuid())
+  buyerId   String
+  sellerId  String
+  gigId     String
+  status    String   @default("open") // open | closed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  buyer    User             @relation("BuyerInquiries", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller   User             @relation("SellerInquiries", fields: [sellerId], references: [id], onDelete: Cascade)
+  gig      Gig              @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  messages InquiryMessage[]
+
+  @@unique([buyerId, gigId])
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([gigId])
+  @@index([updatedAt])
+}
+
+model InquiryMessage {
+  id          String   @id @default(uuid())
+  threadId    String
+  content     String
+  isFromBuyer Boolean
+  createdAt   DateTime @default(now())
+
+  thread InquiryThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+  @@index([createdAt])
+}
+
+model ContactViolation {
+  id              String   @id @default(uuid())
+  userId          String
+  contextType     String   // order | inquiry
+  contextId       String
+  violationTypes  String[]
+  snippet         String
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([contextType, contextId])
   @@index([createdAt])
 }

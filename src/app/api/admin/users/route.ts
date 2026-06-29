@@ -38,6 +38,8 @@ export async function GET(req: NextRequest) {
         createdAt: true,
         rating: true,
         reviewCount: true,
+        contactViolationCount: true,
+        contactFlaggedAt: true,
         customReferralRate: true,
         _count: {
           select: {

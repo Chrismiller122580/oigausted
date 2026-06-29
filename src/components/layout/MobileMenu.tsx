@@ -69,6 +69,9 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             <Link href="/orders" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Package size={22} /> Mis Pedidos
             </Link>
+            <Link href="/messages" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <MessageCircle size={22} /> Mensajes
+            </Link>
             <Link href="/profile" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <User size={22} /> Mi Perfil
             </Link>
@@ -97,6 +100,9 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             </Link>
             <Link href="/seller/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Package size={22} /> Mis Gigs
+            </Link>
+            <Link href="/messages" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <MessageCircle size={22} /> Mensajes
             </Link>
             <Link href="/seller/network" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Users size={22} /> Red de Vendedores

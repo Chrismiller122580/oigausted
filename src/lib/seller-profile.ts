@@ -2,20 +2,20 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { devLog, isUuidIdentifier, slugify } from '@/lib/utils'
 
-export const sellerByIdSelect = {
+/** Public seller profile — no contact fields exposed to buyers. */
+export const publicSellerSelect = {
   id: true,
   name: true,
   businessName: true,
   bio: true,
   profilePicture: true,
-  whatsapp: true,
-  instagram: true,
-  phone: true,
+  slug: true,
 } as const
 
+export const sellerByIdSelect = publicSellerSelect
+
 export const sellerBySlugSelect = {
-  ...sellerByIdSelect,
-  slug: true,
+  ...publicSellerSelect,
 } as const
 
 export type SellerProfile = {
@@ -24,9 +24,6 @@ export type SellerProfile = {
   businessName: string | null
   bio: string | null
   profilePicture: string | null
-  whatsapp: string | null
-  instagram: string | null
-  phone: string | null
   slug?: string | null
 }
 
@@ -59,7 +56,7 @@ export async function findSellerBySlugOrId(identifier: string): Promise<SellerPr
     try {
       const seller = await prisma.user.findUnique({
         where: { id: normalized },
-        select: sellerByIdSelect,
+        select: sellerBySlugSelect,
       })
       if (seller) return seller
     } catch (e) {
@@ -123,7 +120,7 @@ export async function findSellerBySlugOrId(identifier: string): Promise<SellerPr
     try {
       const seller = await prisma.user.findUnique({
         where: { id: normalized },
-        select: sellerByIdSelect,
+        select: sellerBySlugSelect,
       })
       if (seller) return seller
     } catch (e) {
