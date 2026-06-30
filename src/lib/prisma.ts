@@ -82,6 +82,8 @@ const platformConfigSelect = {
   wompiSftpPassword: true,
   wompiSftpPrivateKey: true,
   wompiSftpRemotePath: true,
+  marketingStudioProPriceCOP: true,
+  marketingStudioFreeMonthlyLimit: true,
   updatedAt: true,
 } satisfies Prisma.PlatformConfigSelect
 
@@ -235,6 +237,8 @@ export async function getPlatformConfig(force = false) {
     wompiSftpPrivateKey: null,
     wompiSftpRemotePath: '/',
     tutorialsEnabled: true,
+    marketingStudioProPriceCOP: 29900,
+    marketingStudioFreeMonthlyLimit: 3,
     updatedAt: new Date(),
   }
 

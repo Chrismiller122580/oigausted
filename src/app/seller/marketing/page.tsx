@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -61,7 +61,7 @@ const TONES = [
 
 type ResultTab = 'instagram' | 'whatsapp' | 'downloads' | 'tips';
 
-export default function SellerMarketingPage() {
+function SellerMarketingPageClient() {
   const searchParams = useSearchParams();
   const [subscription, setSubscription] = useState<SubscriptionState | null>(null);
   const [gigs, setGigs] = useState<GigOption[]>([]);
@@ -195,8 +195,8 @@ export default function SellerMarketingPage() {
     );
   }
 
-  const blocked = subscription && !subscription.allowed;
-  const atLimit = subscription && !subscription.canGenerate && !subscription.isUnlimited;
+  const blocked = !!(subscription && !subscription.allowed);
+  const atLimit = !!(subscription && !subscription.canGenerate && !subscription.isUnlimited);
   const noGigs = gigs.length === 0;
 
   return (
@@ -517,5 +517,19 @@ export default function SellerMarketingPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SellerMarketingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
+        </div>
+      }
+    >
+      <SellerMarketingPageClient />
+    </Suspense>
   );
 }

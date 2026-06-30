@@ -181,14 +181,15 @@ export async function POST(request: Request) {
             if (seller && (seller.role === 'seller' || seller.role === 'admin')) {
               await activateProSubscription(seller.id, reference);
               await logAuditEvent({
-                adminId: null,
                 action: 'MARKETING_STUDIO_PRO_ACTIVATED',
                 targetType: 'User',
                 targetId: seller.id,
                 details: {
                   reference,
                   wompiTransactionId: transaction.id,
-                  amount_in_cents: transaction.amount_in_cents,
+                  ...(transaction.amount_in_cents != null
+                    ? { amount_in_cents: transaction.amount_in_cents }
+                    : {}),
                 },
               });
               devLog(`[Wompi][Webhook] Marketing Studio Pro activated for ${seller.id}`);
