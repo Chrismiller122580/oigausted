@@ -56,22 +56,22 @@ export function StatsAndPopular({ stats, popularGigs }: StatsAndPopularProps) {
     <section className="border-y border-slate-200/80 bg-gradient-to-b from-slate-100/50 to-transparent dark:from-slate-900/50 dark:border-slate-800">
       {/* Stats row */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 sm:py-14">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 items-stretch">
           {statConfig.map((stat, idx) => {
             const Icon = stat.icon;
             const tileClass = cn(
-              'rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700/60 p-5 sm:p-6 text-center shadow-sm transition-all',
+              'flex h-full w-full flex-col items-center justify-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700/60 p-5 sm:p-6 text-center shadow-sm transition-all',
               stat.href
                 ? 'hover:shadow-md hover:border-sky-300 dark:hover:border-sky-800 hover:-translate-y-0.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
                 : 'hover:shadow-md hover:border-orange-200 dark:hover:border-orange-900',
             );
             const content = (
               <>
-                <Icon className={cn('h-7 w-7 mx-auto mb-2', stat.color)} aria-hidden />
-                <div className="text-2xl sm:text-3xl font-bold tabular-nums text-foreground">
+                <Icon className={cn('h-7 w-7 shrink-0 mb-2', stat.color)} aria-hidden />
+                <div className="text-2xl sm:text-3xl font-bold tabular-nums text-foreground leading-none">
                   {stats[stat.key].toLocaleString('es-CO')}
                 </div>
-                <div className="text-xs sm:text-sm text-muted-foreground mt-1 font-medium">
+                <div className="text-xs sm:text-sm text-muted-foreground mt-1.5 font-medium leading-snug">
                   {stat.label}
                 </div>
               </>
@@ -80,6 +80,7 @@ export function StatsAndPopular({ stats, popularGigs }: StatsAndPopularProps) {
             return (
               <motion.div
                 key={stat.key}
+                className="h-full min-h-[7.5rem]"
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
