@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { devLog, slugify } from '@/lib/utils';
 import { logAuditEvent } from '@/lib/audit';
 import { notifications } from '@/lib/notifications';
+import { onlineSinceDate } from '@/lib/presence';
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,6 +17,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const roleFilter = searchParams.get('role');
     const activeFilter = searchParams.get('active'); // 'true' | 'false'
+    const onlineFilter = searchParams.get('online') === 'true';
 
     const isStaffFilter = roleFilter === 'accountant' || roleFilter === 'admin_assistant';
 
@@ -27,6 +29,7 @@ export async function GET(req: NextRequest) {
             ? { role: roleFilter }
             : {}),
         ...(activeFilter && { isActive: activeFilter === 'true' }),
+        ...(onlineFilter && { lastActiveAt: { gte: onlineSinceDate() } }),
       },
       select: {
         id: true,
@@ -55,6 +58,7 @@ export async function GET(req: NextRequest) {
         lastLoginIp: true,
         lastLoginCity: true,
         lastLoginUserAgent: true,
+        lastActiveAt: true,
         contactViolationCount: true,
         contactFlaggedAt: true,
         customReferralRate: true,

@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
+import { isUserOnline } from '@/lib/presence';
 import type { User } from './types';
 
 interface UserListCardProps {
@@ -32,6 +33,7 @@ function formatDateTime(value?: string | null): string {
 export function UserListCard({ user, selected, onSelect }: UserListCardProps) {
   const gigCount = user._count?.gigs ?? 0;
   const location = user.lastLoginCity || user.city || null;
+  const online = isUserOnline(user.lastActiveAt);
 
   return (
     <Card
@@ -59,6 +61,11 @@ export function UserListCard({ user, selected, onSelect }: UserListCardProps) {
         </div>
 
         <div className="mt-2 flex flex-wrap gap-1">
+          {online && (
+            <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-600/20 text-emerald-400">
+              Online
+            </span>
+          )}
           <RoleBadge role={user.role} />
           {user.staffRole && (
             <span

@@ -119,6 +119,9 @@ model User {
   lastLoginCity        String?
   lastLoginUserAgent   String?
 
+  // Presence (updated via /api/presence/heartbeat while session is active)
+  lastActiveAt         DateTime?
+
   // Contact moderation (chat / inquiry)
   contactViolationCount Int       @default(0)
   contactFlaggedAt      DateTime?

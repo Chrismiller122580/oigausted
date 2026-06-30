@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { devLog } from '@/lib/utils';
 import { isMissingColumnError } from '@/lib/user-profile-update';
 import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
+import { onlineSinceDate } from '@/lib/presence';
 
 /** Avoid re-querying a missing column on warm serverless instances (prevents log spam + 25P02 cascades). */
 let sellerPayoutAtAvailable: boolean | null = null;
@@ -56,6 +57,8 @@ export async function GET() {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
+    const onlineSince = onlineSinceDate();
+
     const [
       totalUsers,
       totalSellers,
@@ -65,7 +68,9 @@ export async function GET() {
       completedOrders,
       totalRevenueResult,
       pendingPayouts,
-      totalCategories
+      totalCategories,
+      onlineUsers,
+      onlineUsersList,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { role: 'seller' } }),
@@ -110,7 +115,21 @@ export async function GET() {
           // (we can enhance later with a payout model)
         }
       }),
-      prisma.category.count({ where: { isActive: true } })
+      prisma.category.count({ where: { isActive: true } }),
+      prisma.user.count({ where: { lastActiveAt: { gte: onlineSince } } }),
+      prisma.user.findMany({
+        where: { lastActiveAt: { gte: onlineSince } },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          staffRole: true,
+          lastActiveAt: true,
+        },
+        orderBy: { lastActiveAt: 'desc' },
+        take: 20,
+      }),
     ]);
 
     const totalRevenue = totalRevenueResult._sum.price || 0;
@@ -178,7 +197,9 @@ export async function GET() {
       platformRevenue,
       estimatedReferralRevenue,
       pendingPayouts: unpaidAggregated.netToSeller, // only the net still due to sellers (0 when none due)
-      pendingReviews: 0 // can be improved later
+      pendingReviews: 0, // can be improved later
+      onlineUsers,
+      onlineUsersList,
     });
   } catch (error) {
     console.error('Admin stats error:', error);

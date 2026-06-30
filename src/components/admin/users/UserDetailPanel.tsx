@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { formatRelativeActive, isUserOnline } from '@/lib/presence';
 import type { User } from './types';
 
 interface UserDetailPanelProps {
@@ -117,6 +118,14 @@ export function UserDetailPanel({
             Activity &amp; location
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <StatItem
+              label="Status"
+              value={isUserOnline(user.lastActiveAt) ? 'Online now' : 'Offline'}
+            />
+            <StatItem
+              label="Last active"
+              value={user.lastActiveAt ? formatRelativeActive(user.lastActiveAt) : '—'}
+            />
             <StatItem label="Last login" value={formatDateTime(user.lastLoginAt)} />
             <StatItem label="Login location" value={user.lastLoginCity || '—'} />
             <StatItem label="Login IP" value={user.lastLoginIp || '—'} />

@@ -8,13 +8,31 @@ import { useRealtimeNotifications } from '@/lib/useRealtimeNotifications';
 import type { AuditLogEntry } from '@/types/audit';
 import type { AnalyticsIntegration } from '@/lib/admin-analytics';
 import { AnalyticsIntegrationsPanel } from '@/components/admin/AnalyticsIntegrationsPanel';
+import { formatRelativeActive } from '@/lib/presence';
+
+interface OnlineUser {
+  id: string
+  name: string | null
+  email: string | null
+  role: string
+  staffRole: string | null
+  lastActiveAt: string
+}
 
 interface AdminStats {
   users?: number
+  sellers?: number
   gigs?: number
+  activeGigs?: number
   orders?: number
-  revenue?: number
-  [key: string]: number | undefined
+  completedOrders?: number
+  totalCategories?: number
+  totalRevenue?: number
+  platformRevenue?: number
+  estimatedReferralRevenue?: number
+  pendingPayouts?: number
+  onlineUsers?: number
+  onlineUsersList?: OnlineUser[]
 }
 
 export default function AdminDashboard() {
@@ -106,7 +124,20 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Grid - Clickable tiles wired to data pages */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-6 mb-12">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4 sm:gap-6 mb-12">
+          <Link href="/admin/users?online=true">
+            <Card className="bg-card border-border hover:border-emerald-500/50 hover:shadow-sm transition cursor-pointer h-full">
+              <CardContent className="p-4 sm:p-6">
+                <Zap className={`h-8 w-8 text-emerald-400 mb-3 ${(stats?.onlineUsers ?? 0) > 0 ? 'animate-pulse' : ''}`} />
+                <p className="text-sm text-muted-foreground">Online Now</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-1 tabular-nums text-emerald-400">
+                  {stats?.onlineUsers?.toLocaleString() ?? 0}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">active in last 5 min</p>
+              </CardContent>
+            </Card>
+          </Link>
+
           <Link href="/admin/users">
             <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
               <CardContent className="p-4 sm:p-6">
@@ -176,6 +207,52 @@ export default function AdminDashboard() {
             </Card>
           </Link>
         </div>
+
+        <Card className="bg-card border-border mb-12">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Zap className="h-5 w-5 text-emerald-400" />
+                Users Online Now
+              </h2>
+              <Link href="/admin/users?online=true" className="text-sm text-brand hover:underline">
+                View all online →
+              </Link>
+            </div>
+
+            {(stats?.onlineUsersList?.length ?? 0) === 0 ? (
+              <p className="text-sm text-muted-foreground">No users online right now.</p>
+            ) : (
+              <div className="space-y-2">
+                {stats?.onlineUsersList?.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/40 border border-border/60"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{user.name || 'No name'}</p>
+                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-semibold capitalize text-emerald-400">
+                        {user.role}
+                        {user.staffRole ? ` · ${user.staffRole.replace('_', ' ')}` : ''}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {formatRelativeActive(user.lastActiveAt)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {(stats?.onlineUsers ?? 0) > (stats?.onlineUsersList?.length ?? 0) && (
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Showing {stats?.onlineUsersList?.length} of {stats?.onlineUsers} online users
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {integrations.length > 0 && (
           <div className="mb-12">

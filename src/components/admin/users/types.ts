@@ -24,6 +24,7 @@ export interface User {
   lastLoginIp?: string | null;
   lastLoginCity?: string | null;
   lastLoginUserAgent?: string | null;
+  lastActiveAt?: string | null;
   customReferralRate?: number | null;
   contactViolationCount?: number;
   contactFlaggedAt?: string | null;

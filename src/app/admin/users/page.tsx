@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import type { EditForm, User } from '@/components/admin/users/types';
 const PAGE_SIZE = 25;
 
 export default function AdminUsersPage() {
+  const searchParams = useSearchParams();
   const { data: currentSession, update } = useSession();
   const currentUserId = currentSession?.user?.id;
   const detailRef = useRef<HTMLDivElement>(null);
@@ -22,6 +24,9 @@ export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [onlineFilter, setOnlineFilter] = useState(
+    () => searchParams.get('online') === 'true'
+  );
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -35,6 +40,7 @@ export default function AdminUsersPage() {
       const params = new URLSearchParams();
       if (roleFilter !== 'all') params.append('role', roleFilter);
       if (activeFilter !== 'all') params.append('active', activeFilter === 'active' ? 'true' : 'false');
+      if (onlineFilter) params.append('online', 'true');
 
       const res = await fetch(`/api/admin/users?${params.toString()}`);
       const data = await res.json();
@@ -51,7 +57,7 @@ export default function AdminUsersPage() {
   useEffect(() => {
     setLoading(true);
     fetchUsers();
-  }, [roleFilter, activeFilter]);
+  }, [roleFilter, activeFilter, onlineFilter]);
 
   useEffect(() => {
     const filtered = users.filter(
@@ -391,6 +397,14 @@ export default function AdminUsersPage() {
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
+
+            <Button
+              variant={onlineFilter ? 'default' : 'outline'}
+              className={onlineFilter ? 'bg-emerald-600 hover:bg-emerald-700' : 'border-border'}
+              onClick={() => setOnlineFilter((v) => !v)}
+            >
+              {onlineFilter ? 'Online only' : 'Show online'}
+            </Button>
 
             <Button onClick={exportToCSV} variant="outline" className="border-border">
               Export CSV

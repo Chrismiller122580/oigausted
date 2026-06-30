@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import SessionExpiryHandler from "./SessionExpiryHandler";
 import { PlatformConfigProvider } from "./PlatformConfigProvider";
 import RecordLogin from "@/components/auth/RecordLogin";
+import PresenceHeartbeat from "@/components/auth/PresenceHeartbeat";
 
 export default function SessionProviderWrapper({
   children,
@@ -19,6 +20,7 @@ export default function SessionProviderWrapper({
       <SessionProvider session={session} refetchInterval={5 * 60} refetchOnWindowFocus>
         <PlatformConfigProvider>
           <RecordLogin />
+          <PresenceHeartbeat />
           <SessionExpiryHandler>
             {children}
           </SessionExpiryHandler>

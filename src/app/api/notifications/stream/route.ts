@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { touchUserPresence } from '@/lib/update-user-presence';
 
 // Server-Sent Events endpoint for real-time notifications
 // 2027-grade: Instant updates instead of 45s polling
@@ -32,6 +33,8 @@ export async function GET(req: NextRequest) {
     async start(controller) {
       // Send initial connection message
       controller.enqueue(encoder.encode(`event: connected\ndata: ${JSON.stringify({ message: 'connected' })}\n\n`));
+
+      touchUserPresence(userId).catch(() => {});
 
       req.signal.addEventListener('abort', () => {
         closed = true;
