@@ -1,11 +1,30 @@
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions, isAdmin } from '@/lib/auth';
+import { getAppBaseUrl } from '@/lib/app-url';
+import { publicSellerSegment } from '@/lib/seller-profile';
 import { getSellerMarketingAccess } from '@/lib/seller-marketing-access';
 import { generateMarketingBrandCardSvg } from '@/lib/seller-marketing-brand-server';
-import { devLog } from '@/lib/utils';
 
 export const runtime = 'nodejs';
+
+function resolveStoreDisplay(
+  req: NextRequest,
+  session: {
+    id: string;
+    slug?: string | null;
+    businessName?: string | null;
+    name?: string | null;
+  },
+  accessStoreUrl?: string,
+): string {
+  if (accessStoreUrl) {
+    return accessStoreUrl.replace(/^https?:\/\//, '');
+  }
+  const baseUrl = getAppBaseUrl(req);
+  const segment = publicSellerSegment(session);
+  return `${baseUrl.replace(/^https?:\/\//, '')}/sellers/${segment}`;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -19,12 +38,21 @@ export async function GET(req: NextRequest) {
       return new Response('Forbidden', { status: 403 });
     }
 
-    const access = await getSellerMarketingAccess(uid, {
-      isAdmin: isAdmin(session),
-      req,
-    });
+    let accessStoreUrl = '';
+    let allowed = true;
 
-    if (!access.allowed) {
+    try {
+      const access = await getSellerMarketingAccess(uid, {
+        isAdmin: isAdmin(session),
+        req,
+      });
+      allowed = access.allowed;
+      accessStoreUrl = access.storeUrl;
+    } catch (accessError) {
+      console.error('[brand-card] getSellerMarketingAccess failed:', accessError);
+    }
+
+    if (!allowed) {
       return new Response('Forbidden', { status: 403 });
     }
 
@@ -38,7 +66,17 @@ export async function GET(req: NextRequest) {
       'Mi negocio'
     ).slice(0, 60);
 
-    const storeDisplay = access.storeUrl.replace(/^https?:\/\//, '');
+    const storeDisplay = resolveStoreDisplay(
+      req,
+      {
+        id: uid,
+        slug: session.user.slug,
+        businessName: session.user.businessName,
+        name: session.user.name,
+      },
+      accessStoreUrl,
+    );
+
     const svg = generateMarketingBrandCardSvg({
       format,
       businessName,
@@ -54,7 +92,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    devLog('brand-card SVG generation failed:', error);
+    console.error('[brand-card] unhandled error:', error);
     return new Response('Error generating brand card', { status: 500 });
   }
 }
