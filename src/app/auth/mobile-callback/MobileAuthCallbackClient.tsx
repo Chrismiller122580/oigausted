@@ -21,7 +21,7 @@ export default function MobileAuthCallbackClient() {
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-6">
       <div className="max-w-md text-center space-y-4">
-        <h1 className="text-xl font-semibold">Volviendo a OigaGig…</h1>
+        <h1 className="text-xl font-semibold">Volviendo a OigaGIG…</h1>
         <p className="text-sm text-muted-foreground">
           Si no avanzas automáticamente, vuelve a la app o continúa en el navegador.
         </p>

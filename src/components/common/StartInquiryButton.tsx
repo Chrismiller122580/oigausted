@@ -22,7 +22,7 @@ export default function StartInquiryButton({
   className,
   variant = 'outline',
   size = 'default',
-  label = 'Chatear en Oigagig',
+  label = 'Chatear en OigaGIG',
   fullWidth = false,
 }: Props) {
   const router = useRouter()

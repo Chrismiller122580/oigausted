@@ -1,4 +1,6 @@
-export const MARKETING_BRAND_LOGO_PATH = '/brand/oiga-gig-marketing.png';
+import { BRAND_LOGO_PATH } from '@/lib/brand';
+
+export const MARKETING_BRAND_LOGO_PATH = BRAND_LOGO_PATH;
 export const BRAND_PLATFORM_URL = 'oigagig.com';
 
 const UUID_SELLER_PATH =

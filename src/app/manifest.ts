@@ -1,9 +1,10 @@
 import type { MetadataRoute } from 'next'
+import { BRAND_NAME } from '@/lib/brand'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Oigagig - Gigs y Servicios Locales en Colombia',
-    short_name: 'Oigagig',
+    name: `${BRAND_NAME} - Gigs y Servicios Locales en Colombia`,
+    short_name: BRAND_NAME,
     description: 'Conecta con freelancers y negocios locales en Colombia. Gigs de servicios confiables en Bucaramanga y más.',
     start_url: '/',
     display: 'standalone',

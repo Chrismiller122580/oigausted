@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { MapPin, Mail, Heart } from 'lucide-react';
 import { AppStoreBadges } from '@/components/marketing/AppStoreBadges';
+import { BRAND_NAME } from '@/lib/brand';
 import { ShareOigaGig } from '@/components/marketing/ShareOigaGig';
 
 const FOOTER_LINKS = {
@@ -21,7 +22,7 @@ const FOOTER_LINKS = {
   ],
 } as const;
 
-export function HomeFooter({ siteName = 'OigaGIG' }: { siteName?: string }) {
+export function HomeFooter({ siteName = BRAND_NAME }: { siteName?: string }) {
   return (
     <footer className="border-t border-slate-800 bg-slate-900 text-slate-300">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 sm:py-14">

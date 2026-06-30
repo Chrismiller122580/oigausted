@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AppStoreBadges } from '@/components/marketing/AppStoreBadges';
+import { BRAND_NAME } from '@/lib/brand';
 import { ShareOigaGig } from '@/components/marketing/ShareOigaGig';
 
 const FOOTER_LINKS = [
@@ -13,7 +14,7 @@ const FOOTER_LINKS = [
   { href: '/signup', label: 'Crear cuenta' },
 ] as const;
 
-export function PublicFooter({ siteName = 'OigaGig' }: { siteName?: string }) {
+export function PublicFooter({ siteName = BRAND_NAME }: { siteName?: string }) {
   return (
     <footer className="border-t bg-card dark:bg-card py-10 text-sm">
       <div className="max-w-7xl mx-auto px-6">

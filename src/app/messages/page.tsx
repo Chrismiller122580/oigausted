@@ -85,7 +85,7 @@ export default function MessagesInboxPage() {
               <Link href="/gigs" className="text-orange-600 hover:underline">
                 servicio
               </Link>{' '}
-              con &quot;Chatear en Oigagig&quot;.
+              con &quot;Chatear en OigaGIG&quot;.
             </p>
           </CardContent>
         </Card>

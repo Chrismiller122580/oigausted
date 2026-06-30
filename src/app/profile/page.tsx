@@ -446,7 +446,7 @@ export default function ProfilePage() {
                       ¿Quieres empezar a vender tus servicios?
                     </h3>
                     <p className="text-orange-700 mb-4">
-                      Únete a cientos de profesionales locales que ya están generando ingresos en Oigagig.
+                      Únete a cientos de profesionales locales que ya están generando ingresos en OigaGIG.
                     </p>
                     <ul className="text-sm text-orange-600 space-y-1">
                       <li>✓ Publica tus propios gigs</li>

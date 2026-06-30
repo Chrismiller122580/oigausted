@@ -121,7 +121,7 @@ export default function SellerDashboard() {
                 <Sparkles size={18} /> Marketing IA
               </div>
               <p className="text-sm text-muted-foreground mb-3">
-                Genera posts para Instagram y WhatsApp con tu tienda OigaGig y descargas con marca.
+                Genera posts para Instagram y WhatsApp con tu tienda OigaGIG y descargas con marca.
               </p>
               <Link href="/seller/marketing">
                 <Button size="sm" variant="outline" className="border-rose-300 text-rose-700 hover:bg-rose-100 dark:hover:bg-rose-950/50">

@@ -274,13 +274,13 @@ export default function MarketingPreviewPanel({
             <div className="flex items-center gap-2 pt-1 border-t border-border">
               <Image
                 src={MARKETING_BRAND_LOGO_PATH}
-                alt="Oiga Gig"
+                alt="OigaGIG"
                 width={72}
                 height={32}
                 className="object-contain opacity-80"
               />
               <p className="text-[10px] text-muted-foreground">
-                Incluye marca OigaGig y enlace a tu tienda
+                Incluye marca OigaGIG y enlace a tu tienda
               </p>
             </div>
           )}

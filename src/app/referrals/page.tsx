@@ -117,7 +117,7 @@ export default function ReferralsPage() {
 
   const handleShareWhatsApp = () => {
     const text = encodeURIComponent(
-      `¡Únete a Oigagig! Soy vendedor y te recomiendo la plataforma. Gana dinero con tus servicios:\n\n${referralLink}`
+      `¡Únete a OigaGIG! Soy vendedor y te recomiendo la plataforma. Gana dinero con tus servicios:\n\n${referralLink}`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };

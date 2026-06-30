@@ -8,7 +8,7 @@ const serverUrl = process.env.CAPACITOR_SERVER_URL ?? 'https://oigagig.com'
 
 const config: CapacitorConfig = {
   appId: 'com.oigagig.app',
-  appName: 'OigaGig',
+  appName: 'OigaGIG',
   webDir: 'www',
   server: {
     url: serverUrl,
@@ -50,7 +50,7 @@ const config: CapacitorConfig = {
   },
   ios: {
     contentInset: 'automatic',
-    scheme: 'OigaGig',
+    scheme: 'OigaGIG',
     webContentsDebuggingEnabled: process.env.CAPACITOR_DEBUG === 'true',
   },
 }

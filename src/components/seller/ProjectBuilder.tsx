@@ -80,7 +80,7 @@ export default function ProjectBuilder({
               id: sellerId,
               slug: group.sellerSlug,
             })
-            const contactMsg = `Hola ${group.sellerName}, vi tu servicio en la Red de Vendedores de OigaGig y me gustaría coordinar un proyecto combinado. ¿Podemos hablar?`
+            const contactMsg = `Hola ${group.sellerName}, vi tu servicio en la Red de Vendedores de OigaGIG y me gustaría coordinar un proyecto combinado. ¿Podemos hablar?`
             const waLink = buildWhatsAppLink(group.sellerWhatsapp, contactMsg)
 
             return (

@@ -1,4 +1,4 @@
-# OigaGig Mobile Shell (Capacitor)
+# OigaGIG Mobile Shell (Capacitor)
 
 Native iOS and Android wrappers that load the production web app at `https://oigagig.com`. The Next.js codebase stays the single source of truth; this folder only contains the native shell, assets, and release tooling.
 

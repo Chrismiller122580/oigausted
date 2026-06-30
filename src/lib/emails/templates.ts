@@ -1,4 +1,4 @@
-// Email Templates for Oigagig using Resend
+// Email Templates for OigaGIG using Resend
 // These return HTML strings ready to be sent
 
 interface BaseEmailProps {
@@ -8,19 +8,19 @@ interface BaseEmailProps {
 
 export function welcomeEmail({ userName = 'Usuario' }: BaseEmailProps) {
   return {
-    subject: '¡Bienvenido a Oigagig!',
+    subject: '¡Bienvenido a OigaGIG!',
     html: `
       <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #fff;">
         <div style="text-align: center; margin-bottom: 40px;">
           <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #f97316, #dc2626); border-radius: 16px; margin: 0 auto; display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; font-weight: 900;">
             O
           </div>
-          <h1 style="color: #111; margin-top: 24px; font-size: 28px;">¡Bienvenido a Oigagig!</h1>
+          <h1 style="color: #111; margin-top: 24px; font-size: 28px;">¡Bienvenido a OigaGIG!</h1>
         </div>
 
         <p style="color: #444; font-size: 16px; line-height: 1.6;">
           Hola <strong>${userName}</strong>,<br><br>
-          Gracias por registrarte en <strong>Oigagig</strong>, la plataforma que conecta personas con servicios locales de confianza en Colombia.
+          Gracias por registrarte en <strong>OigaGIG</strong>, la plataforma que conecta personas con servicios locales de confianza en Colombia.
         </p>
 
         <p style="color: #444; font-size: 16px; line-height: 1.6;">
@@ -140,14 +140,14 @@ interface PasswordResetProps {
 export function passwordResetEmail({ userName = 'Usuario', resetLink }: PasswordResetProps) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
   return {
-    subject: 'Restablece tu contraseña en Oigagig',
+    subject: 'Restablece tu contraseña en OigaGIG',
     html: `
       <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
         <h2 style="color: #111;">Restablece tu contraseña</h2>
         
         <p>Hola <strong>${userName}</strong>,</p>
         
-        <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en Oigagig.</p>
+        <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en OigaGIG.</p>
         
         <p>Haz clic en el botón de abajo para crear una nueva contraseña. Este enlace expirará en 1 hora.</p>
 
@@ -160,7 +160,7 @@ export function passwordResetEmail({ userName = 'Usuario', resetLink }: Password
 
         <p style="font-size: 14px; color: #666;">Si no solicitaste este cambio, puedes ignorar este correo de forma segura.</p>
 
-        <p style="margin-top: 32px; font-size: 12px; color: #888;">Oigagig • Servicios locales de confianza en Colombia</p>
+        <p style="margin-top: 32px; font-size: 12px; color: #888;">OigaGIG • Servicios locales de confianza en Colombia</p>
       </div>
     `
   };
@@ -175,12 +175,12 @@ export function gigPublishedEmail({ userName = 'Usuario', gigTitle, gigId }: Bas
       <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
         <h2 style="color: #111;">¡Gig publicado exitosamente!</h2>
         <p>Hola <strong>${userName}</strong>,</p>
-        <p>Tu servicio <strong>"${gigTitle}"</strong> ya está visible para compradores en Oigagig.</p>
+        <p>Tu servicio <strong>"${gigTitle}"</strong> ya está visible para compradores en OigaGIG.</p>
         <a href="${link}" 
            style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin-top: 16px;">
           Ver mis gigs
         </a>
-        <p style="margin-top: 32px; font-size: 12px; color: #888;">Oigagig • Servicios locales de confianza en Colombia</p>
+        <p style="margin-top: 32px; font-size: 12px; color: #888;">OigaGIG • Servicios locales de confianza en Colombia</p>
       </div>
     `
   };
@@ -204,7 +204,7 @@ export function supportTicketEmail({ userName = 'Usuario', subject, isAdmin = fa
            style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin-top: 16px;">
           ${isAdmin ? 'Ver en admin' : 'Ver mi ticket'}
         </a>
-        <p style="margin-top: 32px; font-size: 12px; color: #888;">Oigagig • Servicios locales de confianza en Colombia</p>
+        <p style="margin-top: 32px; font-size: 12px; color: #888;">OigaGIG • Servicios locales de confianza en Colombia</p>
       </div>
     `
   };
@@ -222,7 +222,7 @@ export function referralPayoutRequestEmail({ userName = 'Usuario', amount, reque
            style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin-top: 16px;">
           Revisar en admin
         </a>
-        <p style="margin-top: 32px; font-size: 12px; color: #888;">Oigagig • Servicios locales de confianza en Colombia</p>
+        <p style="margin-top: 32px; font-size: 12px; color: #888;">OigaGIG • Servicios locales de confianza en Colombia</p>
       </div>
     `
   };
@@ -296,7 +296,7 @@ export function lifecycleNudgeEmail({
           ¿Necesitas ayuda? <a href="mailto:support@oigagig.com" style="color: #f97316;">support@oigagig.com</a>
         </p>
         <p style="color: #aaa; font-size: 12px; text-align: center; margin-top: 16px;">
-          Oigagig • Servicios locales de confianza en Colombia
+          OigaGIG • Servicios locales de confianza en Colombia
         </p>
       </div>
     `,
@@ -315,7 +315,7 @@ interface AdminAlertProps {
 export function adminAlertEmail({ title, bodyHtml, ctaLabel, ctaHref, eventLabel }: AdminAlertProps) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
   return {
-    subject: `[Oigagig Admin] ${title}`,
+    subject: `[OigaGIG Admin] ${title}`,
     html: `
       <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; background: #fff;">
         <div style="border-bottom: 3px solid #f97316; padding-bottom: 16px; margin-bottom: 24px;">
@@ -334,7 +334,7 @@ export function adminAlertEmail({ title, bodyHtml, ctaLabel, ctaHref, eventLabel
           </div>
         ` : ''}
         <p style="margin-top: 32px; font-size: 12px; color: #888;">
-          Oigagig Admin • Este correo se envía a <a href="mailto:support@oigagig.com" style="color: #f97316;">support@oigagig.com</a>
+          OigaGIG Admin • Este correo se envía a <a href="mailto:support@oigagig.com" style="color: #f97316;">support@oigagig.com</a>
         </p>
       </div>
     `,

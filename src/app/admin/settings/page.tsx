@@ -14,6 +14,7 @@ import {
 import type { AdminSettingsFormConfig, AdminPlatformConfigResponse } from '@/types/platform-config';
 import { asAuditDetails, type AuditLogEntry } from '@/types/audit';
 import type { WompiTestSummary, WompiWebhookEvent } from '@/types/wompi';
+import { BRAND_NAME, BRAND_LOGO_PATH } from '@/lib/brand';
 
 // Enhanced accessible Switch using native input for reliable tap/keyboard behavior on all devices (incl. Android)
 function Switch({ checked, onCheckedChange, disabled }: { checked: boolean; onCheckedChange: (v: boolean) => void; disabled?: boolean }) {
@@ -147,9 +148,9 @@ const DEFAULTS: Partial<PlatformConfig> = {
   referralsEnabled: true,
   allowNewSignups: true,
   maxUploadSizeMB: 10,
-  siteName: 'Oigagig',
+  siteName: BRAND_NAME,
   siteTagline: 'Conecta con profesionales locales en Colombia',
-  logoUrl: null,
+  logoUrl: BRAND_LOGO_PATH,
   globalPushNotificationsEnabled: true,
   globalEmailNotificationsEnabled: true,
   maintenanceBypassIps: '',
@@ -286,7 +287,7 @@ export default function AdminSettings() {
     referralsEnabled: c.referralsEnabled ?? true,
     allowNewSignups: c.allowNewSignups ?? true,
     maxUploadSizeMB: c.maxUploadSizeMB ?? 10,
-    siteName: c.siteName || 'Oigagig',
+    siteName: c.siteName || BRAND_NAME,
     siteTagline: c.siteTagline || 'Conecta con profesionales locales en Colombia',
     logoUrl: c.logoUrl || null,
     globalPushNotificationsEnabled: c.globalPushNotificationsEnabled ?? true,
@@ -1831,7 +1832,7 @@ export default function AdminSettings() {
                   value={config.siteName || ''}
                   onChange={(e) => updateField('siteName', e.target.value)}
                   className="mt-1.5 bg-background border-border text-lg font-semibold"
-                  placeholder="Oigagig"
+                  placeholder="OigaGIG"
                 />
               </div>
               <div>
@@ -1849,9 +1850,9 @@ export default function AdminSettings() {
                   value={config.logoUrl || ''}
                   onChange={(e) => updateField('logoUrl', e.target.value || null)}
                   className="mt-1.5 bg-background border-border font-mono text-xs"
-                  placeholder="/logo.png or https://..."
+                  placeholder="/brand/oiga-gig-marketing.png or https://..."
                 />
-                <p className="text-[10px] text-muted-foreground mt-1">Site path (e.g. /logo.png, /icon.png) or HTTPS URL. Local dev paths like /workspaces/... are ignored. Leave empty for the default OG icon.</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Site path (e.g. {BRAND_LOGO_PATH}, /icon.png) or HTTPS URL. Local dev paths like /workspaces/... are ignored. Leave empty for the default brand logo.</p>
               </div>
             </div>
           </div>

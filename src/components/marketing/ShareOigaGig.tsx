@@ -5,6 +5,8 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { buildWhatsAppShareUrl, getDefaultShareUrl } from '@/lib/pwa-install'
 
+import { BRAND_NAME } from '@/lib/brand';
+
 type ShareOigaGigProps = {
   siteName?: string
   className?: string
@@ -12,7 +14,7 @@ type ShareOigaGigProps = {
 }
 
 export function ShareOigaGig({
-  siteName = 'OigaGig',
+  siteName = BRAND_NAME,
   className = '',
   variant = 'footer',
 }: ShareOigaGigProps) {

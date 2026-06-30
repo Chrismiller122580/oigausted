@@ -100,7 +100,7 @@ export default function PwaInstallPrompt() {
   return (
     <div
       role="dialog"
-      aria-label="Instalar OigaGig"
+      aria-label="Instalar OigaGIG"
       className={`fixed inset-x-0 z-[190] p-4 safe-area-inset-bottom md:hidden ${offsetClass}`}
     >
       <div className="mx-auto max-w-lg rounded-2xl border border-border bg-card/95 backdrop-blur shadow-xl p-4">
@@ -113,7 +113,7 @@ export default function PwaInstallPrompt() {
             <div className="flex items-start justify-between gap-2">
               <div>
                 <p className="font-semibold text-foreground text-sm">
-                  Instala OigaGig en tu celular
+                  Instala OigaGIG en tu celular
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
                   {isIos
