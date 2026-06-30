@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { useSession } from 'next-auth/react'
 import GigCard from '@/components/common/GigCard'
 import ProjectBuilder from '@/components/seller/ProjectBuilder'
@@ -21,6 +22,16 @@ import {
   type NetworkGig,
   type ProjectBundleItem,
 } from '@/lib/seller-network'
+import { buildGigMapPins, groupGigsByCity, type GigMapPin } from '@/lib/gig-map'
+import { ListMapToggle, type ViewMode } from '@/components/maps/ListMapToggle'
+import { GigMapPinSheet } from '@/components/maps/GigMapPinSheet'
+
+const GigMapExplorer = dynamic(() => import('@/components/maps/GigMapExplorer'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[50dvh] md:h-[420px] rounded-2xl border border-border bg-muted animate-pulse" />
+  ),
+})
 
 export default function SellerNetworkPage() {
   const { data: session } = useSession()
@@ -43,6 +54,8 @@ export default function SellerNetworkPage() {
   const [showOnlyRemote, setShowOnlyRemote] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false)
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [selectedMapPin, setSelectedMapPin] = useState<GigMapPin | null>(null)
 
   const fetchGigs = useCallback(async () => {
     setLoading(true)
@@ -200,6 +213,20 @@ export default function SellerNetworkPage() {
 
   const projectGigIds = useMemo(() => new Set(projectItems.map((i) => i.gigId)), [projectItems])
 
+  const mapPins = useMemo(() => buildGigMapPins(filteredGigs), [filteredGigs])
+  const mapClusters = useMemo(() => groupGigsByCity(mapPins), [mapPins])
+  const mapCenter = useMemo(() => {
+    if (userLocation && showOnlyNearMe) {
+      return { lat: userLocation.lat, lng: userLocation.lng, zoom: 11 }
+    }
+    return undefined
+  }, [userLocation, showOnlyNearMe])
+
+  const selectedNetworkGig = useMemo(() => {
+    if (!selectedMapPin) return null
+    return filteredGigs.find((g) => g.id === selectedMapPin.id) ?? null
+  }, [filteredGigs, selectedMapPin])
+
   if (loading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
@@ -281,6 +308,12 @@ export default function SellerNetworkPage() {
                 <Wifi className="h-4 w-4" />
                 {showOnlyRemote ? 'Todos' : 'Solo remotos'}
               </Button>
+              <ListMapToggle
+                storageKey="network-view"
+                value={viewMode}
+                onChange={setViewMode}
+                className="ml-auto sm:ml-0"
+              />
               {(searchTerm || selectedCategory !== 'Todas' || showOnlyNearMe || showOnlyRemote) && (
                 <Button
                   variant="outline"
@@ -342,7 +375,16 @@ export default function SellerNetworkPage() {
               {filteredGigs.length} servicios de otros vendedores
             </p>
 
-            {filteredGigs.length > 0 ? (
+            {filteredGigs.length > 0 && viewMode === 'map' ? (
+              <GigMapExplorer
+                pins={mapPins}
+                clusters={mapClusters}
+                userLocation={userLocation}
+                initialCenter={mapCenter}
+                height="min(50dvh, 420px)"
+                onPinClick={(pin) => setSelectedMapPin(pin)}
+              />
+            ) : filteredGigs.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                 {filteredGigs.map((gig) => (
                   <GigCard
@@ -395,6 +437,21 @@ export default function SellerNetworkPage() {
           mobileSheet
         />
       )}
+
+      <GigMapPinSheet
+        pin={selectedMapPin}
+        sellerName={
+          selectedNetworkGig?.seller?.businessName || selectedNetworkGig?.seller?.name
+        }
+        distanceKm={selectedNetworkGig?.distanceKm}
+        inProject={selectedMapPin ? projectGigIds.has(selectedMapPin.id) : false}
+        onClose={() => setSelectedMapPin(null)}
+        onAddToProject={
+          selectedNetworkGig
+            ? () => handleAddToProject(selectedNetworkGig)
+            : undefined
+        }
+      />
     </div>
   )
 }

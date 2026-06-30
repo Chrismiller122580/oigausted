@@ -26,6 +26,7 @@ declare global {
     title?: string
     label?: GoogleMapsMarkerLabel | string
     cursor?: string
+    zIndex?: number
   }
 
   interface GoogleMapsEventListener {

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState, useMemo, Suspense, useRef, type ComponentProps } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
+import Link from "next/link";
 import GigCard from "@/components/common/GigCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,6 +14,15 @@ import { MapPin, Wifi, X, ChevronLeft, ChevronRight, LayoutGrid } from "lucide-r
 import { CategoryIcon } from "@/lib/icon-registry";
 
 import type { PublicGigListItem } from '@/lib/gig-queries'
+import { buildGigMapPins, groupGigsByCity } from '@/lib/gig-map';
+import { ListMapToggle, type ViewMode } from '@/components/maps/ListMapToggle';
+
+const GigMapExplorer = dynamic(() => import('@/components/maps/GigMapExplorer'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[50dvh] md:h-[420px] rounded-2xl border border-border bg-muted animate-pulse" />
+  ),
+});
 
 type GigListItem = PublicGigListItem & {
   distanceKm?: number;
@@ -22,6 +33,7 @@ type GigsClientProps = {
 }
 
 export default function GigsClient({ initialGigs }: GigsClientProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("categoria") || "Todas";
 
@@ -42,6 +54,7 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
   const [showOnlyRemote, setShowOnlyRemote] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   // Update URL when category changes (for shareability)
   useEffect(() => {
@@ -191,6 +204,15 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
     return result;
   }, [gigsWithDistance, searchTerm, selectedCategory, sortBy, showOnlyNearMe, showOnlyRemote, userLocation]);
 
+  const mapPins = useMemo(() => buildGigMapPins(filteredGigs), [filteredGigs]);
+  const mapClusters = useMemo(() => groupGigsByCity(mapPins), [mapPins]);
+  const mapCenter = useMemo(() => {
+    if (userLocation && showOnlyNearMe) {
+      return { lat: userLocation.lat, lng: userLocation.lng, zoom: 11 };
+    }
+    return undefined;
+  }, [userLocation, showOnlyNearMe]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -273,6 +295,13 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
             <Wifi className="h-5 w-5 shrink-0" />
             {showOnlyRemote ? "Todos" : "Solo remotos"}
           </Button>
+
+          <ListMapToggle
+            storageKey="gigs-view"
+            value={viewMode}
+            onChange={setViewMode}
+            className="ml-auto sm:ml-0"
+          />
 
           {/* Clear all filters chip - prominent */}
           {(searchTerm || selectedCategory !== "Todas" || sortBy !== "relevance" || showOnlyNearMe || showOnlyRemote) && (
@@ -406,8 +435,28 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
         )}
       </div>
 
+      {/* Map view */}
+      {viewMode === 'map' && filteredGigs.length > 0 ? (
+        <div className="mb-8 space-y-3">
+          <GigMapExplorer
+            pins={mapPins}
+            clusters={mapClusters}
+            userLocation={userLocation}
+            initialCenter={mapCenter}
+            height="min(50dvh, 420px)"
+            onPinClick={(pin) => router.push(`/gigs/${pin.id}`)}
+          />
+          <p className="text-center text-xs text-muted-foreground">
+            {mapPins.length} en el mapa ·{' '}
+            <Link href="/mapa" className="text-orange-700 hover:underline">
+              Ver mapa completo de Colombia
+            </Link>
+          </p>
+        </div>
+      ) : null}
+
       {/* Gigs Results - Enhanced for mobile with carousel for tiles */}
-      {filteredGigs.length > 0 ? (
+      {filteredGigs.length > 0 && viewMode === 'list' ? (
         <>
           {/* Mobile-only horizontal carousel for gig tiles (swipeable discovery) */}
           <div className="md:hidden mb-8">
@@ -470,7 +519,9 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
             </p>
           </div>
         </>
-      ) : (
+      ) : null}
+
+      {filteredGigs.length === 0 ? (
         <div className="text-center py-16 border rounded-3xl bg-card">
           <p className="text-2xl text-gray-400 mb-2">No se encontraron servicios</p>
           <p className="text-muted-foreground mb-6">Prueba con otra búsqueda o categoría</p>
@@ -487,7 +538,7 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
             Ver todos los servicios
           </button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

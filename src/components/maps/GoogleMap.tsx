@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { loadGoogleMaps } from '@/lib/googleMapsLoader';
+import { importMapLibraries } from '@/lib/googleMapsLoader';
 
 interface GoogleMapProps {
   center: { lat: number; lng: number };
@@ -19,9 +19,10 @@ export default function GoogleMap({ center, zoom = 14, markers = [], height = '4
   useEffect(() => {
     let isMounted = true;
 
-    const initMap = () => {
-      const MapCtor = window.google?.maps?.Map;
-      if (!mapRef.current || !MapCtor || !isMounted) return;
+    const initMap = async () => {
+      if (!mapRef.current || !isMounted) return;
+
+      const { Map: MapCtor, Marker: MarkerCtor } = await importMapLibraries();
 
       mapInstance.current = new MapCtor(mapRef.current, {
         center,
@@ -32,8 +33,6 @@ export default function GoogleMap({ center, zoom = 14, markers = [], height = '4
       });
 
       markers.forEach((marker) => {
-        const MarkerCtor = window.google?.maps?.Marker;
-        if (!MarkerCtor) return;
         new MarkerCtor({
           position: { lat: marker.lat, lng: marker.lng },
           map: mapInstance.current,
@@ -42,9 +41,9 @@ export default function GoogleMap({ center, zoom = 14, markers = [], height = '4
       });
     };
 
-    loadGoogleMaps([])  // no 'places' library — prevents legacy Autocomplete + pac-container DOM fights
+    importMapLibraries()
       .then(() => {
-        if (isMounted) initMap();
+        if (isMounted) void initMap();
       })
       .catch((error) => {
         console.error('Failed to load Google Maps:', error);
