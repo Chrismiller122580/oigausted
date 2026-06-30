@@ -189,6 +189,12 @@ export default function SellerEarningsPage() {
     }
   };
 
+  const bankComplete =
+    !!bankForm.payoutBankCode?.trim() &&
+    !!bankForm.payoutAccountNumber?.trim() &&
+    !!bankForm.payoutHolderName?.trim() &&
+    !!bankForm.payoutDocumentNumber?.trim();
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -204,6 +210,19 @@ export default function SellerEarningsPage() {
     <div className="min-h-screen bg-background py-12">
       <MapsPollutionNuke />
       <div className="max-w-6xl mx-auto px-6">
+        {earnings.pending > 0 && !bankComplete && (
+          <Card className="mb-8 border-amber-500/50 bg-amber-950/20">
+            <CardContent className="p-5">
+              <p className="font-semibold text-amber-400">
+                Tienes ${earnings.pending.toLocaleString('es-CO')} COP pendiente de pago
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Completa tus datos bancarios abajo para que el administrador pueda enviarte el pago vía Wompi.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="flex justify-between items-center mb-10">
           <div>
             <h1 className="text-5xl font-bold text-foreground">Mis Ganancias</h1>
