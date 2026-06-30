@@ -1,58 +1,34 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { UserListCard } from '@/components/admin/users/UserListCard';
+import { UserDetailPanel } from '@/components/admin/users/UserDetailPanel';
+import { UserEditModal } from '@/components/admin/users/UserEditModal';
+import type { EditForm, User } from '@/components/admin/users/types';
 
-interface User {
-  id: string;
-  name: string | null;
-  email: string;
-  role: string;
-  staffRole?: string | null;
-  businessName?: string | null;
-  city?: string | null;
-  phone?: string | null;
-  whatsapp?: string | null;
-  bio?: string | null;
-  nit?: string | null;
-  isActive?: boolean;
-  createdAt: string;
-  customReferralRate?: number | null;
-  contactViolationCount?: number;
-  contactFlaggedAt?: string | null;
-  _count?: {
-    gigs: number;
-    ordersAsBuyer: number;
-    ordersAsSeller: number;
-  };
-}
+const PAGE_SIZE = 25;
 
 export default function AdminUsersPage() {
   const { data: currentSession, update } = useSession();
   const currentUserId = currentSession?.user?.id;
+  const detailRef = useRef<HTMLDivElement>(null);
+
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  // Editing modal
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  type EditForm = Partial<Omit<User, 'customReferralRate'>> & { customReferralRate?: number | null | string };
   const [editForm, setEditForm] = useState<EditForm>({});
   const [saving, setSaving] = useState(false);
-
-  // Role quick change (kept for speed)
-  const [roleEditingId, setRoleEditingId] = useState<string | null>(null);
-  const [newRole, setNewRole] = useState<string>('');
-  const [newStaffRole, setNewStaffRole] = useState<string>('');
 
   const fetchUsers = async () => {
     try {
@@ -65,7 +41,7 @@ export default function AdminUsersPage() {
       const list = data.users || [];
       setUsers(list);
       setFilteredUsers(list);
-    } catch (e) {
+    } catch {
       toast.error('Error loading users');
     } finally {
       setLoading(false);
@@ -73,55 +49,67 @@ export default function AdminUsersPage() {
   };
 
   useEffect(() => {
+    setLoading(true);
     fetchUsers();
   }, [roleFilter, activeFilter]);
 
   useEffect(() => {
-    const filtered = users.filter(u =>
-      u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.businessName?.toLowerCase().includes(searchTerm.toLowerCase())
+    const filtered = users.filter(
+      (u) =>
+        u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.businessName?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredUsers(filtered);
+    setPage(1);
   }, [searchTerm, users]);
 
-  const startRoleEdit = (user: User) => {
-    setRoleEditingId(user.id);
-    setNewRole(user.role);
-    setNewStaffRole(user.staffRole || '');
+  useEffect(() => {
+    if (selectedUser) {
+      const updated = filteredUsers.find((u) => u.id === selectedUser.id);
+      if (updated) {
+        setSelectedUser(updated);
+      } else {
+        setSelectedUser(null);
+      }
+    }
+  }, [filteredUsers, selectedUser?.id]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const paginatedUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const selectUser = (user: User) => {
+    setSelectedUser(user);
+    if (window.innerWidth < 1024) {
+      setTimeout(() => {
+        detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
   };
 
-  const saveRole = async (userId: string) => {
+  const saveRole = async (userId: string, role: string, staffRole: string | null) => {
     try {
       const res = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
-          role: newRole,
-          staffRole: newStaffRole || null,
-        })
+          role,
+          staffRole,
+        }),
       });
 
       if (res.ok) {
         toast.success('Role updated');
-        setRoleEditingId(null);
-        fetchUsers(); // refresh
+        await fetchUsers();
       } else {
         toast.error('Could not update role');
       }
-    } catch (e) {
+    } catch {
       toast.error('Request error');
     }
   };
 
-  const cancelEdit = () => {
-    setRoleEditingId(null);
-    setNewRole('');
-    setNewStaffRole('');
-  };
-
-  // Full user editing
   const openEditModal = (user: User) => {
     setEditingUser(user);
     setEditForm({
@@ -130,7 +118,6 @@ export default function AdminUsersPage() {
       businessName: user.businessName || '',
       phone: user.phone || '',
       whatsapp: user.whatsapp || '',
-
       bio: user.bio || '',
       nit: user.nit || '',
       isActive: user.isActive !== false,
@@ -153,8 +140,8 @@ export default function AdminUsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: editingUser.id,
-          ...editForm
-        })
+          ...editForm,
+        }),
       });
 
       if (res.ok) {
@@ -165,7 +152,7 @@ export default function AdminUsersPage() {
         const data = await res.json();
         toast.error(data.error || 'Could not update user');
       }
-    } catch (e) {
+    } catch {
       toast.error('Error saving changes');
     } finally {
       setSaving(false);
@@ -182,32 +169,31 @@ export default function AdminUsersPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,           // We'll need to support this in the API for admin
+          userId: user.id,
           newPassword: tempPassword,
-          isAdminReset: true
-        })
+          isAdminReset: true,
+        }),
       });
 
       if (res.ok) {
         toast.success(`Temporary password: ${tempPassword}`, { duration: 15000 });
-        // In real scenario we should send it by email instead of showing it
       } else {
         toast.error('Could not reset password');
       }
-    } catch (e) {
+    } catch {
       toast.error('Error resetting password');
     }
   };
 
   const toggleUserActive = async (user: User) => {
-    const action = user.isActive ? 'deactivate' : 'activate';
+    const action = user.isActive !== false ? 'deactivate' : 'activate';
     if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} ${user.email}?`)) return;
 
     try {
       const res = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, isActive: !user.isActive })
+        body: JSON.stringify({ userId: user.id, isActive: user.isActive === false }),
       });
 
       if (res.ok) {
@@ -216,68 +202,78 @@ export default function AdminUsersPage() {
       } else {
         toast.error(`Could not ${action} user`);
       }
-    } catch (e) {
+    } catch {
       toast.error('Error changing status');
     }
   };
 
   const impersonateUser = async (user: User) => {
-    if (!confirm(`Impersonate ${user.email || user.name}? This will switch you into their account (all actions will be performed as them). This is logged for audit.`)) return;
+    if (
+      !confirm(
+        `Impersonate ${user.email || user.name}? This will switch you into their account (all actions will be performed as them). This is logged for audit.`
+      )
+    )
+      return;
 
     try {
       const res = await fetch('/api/admin/impersonate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
+        body: JSON.stringify({ userId: user.id }),
       });
 
       if (res.ok) {
         const data = await res.json();
         if (!data.impersonationToken) {
-          toast.error('No se recibió token de impersonación');
+          toast.error('No impersonation token received');
           return;
         }
         toast.success(`Switching to ${user.email}...`);
         await update({ impersonationToken: data.impersonationToken });
-        // Hard navigate to home so the user immediately experiences the site with the new identity (navbars, permissions, data etc.)
         window.location.href = '/';
       } else {
         const err = await res.json().catch(() => ({}));
         toast.error(err?.error || 'Could not start impersonation');
       }
-    } catch (e) {
+    } catch {
       toast.error('Error impersonating user');
     }
   };
 
   const deleteUser = async (user: User) => {
     if (user.id === currentUserId) {
-      toast.error('No puedes eliminarte a ti mismo');
+      toast.error('You cannot delete your own account');
       return;
     }
-    if (!confirm(`Eliminar usuario ${user.email}?\n\nSi tiene gigs u órdenes será DESACTIVADO en su lugar (recomendado para integridad de datos). Esto no se puede deshacer para eliminación permanente.`)) return;
+    if (
+      !confirm(
+        `Delete user ${user.email}?\n\nIf they have gigs or orders they will be DEACTIVATED instead (recommended for data integrity). This cannot be undone for permanent deletion.`
+      )
+    )
+      return;
 
     try {
       const res = await fetch('/api/admin/users', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
+        body: JSON.stringify({ userId: user.id }),
       });
 
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
         if (data.deactivatedInstead) {
-          toast.success(data.message || 'Usuario desactivado en su lugar (tenía actividad).');
+          toast.success(data.message || 'User deactivated instead (had activity).');
         } else {
-          toast.success('Usuario eliminado permanentemente.');
+          toast.success('User deleted permanently.');
         }
+        setSelectedUser(null);
         fetchUsers();
       } else {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error || 'No se pudo eliminar el usuario (puede tener actividad - desactívalo en su lugar)');
+        toast.error(data.error || 'Could not delete user (may have activity — deactivate instead)');
       }
-    } catch (e) {
-      toast.error('Error al eliminar usuario');
+    } catch {
+      toast.error('Error deleting user');
     }
   };
 
@@ -287,32 +283,44 @@ export default function AdminUsersPage() {
       return;
     }
 
-    const headers = ['ID', 'Name', 'Email', 'Role', 'Active', 'Business', 'Custom Ref %', 'Phone', 'WhatsApp', 'City', 'Registration Date'];
-    
-    const rows = filteredUsers.map(u => [
+    const headers = [
+      'ID',
+      'Name',
+      'Email',
+      'Role',
+      'Active',
+      'Business',
+      'Custom Ref %',
+      'Phone',
+      'WhatsApp',
+      'City',
+      'Registration Date',
+    ];
+
+    const rows = filteredUsers.map((u) => [
       u.id,
       u.name || '',
       u.email,
       u.role,
-      u.isActive ? 'Yes' : 'No',
+      u.isActive !== false ? 'Yes' : 'No',
       u.businessName || '',
       u.customReferralRate != null ? (u.customReferralRate * 100).toFixed(1) + '%' : 'default (5%)',
       u.phone || '',
       u.whatsapp || '',
       u.city || '',
-      new Date(u.createdAt).toLocaleDateString('es-CO')
+      new Date(u.createdAt).toLocaleDateString('es-CO'),
     ]);
 
     let csvContent = headers.join(',') + '\n';
-    rows.forEach(row => {
-      csvContent += row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',') + '\n';
+    rows.forEach((row) => {
+      csvContent += row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(',') + '\n';
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
-    link.download = `users_${new Date().toISOString().slice(0,10)}.csv`;
+    link.download = `users_${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     toast.success('Exporting users to CSV...');
   };
@@ -321,7 +329,7 @@ export default function AdminUsersPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center text-foreground">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-lg text-muted-foreground">Loading users...</p>
         </div>
       </div>
@@ -334,7 +342,9 @@ export default function AdminUsersPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
             <h1 className="text-5xl font-bold">Users</h1>
-            <p className="text-muted-foreground mt-1">Full account management • {users.length} registered</p>
+            <p className="text-muted-foreground mt-1">
+              Full account management • Showing {filteredUsers.length} of {users.length} registered
+            </p>
           </div>
 
           <div className="flex flex-wrap gap-3 items-center">
@@ -374,327 +384,85 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
-        <Card className="bg-card border-border">
-          <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-border bg-background">
-                <tr>
-                  <th className="text-left p-4 font-medium text-muted-foreground">User</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Email</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Rol</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Estado</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Negocio</th>
-                  <th className="text-center p-4 font-medium text-muted-foreground">Ref Rate</th>
-                  <th className="text-center p-4 font-medium text-muted-foreground">Gigs</th>
-                  <th className="text-right p-4 font-medium text-muted-foreground">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="p-12 text-center">
-                      <p className="text-lg text-muted-foreground">No users found.</p>
-                      <p className="text-sm text-muted-foreground mt-1">Try a different search term.</p>
-                    </td>
-                  </tr>
-                )}
-                {filteredUsers.map(user => (
-                  <tr key={user.id} className="border-b border-border hover:bg-background">
-                    <td className="p-4">
-                      <div className="font-medium">{user.name || 'No name'}</div>
-                      <div className="text-xs text-muted-foreground">{new Date(user.createdAt).toLocaleDateString('es-CO')}</div>
-                      {(user.contactViolationCount ?? 0) > 0 && (
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-                            {user.contactViolationCount} violación{(user.contactViolationCount ?? 0) !== 1 ? 'es' : ''} chat
-                          </span>
-                          {user.contactFlaggedAt && (
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200">
-                              Marcado
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-4 text-foreground">{user.email}</td>
-                    <td className="p-4">
-                      {roleEditingId === user.id ? (
-                        <div className="flex flex-col gap-1">
-                          <select
-                            value={newRole}
-                            onChange={(e) => setNewRole(e.target.value)}
-                            className="bg-muted border border-border rounded px-3 py-1 text-foreground text-xs"
-                          >
-                            <option value="buyer">Buyer</option>
-                            <option value="seller">Seller</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                          <select
-                            value={newStaffRole}
-                            onChange={(e) => setNewStaffRole(e.target.value)}
-                            className="bg-muted border border-border rounded px-3 py-1 text-foreground text-xs"
-                          >
-                            <option value="">No staff role</option>
-                            <option value="accountant">Accountant</option>
-                            <option value="admin_assistant">Admin Assistant</option>
-                          </select>
-                        </div>
-                      ) : (
-                        <div className="flex flex-wrap gap-1">
-                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold capitalize ${
-                            user.role === 'admin' ? 'bg-purple-600 text-white' :
-                            user.role === 'seller' ? 'bg-orange-600 text-white' :
-                            'bg-blue-600 text-white'
-                          }`}>
-                            {user.role}
-                          </span>
-                          {user.staffRole && (
-                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold capitalize ${
-                              user.staffRole === 'accountant' ? 'bg-emerald-600 text-white' : 'bg-indigo-600 text-white'
-                            }`}>
-                              {user.staffRole.replace('_', ' ')}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      {user.role === 'seller' ? (
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          user.isActive !== false ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
-                        }`}>
-                          {user.isActive !== false ? 'Active' : 'Inactive'}
-                        </span>
-                      ) : '—'}
-                    </td>
-                    <td className="p-4 text-foreground">
-                      {user.role === 'seller' ? (user.businessName || '—') : '—'}
-                    </td>
-                    <td className="p-4 text-center">
-                      {user.customReferralRate != null ? (
-                        <span className="inline-block px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-semibold">
-                          {(user.customReferralRate * 100).toFixed(1)}%
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">default 5%</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-center font-mono">{user._count?.gigs || 0}</td>
-                    <td className="p-4 text-right space-x-1">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => openEditModal(user)}
-                        className="border-border hover:bg-muted"
-                      >
-                        Edit
-                      </Button>
+        {filteredUsers.length === 0 ? (
+          <div className="text-center py-12 border border-dashed border-border rounded-2xl">
+            <p className="text-lg text-muted-foreground">No users found.</p>
+            <p className="text-sm text-muted-foreground mt-1">Try a different search term or filter.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              {paginatedUsers.map((user) => (
+                <UserListCard
+                  key={user.id}
+                  user={user}
+                  selected={selectedUser?.id === user.id}
+                  onSelect={selectUser}
+                />
+              ))}
 
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => resetUserPassword(user)}
-                        className="border-amber-700 text-amber-400 hover:bg-amber-950"
-                      >
-                        Reset Pass
-                      </Button>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {page} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </div>
 
-                      {user.role === 'seller' && (
-                        <a 
-                          href={`/seller/gigs?userId=${user.id}`} 
-                          target="_blank"
-                          className="text-xs px-2 py-1 border border-border rounded hover:bg-muted inline-block"
-                        >
-                          Gigs
-                        </a>
-                      )}
-                      <a 
-                        href={`/orders?userId=${user.id}`} 
-                        target="_blank"
-                        className="text-xs px-2 py-1 border border-border rounded hover:bg-muted inline-block"
-                      >
-                        Orders
-                      </a>
-
-                      {user.id !== currentUserId && (
-                        <Button
-                          size="sm"
-                          onClick={() => impersonateUser(user)}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs"
-                          title="Impersonate this user (admin actions will be performed as them)"
-                        >
-                          Impersonate
-                        </Button>
-                      )}
-
-                      {user.id !== currentUserId && (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => deleteUser(user)}
-                          className="text-xs"
-                          title="Eliminar (si tiene actividad será desactivado en su lugar)"
-                        >
-                          Eliminar
-                        </Button>
-                      )}
-
-                      {roleEditingId === user.id ? (
-                        <div className="inline-flex gap-1">
-                          <select
-                            value={newRole}
-                            onChange={(e) => setNewRole(e.target.value)}
-                            className="bg-muted border border-border rounded px-2 py-1 text-xs"
-                          >
-                            <option value="buyer">Comprador</option>
-                            <option value="seller">Vendedor</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                          <select
-                            value={newStaffRole}
-                            onChange={(e) => setNewStaffRole(e.target.value)}
-                            className="bg-muted border border-border rounded px-2 py-1 text-xs"
-                          >
-                            <option value="">Sin staff</option>
-                            <option value="accountant">Accountant</option>
-                            <option value="admin_assistant">Admin Assistant</option>
-                          </select>
-                          <Button size="sm" onClick={() => saveRole(user.id)} className="bg-emerald-600 text-xs px-2">✓</Button>
-                          <Button size="sm" variant="outline" onClick={cancelEdit} className="text-xs px-2">✕</Button>
-                        </div>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => startRoleEdit(user)}
-                          className="border-border hover:bg-muted text-xs"
-                        >
-                          Role
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+            <div ref={detailRef}>
+              {selectedUser ? (
+                <UserDetailPanel
+                  user={selectedUser}
+                  currentUserId={currentUserId}
+                  onClose={() => setSelectedUser(null)}
+                  onEdit={openEditModal}
+                  onResetPassword={resetUserPassword}
+                  onImpersonate={impersonateUser}
+                  onDelete={deleteUser}
+                  onToggleActive={toggleUserActive}
+                  onSaveRole={saveRole}
+                />
+              ) : (
+                <div className="text-muted-foreground p-8 border border-dashed border-border rounded-2xl text-center sticky top-8">
+                  Select a user to view details and manage their account.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <p className="text-center text-xs text-muted-foreground mt-6">
           Role changes are immediate. Users will see the new options on their next login.
         </p>
       </div>
 
-      {/* Edit User Modal */}
       {editingUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-border flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-semibold">Edit User</h3>
-                <p className="text-sm text-muted-foreground">{editingUser.email}</p>
-              </div>
-              <Button variant="ghost" onClick={closeEditModal}>✕</Button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Full name</Label>
-                  <Input 
-                    value={editForm.name ?? ''}
-                    onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label>Email</Label>
-                  <Input 
-                    type="email"
-                    value={editForm.email ?? ''}
-                    onChange={(e) => setEditForm({...editForm, email: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label>Business Name</Label>
-                  <Input 
-                    value={editForm.businessName ?? ''}
-                    onChange={(e) => setEditForm({...editForm, businessName: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label>Phone</Label>
-                  <Input 
-                    value={editForm.phone ?? ''}
-                    onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label>WhatsApp</Label>
-                  <Input 
-                    value={editForm.whatsapp ?? ''}
-                    onChange={(e) => setEditForm({...editForm, whatsapp: e.target.value})}
-                  />
-                </div>
-
-                <div>
-                  <Label>NIT / Tax ID</Label>
-                  <Input 
-                    value={editForm.nit ?? ''}
-                    onChange={(e) => setEditForm({...editForm, nit: e.target.value})}
-                  />
-                </div>
-                <div className="flex items-center gap-2 mt-6">
-                  <input 
-                    type="checkbox" 
-                    checked={editForm.isActive !== false}
-                    onChange={(e) => setEditForm({...editForm, isActive: e.target.checked})}
-                    className="w-4 h-4"
-                  />
-                  <Label className="mb-0">Account Active (uncheck to deactivate user)</Label>
-                </div>
-
-                {/* Special admin field for per-referrer custom commission */}
-                <div className="md:col-span-2">
-                  <Label>Custom Referral Commission Rate (overrides global 5%)</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Input 
-                      type="number"
-                      step="0.001"
-                      min="0"
-                      max="0.3"
-                      placeholder="0.05 (default 5%)"
-                      value={editForm.customReferralRate ?? ''}
-                      onChange={(e) => setEditForm({...editForm, customReferralRate: e.target.value || null})}
-                      className="w-32"
-                    />
-                    <span className="text-sm text-muted-foreground">% (leave blank for global default)</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    This user will earn this % as referrer on their referred sellers' completed orders.
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <Label>Bio / Description</Label>
-                <Textarea 
-                  value={editForm.bio ?? ''}
-                  onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            <div className="p-6 border-t border-border flex justify-end gap-3">
-              <Button variant="outline" onClick={closeEditModal}>Cancel</Button>
-              <Button onClick={saveUserEdit} disabled={saving} className="bg-emerald-600">
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <UserEditModal
+          user={editingUser}
+          editForm={editForm}
+          saving={saving}
+          onChange={setEditForm}
+          onClose={closeEditModal}
+          onSave={saveUserEdit}
+        />
       )}
     </div>
   );
 }
-
