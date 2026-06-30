@@ -8,8 +8,10 @@ import { Search, MessageCircle, ShieldCheck, X, Star, BadgeCheck, Lock, Shield }
 import { Button } from '@/components/ui/button';
 import { brandButtonClass, heroCollageImages, trustBadges } from '@/lib/design-tokens';
 import { cn } from '@/lib/utils';
-
-const STORAGE_KEY = 'homepage-welcome-seen';
+import {
+  hasSeenHomepageWelcome,
+  markHomepageWelcomeSeen,
+} from '@/lib/first-visit-banners';
 
 const steps = [
   {
@@ -49,11 +51,7 @@ export function HomepageWelcomeSplash() {
 
   const dismiss = useCallback(() => {
     setVisible(false);
-    try {
-      localStorage.setItem(STORAGE_KEY, '1');
-    } catch {
-      // non-fatal
-    }
+    markHomepageWelcomeSeen();
   }, []);
 
   useEffect(() => {
@@ -61,11 +59,7 @@ export function HomepageWelcomeSplash() {
     setMounted(true);
 
     const showIfNeeded = () => {
-      try {
-        if (localStorage.getItem(STORAGE_KEY) !== '1') {
-          setVisible(true);
-        }
-      } catch {
+      if (!hasSeenHomepageWelcome()) {
         setVisible(true);
       }
     };
@@ -166,7 +160,7 @@ export function HomepageWelcomeSplash() {
           </div>
         </div>
 
-        <div className="px-5 py-5 sm:px-6 sm:py-6">
+        <div className="px-5 py-5 pb-safe sm:px-6 sm:py-6">
           <ul className="space-y-3">
             {steps.map((step) => {
               const Icon = step.icon;

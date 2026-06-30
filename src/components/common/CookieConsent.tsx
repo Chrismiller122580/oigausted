@@ -1,18 +1,36 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { getAnalyticsConsent, setAnalyticsConsent } from '@/lib/analytics-consent'
+import {
+  canShowCookieConsent,
+  hasSeenHomepageWelcome,
+  HOMEPAGE_WELCOME_DISMISSED_EVENT,
+} from '@/lib/first-visit-banners'
 import { brandButtonClass } from '@/lib/design-tokens'
 
+const COOKIE_BANNER_DELAY_MS = 300
+
 export default function CookieConsent() {
+  const pathname = usePathname()
   const [visible, setVisible] = useState(false)
 
+  const syncVisibility = useCallback(() => {
+    setVisible(canShowCookieConsent(pathname))
+  }, [pathname])
+
   useEffect(() => {
-    const showIfNeeded = () => {
-      if (getAnalyticsConsent() === null) setVisible(true)
+    if (pathname === '/' && !hasSeenHomepageWelcome()) {
+      setVisible(false)
     }
+  }, [pathname])
+
+  useEffect(() => {
+    const showIfNeeded = () => syncVisibility()
+
     if (typeof window.requestIdleCallback === 'function') {
       const id = window.requestIdleCallback(showIfNeeded, { timeout: 3000 })
       return () => window.cancelIdleCallback(id)
@@ -20,7 +38,16 @@ export default function CookieConsent() {
 
     const t = setTimeout(showIfNeeded, 2000)
     return () => clearTimeout(t)
-  }, [])
+  }, [syncVisibility])
+
+  useEffect(() => {
+    const onWelcomeDismissed = () => {
+      window.setTimeout(syncVisibility, COOKIE_BANNER_DELAY_MS)
+    }
+
+    window.addEventListener(HOMEPAGE_WELCOME_DISMISSED_EVENT, onWelcomeDismissed)
+    return () => window.removeEventListener(HOMEPAGE_WELCOME_DISMISSED_EVENT, onWelcomeDismissed)
+  }, [syncVisibility])
 
   if (!visible) return null
 
@@ -33,7 +60,7 @@ export default function CookieConsent() {
     <div
       role="dialog"
       aria-label="Preferencias de cookies"
-      className="fixed bottom-0 inset-x-0 z-[200] p-4 md:p-6"
+      className="fixed bottom-0 inset-x-0 z-[200] p-4 pb-safe md:p-6"
     >
       <div className="mx-auto max-w-3xl rounded-2xl border border-border bg-card/95 backdrop-blur shadow-xl p-4 md:p-5">
         <p className="text-sm text-foreground leading-relaxed">

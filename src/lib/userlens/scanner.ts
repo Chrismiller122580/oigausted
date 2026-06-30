@@ -12,6 +12,8 @@ import {
   resolveServerlessLighthouseScores,
 } from '@/lib/userlens/lighthouse-runner';
 import { assertPublicScanUrl, resolveScanTarget, validateScanUrl } from '@/lib/userlens/resolve-scan-url';
+import { ANALYTICS_CONSENT_KEY } from '@/lib/analytics-consent';
+import { HOMEPAGE_WELCOME_KEY } from '@/lib/first-visit-banners';
 
 export { validateScanUrl };
 
@@ -126,10 +128,16 @@ export async function runUserLensScan(
   try {
 
     // Skip first-visit overlays so audits measure page content, not modals/banners.
-    await context.addInitScript(() => {
-      localStorage.setItem('homepage-welcome-seen', '1');
-      localStorage.setItem('analytics_consent', 'essential');
-    });
+    await context.addInitScript(
+      ({ welcomeKey, consentKey }: { welcomeKey: string; consentKey: string }) => {
+        localStorage.setItem(welcomeKey, '1');
+        localStorage.setItem(consentKey, 'essential');
+      },
+      {
+        welcomeKey: HOMEPAGE_WELCOME_KEY,
+        consentKey: ANALYTICS_CONSENT_KEY,
+      },
+    );
 
     const page = await context.newPage();
 
