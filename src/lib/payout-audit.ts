@@ -69,6 +69,12 @@ type AuditOrder = {
   seller: AuditSeller;
 };
 
+type AuditOrderWithoutPayoutAt = Omit<AuditOrder, 'sellerPayoutAt'>;
+
+function withNullSellerPayoutAt(rows: AuditOrderWithoutPayoutAt[]): AuditOrder[] {
+  return rows.map((row) => ({ ...row, sellerPayoutAt: null }));
+}
+
 function getMissingBankFields(seller: Partial<Record<BankField, string | null | undefined>>): string[] {
   return REQUIRED_BANK_FIELDS.filter((field) => !seller[field]?.trim());
 }
@@ -165,7 +171,7 @@ async function fetchCompletedOrdersForAudit(
         },
       },
     });
-    return rows.map((row) => ({ ...row, sellerPayoutAt: null })) as AuditOrder[];
+    return withNullSellerPayoutAt(rows);
   } catch (e) {
     if (!isMissingColumnError(e)) throw e;
     const rows = await prisma.order.findMany({
@@ -177,7 +183,7 @@ async function fetchCompletedOrdersForAudit(
         seller: { select: sellerSelectBasic },
       },
     });
-    return rows.map((row) => ({ ...row, sellerPayoutAt: null })) as AuditOrder[];
+    return withNullSellerPayoutAt(rows);
   }
 }
 
@@ -198,7 +204,7 @@ async function fetchReferralPending(): Promise<{ pendingCount: number; pendingAm
 
   return {
     pendingCount: earnings.length,
-    pendingAmountCOP: earnings.reduce((sum, e) => sum + (e.amount || 0), 0),
+    pendingAmountCOP: earnings.reduce((sum: number, e: { amount: number | null }) => sum + (e.amount || 0), 0),
   };
 }
 
