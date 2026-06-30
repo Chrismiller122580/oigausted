@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import {
   Sparkles,
   Copy,
@@ -26,6 +27,7 @@ import { MARKETING_BRAND_LOGO_PATH } from '@/lib/seller-marketing-brand';
 import { buildWompiWidgetConfig } from '@/lib/wompi-widget';
 import type { WompiPrepareResponse, WompiWidgetResult } from '@/types/wompi';
 import type { SellerGeneratedContent } from '@/lib/seller-marketing-types';
+import MarketingPreviewPanel, { type PreviewMode } from './MarketingPreviewPanel';
 
 type GigOption = { id: string; title: string; isActive?: boolean };
 
@@ -63,6 +65,7 @@ type ResultTab = 'instagram' | 'whatsapp' | 'downloads' | 'tips';
 
 function SellerMarketingPageClient() {
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
   const [subscription, setSubscription] = useState<SubscriptionState | null>(null);
   const [gigs, setGigs] = useState<GigOption[]>([]);
   const [selectedGigId, setSelectedGigId] = useState('');
@@ -74,6 +77,7 @@ function SellerMarketingPageClient() {
   const [content, setContent] = useState<SellerGeneratedContent | null>(null);
   const [brandCardUrls, setBrandCardUrls] = useState<{ feed: string; story: string } | null>(null);
   const [activeTab, setActiveTab] = useState<ResultTab>('instagram');
+  const [previewMode, setPreviewMode] = useState<PreviewMode>('feed');
   const [loading, setLoading] = useState(true);
 
   const fetchSubscription = useCallback(async () => {
@@ -154,7 +158,8 @@ function SellerMarketingPageClient() {
           story: `${data.brandCardUrls.story}&_t=${cacheBust}`,
         });
       }
-      setActiveTab('downloads');
+      setActiveTab('instagram');
+      setPreviewMode('instagram');
       toast.success(data.fallback ? 'Contenido de respaldo generado' : '¡Contenido e imágenes generados!');
       await fetchSubscription();
     } catch {
@@ -220,10 +225,13 @@ function SellerMarketingPageClient() {
 
   const formErrors = getFormErrors(goal, selectedGigId);
   const canGenerate = formErrors.length === 0 && !generating && !atLimit;
+  const selectedGig = gigs.find((g) => g.id === selectedGigId) ?? null;
+  const businessName =
+    session?.user?.businessName || session?.user?.name || 'Mi negocio';
 
   return (
     <div className="bg-background py-8 pb-24">
-      <div className="max-w-5xl mx-auto px-6 space-y-8">
+      <div className="max-w-6xl mx-auto px-6 space-y-8">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 text-white shrink-0">
@@ -322,109 +330,125 @@ function SellerMarketingPageClient() {
         )}
 
         {!blocked && !noGigs && (
-          <div className="bg-card border-2 border-orange-500/30 rounded-2xl p-6 space-y-5">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-orange-500" />
-              Generador de contenido
-            </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <div className="bg-card border-2 border-orange-500/30 rounded-2xl p-6 space-y-5">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-orange-500" />
+                Generador de contenido
+              </h2>
 
-            {atLimit && (
-              <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-300 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
-                Has alcanzado el límite gratuito este mes. Mejora a Pro para seguir generando.
+              {atLimit && (
+                <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-300 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+                  Has alcanzado el límite gratuito este mes. Mejora a Pro para seguir generando.
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">
+                    Servicio a promocionar <span className="text-orange-600">*</span>
+                  </label>
+                  <select
+                    value={selectedGigId}
+                    onChange={(e) => setSelectedGigId(e.target.value)}
+                    className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    required
+                  >
+                    <option value="">Selecciona un servicio…</option>
+                    {gigs.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Tono</label>
+                  <select
+                    value={tone}
+                    onChange={(e) => setTone(e.target.value)}
+                    className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  >
+                    {TONES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">
-                  Servicio a promocionar <span className="text-orange-600">*</span>
+                  Objetivo <span className="text-orange-600">*</span>
                 </label>
-                <select
-                  value={selectedGigId}
-                  onChange={(e) => setSelectedGigId(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                <Input
+                  value={goal}
+                  onChange={(e) => setGoal(e.target.value)}
+                  placeholder="Ej: Conseguir más clientes por WhatsApp esta semana"
+                  className="mt-1"
                   required
-                >
-                  <option value="">Selecciona un servicio…</option>
-                  {gigs.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.title}
-                    </option>
+                />
+                <p className="text-xs text-muted-foreground mt-2 mb-2">Sugerencias rápidas (solo rellenan el objetivo):</p>
+                <div className="flex flex-wrap gap-2">
+                  {QUICK_GOALS.map((g) => (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => setGoal(g)}
+                      disabled={generating || atLimit}
+                      className={`text-sm px-3 py-1.5 rounded-full border transition ${
+                        goal === g
+                          ? 'border-orange-500 bg-orange-50 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200'
+                          : 'border-border hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30'
+                      }`}
+                    >
+                      {g}
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
+
               <div>
-                <label className="text-sm font-medium">Tono</label>
-                <select
-                  value={tone}
-                  onChange={(e) => setTone(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                >
-                  {TONES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
+                <label className="text-sm font-medium">Instrucciones extra (opcional)</label>
+                <Textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  rows={2}
+                  placeholder="Menciona tu zona, horarios, especialidad..."
+                  className="mt-1"
+                />
               </div>
+
+              {formErrors.length > 0 && !atLimit && (
+                <p className="text-sm text-muted-foreground">
+                  Completa los campos obligatorios: {formErrors.join(' · ')}
+                </p>
+              )}
+
+              <Button
+                onClick={() => void generate()}
+                disabled={!canGenerate}
+                className="bg-orange-600 hover:bg-orange-700 gap-2 w-full sm:w-auto"
+              >
+                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {generating ? 'Generando contenido e imágenes…' : 'Generar contenido'}
+              </Button>
             </div>
 
-            <div>
-              <label className="text-sm font-medium">
-                Objetivo <span className="text-orange-600">*</span>
-              </label>
-              <Input
-                value={goal}
-                onChange={(e) => setGoal(e.target.value)}
-                placeholder="Ej: Conseguir más clientes por WhatsApp esta semana"
-                className="mt-1"
-                required
-              />
-              <p className="text-xs text-muted-foreground mt-2 mb-2">Sugerencias rápidas (solo rellenan el objetivo):</p>
-              <div className="flex flex-wrap gap-2">
-                {QUICK_GOALS.map((g) => (
-                  <button
-                    key={g}
-                    type="button"
-                    onClick={() => setGoal(g)}
-                    disabled={generating || atLimit}
-                    className={`text-sm px-3 py-1.5 rounded-full border transition ${
-                      goal === g
-                        ? 'border-orange-500 bg-orange-50 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200'
-                        : 'border-border hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30'
-                    }`}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Instrucciones extra (opcional)</label>
-              <Textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                rows={2}
-                placeholder="Menciona tu zona, horarios, especialidad..."
-                className="mt-1"
-              />
-            </div>
-
-            {formErrors.length > 0 && !atLimit && (
-              <p className="text-sm text-muted-foreground">
-                Completa los campos obligatorios: {formErrors.join(' · ')}
-              </p>
-            )}
-
-            <Button
-              onClick={() => void generate()}
-              disabled={!canGenerate}
-              className="bg-orange-600 hover:bg-orange-700 gap-2"
-            >
-              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {generating ? 'Generando contenido e imágenes…' : 'Generar contenido'}
-            </Button>
+            <MarketingPreviewPanel
+              previewMode={previewMode}
+              onPreviewModeChange={setPreviewMode}
+              selectedGigTitle={selectedGig?.title ?? null}
+              businessName={businessName}
+              storePath={subscription?.storePath ?? ''}
+              storeUrl={subscription?.storeUrl ?? ''}
+              goal={goal}
+              tone={tone}
+              generating={generating}
+              content={content}
+              brandCardUrls={brandCardUrls}
+            />
           </div>
         )}
 
