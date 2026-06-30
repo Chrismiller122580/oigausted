@@ -58,6 +58,8 @@ async function main() {
       globalEmailNotificationsEnabled: true,
       maintenanceBypassIps: '',
       wompiRealPaymentsEnabled: false,
+      marketingStudioProPriceCOP: 29900,
+      marketingStudioFreeMonthlyLimit: 3,
     },
     // Safe select for prod DBs that may be missing later columns (wompiSftp*)
     select: {
