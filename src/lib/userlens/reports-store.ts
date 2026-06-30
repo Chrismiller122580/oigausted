@@ -104,6 +104,42 @@ function isPsiScanResult(result: UserLensScanResult): boolean {
   );
 }
 
+export async function findCachedLighthouseScores(
+  url: string,
+  viewport: string,
+  maxAgeHours: number,
+): Promise<{
+  reportId: string;
+  scannedAt: string;
+  lighthouse: NonNullable<UserLensScanResult['lighthouse']>;
+} | null> {
+  const since = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
+
+  const reports = await prisma.userLensReport.findMany({
+    where: {
+      viewport,
+      scannedAt: { gte: since },
+      OR: [{ url }, { finalUrl: url }],
+    },
+    orderBy: { scannedAt: 'desc' },
+    take: 10,
+    select: { id: true, scannedAt: true, result: true },
+  });
+
+  for (const report of reports) {
+    const result = report.result as UserLensScanResult;
+    if (result.lighthouse?.categories?.length) {
+      return {
+        reportId: report.id,
+        scannedAt: report.scannedAt.toISOString(),
+        lighthouse: result.lighthouse,
+      };
+    }
+  }
+
+  return null;
+}
+
 export async function findCachedPsiScan(
   url: string,
   viewport: string,

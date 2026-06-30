@@ -6,8 +6,11 @@ import type {
   UserLensViewport,
   AxeViolation,
 } from '@/types/userlens';
-import { launchUserLensBrowser, USERLENS_DEBUG_PORT } from '@/lib/userlens/browser';
-import { extractLighthouseCategories, extractLighthouseMetrics } from '@/lib/userlens/lighthouse-parse';
+import { launchUserLensBrowser } from '@/lib/userlens/browser';
+import {
+  resolveLocalLighthouseScores,
+  resolveServerlessLighthouseScores,
+} from '@/lib/userlens/lighthouse-runner';
 import { assertPublicScanUrl, resolveScanTarget, validateScanUrl } from '@/lib/userlens/resolve-scan-url';
 
 export { validateScanUrl };
@@ -176,45 +179,9 @@ export async function runUserLensScan(
       warnings.push('axe-core did not load; accessibility scan skipped');
     }
 
-    let lighthouseResult: UserLensScanResult['lighthouse'] = null;
-    try {
-      if (onServerless) {
-        // In-process lighthouse needs flow-report HTML assets missing from Vercel bundles.
-        const { fetchPsiLighthouseScores } = await import('@/lib/userlens/psi-scanner');
-        lighthouseResult = await fetchPsiLighthouseScores(finalUrl, viewport, categories);
-        warnings.push(
-          'Lighthouse scores via Google PageSpeed Insights on Vercel. axe and screenshot from Playwright.',
-        );
-      } else {
-        const lighthouse = (await import('lighthouse')).default;
-        const runnerResult = await lighthouse(
-          finalUrl,
-          {
-            port: USERLENS_DEBUG_PORT,
-            output: 'json',
-            logLevel: 'error',
-            onlyCategories: categories,
-            formFactor: viewport === 'mobile' ? 'mobile' : 'desktop',
-            screenEmulation:
-              viewport === 'mobile'
-                ? { mobile: true, width: 390, height: 844, deviceScaleFactor: 2, disabled: false }
-                : { mobile: false, width: 1280, height: 720, deviceScaleFactor: 1, disabled: false },
-          },
-          undefined,
-        );
-
-        if (runnerResult?.lhr) {
-          const lhr = runnerResult.lhr as unknown as Record<string, unknown>;
-          lighthouseResult = {
-            categories: extractLighthouseCategories(lhr, categories),
-            metrics: extractLighthouseMetrics(lhr),
-          };
-        }
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Lighthouse audit failed';
-      warnings.push(`Lighthouse: ${message}`);
-    }
+    const lighthouseResult = onServerless
+      ? await resolveServerlessLighthouseScores(url, finalUrl, viewport, categories, warnings)
+      : await resolveLocalLighthouseScores(finalUrl, viewport, categories, warnings);
 
     if (!response) {
       warnings.push('Page navigation returned no response');

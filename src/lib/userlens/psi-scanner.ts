@@ -28,6 +28,14 @@ export interface UserLensPsiScanOutcome {
   fixItemCount?: number;
 }
 
+export function hasPsiApiKey(): boolean {
+  return !!getPsiApiKey();
+}
+
+export function isPsiQuotaExceeded(message: string): boolean {
+  return isQuotaExceeded(message);
+}
+
 function getPsiApiKey(): string | undefined {
   return (
     process.env.PAGESPEED_INSIGHTS_API_KEY?.trim() ||

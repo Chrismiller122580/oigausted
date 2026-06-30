@@ -13,6 +13,7 @@ export interface UserLensScanSupport {
     vercel: boolean;
     arch: string;
     chromiumBinBundled: boolean;
+    psiKeyConfigured?: boolean;
   };
 }
 
@@ -46,13 +47,21 @@ export function getUserLensScanSupport(): UserLensScanSupport {
     };
   }
 
+  const psiKeyConfigured = !!(
+    process.env.PAGESPEED_INSIGHTS_API_KEY?.trim() ||
+    process.env.GOOGLE_PAGESPEED_API_KEY?.trim() ||
+    process.env.PSI_API_KEY?.trim()
+  );
+
   return {
     supported: true,
     mode,
     hint: onVercel
-      ? 'Hybrid Vercel scan: Playwright + axe + screenshot; Lighthouse scores via PageSpeed Insights. Scan public URLs like https://oigagig.com.'
+      ? psiKeyConfigured
+        ? 'Hybrid Vercel scan: Playwright + axe + screenshot; Lighthouse via your PageSpeed API key with in-process fallback.'
+        : 'Hybrid Vercel scan: Playwright + axe + screenshot; Lighthouse via in-process audit (add PAGESPEED_INSIGHTS_API_KEY in Vercel to avoid shared PSI quota).'
       : 'Full browser scan with Playwright, Lighthouse, and axe-core.',
-    runtime: { vercel: onVercel, arch: process.arch, chromiumBinBundled },
+    runtime: { vercel: onVercel, arch: process.arch, chromiumBinBundled, psiKeyConfigured },
   };
 }
 
