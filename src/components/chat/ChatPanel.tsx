@@ -45,11 +45,11 @@ export default function ChatPanel({
       <CardHeader className="border-b">
         <CardTitle className="flex items-center gap-2 text-lg">
           <MessageCircle className="h-5 w-5 text-muted-foreground" />
-          Chat en OigaGIG
+          Chat en Oigagig
         </CardTitle>
         {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
         <p className="text-xs text-muted-foreground">
-          No compartas teléfonos, correos ni redes sociales. OigaGIG bloquea ese tipo de mensajes.
+          No compartas teléfonos, correos ni redes sociales. Oigagig bloquea ese tipo de mensajes.
         </p>
       </CardHeader>
 

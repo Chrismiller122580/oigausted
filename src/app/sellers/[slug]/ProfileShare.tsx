@@ -24,7 +24,7 @@ export default function ProfileShare({ url, displayName }: ProfileShareProps) {
   };
 
   const handleShare = async () => {
-    const shareText = `Mira los servicios de ${displayName} en OigaGIG`;
+    const shareText = `Mira los servicios de ${displayName} en Oigagig`;
     try {
       if (navigator.share) {
         await navigator.share({ title: displayName, text: shareText, url });

@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { Mail, MapPin, MessageCircle } from 'lucide-react';
 import { PublicPageShell } from '@/components/marketing/PublicPageShell';
-import { BRAND_LOGO_PATH } from '@/lib/brand';
 import {
   buildPublicPageMetadata,
   getPublicSiteInfo,
@@ -9,9 +8,9 @@ import {
 } from '@/lib/public-site';
 
 export const metadata = buildPublicPageMetadata({
-  title: 'Nosotros • Sobre OigaGIG',
+  title: 'Nosotros • Sobre OigaGig',
   description:
-    'Conoce OigaGIG: el marketplace colombiano que conecta compradores y vendedores locales. Misión, valores y datos de contacto para soporte.',
+    'Conoce OigaGig: el marketplace colombiano que conecta compradores y vendedores locales. Misión, valores y datos de contacto para soporte.',
   path: '/about',
   keywords: [
     'sobre oigagig',
@@ -31,7 +30,7 @@ export default async function AboutPage() {
     name: site.siteName,
     url: PUBLIC_SITE_URL,
     description: site.siteTagline,
-    logo: `${PUBLIC_SITE_URL}${BRAND_LOGO_PATH}`,
+    logo: `${PUBLIC_SITE_URL}/logo.png`,
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer support',
@@ -64,7 +63,7 @@ export default async function AboutPage() {
         </section>
 
         <section className="mb-10">
-          <h2 className="text-2xl font-semibold mb-3">¿Por qué OigaGIG?</h2>
+          <h2 className="text-2xl font-semibold mb-3">¿Por qué OigaGig?</h2>
           <ul className="space-y-2 text-zinc-600 dark:text-zinc-400 list-disc pl-5">
             <li>
               <strong>Gente real:</strong> perfiles, reseñas y calificaciones verificadas después de

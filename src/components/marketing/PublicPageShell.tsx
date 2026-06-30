@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { BRAND_NAME } from '@/lib/brand';
 import { PublicFooter } from './PublicFooter';
 
 interface PublicPageShellProps {
@@ -12,7 +11,7 @@ interface PublicPageShellProps {
 export function PublicPageShell({
   title,
   subtitle,
-  siteName = BRAND_NAME,
+  siteName = 'OigaGig',
   children,
 }: PublicPageShellProps) {
   return (

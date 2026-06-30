@@ -6,9 +6,9 @@ import {
 } from '@/lib/public-site';
 
 export const metadata = buildPublicPageMetadata({
-  title: 'Política de privacidad • OigaGIG',
+  title: 'Política de privacidad • OigaGig',
   description:
-    'Política de privacidad de OigaGIG: cómo recopilamos, usamos y protegemos tus datos personales en Colombia.',
+    'Política de privacidad de OigaGig: cómo recopilamos, usamos y protegemos tus datos personales en Colombia.',
   path: '/privacy',
   keywords: [
     'privacidad oigagig',
@@ -27,7 +27,7 @@ export default async function PrivacyPage() {
     <PublicPageShell
       siteName={site.siteName}
       title="Política de privacidad"
-      subtitle="Cómo tratamos y protegemos tu información en OigaGIG."
+      subtitle="Cómo tratamos y protegemos tu información en OigaGig."
     >
       <p className="text-sm text-muted-foreground mb-8">Última actualización: {LAST_UPDATED}</p>
 

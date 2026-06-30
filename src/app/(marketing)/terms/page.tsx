@@ -6,9 +6,9 @@ import {
 } from '@/lib/public-site';
 
 export const metadata = buildPublicPageMetadata({
-  title: 'Términos de uso • OigaGIG',
+  title: 'Términos de uso • OigaGig',
   description:
-    'Términos y condiciones de uso de OigaGIG: reglas para compradores y vendedores, pagos, comisiones y responsabilidades.',
+    'Términos y condiciones de uso de OigaGig: reglas para compradores y vendedores, pagos, comisiones y responsabilidades.',
   path: '/terms',
   keywords: [
     'términos oigagig',
@@ -27,7 +27,7 @@ export default async function TermsPage() {
     <PublicPageShell
       siteName={site.siteName}
       title="Términos de uso"
-      subtitle="Reglas claras para usar OigaGIG como comprador o vendedor en Colombia."
+      subtitle="Reglas claras para usar OigaGig como comprador o vendedor en Colombia."
     >
       <p className="text-sm text-muted-foreground mb-8">Última actualización: {LAST_UPDATED}</p>
 

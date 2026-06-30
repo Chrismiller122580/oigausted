@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { BRAND_LOGO_PATH } from '@/lib/brand';
 
 export const marketingHomeMetadata: Metadata = {
   title: 'OigaGIG — Conecta con profesionales locales en Colombia',
@@ -17,7 +16,7 @@ export const marketingHomeMetadata: Metadata = {
     title: 'OigaGIG — Conecta con profesionales locales en Colombia',
     description:
       'Encuentra plomeros, limpieza, diseño, catering y más. Gente de confianza cerca de ti.',
-    images: [{ url: BRAND_LOGO_PATH, width: 832, height: 1248, alt: 'OigaGIG' }],
+    images: [{ url: '/logo.png', width: 1200, height: 630, alt: 'OigaGIG' }],
     locale: 'es_CO',
     type: 'website',
   },
@@ -26,6 +25,6 @@ export const marketingHomeMetadata: Metadata = {
     title: 'OigaGIG — Conecta con profesionales locales en Colombia',
     description:
       'Encuentra plomeros, limpieza, diseño, catering y más. Gente de confianza cerca de ti.',
-    images: [BRAND_LOGO_PATH],
+    images: ['/logo.png'],
   },
 };

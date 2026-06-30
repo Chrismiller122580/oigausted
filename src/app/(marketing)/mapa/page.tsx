@@ -4,7 +4,7 @@ import { buildPublicPageMetadata } from '@/lib/public-site';
 import { MapaPageClient } from './MapaPageClient';
 
 export const metadata = buildPublicPageMetadata({
-  title: 'Mapa de servicios en Colombia • OigaGIG',
+  title: 'Mapa de servicios en Colombia • OigaGig',
   description:
     'Explora gigs y servicios locales en el mapa de Colombia. Bogotá, Medellín, Cali y más ciudades con profesionales verificados.',
   path: '/mapa',

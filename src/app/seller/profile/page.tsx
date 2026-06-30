@@ -352,7 +352,7 @@ export default function MiNegocioPage() {
 
               <div className="mt-3 text-xs text-orange-700/70 dark:text-orange-300/70">
                 Tip: Actualiza el <strong>Nombre del Negocio</strong> arriba para mejorar tu enlace (ej: <span className="font-mono">plomeria-juan-bucaramanga</span>). 
-                Compártelo en redes, tarjetas de presentación y flyers con tu enlace de OigaGIG.
+                Compártelo en redes, tarjetas de presentación y flyers con tu enlace de Oigagig.
               </div>
             </div>
           </div>
@@ -442,7 +442,7 @@ export default function MiNegocioPage() {
                     <label className="block text-sm font-medium mb-2">WhatsApp (interno)</label>
                     <input name="whatsapp" value={formData.whatsapp} onChange={handleChange} disabled={!isEditing}
                       className="w-full px-4 py-3 sm:px-6 sm:py-5 bg-background border border-border text-foreground rounded-xl sm:rounded-2xl focus:border-orange-500" placeholder="+57 ..." />
-                    <p className="text-xs text-muted-foreground mt-1">No se muestra a compradores. Ellos te contactan por el chat de OigaGIG.</p>
+                    <p className="text-xs text-muted-foreground mt-1">No se muestra a compradores. Ellos te contactan por el chat de Oigagig.</p>
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium mb-2">Ubicación principal</label>

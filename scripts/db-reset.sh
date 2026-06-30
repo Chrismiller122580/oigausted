@@ -11,7 +11,7 @@
 #
 set -e
 
-echo "🔄 OigaGIG DB reset (smart local mode)..."
+echo "🔄 Oigagig DB reset (smart local mode)..."
 
 DB_URL="${DATABASE_URL:-file:./dev.db}"
 

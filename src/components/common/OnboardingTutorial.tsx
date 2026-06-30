@@ -26,8 +26,8 @@ interface OnboardingTutorialProps {
 
 const buyerSteps: TutorialStep[] = [
   {
-    title: "Bienvenido a OigaGIG",
-    description: "OigaGIG conecta compradores con profesionales locales en Colombia. Chat seguro en la app, pagos con Wompi y reseñas reales.",
+    title: "Bienvenido a Oigagig",
+    description: "Oigagig conecta compradores con profesionales locales en Colombia. Chat seguro en la app, pagos con Wompi y reseñas reales.",
     tips: [
       "Explora gigs por categoría o cerca de ti",
       "Usa la ubicación para ver servicios locales",
@@ -40,7 +40,7 @@ const buyerSteps: TutorialStep[] = [
     description: "Encuentra el servicio que necesitas. Mira el botón resaltado abajo y haz clic en 'Explorar Gigs' para ver opciones cerca de ti.",
     tips: [
       "Usa filtros de categoría, precio y distancia",
-      "El botón 'Chatear en OigaGIG' abre mensajes en la app",
+      "El botón 'Chatear en Oigagig' abre mensajes en la app",
       "Pregunta detalles antes de pagar"
     ],
     icon: Search,
@@ -306,7 +306,7 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
               </div>
 
               <div className="text-[10px] text-muted-foreground text-center">
-                Mira el área resaltada en naranja. Este tutorial te ayudará a aprovechar OigaGIG al máximo.
+                Mira el área resaltada en naranja. Este tutorial te ayudará a aprovechar Oigagig al máximo.
               </div>
 
               {/* Progress bar small */}
@@ -396,7 +396,7 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
               </div>
 
               <div className="text-xs text-muted-foreground text-center">
-                Este tutorial te ayudará a aprovechar OigaGIG al máximo. Puedes volver a verlo desde Soporte.
+                Este tutorial te ayudará a aprovechar Oigagig al máximo. Puedes volver a verlo desde Soporte.
               </div>
             </CardContent>
 

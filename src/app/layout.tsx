@@ -9,7 +9,6 @@ import SessionProviderWrapper from "@/components/providers/SessionProviderWrappe
 import MaintenanceBanner from "@/components/layout/MaintenanceBanner";
 import { Toaster } from "sonner"; // 2027-grade beautiful toasts
 import { ensurePlatformConfig } from "@/lib/prisma"; // one-off ensure of PlatformConfig singleton (maintenanceMode etc.) on first boot/request
-import { BRAND_LOGO_PATH } from "@/lib/brand";
 import { getPublicSiteInfo, getSiteUrl } from "@/lib/public-site";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -78,9 +77,9 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: siteName,
       images: [
         {
-          url: BRAND_LOGO_PATH,
-          width: 832,
-          height: 1248,
+          url: '/logo.png',
+          width: 1200,
+          height: 630,
           alt: siteName,
         },
       ],
@@ -91,7 +90,7 @@ export async function generateMetadata(): Promise<Metadata> {
       card: 'summary_large_image',
       title: fullTitle,
       description: siteTagline,
-      images: [BRAND_LOGO_PATH],
+      images: ['/logo.png'],
     },
     robots: {
       index: true,

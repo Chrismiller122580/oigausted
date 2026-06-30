@@ -19,7 +19,7 @@ function buildEnhancePrompt(input: EnhanceMarketingPhotoInput): string {
   const base =
     input.prompt?.trim() ||
     `Professional social media marketing visual for ${input.gigTitle} by ${input.businessName}`;
-  return `${base}. Vibrant, polished, suitable for Instagram feed. Keep the service recognizable. Subtle OigaGIG orange brand accent. No text overlays.`;
+  return `${base}. Vibrant, polished, suitable for Instagram feed. Keep the service recognizable. Subtle OigaGig orange brand accent. No text overlays.`;
 }
 
 /** Enhance a gig photo with Grok Imagine image editing; persist to Blob when configured. */

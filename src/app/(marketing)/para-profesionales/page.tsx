@@ -13,9 +13,9 @@ import {
 } from '@/lib/public-site';
 
 export const metadata = buildPublicPageMetadata({
-  title: 'Para profesionales • Vende tus servicios en OigaGIG',
+  title: 'Para profesionales • Vende tus servicios en OigaGig',
   description:
-    '¿Eres profesional o freelancer en Colombia? Aprende cómo funciona OigaGIG: regístrate gratis, publica tu servicio y recibe pedidos con pagos seguros vía Wompi.',
+    '¿Eres profesional o freelancer en Colombia? Aprende cómo funciona OigaGig: regístrate gratis, publica tu servicio y recibe pedidos con pagos seguros vía Wompi.',
   path: '/para-profesionales',
   keywords: [
     'vender servicios colombia',
@@ -67,7 +67,7 @@ const MINI_FAQ = [
   },
   {
     q: '¿Puedo ofrecer cualquier servicio?',
-    a: 'Sí, siempre que sea legal y encaje en las categorías de OigaGIG (plomería, belleza, limpieza, mudanzas y más).',
+    a: 'Sí, siempre que sea legal y encaje en las categorías de OigaGig (plomería, belleza, limpieza, mudanzas y más).',
   },
 ];
 

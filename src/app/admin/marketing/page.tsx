@@ -148,7 +148,7 @@ export default function AdminMarketingPage() {
     setIsGenerating(true);
     try {
       const payload = {
-        goal: aiGoal || aiCustomPrompt || "Promocionar OigaGIG y conectar más usuarios con servicios locales en Colombia",
+        goal: aiGoal || aiCustomPrompt || "Promocionar Oigagig y conectar más usuarios con servicios locales en Colombia",
         prompt: extraPrompt || aiCustomPrompt,
         channels: aiChannels,
         segmentHint: segment,
@@ -170,7 +170,7 @@ export default function AdminMarketingPage() {
       if (data.success && data.campaign) {
         const normalized = normalizeGeneratedCampaign(
           data.campaign as Record<string, unknown>,
-          aiGoal || aiCustomPrompt || 'Promocionar OigaGIG',
+          aiGoal || aiCustomPrompt || 'Promocionar Oigagig',
         );
         startCampaignTransition(() => {
           setGeneratedCampaign(normalized);
@@ -626,16 +626,16 @@ export default function AdminMarketingPage() {
 
   const presetMessage = (type: string) => {
     if (type === 'update') {
-      setSubject('Actualización importante en OigaGIG');
-      setMessage('Hola,\n\nEstamos realizando mejoras en la plataforma para ofrecerte una mejor experiencia.\n\nLos principales cambios incluyen:\n• Mejor rendimiento en búsqueda y carga de gigs\n• Nueva sección de notificaciones\n• Correcciones en el flujo de pagos\n\nGracias por ser parte de OigaGIG. Si tienes preguntas, responde a este correo o visita nuestro centro de soporte.\n\n— El equipo de OigaGIG');
+      setSubject('Actualización importante en Oigagig');
+      setMessage('Hola,\n\nEstamos realizando mejoras en la plataforma para ofrecerte una mejor experiencia.\n\nLos principales cambios incluyen:\n• Mejor rendimiento en búsqueda y carga de gigs\n• Nueva sección de notificaciones\n• Correcciones en el flujo de pagos\n\nGracias por ser parte de Oigagig. Si tienes preguntas, responde a este correo o visita nuestro centro de soporte.\n\n— El equipo de Oigagig');
     }
     if (type === 'promo') {
-      setSubject('¡Promoción especial esta semana en OigaGIG!');
-      setMessage('Hola,\n\nEsta semana tenemos una promoción para usuarios activos:\n\n• 10% de descuento en tu próxima comisión de servicio (aplica para órdenes completadas esta semana).\n\nExplora nuevos gigs o publica los tuyos con mayor visibilidad.\n\n¡No dejes pasar esta oportunidad!\n\n— OigaGIG');
+      setSubject('¡Promoción especial esta semana en Oigagig!');
+      setMessage('Hola,\n\nEsta semana tenemos una promoción para usuarios activos:\n\n• 10% de descuento en tu próxima comisión de servicio (aplica para órdenes completadas esta semana).\n\nExplora nuevos gigs o publica los tuyos con mayor visibilidad.\n\n¡No dejes pasar esta oportunidad!\n\n— Oigagig');
     }
     if (type === 'info') {
       setSubject('Actualización de información de tu cuenta');
-      setMessage('Hola,\n\nTe recordamos que puedes actualizar tu información de perfil, número de WhatsApp y datos de negocio en cualquier momento desde tu configuración de cuenta.\n\nMantener tus datos actualizados ayuda a que compradores y vendedores puedan contactarte fácilmente.\n\nSi necesitas ayuda, escríbenos a support@oigagig.com.\n\n— Equipo OigaGIG');
+      setMessage('Hola,\n\nTe recordamos que puedes actualizar tu información de perfil, número de WhatsApp y datos de negocio en cualquier momento desde tu configuración de cuenta.\n\nMantener tus datos actualizados ayuda a que compradores y vendedores puedan contactarte fácilmente.\n\nSi necesitas ayuda, escríbenos a support@oigagig.com.\n\n— Equipo Oigagig');
     }
   };
 
@@ -650,7 +650,7 @@ export default function AdminMarketingPage() {
             </div>
             <div className="min-w-0">
               <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight">AI Marketing Studio</h1>
-              <p className="text-sm sm:text-lg text-muted-foreground">El centro de comando más inteligente para promocionar OigaGIG</p>
+              <p className="text-sm sm:text-lg text-muted-foreground">El centro de comando más inteligente para promocionar Oigagig</p>
             </div>
           </div>
         </div>

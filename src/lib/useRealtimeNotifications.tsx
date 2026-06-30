@@ -148,7 +148,7 @@ export function useRealtimeNotifications(options: UseRealtimeNotificationsOption
       try {
         const desktop = new Notification(notif.title, {
           body: notif.message,
-          icon: '/brand/oiga-gig-marketing.png',
+          icon: '/logo.png',
           tag: `realtime-${notif.id}`,
         });
         desktop.onclick = () => {

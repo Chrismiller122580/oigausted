@@ -132,7 +132,7 @@ export function NotificationsBell() {
     try {
       const desktopNotif = new Notification(n.title, {
         body: n.message?.slice(0, 120) || 'Tienes una nueva notificación',
-        icon: '/brand/oiga-gig-marketing.png',
+        icon: '/logo.png',
         tag: `oiga-${n.id}`, // avoid duplicates
         requireInteraction: false,
       });

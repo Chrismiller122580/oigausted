@@ -8,10 +8,10 @@
  *   npx tsx scripts/test-email.ts you@gmail.com password-reset
  *
  * Override the FROM address easily (very useful while setting up domains):
- *   npx tsx scripts/test-email.ts you@gmail.com welcome --from "OigaGIG <support@oigagig.com>"
+ *   npx tsx scripts/test-email.ts you@gmail.com welcome --from "Oigagig <support@oigagig.com>"
  *
  * Or with env var (recommended for quick testing):
- *   RESEND_FROM_EMAIL="OigaGIG <onboarding@resend.dev>" npx tsx scripts/test-email.ts you@gmail.com welcome
+ *   RESEND_FROM_EMAIL="Oigagig <onboarding@resend.dev>" npx tsx scripts/test-email.ts you@gmail.com welcome
  *
  * It loads .env.development.local (the one with the real RESEND_API_KEY).
  */
@@ -39,7 +39,7 @@ const toEmail = rawArgs[0];
 const emailType = rawArgs[1] || 'welcome';
 let fromOverride: string | undefined;
 
-// Support --from "OigaGIG <...>"
+// Support --from "Oigagig <...>"
 const fromIndex = rawArgs.findIndex(arg => arg === '--from' || arg === '-f');
 if (fromIndex !== -1 && rawArgs[fromIndex + 1]) {
   fromOverride = rawArgs[fromIndex + 1];
@@ -49,10 +49,10 @@ if (fromIndex !== -1 && rawArgs[fromIndex + 1]) {
 const fromEmail =
   fromOverride ||
   process.env.RESEND_FROM_EMAIL ||
-  'OigaGIG <onboarding@resend.dev>';
+  'Oigagig <onboarding@resend.dev>';
 
 if (!toEmail || !toEmail.includes('@')) {
-  console.error('\nUsage: npx tsx scripts/test-email.ts you@gmail.com [welcome|order|review|password-reset] [--from "OigaGIG <support@oigagig.com>"]');
+  console.error('\nUsage: npx tsx scripts/test-email.ts you@gmail.com [welcome|order|review|password-reset] [--from "Oigagig <support@oigagig.com>"]');
   process.exit(1);
 }
 
@@ -67,16 +67,16 @@ async function send() {
 
   switch (emailType) {
     case 'welcome':
-      subject = '¡Bienvenido a OigaGIG!';
+      subject = '¡Bienvenido a Oigagig!';
       html = `
         <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
           <div style="text-align: center; margin-bottom: 32px;">
             <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #f97316, #dc2626); border-radius: 16px; margin: 0 auto; display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; font-weight: 900;">O</div>
-            <h1 style="color: #111; margin-top: 24px;">¡Bienvenido a OigaGIG!</h1>
+            <h1 style="color: #111; margin-top: 24px;">¡Bienvenido a Oigagig!</h1>
           </div>
           <p style="color: #444; font-size: 16px; line-height: 1.6;">
             Hola,<br><br>
-            Gracias por registrarte en <strong>OigaGIG</strong>, la plataforma que conecta personas con servicios locales de confianza en Colombia.
+            Gracias por registrarte en <strong>Oigagig</strong>, la plataforma que conecta personas con servicios locales de confianza en Colombia.
           </p>
           <p style="color: #444; font-size: 16px; line-height: 1.6;">
             Ya puedes explorar cientos de gigs o publicar tus propios servicios.
@@ -128,7 +128,7 @@ async function send() {
       break;
 
     case 'password-reset':
-      subject = 'Restablece tu contraseña en OigaGIG';
+      subject = 'Restablece tu contraseña en Oigagig';
       const resetLink = `${appUrl}/reset-password?token=TEST-TOKEN-123`;
       html = `
         <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
@@ -168,7 +168,7 @@ async function send() {
         console.log('\n⚠️  The FROM domain is not verified in Resend.');
         console.log('   → Go to https://resend.com/domains and verify support.oigagig.com');
         console.log('   → Or test right now with:');
-        console.log('     RESEND_FROM_EMAIL="OigaGIG <onboarding@resend.dev>" npx tsx scripts/test-email.ts ' + toEmail + ' ' + emailType);
+        console.log('     RESEND_FROM_EMAIL="Oigagig <onboarding@resend.dev>" npx tsx scripts/test-email.ts ' + toEmail + ' ' + emailType);
       }
       process.exit(1);
     }

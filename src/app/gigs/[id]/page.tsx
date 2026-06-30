@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const description =
     gig.description?.slice(0, 160) ||
-    `${gig.title} — servicio local en OigaGIG`
+    `${gig.title} — servicio local en Oigagig`
 
   return {
     title: gig.title,

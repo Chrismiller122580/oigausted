@@ -51,9 +51,9 @@ async function main() {
       referralsEnabled: true,
       allowNewSignups: true,
       maxUploadSizeMB: 10,
-      siteName: 'OigaGIG', // matches BRAND_NAME in src/lib/brand.ts
+      siteName: 'Oigagig',
       siteTagline: 'Conecta con profesionales locales en Colombia',
-      logoUrl: '/brand/oiga-gig-marketing.png',
+      logoUrl: null,
       globalPushNotificationsEnabled: true,
       globalEmailNotificationsEnabled: true,
       maintenanceBypassIps: '',

@@ -44,7 +44,7 @@ export function maintenanceHtml(message: string, ip: string): string {
     : ''
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mantenimiento | OigaGIG</title>
+<title>Mantenimiento | Oigagig</title>
 <style>body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#eee;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem}
 .box{max-width:620px}.h1{font-size:2.25rem;margin-bottom:1rem;color:#f87171}.msg{font-size:1.1rem;opacity:.95;line-height:1.5}</style>
 </head><body><div class="box"><div class="h1">🛠️ Modo Mantenimiento</div><div class="msg">${message.replace(/</g, '&lt;')}</div><p style="margin-top:2rem;opacity:.6;font-size:.9rem">Disculpe las molestias.<br>Solo el personal autorizado puede acceder durante este período.</p>${ipNote}<p style="margin-top:1rem;font-size:0.8rem;opacity:0.6">Admins: accede a /admin para gestionar.</p></div></body></html>`
