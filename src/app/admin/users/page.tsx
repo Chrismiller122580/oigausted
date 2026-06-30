@@ -293,7 +293,13 @@ export default function AdminUsersPage() {
       'Custom Ref %',
       'Phone',
       'WhatsApp',
-      'City',
+      'Last Login',
+      'Login City',
+      'Login IP',
+      'Profile City',
+      'Rating',
+      'Reviews',
+      'Last Updated',
       'Registration Date',
     ];
 
@@ -307,7 +313,15 @@ export default function AdminUsersPage() {
       u.customReferralRate != null ? (u.customReferralRate * 100).toFixed(1) + '%' : 'default (5%)',
       u.phone || '',
       u.whatsapp || '',
+      u.lastLoginAt
+        ? new Date(u.lastLoginAt).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })
+        : '',
+      u.lastLoginCity || '',
+      u.lastLoginIp || '',
       u.city || '',
+      (u.rating ?? 0) > 0 ? String(u.rating) : '',
+      u.reviewCount ?? 0,
+      u.updatedAt ? new Date(u.updatedAt).toLocaleDateString('es-CO') : '',
       new Date(u.createdAt).toLocaleDateString('es-CO'),
     ]);
 

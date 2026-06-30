@@ -24,8 +24,14 @@ function RoleBadge({ role }: { role: string }) {
   );
 }
 
+function formatDateTime(value?: string | null): string {
+  if (!value) return 'Never';
+  return new Date(value).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
+}
+
 export function UserListCard({ user, selected, onSelect }: UserListCardProps) {
   const gigCount = user._count?.gigs ?? 0;
+  const location = user.lastLoginCity || user.city || null;
 
   return (
     <Card
@@ -39,9 +45,16 @@ export function UserListCard({ user, selected, onSelect }: UserListCardProps) {
           <div className="min-w-0 flex-1">
             <p className="font-semibold truncate">{user.name || 'No name'}</p>
             <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+            <p className="text-xs text-muted-foreground mt-1 truncate">
+              Last login: {formatDateTime(user.lastLoginAt)}
+              {location ? ` · ${location}` : ''}
+            </p>
           </div>
-          <div className="text-right text-xs text-muted-foreground shrink-0">
-            {new Date(user.createdAt).toLocaleDateString('es-CO')}
+          <div
+            className="text-right text-xs text-muted-foreground shrink-0"
+            title="Registration date"
+          >
+            Joined {new Date(user.createdAt).toLocaleDateString('es-CO')}
           </div>
         </div>
 
@@ -82,6 +95,7 @@ export function UserListCard({ user, selected, onSelect }: UserListCardProps) {
         <p className="text-xs text-muted-foreground mt-2">
           {gigCount} gig{gigCount !== 1 ? 's' : ''}
           {user.businessName ? ` • ${user.businessName}` : ''}
+          {(user.rating ?? 0) > 0 ? ` • ${user.rating?.toFixed(1)}★ (${user.reviewCount ?? 0})` : ''}
         </p>
       </CardContent>
     </Card>

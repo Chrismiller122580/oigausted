@@ -38,13 +38,23 @@ export async function GET(req: NextRequest) {
         // slug: true, // omitted for prod DB compatibility until migration
         phone: true,
         whatsapp: true,
-
+        tagline: true,
+        instagram: true,
+        facebook: true,
+        city: true,
+        address: true,
+        referralCode: true,
         bio: true,
         nit: true,
         isActive: true,
         createdAt: true,
+        updatedAt: true,
         rating: true,
         reviewCount: true,
+        lastLoginAt: true,
+        lastLoginIp: true,
+        lastLoginCity: true,
+        lastLoginUserAgent: true,
         contactViolationCount: true,
         contactFlaggedAt: true,
         customReferralRate: true,
@@ -52,7 +62,8 @@ export async function GET(req: NextRequest) {
           select: {
             gigs: true,
             ordersAsBuyer: true,
-            ordersAsSeller: true
+            ordersAsSeller: true,
+            referrals: true,
           }
         }
       },

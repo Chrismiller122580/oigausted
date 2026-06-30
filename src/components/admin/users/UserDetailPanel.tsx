@@ -29,9 +29,19 @@ function StatItem({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="bg-muted/50 rounded-lg p-3">
       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium mt-0.5">{value}</p>
+      <p className="text-sm font-medium mt-0.5 break-words">{value}</p>
     </div>
   );
+}
+
+function formatDateTime(value?: string | null): string {
+  if (!value) return '—';
+  return new Date(value).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function truncateUserAgent(ua?: string | null): string {
+  if (!ua) return '—';
+  return ua.length > 60 ? `${ua.slice(0, 57)}...` : ua;
 }
 
 export function UserDetailPanel({
@@ -63,6 +73,10 @@ export function UserDetailPanel({
     user.customReferralRate != null
       ? `${(user.customReferralRate * 100).toFixed(1)}%`
       : 'Default (5%)';
+  const ratingDisplay =
+    (user.rating ?? 0) > 0
+      ? `${user.rating?.toFixed(1)} (${user.reviewCount ?? 0} reviews)`
+      : '—';
 
   const handleSaveRole = async () => {
     setSavingRole(true);
@@ -96,6 +110,25 @@ export function UserDetailPanel({
           <StatItem label="Ref rate" value={refRate} />
           <StatItem label="Business" value={user.businessName || '—'} />
           <StatItem label="Phone" value={user.phone || '—'} />
+        </div>
+
+        <div className="mb-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+            Activity &amp; location
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <StatItem label="Last login" value={formatDateTime(user.lastLoginAt)} />
+            <StatItem label="Login location" value={user.lastLoginCity || '—'} />
+            <StatItem label="Login IP" value={user.lastLoginIp || '—'} />
+            <StatItem label="Device" value={truncateUserAgent(user.lastLoginUserAgent)} />
+            <StatItem label="Profile city" value={user.city || '—'} />
+            <StatItem label="Address" value={user.address || '—'} />
+            <StatItem label="Rating" value={ratingDisplay} />
+            <StatItem label="Last updated" value={formatDateTime(user.updatedAt)} />
+            <StatItem label="Referral code" value={user.referralCode || '—'} />
+            <StatItem label="WhatsApp" value={user.whatsapp || '—'} />
+            <StatItem label="Referrals" value={user._count?.referrals ?? 0} />
+          </div>
         </div>
 
         {user.role === 'seller' && (

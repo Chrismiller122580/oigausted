@@ -582,6 +582,20 @@ export const authOptions: NextAuthOptions = {
     },
   },
 
+  events: {
+    async signIn({ user }) {
+      if (!user?.id) return
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() },
+        })
+      } catch (e) {
+        devLog('[auth] lastLoginAt update failed (non-fatal):', e)
+      }
+    },
+  },
+
   pages: {
     signIn: "/login",
     error: "/login/error",   // Use our nice error page instead of the default /api/auth/error

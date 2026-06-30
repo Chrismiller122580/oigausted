@@ -124,6 +124,7 @@ export default function LoginPage() {
     }
 
     if (result?.ok) {
+      await fetch('/api/auth/record-login', { method: 'POST' }).catch(() => {})
       window.location.assign(callbackUrl);
     }
   };

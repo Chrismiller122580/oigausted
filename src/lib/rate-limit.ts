@@ -4,6 +4,7 @@ export type RateLimitAction =
   | 'SIGNUP_ATTEMPT'
   | 'LOGIN_ATTEMPT'
   | 'LOGIN_FAILURE'
+  | 'LOGIN_SUCCESS'
   | 'PASSWORD_RESET_ATTEMPT'
 
 const DEFAULT_WINDOW_MS = 15 * 60 * 1000

@@ -5,6 +5,7 @@ import type { Session } from "next-auth";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import SessionExpiryHandler from "./SessionExpiryHandler";
 import { PlatformConfigProvider } from "./PlatformConfigProvider";
+import RecordLogin from "@/components/auth/RecordLogin";
 
 export default function SessionProviderWrapper({
   children,
@@ -17,6 +18,7 @@ export default function SessionProviderWrapper({
     <ThemeProvider>
       <SessionProvider session={session} refetchInterval={5 * 60} refetchOnWindowFocus>
         <PlatformConfigProvider>
+          <RecordLogin />
           <SessionExpiryHandler>
             {children}
           </SessionExpiryHandler>

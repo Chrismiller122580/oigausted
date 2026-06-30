@@ -113,6 +113,12 @@ model User {
   payoutPhone           String?
   payoutEmail           String?
 
+  // Last login tracking (set on sign-in; IP/city enriched via /api/auth/record-login)
+  lastLoginAt          DateTime?
+  lastLoginIp          String?
+  lastLoginCity        String?
+  lastLoginUserAgent   String?
+
   // Contact moderation (chat / inquiry)
   contactViolationCount Int       @default(0)
   contactFlaggedAt      DateTime?
