@@ -58,3 +58,17 @@ next-env.d.ts
 /data/userlens/reports/
 /data/userlens/reports-index.jsonl
 /public/chromium-pack.tar
+.env*
+
+# Capacitor native shell (mobile/)
+/mobile/node_modules/
+/mobile/android/.gradle/
+/mobile/android/app/build/
+/mobile/android/build/
+/mobile/android/local.properties
+/mobile/android/capacitor-cordova-android-plugins/
+/mobile/ios/App/Pods/
+/mobile/ios/App/build/
+/mobile/ios/App/App/public/
+/mobile/ios/capacitor-cordova-ios-plugins/
+/mobile/.env.local

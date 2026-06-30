@@ -140,7 +140,8 @@ function SignUpClient() {
     const callbackUrl = fromQuery || getAuthCallbackUrl('/');
 
     try {
-      await signIn('google', { callbackUrl });
+      const { signInWithGoogle } = await import('@/lib/capacitor-native');
+      await signInWithGoogle(callbackUrl);
     } catch (err) {
       console.error('Google sign-in error:', err);
       setError('Error al registrarse con Google. Intenta con el formulario.');
