@@ -1,5 +1,5 @@
-import { ComingSoonPage } from '@/components/accountant/ComingSoonPage';
+import { SettingsPage } from '@/components/accountant/SettingsPage';
 
 export default function AccountantSettingsPage() {
-  return <ComingSoonPage title="Accounting Settings" />;
+  return <SettingsPage />;
 }

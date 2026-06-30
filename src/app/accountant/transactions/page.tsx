@@ -1,5 +1,5 @@
-import { ComingSoonPage } from '@/components/accountant/ComingSoonPage';
+import { TransactionsPage } from '@/components/accountant/TransactionsPage';
 
 export default function AccountantTransactionsPage() {
-  return <ComingSoonPage title="Transactions" />;
+  return <TransactionsPage />;
 }

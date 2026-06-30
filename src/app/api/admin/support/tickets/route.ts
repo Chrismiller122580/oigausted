@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminPanelSession } from '@/lib/admin-auth';
+import {
+  requireAdminPanelSession,
+  requireFinancePanelSession,
+  verifyAccountantFromDb,
+} from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
@@ -7,13 +11,18 @@ import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
 import type { Prisma } from '@prisma/client';
 
-// GET: List all support tickets (admin only), with optional filters
+// GET: List support tickets (admin panel or accountant payment disputes)
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireAdminPanelSession();
-    if (!session) {
+    const session =
+      (await requireAdminPanelSession()) ?? (await requireFinancePanelSession());
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
+
+    const isAccountantOnly =
+      session.user.staffRole === 'accountant' &&
+      (await verifyAccountantFromDb(session.user.id));
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -29,6 +38,9 @@ export async function GET(request: NextRequest) {
           user: { select: { id: true, name: true, email: true, role: true } }
         }
       });
+      if (isAccountantOnly && ticket?.category !== 'payment') {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+      }
       return NextResponse.json({ ticket });
     }
 
@@ -36,6 +48,7 @@ export async function GET(request: NextRequest) {
     if (status) where.status = status;
     if (priority) where.priority = priority;
     if (category) where.category = category;
+    if (isAccountantOnly) where.category = 'payment';
 
     const tickets = await prisma.supportTicket.findMany({
       where,
@@ -56,7 +69,8 @@ export async function GET(request: NextRequest) {
 // PATCH: Update a ticket (status, adminReply, resolve)
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await requireAdminPanelSession();
+    const session =
+      (await requireAdminPanelSession()) ?? (await requireFinancePanelSession());
     const adminId = session?.user?.id;
     if (!adminId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
@@ -67,6 +81,20 @@ export async function PATCH(request: NextRequest) {
 
     if (!ticketId) {
       return NextResponse.json({ error: 'ticketId requerido' }, { status: 400 });
+    }
+
+    const isAccountantOnly =
+      session.user?.staffRole === 'accountant' &&
+      (await verifyAccountantFromDb(adminId));
+
+    if (isAccountantOnly) {
+      const existing = await prisma.supportTicket.findUnique({
+        where: { id: ticketId },
+        select: { category: true },
+      });
+      if (existing?.category !== 'payment') {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+      }
     }
 
     const updateData: Prisma.SupportTicketUpdateInput = {};

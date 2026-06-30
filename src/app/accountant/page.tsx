@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Receipt, TrendingUp, RefreshCw, ArrowRight } from 'lucide-react';
+import { DollarSign, Users, TrendingUp, RefreshCw, ArrowRight } from 'lucide-react';
 import { ACCOUNTANT_NAV_ITEMS } from '@/lib/accountant-nav';
 
 type OverviewStats = {
@@ -103,7 +103,7 @@ export default function AccountantOverviewPage() {
           <Card className="hover:shadow-md transition h-full">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Receipt className="h-4 w-4" /> Referrals
+                <Users className="h-4 w-4" /> Referrals
               </CardTitle>
             </CardHeader>
             <CardContent>
