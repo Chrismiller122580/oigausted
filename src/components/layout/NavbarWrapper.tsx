@@ -26,10 +26,21 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   const banner = <ImpersonationBanner />;
 
   const rawRole = String(session?.user?.role || '').toLowerCase().trim();
-  const role = isUserRole(rawRole) ? rawRole : 'buyer';
+  const role = isUserRole(rawRole) ? rawRole : null;
   const staffRole = isStaffRole(session?.user?.staffRole) ? session.user.staffRole : null;
+  const isAuthenticated = !!session?.user;
 
-  if (role === 'admin') {
+  // Marketing homepage renders its own HomeNavbar — skip role-based navbars here
+  if (pathname === '/') {
+    return (
+      <>
+        {banner}
+        <main>{children}</main>
+      </>
+    );
+  }
+
+  if (isAuthenticated && role === 'admin') {
     return (
       <>
         {banner}
@@ -56,7 +67,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
     );
   }
 
-  if (role === 'seller') {
+  if (isAuthenticated && role === 'seller') {
     return (
       <>
         {banner}
@@ -65,22 +76,11 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
     );
   }
 
-  if (role === 'buyer') {
+  if (isAuthenticated && role === 'buyer') {
     return (
       <>
         {banner}
         <BuyerNavbar>{children}</BuyerNavbar>
-      </>
-    );
-  }
-
-  const isHomepage = pathname === '/';
-
-  if (isHomepage) {
-    return (
-      <>
-        {banner}
-        <main>{children}</main>
       </>
     );
   }
