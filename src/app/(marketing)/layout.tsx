@@ -1,6 +1,6 @@
-import { marketingHomeMetadata } from './metadata';
+import { heroCollageImages } from '@/lib/design-tokens';
 
-export const metadata = marketingHomeMetadata;
+const lcpHeroImage = heroCollageImages[0];
 
 export default function MarketingLayout({
   children,
@@ -8,8 +8,14 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-slate-50 text-foreground dark:bg-slate-950">
+    <>
+      <link
+        rel="preload"
+        as="image"
+        href={lcpHeroImage}
+        fetchPriority="high"
+      />
       {children}
-    </div>
+    </>
   );
 }

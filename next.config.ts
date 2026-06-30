@@ -20,6 +20,24 @@ const nextConfig: NextConfig = {
         source: '/:path*',
         headers: securityHeaders,
       },
+      {
+        source: '/icons/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/:path*\\.(jpg|jpeg|png|webp|svg|ico)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
     ]
   },
   images: {
@@ -47,16 +65,18 @@ const nextConfig: NextConfig = {
     '/api/admin/userlens/scan': [
       './node_modules/@sparticuz/chromium/bin/**',
       'node_modules/@sparticuz/chromium/bin/**',
-      './node_modules/lighthouse/flow-report/**',
-      './node_modules/lighthouse/report/**',
-      './node_modules/lighthouse/dist/report/**',
+      './node_modules/lighthouse/**',
+      'node_modules/lighthouse/**',
+      './node_modules/chrome-launcher/**',
+      'node_modules/chrome-launcher/**',
     ],
     '/api/admin/userlens/scan/route': [
       './node_modules/@sparticuz/chromium/bin/**',
       'node_modules/@sparticuz/chromium/bin/**',
-      './node_modules/lighthouse/flow-report/**',
-      './node_modules/lighthouse/report/**',
-      './node_modules/lighthouse/dist/report/**',
+      './node_modules/lighthouse/**',
+      'node_modules/lighthouse/**',
+      './node_modules/chrome-launcher/**',
+      'node_modules/chrome-launcher/**',
     ],
   },
 }

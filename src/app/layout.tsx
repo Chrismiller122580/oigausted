@@ -15,7 +15,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import ConsentedGoogleAnalytics from "@/components/analytics/ConsentedGoogleAnalytics";
 import CookieConsent from "@/components/common/CookieConsent";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 // Dynamic metadata powered by admin settings (branding)
 export async function generateMetadata(): Promise<Metadata> {

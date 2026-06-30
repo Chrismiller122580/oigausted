@@ -63,41 +63,22 @@ export async function resolveServerlessLighthouseScores(
   categories: LighthouseCategory[],
   warnings: string[],
 ): Promise<NonNullable<UserLensScanResult['lighthouse']> | null> {
-  const attempts: Array<{ label: string; run: () => Promise<NonNullable<UserLensScanResult['lighthouse']>> }> =
-    hasPsiApiKey()
-      ? [
-          {
-            label: 'PageSpeed Insights',
-            run: () => fetchPsiLighthouseScores(pageUrl, viewport, categories),
-          },
-          {
-            label: 'in-process Lighthouse',
-            run: () => runInProcessLighthouse(pageUrl, viewport, categories),
-          },
-        ]
-      : [
-          {
-            label: 'in-process Lighthouse',
-            run: () => runInProcessLighthouse(pageUrl, viewport, categories),
-          },
-          {
-            label: 'PageSpeed Insights',
-            run: () => fetchPsiLighthouseScores(pageUrl, viewport, categories),
-          },
-        ];
+  const attempts: Array<{ label: string; run: () => Promise<NonNullable<UserLensScanResult['lighthouse']>> }> = [
+    {
+      label: 'in-process Lighthouse',
+      run: () => runInProcessLighthouse(pageUrl, viewport, categories),
+    },
+    {
+      label: 'PageSpeed Insights',
+      run: () => fetchPsiLighthouseScores(pageUrl, viewport, categories),
+    },
+  ];
 
   let lastError = '';
 
   for (const attempt of attempts) {
     try {
-      const scores = await attempt.run();
-      warnings.push(`Lighthouse scores via ${attempt.label} on Vercel. axe and screenshot from Playwright.`);
-      if (!hasPsiApiKey() && attempt.label === 'PageSpeed Insights') {
-        warnings.push(
-          'Tip: set PAGESPEED_INSIGHTS_API_KEY in Vercel for dedicated quota instead of the shared public limit.',
-        );
-      }
-      return scores;
+      return await attempt.run();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Lighthouse failed';
       lastError = message;

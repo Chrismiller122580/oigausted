@@ -21,7 +21,6 @@ export function HomeNavbar() {
         <Link
           href="/"
           className="flex shrink-0 items-center gap-1.5 font-bold text-lg sm:text-xl"
-          aria-label="OigaGIG inicio"
         >
           <span className="text-xl" aria-hidden>
             🧡

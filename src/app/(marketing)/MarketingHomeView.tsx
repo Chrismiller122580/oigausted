@@ -1,13 +1,28 @@
+import dynamic from 'next/dynamic';
 import { HomeNavbar } from '@/components/homepage/HomeNavbar';
 import { HomeHero } from '@/components/homepage/HomeHero';
-import { CategoriesSection } from '@/components/homepage/CategoriesSection';
-import { StatsAndPopular } from '@/components/homepage/StatsAndPopular';
 import { HomeFooter } from '@/components/homepage/HomeFooter';
 import type { HomepageCategory } from '@/components/homepage/CategoriesSection';
 import type { HomepageStats, PopularGig } from '@/components/homepage/StatsAndPopular';
 import type { HomepageTestimonial } from '@/components/homepage/TestimonialsCarousel';
 import { MarketingHomeWelcome } from './MarketingHomeWelcome';
 import { MarketingHomeBelowFold } from './MarketingHomeBelowFold';
+
+const CategoriesSection = dynamic(
+  () =>
+    import('@/components/homepage/CategoriesSection').then((m) => ({
+      default: m.CategoriesSection,
+    })),
+  { ssr: true },
+);
+
+const StatsAndPopular = dynamic(
+  () =>
+    import('@/components/homepage/StatsAndPopular').then((m) => ({
+      default: m.StatsAndPopular,
+    })),
+  { ssr: true },
+);
 
 interface MarketingHomeViewProps {
   categories: HomepageCategory[];

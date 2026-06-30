@@ -43,6 +43,9 @@ export function extractFixItemsFromScan(result: UserLensScanResult): NewFixItemI
 
   for (const warning of result.warnings) {
     if (/login|redirect|github\.com/i.test(warning)) continue;
+    if (/Lighthouse scores via .+ on Vercel/i.test(warning)) continue;
+    if (/^Tip: set PAGESPEED_INSIGHTS_API_KEY/i.test(warning)) continue;
+    if (/quota exceeded — trying fallback/i.test(warning)) continue;
     items.push({
       source: 'warning',
       category: 'scan',

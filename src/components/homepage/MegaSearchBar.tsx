@@ -126,7 +126,6 @@ export function MegaSearchBar({
 
         <Button
           type="submit"
-          aria-label="Buscar servicios"
           className={cn(
             brandButtonClass,
             'font-semibold shrink-0',

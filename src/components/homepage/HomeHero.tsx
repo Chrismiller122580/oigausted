@@ -30,9 +30,10 @@ export function HomeHero() {
               alt=""
               fill
               className="object-cover scale-105"
-              sizes={i === 0 ? '100vw' : '50vw'}
+              sizes={i === 0 ? '(max-width: 768px) 100vw, 50vw' : '50vw'}
               priority={i === 0}
-              quality={i === 0 ? 75 : 60}
+              fetchPriority={i === 0 ? 'high' : 'low'}
+              quality={i === 0 ? 70 : 55}
               loading={i === 0 ? 'eager' : 'lazy'}
             />
           </div>
