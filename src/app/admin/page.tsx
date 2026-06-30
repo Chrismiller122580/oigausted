@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock, Tag, BarChart3, MessageCircle, Megaphone, RefreshCw, Activity, Zap } from 'lucide-react';
+import { Users, Package, DollarSign, TrendingUp, AlertCircle, Clock, Tag, BarChart3, MessageCircle, Megaphone, RefreshCw, Activity, Zap, MapPin } from 'lucide-react';
 import { useRealtimeNotifications } from '@/lib/useRealtimeNotifications';
 import type { AuditLogEntry } from '@/types/audit';
 import type { AnalyticsIntegration } from '@/lib/admin-analytics';
@@ -309,6 +309,16 @@ export default function AdminDashboard() {
                 <DollarSign className="h-10 w-10 text-green-400 mb-4" />
                 <h3 className="text-2xl font-semibold mb-2">Manage Payouts</h3>
                 <p className="text-muted-foreground">Review and mark seller payouts</p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/mapa">
+            <Card className="bg-card border-border hover:border-sky-500/50 hover:shadow-sm transition cursor-pointer h-full">
+              <CardContent className="p-8">
+                <MapPin className="h-10 w-10 text-sky-400 mb-4" />
+                <h3 className="text-2xl font-semibold mb-2">Mapa</h3>
+                <p className="text-muted-foreground">View gigs across Colombia on the live map</p>
               </CardContent>
             </Card>
           </Link>
