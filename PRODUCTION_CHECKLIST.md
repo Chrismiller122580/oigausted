@@ -40,7 +40,18 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
 | `WOMPI_EVENTS_KEY` | `prod_events_...` (Secretos para integración técnica → Eventos) |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (for image uploads) |
 | `NEXT_PUBLIC_APP_URL` | `https://oigagig.com` |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps JS API key (enable Maps + Places API; restrict to your domain) |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps JS API key (enable Maps JavaScript API + Places API) |
+
+**Google Maps API key — HTTP referrer restrictions** (fixes `RefererNotAllowedMapError` on `/mapa`):
+
+In [Google Cloud Credentials](https://console.cloud.google.com/apis/credentials), edit the browser key and under **Application restrictions → HTTP referrers** add:
+
+- `https://oigagig.com/*`
+- `https://www.oigagig.com/*`
+- `http://localhost:*/*` (dev)
+- `https://*.vercel.app/*` (preview deploys, optional)
+
+Use the `/*` suffix so paths like `/mapa` and `/gigs` are allowed. Saving can take a few minutes to propagate.
 | `CRON_SECRET` | Strong secret for protecting digest cron endpoint (used by Vercel scheduled functions or admin) |
 
 ## Google Maps (for gig location autocomplete in Create Gig + near-me filters)

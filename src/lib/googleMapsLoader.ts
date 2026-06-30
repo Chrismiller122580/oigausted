@@ -3,10 +3,49 @@
  * Ensures the script is loaded only once across the entire application.
  */
 
+/** HTTP referrers to allow in Google Cloud Console → Credentials → API key restrictions */
+export const GOOGLE_MAPS_ALLOWED_REFERRERS = [
+  'https://oigagig.com/*',
+  'https://www.oigagig.com/*',
+  'http://localhost:*/*',
+  'https://*.vercel.app/*',
+] as const;
+
+export const GOOGLE_MAPS_REFERRER_ERROR_MESSAGE =
+  'La API key de Google Maps no autoriza este dominio (RefererNotAllowedMapError). En Google Cloud Console → Credentials → tu API key → Application restrictions → HTTP referrers, agrega: https://oigagig.com/* y https://www.oigagig.com/*';
+
 declare global {
   interface Window {
     __googleMapsLoadingPromise?: Promise<void>;
+    __googleMapsAuthFailed?: boolean;
+    gm_authFailure?: () => void;
   }
+}
+
+const authFailureListeners = new Set<(message: string) => void>();
+
+export function onGoogleMapsAuthFailure(listener: (message: string) => void): () => void {
+  authFailureListeners.add(listener);
+  if (window.__googleMapsAuthFailed) {
+    listener(GOOGLE_MAPS_REFERRER_ERROR_MESSAGE);
+  }
+  return () => {
+    authFailureListeners.delete(listener);
+  };
+}
+
+function notifyAuthFailure() {
+  window.__googleMapsAuthFailed = true;
+  for (const listener of authFailureListeners) {
+    listener(GOOGLE_MAPS_REFERRER_ERROR_MESSAGE);
+  }
+}
+
+function ensureAuthFailureHandler() {
+  if (typeof window === 'undefined') return;
+  window.gm_authFailure = () => {
+    notifyAuthFailure();
+  };
 }
 
 export class GoogleMapsConfigError extends Error {
@@ -60,19 +99,34 @@ export function loadGoogleMaps(libraries: string[] = []): Promise<void> {
     return window.__googleMapsLoadingPromise;
   }
 
+  ensureAuthFailureHandler();
+
   window.__googleMapsLoadingPromise = new Promise((resolve, reject) => {
+    const unsubscribe = onGoogleMapsAuthFailure((message) => {
+      unsubscribe();
+      reject(new GoogleMapsConfigError(message));
+    });
+
     const existing = document.querySelector('script[src*="maps.googleapis.com"]');
     if (existing) {
       const checkInterval = setInterval(() => {
-        if (isGoogleMapsLoaded()) {
+        if (window.__googleMapsAuthFailed) {
           clearInterval(checkInterval);
+          unsubscribe();
+          reject(new GoogleMapsConfigError(GOOGLE_MAPS_REFERRER_ERROR_MESSAGE));
+        } else if (isGoogleMapsLoaded()) {
+          clearInterval(checkInterval);
+          unsubscribe();
           resolve();
         }
       }, 50);
 
       setTimeout(() => {
         clearInterval(checkInterval);
-        if (isGoogleMapsLoaded()) resolve();
+        unsubscribe();
+        if (window.__googleMapsAuthFailed) {
+          reject(new GoogleMapsConfigError(GOOGLE_MAPS_REFERRER_ERROR_MESSAGE));
+        } else if (isGoogleMapsLoaded()) resolve();
         else reject(new Error('Google Maps failed to load (timeout)'));
       }, 15000);
       return;
@@ -85,20 +139,29 @@ export function loadGoogleMaps(libraries: string[] = []): Promise<void> {
 
     script.onload = () => {
       const waitForBootstrap = setInterval(() => {
-        if (isGoogleMapsLoaded()) {
+        if (window.__googleMapsAuthFailed) {
           clearInterval(waitForBootstrap);
+          unsubscribe();
+          reject(new GoogleMapsConfigError(GOOGLE_MAPS_REFERRER_ERROR_MESSAGE));
+        } else if (isGoogleMapsLoaded()) {
+          clearInterval(waitForBootstrap);
+          unsubscribe();
           resolve();
         }
       }, 30);
 
       setTimeout(() => {
         clearInterval(waitForBootstrap);
-        if (isGoogleMapsLoaded()) resolve();
+        unsubscribe();
+        if (window.__googleMapsAuthFailed) {
+          reject(new GoogleMapsConfigError(GOOGLE_MAPS_REFERRER_ERROR_MESSAGE));
+        } else if (isGoogleMapsLoaded()) resolve();
         else reject(new Error('Google Maps script loaded but bootstrap incomplete'));
       }, 8000);
     };
 
     script.onerror = () => {
+      unsubscribe();
       reject(
         new Error(
           'No se pudo cargar Google Maps. Verifica la API key, Maps JavaScript API habilitada, y restricciones de dominio.',

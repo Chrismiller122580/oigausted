@@ -12,7 +12,9 @@ import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import {
   GoogleMapsConfigError,
+  GOOGLE_MAPS_ALLOWED_REFERRERS,
   importMapLibraries,
+  onGoogleMapsAuthFailure,
   type GoogleMapLibraries,
 } from '@/lib/googleMapsLoader';
 import {
@@ -160,6 +162,13 @@ const GigMapExplorer = forwardRef<GigMapExplorerHandle, GigMapExplorerProps>(
     }, [pins, clusters, userLocation, loading, renderMarkers]);
 
     useEffect(() => {
+      return onGoogleMapsAuthFailure((message) => {
+        setLoadError(message);
+        setLoading(false);
+      });
+    }, []);
+
+    useEffect(() => {
       let cancelled = false;
 
       const init = async () => {
@@ -256,12 +265,25 @@ const GigMapExplorer = forwardRef<GigMapExplorerHandle, GigMapExplorerProps>(
     }
 
     if (loadError) {
+      const isReferrerError =
+        loadError.includes('RefererNotAllowed') || loadError.includes('no autoriza este dominio');
+
       return (
         <div
           style={{ height }}
-          className={`flex w-full flex-col items-center justify-center rounded-2xl border border-slate-200 bg-slate-100 p-6 text-center text-sm text-muted-foreground dark:border-slate-700 ${className ?? ''}`}
+          className={`flex w-full flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-100 p-6 text-center text-sm text-muted-foreground dark:border-slate-700 ${className ?? ''}`}
         >
-          <p>{loadError}</p>
+          <p className="max-w-md text-foreground font-medium">
+            {isReferrerError ? 'Mapa bloqueado por restricciones de la API key' : 'No se pudo cargar el mapa'}
+          </p>
+          <p className="max-w-lg text-xs leading-relaxed">{loadError}</p>
+          {isReferrerError ? (
+            <ul className="max-w-lg text-left text-xs font-mono bg-white/80 dark:bg-slate-900/80 rounded-lg p-3 space-y-1">
+              {GOOGLE_MAPS_ALLOWED_REFERRERS.map((referrer) => (
+                <li key={referrer}>{referrer}</li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       );
     }
