@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { verifyAdminFromDb, verifyAdminPanelAccess } from '@/lib/admin-auth'
+import {
+  verifyAdminFromDb,
+  verifyAdminPanelAccess,
+  verifyAccountantFromDb,
+  verifyFinancePanelAccess,
+} from '@/lib/admin-auth'
 import { notifications } from '@/lib/notifications'
 import { logAuditEvent } from '@/lib/audit'
 import { devLog, toPrismaJsonField } from '@/lib/utils'
@@ -92,10 +97,11 @@ export async function GET(
     }
 
     const userId = session?.user?.id
-    const isAdmin = userId && session
-      ? await verifyAdminPanelAccess(userId, session)
+    const canViewOrder = userId && session
+      ? (await verifyAdminPanelAccess(userId, session)) ||
+        (await verifyFinancePanelAccess(userId, session))
       : false
-    if (!isAdmin && order.buyerId !== userId && order.sellerId !== userId) {
+    if (!canViewOrder && order.buyerId !== userId && order.sellerId !== userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
 
@@ -142,10 +148,19 @@ export async function PATCH(
     const isFullAdmin = userId && session?.user?.role === 'admin'
       ? await verifyAdminFromDb(userId)
       : false
+    const isAccountant = userId && session?.user?.staffRole === 'accountant'
+      ? await verifyAccountantFromDb(userId)
+      : false
+    const hasFinancePanelAccess = isFullAdmin || isAccountant
     const hasAdminPanelAccess = userId && session
       ? await verifyAdminPanelAccess(userId, session)
       : false
-    if (!hasAdminPanelAccess && existingOrder.buyerId !== userId && existingOrder.sellerId !== userId) {
+    if (
+      !hasAdminPanelAccess &&
+      !hasFinancePanelAccess &&
+      existingOrder.buyerId !== userId &&
+      existingOrder.sellerId !== userId
+    ) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
 
@@ -157,6 +172,17 @@ export async function PATCH(
         { error: 'View-only access — cannot modify orders' },
         { status: 403 }
       )
+    }
+
+    if (isAccountant && !isBuyer && !isSeller) {
+      const payoutOnlyKeys = ['sellerPayoutAt', 'wompiPayoutRef'];
+      const requestedKeys = Object.keys(body).filter((key) => body[key] !== undefined);
+      if (requestedKeys.some((key) => !payoutOnlyKeys.includes(key))) {
+        return NextResponse.json(
+          { error: 'Accountants can only update payout fields' },
+          { status: 403 }
+        )
+      }
     }
 
     const updateData: Prisma.OrderUpdateInput = {}
@@ -343,8 +369,11 @@ export async function PATCH(
       });
     }
 
-    if ((sellerPayoutAtUpdate !== undefined || wompiPayoutRefUpdate !== undefined) && !isFullAdmin) {
-      return NextResponse.json({ error: 'Only admins can update payout fields' }, { status: 403 })
+    if (
+      (sellerPayoutAtUpdate !== undefined || wompiPayoutRefUpdate !== undefined) &&
+      !hasFinancePanelAccess
+    ) {
+      return NextResponse.json({ error: 'Only finance staff can update payout fields' }, { status: 403 })
     }
 
     let payoutFieldsUpdateFailed = false;

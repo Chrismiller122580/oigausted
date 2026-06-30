@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { getStaffPortalPath, isStaffRole } from '@/lib/session';
 import { ADMIN_ASSISTANT_NAV_ITEMS } from '@/lib/admin-assistant-nav';
+import { ACCOUNTANT_NAV_ITEMS } from '@/lib/accountant-nav';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -160,39 +161,19 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
 
         {role === 'accountant' && (
           <>
-            <Link href="/accountant" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <Home size={22} /> Overview
-            </Link>
-            <Link href="/accountant/payouts" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <DollarSign size={22} /> Payouts
-            </Link>
-            <Link href="/accountant/payroll" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <Receipt size={22} /> Payroll
-            </Link>
-            <Link href="/accountant/earnings" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <TrendingUp size={22} /> Earnings & Reports
-            </Link>
-            <Link href="/accountant/invoices" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <FileText size={22} /> Invoices & Billing
-            </Link>
-            <Link href="/accountant/transactions" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <BarChart3 size={22} /> Transactions
-            </Link>
-            <Link href="/accountant/tax" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <ShieldCheck size={22} /> Tax Documents
-            </Link>
-            <Link href="/accountant/disputes" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <AlertCircle size={22} /> Payment Disputes
-            </Link>
-            <Link href="/accountant/users-finance" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <Users size={22} /> Seller Payouts
-            </Link>
-            <Link href="/accountant/analytics" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <BarChart3 size={22} /> Finance Analytics
-            </Link>
-            <Link href="/accountant/settings" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <Settings size={22} /> Accounting Settings
-            </Link>
+            {ACCOUNTANT_NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onClose}
+                  className="flex items-center gap-3 py-4 border-b border-border"
+                >
+                  <Icon size={22} /> {item.label}
+                </Link>
+              );
+            })}
             <div className="pt-6">
               <Button
                 onClick={handleSignOut}

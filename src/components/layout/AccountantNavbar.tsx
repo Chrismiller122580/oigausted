@@ -4,29 +4,13 @@ import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import {
-  LogOut, Home, DollarSign, TrendingUp, FileText, Users, BarChart3,
-  Receipt, ShieldCheck, AlertCircle, Settings, Menu, X, type LucideIcon,
-} from 'lucide-react';
+import { LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import MobileMenu from './MobileMenu';
 import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import Logo from '@/components/common/Logo';
-
-const navItems: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: '/accountant', label: 'Overview', icon: Home },
-  { href: '/accountant/payouts', label: 'Payouts', icon: DollarSign },
-  { href: '/accountant/payroll', label: 'Payroll', icon: Receipt },
-  { href: '/accountant/earnings', label: 'Earnings & Reports', icon: TrendingUp },
-  { href: '/accountant/invoices', label: 'Invoices & Billing', icon: FileText },
-  { href: '/accountant/transactions', label: 'Transactions', icon: BarChart3 },
-  { href: '/accountant/tax', label: 'Tax Documents', icon: ShieldCheck },
-  { href: '/accountant/disputes', label: 'Payment Disputes', icon: AlertCircle },
-  { href: '/accountant/users-finance', label: 'Seller Payouts', icon: Users },
-  { href: '/accountant/analytics', label: 'Finance Analytics', icon: BarChart3 },
-  { href: '/accountant/settings', label: 'Accounting Settings', icon: Settings },
-];
+import { ACCOUNTANT_NAV_ITEMS } from '@/lib/accountant-nav';
 
 export default function AccountantNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
@@ -103,7 +87,7 @@ export default function AccountantNavbar({ children }: { children: React.ReactNo
         >
           <div className="p-2 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
             <nav className="space-y-1">
-              {navItems.map((item) => {
+              {ACCOUNTANT_NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
                 const showLabel = isSidebarOpen || isSidebarHovered;

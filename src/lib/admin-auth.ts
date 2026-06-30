@@ -18,6 +18,19 @@ export async function verifyAdminFromDb(userId: string): Promise<boolean> {
   }
 }
 
+/** Verify active accountant staff (DB-verified). */
+export async function verifyAccountantFromDb(userId: string): Promise<boolean> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { staffRole: true, isActive: true },
+    })
+    return user?.staffRole === 'accountant' && user.isActive !== false
+  } catch {
+    return false
+  }
+}
+
 /** Verify active admin_assistant staff (DB-verified). */
 export async function verifyAdminAssistantFromDb(userId: string): Promise<boolean> {
   try {
@@ -81,6 +94,46 @@ export async function requireAdminFromDb(): Promise<Session | null> {
 /** Session for admin or admin_assistant panel (DB-verified). */
 export async function requireAdminPanelSession(): Promise<Session | null> {
   const access = await requireAdminPanelFromDb()
+  return access?.session ?? null
+}
+
+export type FinancePanelAccess = {
+  session: Session
+  isFullAdmin: boolean
+}
+
+/** Admin or accountant with DB verification (finance / payroll panel). */
+export async function verifyFinancePanelAccess(
+  userId: string,
+  session: Session
+): Promise<boolean> {
+  if (session.user?.role === 'admin') {
+    return verifyAdminFromDb(userId)
+  }
+  if (session.user?.staffRole === 'accountant') {
+    return verifyAccountantFromDb(userId)
+  }
+  return false
+}
+
+/** Returns session for admin or accountant finance panel access (DB-verified). */
+export async function requireFinancePanelFromDb(): Promise<FinancePanelAccess | null> {
+  const session = await getServerSession(authOptions)
+  const userId = session?.user?.id
+  if (!userId || !session) return null
+
+  if (session.user?.role === 'admin' && (await verifyAdminFromDb(userId))) {
+    return { session, isFullAdmin: true }
+  }
+  if (session.user?.staffRole === 'accountant' && (await verifyAccountantFromDb(userId))) {
+    return { session, isFullAdmin: false }
+  }
+  return null
+}
+
+/** Session for admin or accountant finance panel (DB-verified). */
+export async function requireFinancePanelSession(): Promise<Session | null> {
+  const access = await requireFinancePanelFromDb()
   return access?.session ?? null
 }
 

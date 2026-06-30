@@ -9,6 +9,7 @@ import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG, aggregatePayouts, type Pay
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import type { PayoutOrder, ReferralPayoutSummary } from '@/types/payout';
 import type { PayoutAuditReport } from '@/lib/payout-audit';
+import { useFinancePanel } from '@/hooks/useFinancePanel';
 
 const LOCAL_STORAGE_KEY = 'adminManuallyPaidPayouts';
 
@@ -23,6 +24,7 @@ function readLocalPaidIds(): string[] {
 }
 
 export default function AdminPayoutsPage() {
+  const { canDeleteOrders } = useFinancePanel();
   const [orders, setOrders] = useState<PayoutOrder[]>([]);
   const [paidOrders, setPaidOrders] = useState<PayoutOrder[]>([]);
   const [referralPayouts, setReferralPayouts] = useState<ReferralPayoutSummary[]>([]);
@@ -468,14 +470,16 @@ export default function AdminPayoutsPage() {
                         <Button variant="outline" size="sm" onClick={() => markAsPaid(order.id)} className="text-xs">
                           Mark manual
                         </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => deleteOrder(order.id, order.reference)}
-                          className="text-xs"
-                        >
-                          Delete
-                        </Button>
+                        {canDeleteOrders && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => deleteOrder(order.id, order.reference)}
+                            className="text-xs"
+                          >
+                            Delete
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -489,7 +493,7 @@ export default function AdminPayoutsPage() {
           <div className="mt-10">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-semibold">Paid Payouts History</h2>
-              {isDev && (
+              {isDev && canDeleteOrders && (
                 <Button variant="destructive" onClick={clearAllOrders} className="text-sm">
                   Clear ALL Orders (dev only)
                 </Button>

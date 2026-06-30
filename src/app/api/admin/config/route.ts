@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { requireAdminFromDb, verifyAdminFromDb } from '@/lib/admin-auth';
+import { requireAdminFromDb, verifyAccountantFromDb, verifyAdminFromDb } from '@/lib/admin-auth';
 import { prisma, getPlatformConfig, type PlatformConfigRow } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
@@ -21,6 +21,10 @@ export async function GET(req: NextRequest) {
       !!session?.user?.id &&
       session.user.role === 'admin' &&
       (await verifyAdminFromDb(session.user.id));
+    const isAccountant =
+      !!session?.user?.id &&
+      session.user.staffRole === 'accountant' &&
+      (await verifyAccountantFromDb(session.user.id));
 
     const { searchParams } = new URL(req.url);
     const forceFresh = searchParams.has('fresh') || searchParams.has('bust');
@@ -43,6 +47,20 @@ export async function GET(req: NextRequest) {
     // entire app (public banners, middleware, checkout, admin settings, etc.).
     // No per-route duplication needed anymore. The old broken `if (!config?.id)`
     // guard has been removed.
+
+    if (isAccountant && !isAdmin) {
+      return NextResponse.json(
+        {
+          commissionRate: config.commissionRate,
+          referralCommissionRate: config.referralCommissionRate,
+        },
+        {
+          headers: {
+            'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+          },
+        }
+      );
+    }
 
     // For non-admins (including unauthenticated users), only expose public fields
     // so the MaintenanceBanner doesn't spam 403 errors in the console during normal testing.

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminFromDb } from '@/lib/admin-auth';
+import { requireFinancePanelSession } from '@/lib/admin-auth';
 import { lookupUserPayoutsByEmail, runPayoutAudit } from '@/lib/payout-audit';
 import { devLog } from '@/lib/utils';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await requireAdminFromDb();
+    const session = await requireFinancePanelSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
