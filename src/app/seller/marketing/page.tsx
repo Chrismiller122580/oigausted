@@ -476,7 +476,7 @@ function SellerMarketingPageClient() {
                         className="w-full rounded-xl border border-border shadow-sm bg-muted/30"
                       />
                       <Button asChild variant="outline" size="sm" className="w-full gap-2">
-                        <a href={url} download={`oigagig-marketing-${key}.png`} target="_blank" rel="noreferrer">
+                        <a href={url} download={`oigagig-marketing-${key}.svg`} target="_blank" rel="noreferrer">
                           <Download className="h-4 w-4" />
                           Descargar con marca
                         </a>

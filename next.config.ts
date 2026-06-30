@@ -86,6 +86,12 @@ const nextConfig: NextConfig = {
       './node_modules/chrome-launcher/**',
       'node_modules/chrome-launcher/**',
     ],
+    '/api/seller/marketing/brand-card': [
+      './public/brand/**',
+    ],
+    '/api/seller/marketing/brand-card/route': [
+      './public/brand/**',
+    ],
   },
 }
 
