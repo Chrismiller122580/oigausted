@@ -119,7 +119,7 @@ export default function BuyerDashboard() {
               <Button asChild size="lg" id="tutorial-browse-all-gigs" className="bg-card text-brand hover:bg-muted text-base px-8 py-3 rounded-xl font-semibold shadow-lg">
                 <Link href="/gigs">Ver Todos los Gigs</Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="border-white/40 text-white hover:bg-white/10 text-base px-8 py-3 rounded-xl font-semibold">
+              <Button asChild size="lg" variant="outline" className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white text-base px-8 py-3 rounded-xl font-semibold">
                 <Link href="/messages">Mis Mensajes</Link>
               </Button>
             </div>
