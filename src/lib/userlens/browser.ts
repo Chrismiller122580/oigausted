@@ -1,12 +1,13 @@
 import '@/lib/userlens/server-only';
-import { randomUUID } from 'node:crypto';
-import { rm } from 'node:fs/promises';
 import fs from 'fs';
 import path from 'path';
 import type { Browser, BrowserContext, BrowserContextOptions } from 'playwright-core';
 import playwrightBrowsersManifest from '@/lib/userlens/playwright-browsers.json';
 
 export const USERLENS_DEBUG_PORT = 9222;
+
+/** Sparticuz cold inflate + headless-shell startup can exceed 30s on Vercel. */
+const SERVERLESS_LAUNCH_TIMEOUT_MS = 90_000;
 
 const LOCAL_CHROMIUM_ARGS = [
   `--remote-debugging-port=${USERLENS_DEBUG_PORT}`,
@@ -193,15 +194,6 @@ async function resolveServerlessChromium(): Promise<{
   return { executablePath, args: cachedSparticuzArgs };
 }
 
-function attachUserDataCleanup(browser: Browser, userDataDir: string): Browser {
-  const originalClose = browser.close.bind(browser);
-  browser.close = async () => {
-    await originalClose();
-    await rm(userDataDir, { recursive: true, force: true }).catch(() => {});
-  };
-  return browser;
-}
-
 export type UserLensBrowserSession = {
   browser: Browser;
   context: BrowserContext;
@@ -215,30 +207,32 @@ export async function launchUserLensBrowser(
   const { chromium } = await import('playwright-core');
 
   if (isServerlessRuntime()) {
+    const launchStarted = Date.now();
     const { executablePath, args } = await resolveServerlessChromium();
-    const userDataDir = `/tmp/pw-${randomUUID()}`;
+    const launchArgs = [
+      ...args,
+      '--disable-dev-shm-usage',
+      `--remote-debugging-port=${USERLENS_DEBUG_PORT}`,
+    ];
 
     try {
-      // Playwright 1.59+ rejects --user-data-dir on launch(); use persistent context instead.
-      const context = await chromium.launchPersistentContext(userDataDir, {
-        ...contextOptions,
-        args: [
-          ...args,
-          `--remote-debugging-port=${USERLENS_DEBUG_PORT}`,
-          '--disable-dev-shm-usage',
-        ],
+      // Sparticuz ships chrome-headless-shell with its own flag set (--headless='shell', --single-process).
+      // Playwright's default launch args conflict and can hang until timeout — use Sparticuz args only.
+      const browser = await chromium.launch({
         executablePath,
         headless: true,
-        timeout: 30_000,
+        args: launchArgs,
+        ignoreDefaultArgs: true,
+        timeout: SERVERLESS_LAUNCH_TIMEOUT_MS,
+      });
+      const context = await browser.newContext(contextOptions);
+
+      console.log('[UserLens] Chromium launched', {
+        executablePath,
+        launchMs: Date.now() - launchStarted,
       });
 
-      const browser = context.browser();
-      if (!browser) {
-        await context.close();
-        throw new Error('browserType.launch: persistent context did not expose a browser instance');
-      }
-
-      return { browser: attachUserDataCleanup(browser, userDataDir), context };
+      return { browser, context };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       throw new Error(`browserType.launch: ${message} (executable: ${executablePath})`);

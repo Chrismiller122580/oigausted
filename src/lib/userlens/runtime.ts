@@ -122,8 +122,14 @@ export function classifyUserLensScanError(err: unknown): {
 
   if (isBrowserLaunch) {
     const onVercel = process.env.VERCEL === '1';
+    const launchTimedOut =
+      lower.includes('browsertype.launch') &&
+      lower.includes('timeout') &&
+      lower.includes('exceeded');
     const hint = onVercel
-      ? 'Vercel scan failed to start Chromium. Ensure the deployment includes @sparticuz/chromium/bin and scan public URLs only (https://oigagig.com).'
+      ? launchTimedOut
+        ? 'Chromium cold start timed out on Vercel. Retry once (warm /tmp cache is faster), or set USERLENS_SCAN_MODE=psi for a no-browser Lighthouse-only scan.'
+        : 'Vercel scan failed to start Chromium. Ensure the deployment includes @sparticuz/chromium/bin and scan public URLs only (https://oigagig.com).'
       : 'Locally run: npm install or npx playwright install chromium';
 
     return {
