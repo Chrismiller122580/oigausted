@@ -10,7 +10,7 @@ import {
   Smartphone,
   Loader2,
 } from 'lucide-react';
-import { MARKETING_BRAND_LOGO_PATH } from '@/lib/seller-marketing-brand';
+import { MARKETING_BRAND_LOGO_PATH, buildBrandCardPath } from '@/lib/seller-marketing-brand';
 import type { SellerGeneratedContent } from '@/lib/seller-marketing-types';
 
 export type PreviewMode = 'feed' | 'story' | 'instagram' | 'whatsapp';
@@ -18,7 +18,9 @@ export type PreviewMode = 'feed' | 'story' | 'instagram' | 'whatsapp';
 type Props = {
   previewMode: PreviewMode;
   onPreviewModeChange: (mode: PreviewMode) => void;
+  selectedGigId: string;
   selectedGigTitle: string | null;
+  selectedPhotoUrl: string;
   businessName: string;
   storePath: string;
   storeUrl: string;
@@ -28,19 +30,6 @@ type Props = {
   content: SellerGeneratedContent | null;
   brandCardUrls: { feed: string; story: string } | null;
 };
-
-function buildBrandCardUrl(
-  format: 'feed' | 'story',
-  headline: string,
-  businessName: string,
-): string {
-  const params = new URLSearchParams({
-    format,
-    headline: headline.slice(0, 80),
-    businessName: businessName.slice(0, 60),
-  });
-  return `/api/seller/marketing/brand-card?${params}`;
-}
 
 function PreviewTabs({
   previewMode,
@@ -114,7 +103,9 @@ function PhoneFrame({
 export default function MarketingPreviewPanel({
   previewMode,
   onPreviewModeChange,
+  selectedGigId,
   selectedGigTitle,
+  selectedPhotoUrl,
   businessName,
   storePath,
   storeUrl,
@@ -125,20 +116,26 @@ export default function MarketingPreviewPanel({
   brandCardUrls,
 }: Props) {
   const headline = selectedGigTitle || 'Mis servicios';
-  const hasGig = !!selectedGigTitle;
+  const hasGig = !!selectedGigId;
 
-  const liveBrandUrls = useMemo(
-    () => ({
-      feed: buildBrandCardUrl('feed', headline, businessName),
-      story: buildBrandCardUrl('story', headline, businessName),
-    }),
-    [headline, businessName],
-  );
+  const liveBrandUrls = useMemo(() => {
+    const base = {
+      headline,
+      businessName,
+      gigId: selectedGigId || undefined,
+      photoUrl: selectedPhotoUrl || undefined,
+    };
+    return {
+      feed: buildBrandCardPath({ ...base, format: 'feed' }),
+      story: buildBrandCardPath({ ...base, format: 'story' }),
+    };
+  }, [headline, businessName, selectedGigId, selectedPhotoUrl]);
 
+  const previewCacheKey = encodeURIComponent(selectedPhotoUrl).slice(0, 24);
   const imageUrl =
     previewMode === 'story'
-      ? brandCardUrls?.story ?? liveBrandUrls.story
-      : brandCardUrls?.feed ?? liveBrandUrls.feed;
+      ? brandCardUrls?.story ?? `${liveBrandUrls.story}&_p=${previewCacheKey}`
+      : brandCardUrls?.feed ?? `${liveBrandUrls.feed}&_p=${previewCacheKey}`;
 
   const showInstagramLayout = previewMode === 'instagram' && content;
   const showWhatsAppLayout = previewMode === 'whatsapp' && content;
@@ -169,12 +166,18 @@ export default function MarketingPreviewPanel({
         <div className="rounded-xl border border-dashed border-border bg-muted/30 p-8 text-center">
           <ImageIcon className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">
-            Selecciona un servicio para ver la vista previa de tu imagen con marca.
+            Selecciona un servicio y una foto para ver la vista previa con tu marca.
           </p>
         </div>
       )}
 
-      {hasGig && (
+      {hasGig && !selectedPhotoUrl && (
+        <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/80 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+          Este servicio no tiene fotos. Sube imágenes en tu gig para usarlas en el marketing.
+        </div>
+      )}
+
+      {hasGig && selectedPhotoUrl && (
         <>
           {showImageOnly && (
             <PhoneFrame

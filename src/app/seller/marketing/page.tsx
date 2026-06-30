@@ -24,12 +24,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { MARKETING_BRAND_LOGO_PATH } from '@/lib/seller-marketing-brand';
+import { getGigImages } from '@/lib/gig-images';
 import { buildWompiWidgetConfig } from '@/lib/wompi-widget';
 import type { WompiPrepareResponse, WompiWidgetResult } from '@/types/wompi';
 import type { SellerGeneratedContent } from '@/lib/seller-marketing-types';
 import MarketingPreviewPanel, { type PreviewMode } from './MarketingPreviewPanel';
 
-type GigOption = { id: string; title: string; isActive?: boolean };
+type GigOption = { id: string; title: string; isActive?: boolean; photos: string[] };
 
 type SubscriptionState = {
   tier: string;
@@ -69,6 +70,8 @@ function SellerMarketingPageClient() {
   const [subscription, setSubscription] = useState<SubscriptionState | null>(null);
   const [gigs, setGigs] = useState<GigOption[]>([]);
   const [selectedGigId, setSelectedGigId] = useState('');
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState('');
+  const [useAiVisual, setUseAiVisual] = useState(false);
   const [goal, setGoal] = useState('');
   const [prompt, setPrompt] = useState('');
   const [tone, setTone] = useState(TONES[0]);
@@ -93,13 +96,33 @@ function SellerMarketingPageClient() {
     if (res.ok) {
       const data = await res.json();
       const list = Array.isArray(data) ? data : data?.gigs || [];
-      setGigs(list.filter((g: GigOption) => g.isActive !== false));
+      setGigs(
+        list
+          .filter((g: { isActive?: boolean }) => g.isActive !== false)
+          .map((g: { id: string; title: string; isActive?: boolean; imageUrl?: string | null; images?: unknown }) => ({
+            id: g.id,
+            title: g.title,
+            isActive: g.isActive,
+            photos: getGigImages(g),
+          })),
+      );
     }
   }, []);
 
   useEffect(() => {
     Promise.all([fetchSubscription(), fetchGigs()]).finally(() => setLoading(false));
   }, [fetchSubscription, fetchGigs]);
+
+  useEffect(() => {
+    const gig = gigs.find((g) => g.id === selectedGigId);
+    if (!gig?.photos.length) {
+      setSelectedPhotoUrl('');
+      return;
+    }
+    setSelectedPhotoUrl((prev) =>
+      prev && gig.photos.includes(prev) ? prev : gig.photos[0],
+    );
+  }, [selectedGigId, gigs]);
 
   useEffect(() => {
     if (searchParams.get('upgraded') === '1') {
@@ -139,6 +162,8 @@ function SellerMarketingPageClient() {
           prompt: prompt.trim(),
           tone,
           gigId: selectedGigId,
+          photoUrl: selectedPhotoUrl || undefined,
+          useAiVisual,
         }),
       });
       const data = await res.json();
@@ -151,6 +176,9 @@ function SellerMarketingPageClient() {
         return;
       }
       setContent(data.content);
+      if (data.selectedPhotoUrl) {
+        setSelectedPhotoUrl(data.selectedPhotoUrl);
+      }
       const cacheBust = Date.now();
       if (data.brandCardUrls) {
         setBrandCardUrls({
@@ -160,7 +188,15 @@ function SellerMarketingPageClient() {
       }
       setActiveTab('instagram');
       setPreviewMode('instagram');
-      toast.success(data.fallback ? 'Contenido de respaldo generado' : '¡Contenido e imágenes generados!');
+      if (data.fallback) {
+        toast.success('Contenido de respaldo generado');
+      } else if (useAiVisual && !data.aiVisualApplied) {
+        toast.success('Contenido generado. La mejora con IA no estuvo disponible; usamos tu foto original.');
+      } else if (data.aiVisualApplied) {
+        toast.success('¡Contenido e imagen mejorada con IA generados!');
+      } else {
+        toast.success('¡Contenido e imágenes generados!');
+      }
       await fetchSubscription();
     } catch {
       toast.error('Error de conexión');
@@ -350,7 +386,10 @@ function SellerMarketingPageClient() {
                   </label>
                   <select
                     value={selectedGigId}
-                    onChange={(e) => setSelectedGigId(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedGigId(e.target.value);
+                      setBrandCardUrls(null);
+                    }}
                     className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                     required
                   >
@@ -409,6 +448,53 @@ function SellerMarketingPageClient() {
                 </div>
               </div>
 
+              {selectedGig && selectedGig.photos.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium flex items-center gap-1.5">
+                    <ImageIcon className="h-4 w-4 text-orange-500" />
+                    Foto para el visual <span className="text-orange-600">*</span>
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-1 mb-2">
+                    Elige una foto de tu servicio. Se usará en la imagen de marketing con tu marca.
+                  </p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {selectedGig.photos.map((url) => (
+                      <button
+                        key={url}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPhotoUrl(url);
+                          setBrandCardUrls(null);
+                        }}
+                        className={`relative aspect-square rounded-lg overflow-hidden border-2 transition ${
+                          selectedPhotoUrl === url
+                            ? 'border-orange-500 ring-2 ring-orange-500/30'
+                            : 'border-border hover:border-orange-400'
+                        }`}
+                      >
+                        <Image src={url} alt="" fill className="object-cover" sizes="96px" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <label className="flex items-start gap-3 rounded-lg border border-border px-3 py-3 cursor-pointer hover:bg-muted/40 transition">
+                <input
+                  type="checkbox"
+                  checked={useAiVisual}
+                  onChange={(e) => setUseAiVisual(e.target.checked)}
+                  disabled={generating || atLimit || !selectedPhotoUrl}
+                  className="mt-1 h-4 w-4 rounded border-border text-orange-600 focus:ring-orange-500"
+                />
+                <span className="text-sm">
+                  <span className="font-medium">Mejorar visual con IA</span>
+                  <span className="block text-xs text-muted-foreground mt-0.5">
+                    Opcional. Aplica un estilo profesional a tu foto elegida al generar el contenido.
+                  </span>
+                </span>
+              </label>
+
               <div>
                 <label className="text-sm font-medium">Instrucciones extra (opcional)</label>
                 <Textarea
@@ -439,7 +525,9 @@ function SellerMarketingPageClient() {
             <MarketingPreviewPanel
               previewMode={previewMode}
               onPreviewModeChange={setPreviewMode}
+              selectedGigId={selectedGigId}
               selectedGigTitle={selectedGig?.title ?? null}
+              selectedPhotoUrl={selectedPhotoUrl}
               businessName={businessName}
               storePath={subscription?.storePath ?? ''}
               storeUrl={subscription?.storeUrl ?? ''}

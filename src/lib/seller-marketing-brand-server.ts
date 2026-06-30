@@ -62,6 +62,8 @@ export type BrandCardInput = {
   businessName: string;
   headline: string;
   storeDisplay: string;
+  /** Base64 data URL or absolute URL for hero background */
+  photoDataUrl?: string | null;
 };
 
 /** SVG brand card — reliable on Vercel serverless (no Satori / ImageResponse). */
@@ -73,6 +75,7 @@ export function generateMarketingBrandCardSvg(input: BrandCardInput): string {
   const storeDisplay = escapeXml(input.storeDisplay);
   const platform = escapeXml(BRAND_PLATFORM_URL);
   const logoDataUrl = tryGetMarketingBrandLogoDataUrl();
+  const photoHref = input.photoDataUrl ? escapeXml(input.photoDataUrl) : null;
 
   const titleSize = input.format === 'story' ? 52 : 44;
   const subtitleSize = input.format === 'story' ? 34 : 28;
@@ -91,6 +94,14 @@ export function generateMarketingBrandCardSvg(input: BrandCardInput): string {
 
   const footerY = height - (input.format === 'story' ? 280 : 220);
 
+  const photoLayer = photoHref
+    ? `<image href="${photoHref}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice" />`
+    : '';
+
+  const overlayLayer = photoHref
+    ? `<rect width="100%" height="100%" fill="url(#photoOverlay)"/>`
+    : `<rect width="100%" height="100%" fill="url(#bg)"/>`;
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -99,8 +110,14 @@ export function generateMarketingBrandCardSvg(input: BrandCardInput): string {
       <stop offset="55%" stop-color="#dc2626"/>
       <stop offset="100%" stop-color="#be123c"/>
     </linearGradient>
+    <linearGradient id="photoOverlay" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(234,88,12,0.45)"/>
+      <stop offset="45%" stop-color="rgba(0,0,0,0.35)"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.72)"/>
+    </linearGradient>
   </defs>
-  <rect width="100%" height="100%" fill="url(#bg)"/>
+  ${photoLayer}
+  ${overlayLayer}
   ${logoBlock}
   <text x="${width / 2}" y="${input.format === 'story' ? 360 : 300}" text-anchor="middle" fill="white" font-size="${titleSize}" font-weight="800" font-family="system-ui, sans-serif">${businessName}</text>
   ${headlineSvg}

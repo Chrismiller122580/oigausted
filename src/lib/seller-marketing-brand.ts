@@ -41,3 +41,26 @@ export function applySocialBranding(
     whatsapp: applyTextBranding(social.whatsapp, storeUrl),
   };
 }
+
+export type BrandCardQueryInput = {
+  format?: 'feed' | 'story';
+  headline: string;
+  businessName: string;
+  gigId?: string;
+  photoUrl?: string;
+};
+
+export function buildBrandCardQuery(input: BrandCardQueryInput): URLSearchParams {
+  const params = new URLSearchParams({
+    format: input.format ?? 'feed',
+    headline: input.headline.slice(0, 80),
+    businessName: input.businessName.slice(0, 60),
+  });
+  if (input.gigId) params.set('gigId', input.gigId);
+  if (input.photoUrl) params.set('photoUrl', input.photoUrl);
+  return params;
+}
+
+export function buildBrandCardPath(input: BrandCardQueryInput): string {
+  return `/api/seller/marketing/brand-card?${buildBrandCardQuery(input)}`;
+}

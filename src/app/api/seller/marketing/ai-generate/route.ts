@@ -8,8 +8,10 @@ import {
   recordGeneration,
 } from '@/lib/seller-marketing-access';
 import { generateSellerMarketingContent } from '@/lib/seller-marketing-grok';
-import { applySocialBranding } from '@/lib/seller-marketing-brand';
+import { applySocialBranding, buildBrandCardPath } from '@/lib/seller-marketing-brand';
 import { buildGigUrl } from '@/lib/seller-marketing-context';
+import { validateGigPhotoForSeller } from '@/lib/seller-marketing-gig-photo';
+import { enhanceMarketingPhoto } from '@/lib/seller-marketing-ai-visual';
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -23,7 +25,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Solo vendedores pueden acceder' }, { status: 403 });
   }
 
-  let body: { goal?: string; prompt?: string; tone?: string; gigId?: string } = {};
+  let body: {
+    goal?: string;
+    prompt?: string;
+    tone?: string;
+    gigId?: string;
+    photoUrl?: string;
+    useAiVisual?: boolean;
+  } = {};
   try {
     body = await req.json();
   } catch {
@@ -69,16 +78,40 @@ export async function POST(req: NextRequest) {
     const brandedSocial = applySocialBranding(content.social, ctx.storeUrl);
     const brandedContent = { ...content, social: brandedSocial };
 
+    let brandPhotoUrl: string | undefined;
+    const requestedPhoto = body.photoUrl?.trim();
+    if (requestedPhoto) {
+      const validated = await validateGigPhotoForSeller(uid, gigId, requestedPhoto);
+      if (validated) brandPhotoUrl = validated;
+    }
+
+    let aiVisualApplied = false;
+    if (body.useAiVisual && brandPhotoUrl) {
+      const visualPrompt = brandedContent.visualPrompts[0] || '';
+      const enhanced = await enhanceMarketingPhoto({
+        photoUrl: brandPhotoUrl,
+        prompt: visualPrompt,
+        businessName: ctx.businessName,
+        gigTitle: ctx.selectedGig?.title || ctx.businessName,
+      });
+      if (enhanced?.url) {
+        brandPhotoUrl = enhanced.url;
+        aiVisualApplied = true;
+      }
+    }
+
     await recordGeneration(uid, {
       gigId: ctx.selectedGig?.id,
       channel: 'instagram,whatsapp',
     });
 
     const headline = ctx.selectedGig?.title || ctx.businessName;
-    const brandCardQuery = new URLSearchParams({
+    const brandCardBase = {
       headline,
       businessName: ctx.businessName,
-    });
+      gigId,
+      photoUrl: brandPhotoUrl,
+    };
 
     return NextResponse.json({
       success: true,
@@ -87,9 +120,11 @@ export async function POST(req: NextRequest) {
       storePath: ctx.storePath,
       gigUrl: ctx.selectedGig ? buildGigUrl(baseUrl, ctx.selectedGig.id) : undefined,
       brandCardUrls: {
-        feed: `/api/seller/marketing/brand-card?format=feed&${brandCardQuery}`,
-        story: `/api/seller/marketing/brand-card?format=story&${brandCardQuery}`,
+        feed: buildBrandCardPath({ ...brandCardBase, format: 'feed' }),
+        story: buildBrandCardPath({ ...brandCardBase, format: 'story' }),
       },
+      selectedPhotoUrl: brandPhotoUrl,
+      aiVisualApplied,
       usage: {
         used: access.usedThisMonth + 1,
         limit: access.limit,

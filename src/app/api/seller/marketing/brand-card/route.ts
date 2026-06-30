@@ -5,6 +5,10 @@ import { getAppBaseUrl } from '@/lib/app-url';
 import { publicSellerSegment } from '@/lib/seller-profile';
 import { getSellerMarketingAccess } from '@/lib/seller-marketing-access';
 import { generateMarketingBrandCardSvg } from '@/lib/seller-marketing-brand-server';
+import {
+  fetchImageDataUrl,
+  resolveBrandCardPhotoUrl,
+} from '@/lib/seller-marketing-gig-photo';
 
 export const runtime = 'nodejs';
 
@@ -77,11 +81,26 @@ export async function GET(req: NextRequest) {
       accessStoreUrl,
     );
 
+    let photoDataUrl: string | null = null;
+    const gigId = searchParams.get('gigId')?.trim();
+    const photoUrl = searchParams.get('photoUrl')?.trim();
+
+    if (photoUrl) {
+      const validated = await resolveBrandCardPhotoUrl(uid, gigId, photoUrl);
+      if (validated) {
+        photoDataUrl = await fetchImageDataUrl(validated);
+        if (!photoDataUrl && validated.startsWith('http')) {
+          photoDataUrl = validated;
+        }
+      }
+    }
+
     const svg = generateMarketingBrandCardSvg({
       format,
       businessName,
       headline,
       storeDisplay,
+      photoDataUrl,
     });
 
     return new Response(svg, {
