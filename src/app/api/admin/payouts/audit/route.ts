@@ -1,13 +1,19 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminFromDb } from '@/lib/admin-auth';
-import { runPayoutAudit } from '@/lib/payout-audit';
+import { lookupUserPayoutsByEmail, runPayoutAudit } from '@/lib/payout-audit';
 import { devLog } from '@/lib/utils';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await requireAdminFromDb();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    const email = new URL(req.url).searchParams.get('email')?.trim();
+    if (email) {
+      const lookup = await lookupUserPayoutsByEmail(email);
+      return NextResponse.json(lookup);
     }
 
     const report = await runPayoutAudit();

@@ -6,7 +6,7 @@ import {
   type PayoutConfig,
 } from '@/lib/payout';
 import { isMissingColumnError } from '@/lib/user-profile-update';
-import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
+import { OrderStatusLabel, labelToPrismaStatus, prismaStatusToLabel } from '@/lib/order-status';
 
 export interface SellerMissingBank {
   id: string;
@@ -325,6 +325,262 @@ export async function runPayoutAudit(): Promise<PayoutAuditReport> {
     sellersMissingBank,
     blockers,
     healthy,
+    auditedAt: new Date().toISOString(),
+  };
+}
+
+export interface UserPayoutOrderSummary {
+  id: string;
+  status: string;
+  price: number;
+  netToSeller: number;
+  sellerPayoutAt: string | null;
+  wompiPayoutRef: string | null;
+  createdAt: string;
+  gigTitle: string | null;
+  role: 'seller' | 'buyer';
+}
+
+export interface UserPayoutLookup {
+  found: boolean;
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+    businessName: string | null;
+    role: string;
+    isActive: boolean;
+    createdAt: string;
+    payoutBankCode: string | null;
+    payoutAccountNumber: string | null;
+    payoutHolderName: string | null;
+    payoutDocumentNumber: string | null;
+    bankComplete: boolean;
+    missingBankFields: string[];
+  } | null;
+  counts: {
+    gigs: number;
+    ordersAsSeller: number;
+    ordersAsBuyer: number;
+    completedAsSeller: number;
+    completedUnpaidAsSeller: number;
+    completedPaidAsSeller: number;
+  };
+  payouts: {
+    pendingNetCOP: number;
+    paidNetCOP: number;
+    pendingOrders: UserPayoutOrderSummary[];
+    paidOrders: UserPayoutOrderSummary[];
+    allSellerOrders: UserPayoutOrderSummary[];
+  };
+  notes: string[];
+  auditedAt: string;
+}
+
+function summarizeOrder(
+  order: {
+    id: string;
+    price: number;
+    status: string;
+    createdAt: Date;
+    sellerPayoutAt?: Date | null;
+    wompiPayoutRef?: string | null;
+    gig?: { title: string | null } | null;
+    seller?: { referredById: string | null } | null;
+  },
+  role: 'seller' | 'buyer',
+  rates: PayoutConfig
+): UserPayoutOrderSummary {
+  const breakdown =
+    role === 'seller'
+      ? calculateOrderPayout(Number(order.price) || 0, !!order.seller?.referredById, rates)
+      : null;
+
+  return {
+    id: order.id,
+    status: prismaStatusToLabel(order.status),
+    price: Number(order.price) || 0,
+    netToSeller: breakdown?.netToSeller ?? 0,
+    sellerPayoutAt: order.sellerPayoutAt ? order.sellerPayoutAt.toISOString() : null,
+    wompiPayoutRef: order.wompiPayoutRef ?? null,
+    createdAt: order.createdAt.toISOString(),
+    gigTitle: order.gig?.title ?? null,
+    role,
+  };
+}
+
+export async function lookupUserPayoutsByEmail(email: string): Promise<UserPayoutLookup> {
+  const normalizedEmail = email.trim().toLowerCase();
+  const rates = await getRates();
+  const notes: string[] = [];
+
+  const user = await prisma.user.findFirst({
+    where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      businessName: true,
+      role: true,
+      isActive: true,
+      createdAt: true,
+      payoutBankCode: true,
+      payoutAccountNumber: true,
+      payoutHolderName: true,
+      payoutDocumentNumber: true,
+      _count: {
+        select: {
+          gigs: true,
+          ordersAsSeller: true,
+          ordersAsBuyer: true,
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    return {
+      found: false,
+      user: null,
+      counts: {
+        gigs: 0,
+        ordersAsSeller: 0,
+        ordersAsBuyer: 0,
+        completedAsSeller: 0,
+        completedUnpaidAsSeller: 0,
+        completedPaidAsSeller: 0,
+      },
+      payouts: {
+        pendingNetCOP: 0,
+        paidNetCOP: 0,
+        pendingOrders: [],
+        paidOrders: [],
+        allSellerOrders: [],
+      },
+      notes: [`No user found with email ${normalizedEmail}`],
+      auditedAt: new Date().toISOString(),
+    };
+  }
+
+  const missingBankFields = getMissingBankFields(user);
+  const bankComplete = missingBankFields.length === 0;
+
+  let sellerOrders: Array<{
+    id: string;
+    price: number;
+    status: string;
+    createdAt: Date;
+    sellerPayoutAt?: Date | null;
+    wompiPayoutRef?: string | null;
+    gig: { title: string | null };
+    seller: { referredById: string | null };
+  }> = [];
+
+  const orderSelect = {
+    id: true,
+    price: true,
+    status: true,
+    createdAt: true,
+    sellerPayoutAt: true,
+    wompiPayoutRef: true,
+    gig: { select: { title: true } },
+    seller: { select: { referredById: true } },
+  } as const;
+
+  try {
+    sellerOrders = await prisma.order.findMany({
+      where: { sellerId: user.id },
+      select: orderSelect,
+      orderBy: { createdAt: 'desc' },
+    });
+  } catch (e) {
+    if (!isMissingColumnError(e)) throw e;
+    notes.push('sellerPayoutAt/wompiPayoutRef columns unavailable — payout status may be incomplete.');
+    const rows = await prisma.order.findMany({
+      where: { sellerId: user.id },
+      select: {
+        id: true,
+        price: true,
+        status: true,
+        createdAt: true,
+        gig: { select: { title: true } },
+        seller: { select: { referredById: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    sellerOrders = rows.map((row: (typeof rows)[number]) => ({
+      ...row,
+      sellerPayoutAt: null,
+      wompiPayoutRef: null,
+    }));
+  }
+
+  const allSellerSummaries = sellerOrders.map((o) => summarizeOrder(o, 'seller', rates));
+  const completedAsSeller = allSellerSummaries.filter((o) => o.status === OrderStatusLabel.Completed);
+  const pendingOrders = completedAsSeller.filter((o) => !o.sellerPayoutAt);
+  const paidOrders = completedAsSeller.filter((o) => !!o.sellerPayoutAt);
+
+  const pendingNetCOP = aggregatePayouts(
+    pendingOrders.map((o) =>
+      calculateOrderPayout(o.price, !!sellerOrders.find((so) => so.id === o.id)?.seller?.referredById, rates)
+    )
+  ).netToSeller;
+
+  const paidNetCOP = aggregatePayouts(
+    paidOrders.map((o) =>
+      calculateOrderPayout(o.price, !!sellerOrders.find((so) => so.id === o.id)?.seller?.referredById, rates)
+    )
+  ).netToSeller;
+
+  if (user.role !== 'seller') {
+    notes.push(`User role is "${user.role}" — seller payout fields only apply when role is seller.`);
+  }
+  if (completedAsSeller.length === 0 && user._count.ordersAsSeller > 0) {
+    notes.push('User has seller orders but none are Completed yet — nothing eligible for payout.');
+  }
+  if (completedAsSeller.length === 0 && user._count.ordersAsSeller === 0) {
+    notes.push('No orders as seller — nothing to pay out.');
+  }
+  if (pendingOrders.length > 0 && !bankComplete) {
+    notes.push('Pending payout exists but bank details are incomplete.');
+  }
+  if (user._count.gigs === 0) {
+    notes.push('No active gigs published.');
+  }
+
+  return {
+    found: true,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      businessName: user.businessName,
+      role: user.role,
+      isActive: user.isActive !== false,
+      createdAt: user.createdAt.toISOString(),
+      payoutBankCode: user.payoutBankCode,
+      payoutAccountNumber: user.payoutAccountNumber,
+      payoutHolderName: user.payoutHolderName,
+      payoutDocumentNumber: user.payoutDocumentNumber,
+      bankComplete,
+      missingBankFields,
+    },
+    counts: {
+      gigs: user._count.gigs,
+      ordersAsSeller: user._count.ordersAsSeller,
+      ordersAsBuyer: user._count.ordersAsBuyer,
+      completedAsSeller: completedAsSeller.length,
+      completedUnpaidAsSeller: pendingOrders.length,
+      completedPaidAsSeller: paidOrders.length,
+    },
+    payouts: {
+      pendingNetCOP,
+      paidNetCOP,
+      pendingOrders,
+      paidOrders,
+      allSellerOrders: allSellerSummaries,
+    },
+    notes,
     auditedAt: new Date().toISOString(),
   };
 }
