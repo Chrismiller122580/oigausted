@@ -59,7 +59,7 @@ export default function AdminAssistantOverviewPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Support & Ops Overview</h1>
           <p className="text-muted-foreground mt-2">
-            Customer service, order management, and safe operational tools for OigaGIG staff.
+            Live snapshot of orders, support, and users across the platform.
             {lastUpdated && (
               <span className="block text-xs mt-1">
                 Updated {lastUpdated.toLocaleTimeString('es-CO')}
@@ -145,10 +145,6 @@ export default function AdminAssistantOverviewPage() {
               );
             })}
           </div>
-          <p className="text-muted-foreground text-xs mt-4">
-            Categories, settings, analytics, and earnings are admin-only. Sensitive actions (user
-            roles, payment keys, impersonation) remain admin-only.
-          </p>
         </CardContent>
       </Card>
     </div>

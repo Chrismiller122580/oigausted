@@ -23,7 +23,7 @@ export const ADMIN_ASSISTANT_NAV_ITEMS: AdminAssistantNavItem[] = [
   { href: '/admin-assistant/orders', label: 'Orders (View)', icon: List },
   { href: '/admin-assistant/gigs', label: 'Gigs (View)', icon: Package },
   { href: '/admin-assistant/marketing', label: 'Marketing', icon: Megaphone },
-  { href: '/admin-assistant/payouts', label: 'Payouts', icon: DollarSign },
+  { href: '/admin-assistant/payouts', label: 'Payouts (View)', icon: DollarSign },
   { href: '/admin-assistant/support', label: 'Support', icon: MessageCircle },
   { href: '/admin-assistant/notifications', label: 'Notifications', icon: Bell },
 ];
