@@ -1,5 +1,10 @@
 import '@/lib/userlens/server-only';
-import type { LighthouseCategory, UserLensScanRequest, UserLensScanResult } from '@/types/userlens';
+import type {
+  LighthouseCategory,
+  UserLensScanRequest,
+  UserLensScanResult,
+  UserLensViewport,
+} from '@/types/userlens';
 import { extractLighthouseCategories, extractLighthouseMetrics } from '@/lib/userlens/lighthouse-parse';
 import { findCachedPsiScan } from '@/lib/userlens/reports-store';
 import { assertPublicScanUrl, validateScanUrl } from '@/lib/userlens/resolve-scan-url';
@@ -68,30 +73,18 @@ function withCacheWarning(
   };
 }
 
-async function fetchPsiScan(
+async function requestPsiLighthouseResult(
   url: string,
-  viewport: UserLensScanRequest['viewport'],
+  viewport: UserLensViewport,
   categories: LighthouseCategory[],
-): Promise<UserLensScanResult> {
-  const resolvedViewport = viewport ?? 'desktop';
-  const warnings: string[] = [
-    'Cloud scan via Google PageSpeed Insights (Lighthouse). Screenshots and axe DOM analysis are not available in this mode.',
-  ];
-
+): Promise<Record<string, unknown>> {
   const apiKey = getPsiApiKey();
-  if (!apiKey) {
-    warnings.push(
-      'No PAGESPEED_INSIGHTS_API_KEY configured — sharing Google public quota, which is very limited.',
-    );
-  }
-
-  const params = new URLSearchParams({ url, strategy: resolvedViewport });
+  const params = new URLSearchParams({ url, strategy: viewport });
   for (const category of categories) {
     params.append('category', PSI_CATEGORY[category]);
   }
   if (apiKey) params.set('key', apiKey);
 
-  const startedAt = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PSI_TIMEOUT_MS);
 
@@ -128,6 +121,41 @@ async function fetchPsiScan(
   if (!lhr) {
     throw new Error('PageSpeed Insights returned no Lighthouse data for this URL.');
   }
+
+  return lhr;
+}
+
+/** Lighthouse scores only — used by hybrid Vercel scans (Playwright + PSI). */
+export async function fetchPsiLighthouseScores(
+  url: string,
+  viewport: UserLensViewport,
+  categories: LighthouseCategory[],
+): Promise<NonNullable<UserLensScanResult['lighthouse']>> {
+  const lhr = await requestPsiLighthouseResult(url, viewport, categories);
+  return {
+    categories: extractLighthouseCategories(lhr, categories),
+    metrics: extractLighthouseMetrics(lhr),
+  };
+}
+
+async function fetchPsiScan(
+  url: string,
+  viewport: UserLensScanRequest['viewport'],
+  categories: LighthouseCategory[],
+): Promise<UserLensScanResult> {
+  const resolvedViewport = viewport ?? 'desktop';
+  const warnings: string[] = [
+    'Cloud scan via Google PageSpeed Insights (Lighthouse). Screenshots and axe DOM analysis are not available in this mode.',
+  ];
+
+  if (!getPsiApiKey()) {
+    warnings.push(
+      'No PAGESPEED_INSIGHTS_API_KEY configured — sharing Google public quota, which is very limited.',
+    );
+  }
+
+  const startedAt = Date.now();
+  const lhr = await requestPsiLighthouseResult(url, resolvedViewport, categories);
 
   const finalUrl = String(lhr.finalUrl ?? lhr.finalDisplayedUrl ?? url);
   const title = String(lhr.finalDisplayedUrl ?? finalUrl);

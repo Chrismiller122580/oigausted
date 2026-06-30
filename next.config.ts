@@ -47,10 +47,16 @@ const nextConfig: NextConfig = {
     '/api/admin/userlens/scan': [
       './node_modules/@sparticuz/chromium/bin/**',
       'node_modules/@sparticuz/chromium/bin/**',
+      './node_modules/lighthouse/flow-report/**',
+      './node_modules/lighthouse/report/**',
+      './node_modules/lighthouse/dist/report/**',
     ],
     '/api/admin/userlens/scan/route': [
       './node_modules/@sparticuz/chromium/bin/**',
       'node_modules/@sparticuz/chromium/bin/**',
+      './node_modules/lighthouse/flow-report/**',
+      './node_modules/lighthouse/report/**',
+      './node_modules/lighthouse/dist/report/**',
     ],
   },
 }

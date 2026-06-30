@@ -50,7 +50,7 @@ export function getUserLensScanSupport(): UserLensScanSupport {
     supported: true,
     mode,
     hint: onVercel
-      ? 'Full browser scan on Vercel via Playwright + @sparticuz/chromium. Scan public URLs like https://oigagig.com.'
+      ? 'Hybrid Vercel scan: Playwright + axe + screenshot; Lighthouse scores via PageSpeed Insights. Scan public URLs like https://oigagig.com.'
       : 'Full browser scan with Playwright, Lighthouse, and axe-core.',
     runtime: { vercel: onVercel, arch: process.arch, chromiumBinBundled },
   };
