@@ -39,7 +39,7 @@ interface StatsAndPopularProps {
 const statConfig = [
   { key: 'gigs' as const, label: 'Gigs activos', icon: TrendingUp, color: 'text-[#10B981]' },
   { key: 'reviews' as const, label: 'Reseñas reales', icon: Star, color: 'text-[#EAB308]' },
-  { key: 'cities' as const, label: 'Ciudades', icon: MapPin, color: 'text-sky-500' },
+  { key: 'cities' as const, label: 'Ciudades', icon: MapPin, color: 'text-sky-500', href: '/mapa' },
   { key: 'sellers' as const, label: 'Profesionales', icon: Users, color: 'text-orange-700' },
 ];
 
@@ -59,15 +59,14 @@ export function StatsAndPopular({ stats, popularGigs }: StatsAndPopularProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
           {statConfig.map((stat, idx) => {
             const Icon = stat.icon;
-            return (
-              <motion.div
-                key={stat.key}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.08 }}
-                className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700/60 p-5 sm:p-6 text-center shadow-sm hover:shadow-md hover:border-orange-200 dark:hover:border-orange-900 transition-all"
-              >
+            const tileClass = cn(
+              'rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700/60 p-5 sm:p-6 text-center shadow-sm transition-all',
+              stat.href
+                ? 'hover:shadow-md hover:border-sky-300 dark:hover:border-sky-800 hover:-translate-y-0.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+                : 'hover:shadow-md hover:border-orange-200 dark:hover:border-orange-900',
+            );
+            const content = (
+              <>
                 <Icon className={cn('h-7 w-7 mx-auto mb-2', stat.color)} aria-hidden />
                 <div className="text-2xl sm:text-3xl font-bold tabular-nums text-foreground">
                   {stats[stat.key].toLocaleString('es-CO')}
@@ -75,6 +74,28 @@ export function StatsAndPopular({ stats, popularGigs }: StatsAndPopularProps) {
                 <div className="text-xs sm:text-sm text-muted-foreground mt-1 font-medium">
                   {stat.label}
                 </div>
+              </>
+            );
+
+            return (
+              <motion.div
+                key={stat.key}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.08 }}
+              >
+                {stat.href ? (
+                  <Link
+                    href={stat.href}
+                    className={tileClass}
+                    aria-label="Ver mapa de servicios por ciudad en Colombia"
+                  >
+                    {content}
+                  </Link>
+                ) : (
+                  <div className={tileClass}>{content}</div>
+                )}
               </motion.div>
             );
           })}

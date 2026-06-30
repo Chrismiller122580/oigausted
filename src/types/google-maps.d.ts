@@ -14,15 +14,37 @@ declare global {
     fullscreenControl?: boolean
   }
 
+  interface GoogleMapsMarkerLabel {
+    text: string
+    color?: string
+    fontWeight?: string
+  }
+
   interface GoogleMapsMarkerOptions {
     position: GoogleMapsLatLng
     map: GoogleMapInstance | null
     title?: string
+    label?: GoogleMapsMarkerLabel | string
+    cursor?: string
   }
 
-  interface GoogleMapInstance {}
+  interface GoogleMapsEventListener {
+    remove?: () => void
+  }
 
-  type GoogleMapsMarkerConstructor = new (options: GoogleMapsMarkerOptions) => unknown
+  interface GoogleMapsMarkerInstance {
+    addListener?: (event: string, handler: () => void) => GoogleMapsEventListener
+    setMap?: (map: GoogleMapInstance | null) => void
+  }
+
+  interface GoogleMapInstance {
+    panTo?: (latLng: GoogleMapsLatLng) => void
+    setZoom?: (zoom: number) => void
+    getZoom?: () => number
+    addListener?: (event: string, handler: () => void) => GoogleMapsEventListener
+  }
+
+  type GoogleMapsMarkerConstructor = new (options: GoogleMapsMarkerOptions) => GoogleMapsMarkerInstance
 
   type GoogleMapsMapConstructor = new (element: HTMLElement, options: GoogleMapOptions) => GoogleMapInstance
 

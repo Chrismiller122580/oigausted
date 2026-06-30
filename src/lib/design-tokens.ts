@@ -17,13 +17,15 @@ export const brandButtonClass =
   'bg-orange-800 hover:bg-orange-900 text-white dark:bg-orange-700 dark:hover:bg-orange-800';
 
 export const colombianCities = [
-  { id: 'bogota', label: 'Bogotá', slug: 'Bogotá' },
-  { id: 'medellin', label: 'Medellín', slug: 'Medellín' },
-  { id: 'cali', label: 'Cali', slug: 'Cali' },
-  { id: 'bucaramanga', label: 'Bucaramanga', slug: 'Bucaramanga' },
-  { id: 'barranquilla', label: 'Barranquilla', slug: 'Barranquilla' },
-  { id: 'cartagena', label: 'Cartagena', slug: 'Cartagena' },
+  { id: 'bogota', label: 'Bogotá', slug: 'Bogotá', lat: 4.711, lng: -74.0721 },
+  { id: 'medellin', label: 'Medellín', slug: 'Medellín', lat: 6.2476, lng: -75.5658 },
+  { id: 'cali', label: 'Cali', slug: 'Cali', lat: 3.4516, lng: -76.532 },
+  { id: 'bucaramanga', label: 'Bucaramanga', slug: 'Bucaramanga', lat: 7.1193, lng: -73.1227 },
+  { id: 'barranquilla', label: 'Barranquilla', slug: 'Barranquilla', lat: 10.9639, lng: -74.7964 },
+  { id: 'cartagena', label: 'Cartagena', slug: 'Cartagena', lat: 10.391, lng: -75.4794 },
 ] as const;
+
+export const COLOMBIA_MAP_CENTER = { lat: 4.5709, lng: -74.2973, zoom: 5 } as const;
 
 /** Vibrant card gradients for category grid — warm Colombian palette */
 export const categoryGradients = [

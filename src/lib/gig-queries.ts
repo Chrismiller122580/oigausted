@@ -86,6 +86,7 @@ export type PublicGigListItem = {
   imageUrl: string | null
   isActive: boolean
   createdAt: Date
+  city: string | null
   latitude: number | null
   longitude: number | null
   isRemote: boolean | null
@@ -181,6 +182,7 @@ const listGigSelect = {
   imageUrl: true,
   isActive: true,
   createdAt: true,
+  city: true,
   latitude: true,
   longitude: true,
   isRemote: true,
@@ -246,6 +248,7 @@ export async function listPublicGigs({
     imageUrl: gig.imageUrl,
     isActive: gig.isActive,
     createdAt: gig.createdAt,
+    city: gig.city,
     latitude: gig.latitude,
     longitude: gig.longitude,
     isRemote: gig.isRemote,

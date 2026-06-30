@@ -189,6 +189,7 @@ export function buildPublicPageMetadata({
 export const PUBLIC_PAGE_PATHS = [
   '/',
   '/gigs',
+  '/mapa',
   '/signup',
   '/login',
   '/faq',

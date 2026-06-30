@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Star, BadgeCheck, Lock, Shield } from 'lucide-react';
+import { Star, BadgeCheck, Lock, Shield, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { MegaSearchBar } from './MegaSearchBar';
@@ -75,7 +75,7 @@ export function HomeHero() {
           <MegaSearchBar variant="hero" />
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-center gap-3 mb-8">
+        <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 mb-8">
           <Button
             asChild
             size="lg"
@@ -85,6 +85,17 @@ export function HomeHero() {
             )}
           >
             <Link href="/gigs">Buscar servicios</Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="h-12 px-8 rounded-xl border-2 border-white/70 bg-transparent text-white hover:bg-white/10 font-semibold gap-2"
+          >
+            <Link href="/mapa">
+              <MapPin className="h-4 w-4" aria-hidden />
+              Ver mapa
+            </Link>
           </Button>
           <Button
             asChild
