@@ -4,7 +4,7 @@ import { MapPin, Mail, Heart } from 'lucide-react';
 const FOOTER_LINKS = {
   servicios: [
     { href: '/gigs', label: 'Explorar servicios' },
-    { href: '/create-gig', label: 'Publicar un gig' },
+    { href: '/para-profesionales', label: 'Para profesionales' },
     { href: '/faq', label: 'Preguntas frecuentes' },
   ],
   empresa: [

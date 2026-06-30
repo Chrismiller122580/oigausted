@@ -196,4 +196,5 @@ export const PUBLIC_PAGE_PATHS = [
   '/privacy',
   '/terms',
   '/create-gig',
+  '/para-profesionales',
 ] as const;

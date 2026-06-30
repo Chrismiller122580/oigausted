@@ -65,7 +65,7 @@ export function SellerPromoCTA() {
               size="lg"
               className="bg-white text-orange-700 hover:bg-white/95 font-semibold h-12 px-8 rounded-xl shadow-lg"
             >
-              <Link href="/create-gig">Publicar mi servicio gratis</Link>
+              <Link href="/para-profesionales">Publicar mi servicio gratis</Link>
             </Button>
             <Button
               asChild

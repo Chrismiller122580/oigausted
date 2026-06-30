@@ -1,7 +1,14 @@
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
+import { buildPlaybookWhere, parsePlaybookId } from '@/lib/marketing-playbooks';
 
-export type MarketingRecipient = { id: string; email: string | null; name: string | null };
+export type MarketingRecipient = {
+  id: string;
+  email: string | null;
+  name: string | null;
+  businessName?: string | null;
+  city?: string | null;
+};
 
 const ACTIVE_LOGIN_DAYS = 30;
 const BROADCAST_RECIPIENT_CAP = 5000;
@@ -42,12 +49,30 @@ export function buildAudienceWhere(
   city?: string,
   search?: string,
 ): Prisma.UserWhereInput {
+  const seg = (segment || 'all').toLowerCase();
+  const playbookId = parsePlaybookId(seg);
+  if (playbookId) {
+    const playbookWhere = buildPlaybookWhere(playbookId);
+    if (playbookWhere) {
+      const where: Prisma.UserWhereInput = { ...playbookWhere };
+      if (city) {
+        where.city = { contains: city, mode: 'insensitive' } as Prisma.StringNullableFilter;
+      }
+      if (search) {
+        where.OR = [
+          { name: { contains: search, mode: 'insensitive' } as Prisma.StringNullableFilter },
+          { email: { contains: search, mode: 'insensitive' } as Prisma.StringNullableFilter },
+          { businessName: { contains: search, mode: 'insensitive' } as Prisma.StringNullableFilter },
+        ];
+      }
+      return where;
+    }
+  }
+
   const where: Prisma.UserWhereInput = {
     email: { not: null },
     isActive: true,
   };
-
-  const seg = (segment || 'all').toLowerCase();
   if (seg === 'buyers') where.role = 'buyer';
   if (seg === 'sellers') where.role = 'seller';
   if (seg === 'admins') where.role = 'admin';
@@ -97,12 +122,12 @@ export async function resolveMarketingRecipients(opts: {
         email: { not: null },
         isActive: true,
       },
-      select: { id: true, email: true, name: true },
+      select: { id: true, email: true, name: true, businessName: true, city: true },
     });
   } else if (where) {
     baseUsers = await prisma.user.findMany({
       where,
-      select: { id: true, email: true, name: true },
+      select: { id: true, email: true, name: true, businessName: true, city: true },
       orderBy: { createdAt: 'desc' },
       take,
     });

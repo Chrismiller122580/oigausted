@@ -39,7 +39,7 @@ export function HomeNavbar() {
             <Link href="/gigs">Explorar</Link>
           </Button>
           <Button variant="ghost" asChild size="sm" className="text-sm">
-            <Link href="/create-gig">Para profesionales</Link>
+            <Link href="/para-profesionales">Para profesionales</Link>
           </Button>
         </div>
 
@@ -74,7 +74,7 @@ export function HomeNavbar() {
               </Link>
             </Button>
             <Button variant="ghost" asChild className="justify-start">
-              <Link href="/create-gig" onClick={() => setMobileOpen(false)}>
+              <Link href="/para-profesionales" onClick={() => setMobileOpen(false)}>
                 Para profesionales
               </Link>
             </Button>

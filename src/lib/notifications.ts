@@ -294,6 +294,15 @@ export async function sendNotification(payload: NotificationPayload) {
           isAdmin: jsonBoolean(data, 'isAdmin'),
           ticketId: jsonString(data, 'ticketId') || undefined,
         });
+      } else if (category === 'marketing' && jsonString(data, 'playbookId')) {
+        const { lifecycleNudgeEmail } = await import('./emails/templates');
+        emailContent = lifecycleNudgeEmail({
+          userName: user.name,
+          subject: title || 'Oigagig',
+          body: message,
+          ctaLabel: jsonString(data, 'ctaLabel') || undefined,
+          ctaUrl: jsonString(data, 'ctaUrl') || undefined,
+        });
       } else if (category === 'message' && jsonString(data, 'gigTitle')) {
         // Simple but useful message email
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';

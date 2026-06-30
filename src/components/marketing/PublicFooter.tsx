@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 const FOOTER_LINKS = [
   { href: '/gigs', label: 'Explorar servicios' },
-  { href: '/create-gig', label: 'Publicar un gig' },
+  { href: '/para-profesionales', label: 'Para profesionales' },
   { href: '/faq', label: 'Preguntas frecuentes' },
   { href: '/about', label: 'Nosotros' },
   { href: '/privacy', label: 'Privacidad' },

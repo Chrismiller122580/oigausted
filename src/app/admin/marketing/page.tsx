@@ -8,7 +8,8 @@ import { toast } from 'sonner';
 import { 
   Sparkles, Copy, Send, Users, Instagram, Facebook, 
   Twitter, MessageCircle, Image as ImageIcon, Clock, TrendingUp,
-  RefreshCw, X, Mail
+  RefreshCw, X, Mail, Lightbulb, Package, ShoppingCart, AlertCircle,
+  BookOpen, CreditCard, Star, Loader2
 } from 'lucide-react';
 import type { GeneratedCampaign } from '@/lib/marketing-campaign-types';
 import { normalizeGeneratedCampaign } from '@/lib/marketing-campaign-types';
@@ -36,6 +37,29 @@ interface Campaign {
   sentBy: string;
   createdAt: string;
 }
+
+interface PlaybookSummary {
+  id: string;
+  label: string;
+  description: string;
+  roleFilter?: 'seller' | 'buyer';
+  segment: string;
+  defaultCta: string;
+  defaultCtaUrl: string;
+  total: number;
+  reachable: number;
+}
+
+const PLAYBOOK_ICONS: Record<string, typeof Package> = {
+  'sellers-no-gigs': Package,
+  'sellers-new-no-gig': BookOpen,
+  'sellers-paused-gigs': AlertCircle,
+  'buyers-no-orders': ShoppingCart,
+  'buyers-no-active-orders': Users,
+  'buyers-abandoned-checkout': CreditCard,
+  'sellers-no-payout': CreditCard,
+  'buyers-pending-review': Star,
+};
 
 const QUICK_GOALS = [
   "Adquirir más compradores activos en Bucaramanga",
@@ -108,6 +132,16 @@ export default function AdminMarketingPage() {
   const [, startCampaignTransition] = useTransition();
   const generateRequestId = useRef(0);
 
+  // Playbooks
+  const [playbooks, setPlaybooks] = useState<PlaybookSummary[]>([]);
+  const [playbooksLoading, setPlaybooksLoading] = useState(false);
+  const [selectedPlaybookId, setSelectedPlaybookId] = useState<string | null>(null);
+  const [generatingPlaybookId, setGeneratingPlaybookId] = useState<string | null>(null);
+  const [lifecycleDryRun, setLifecycleDryRun] = useState<Record<string, unknown> | null>(null);
+  const [lifecycleLoading, setLifecycleLoading] = useState(false);
+
+  const AUTOMATED_PLAYBOOK_IDS = new Set(['sellers-new-no-gig', 'buyers-no-orders']);
+
   // ========== AI GENERATION ==========
   const generateWithAI = async (extraPrompt?: string) => {
     const requestId = ++generateRequestId.current;
@@ -164,8 +198,15 @@ export default function AdminMarketingPage() {
   const applyAiSegment = (recommendedSegment?: string, silent = false) => {
     const text = recommendedSegment ?? generatedCampaign?.recommendedSegment;
     if (!text) return;
+    if (text.startsWith('playbook:')) {
+      setSegment(text);
+      setSelectedPlaybookId(text.replace('playbook:', ''));
+      if (!silent) toast.success(`Playbook aplicado: ${text.replace('playbook:', '')}`);
+      return;
+    }
     const mapped = mapRecommendedSegment(text);
     setSegment(mapped.segment);
+    setSelectedPlaybookId(null);
     if (mapped.city) setCityFilter(mapped.city);
     if (!silent) {
       toast.success(`Segmento aplicado: ${mapped.segment}${mapped.city ? ` · ${mapped.city}` : ''}`);
@@ -205,7 +246,84 @@ export default function AdminMarketingPage() {
       ...base,
       segment,
       city: cityFilter || undefined,
+      playbookId: selectedPlaybookId || undefined,
     };
+  };
+
+  const fetchPlaybooks = async () => {
+    setPlaybooksLoading(true);
+    try {
+      const res = await fetch('/api/admin/marketing/playbooks');
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setPlaybooks(data.playbooks || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setPlaybooksLoading(false);
+    }
+  };
+
+  const selectPlaybook = (playbook: PlaybookSummary) => {
+    setSelectedPlaybookId(playbook.id);
+    setSegment(playbook.segment);
+    setRecipientMode('segment');
+    setSelectedUser(null);
+    document.getElementById('broadcast-composer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    toast.success(`Playbook: ${playbook.label} (${playbook.reachable} alcanzables)`);
+  };
+
+  const runLifecycleDryRun = async () => {
+    setLifecycleLoading(true);
+    try {
+      const res = await fetch('/api/notifications/lifecycle?dryRun=true', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setLifecycleDryRun(data);
+        toast.success(data.message || 'Vista previa del cron listo');
+      } else {
+        toast.error(data.error || 'No se pudo ejecutar la vista previa');
+      }
+    } catch {
+      toast.error('Error al conectar con el cron de nudges');
+    } finally {
+      setLifecycleLoading(false);
+    }
+  };
+
+  const generatePlaybookCopy = async (playbook: PlaybookSummary) => {
+    setGeneratingPlaybookId(playbook.id);
+    setSelectedPlaybookId(playbook.id);
+    setSegment(playbook.segment);
+    setRecipientMode('segment');
+    try {
+      const res = await fetch('/api/admin/marketing/ai-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          goal: playbook.label,
+          channels: ['email'],
+          playbookId: playbook.id,
+          tone: 'cercano y confiable',
+          language: 'es',
+          variations: 1,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.campaign?.email) {
+        setSubject(data.campaign.email.subject);
+        setMessage(data.campaign.email.body);
+        document.getElementById('broadcast-composer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        toast.success(data.fallback ? 'Copy de respaldo cargado' : 'Copy educativo generado');
+      } else {
+        toast.error('No se pudo generar el copy');
+      }
+    } catch {
+      toast.error('Error conectando con la IA');
+    } finally {
+      setGeneratingPlaybookId(null);
+    }
   };
 
   const copyText = (text: string, label = 'Texto') => {
@@ -368,6 +486,7 @@ export default function AdminMarketingPage() {
 
   useEffect(() => {
     fetchHistory();
+    fetchPlaybooks();
   }, []);
 
   const runDryRun = async () => {
@@ -805,6 +924,129 @@ export default function AdminMarketingPage() {
         )}
       </div>
 
+      {/* ========== SMART PLAYBOOKS ========== */}
+      <div className="bg-card border-2 border-orange-500/20 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-semibold flex flex-wrap items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-orange-500 shrink-0" />
+              Playbooks Inteligentes
+              <span className="text-xs px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 font-normal">Nuevo</span>
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Audiencias por problema real — vendedor sin gigs, comprador sin pedidos, checkout abandonado, y más. Un clic genera copy educativo.
+            </p>
+            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 shrink-0" />
+              Cron diario (9:00 AM Colombia): vendedor sin gig a los 3 días · comprador sin pedido a los 7 días
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={runLifecycleDryRun} disabled={lifecycleLoading}>
+              {lifecycleLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Clock className="h-4 w-4 mr-2" />}
+              Vista previa cron
+            </Button>
+            <Button variant="outline" size="sm" onClick={fetchPlaybooks} disabled={playbooksLoading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${playbooksLoading ? 'animate-spin' : ''}`} />
+              Actualizar conteos
+            </Button>
+          </div>
+        </div>
+
+        {lifecycleDryRun && Array.isArray(lifecycleDryRun.rules) && (
+          <div className="mb-4 rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm">
+            <div className="font-medium mb-2">Vista previa nudges automáticos (hoy)</div>
+            <ul className="space-y-1 text-muted-foreground">
+              {(lifecycleDryRun.rules as Array<{ label: string; eligible: number; playbookId: string }>).map((r) => (
+                <li key={r.playbookId}>
+                  {r.label}: <strong className="text-foreground">{r.eligible}</strong> usuarios elegibles
+                  {AUTOMATED_PLAYBOOK_IDS.has(r.playbookId) && (
+                    <span className="ml-1 text-xs text-orange-600">· automático</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {playbooksLoading && playbooks.length === 0 ? (
+          <div className="flex items-center justify-center py-12 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            Cargando playbooks...
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            {playbooks.map((pb) => {
+              const Icon = PLAYBOOK_ICONS[pb.id] || Lightbulb;
+              const isSelected = selectedPlaybookId === pb.id;
+              const isGenerating = generatingPlaybookId === pb.id;
+              return (
+                <div
+                  key={pb.id}
+                  className={`rounded-xl border p-4 transition ${isSelected ? 'border-orange-500 bg-orange-50/50 dark:bg-orange-950/20' : 'border-border hover:border-orange-300'}`}
+                >
+                  <div className="flex items-start gap-2 mb-2">
+                    <div className={`p-1.5 rounded-lg shrink-0 ${pb.roleFilter === 'seller' ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-600' : 'bg-green-100 dark:bg-green-950/40 text-green-600'}`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm leading-tight flex flex-wrap items-center gap-1">
+                        {pb.label}
+                        {AUTOMATED_PLAYBOOK_IDS.has(pb.id) && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 font-normal">
+                            Auto diario
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{pb.description}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted">
+                      {pb.reachable} alcanzables
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {pb.total} total
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Button
+                      size="sm"
+                      className="w-full bg-orange-600 hover:bg-orange-700"
+                      disabled={isGenerating || pb.reachable === 0}
+                      onClick={() => generatePlaybookCopy(pb)}
+                    >
+                      {isGenerating ? (
+                        <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Generando...</>
+                      ) : (
+                        <><Sparkles className="h-3 w-3 mr-1" /> Generar copy</>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      disabled={pb.reachable === 0}
+                      onClick={() => selectPlaybook(pb)}
+                    >
+                      Cargar audiencia
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {selectedPlaybookId && (
+          <div className="mt-4 text-xs text-muted-foreground border-t pt-3">
+            Playbook activo: <code className="bg-muted px-1.5 py-0.5 rounded">{selectedPlaybookId}</code>
+            {' · '}
+            Usa <code className="bg-muted px-1 py-0.5 rounded">{'{{name}}'}</code>, <code className="bg-muted px-1 py-0.5 rounded">{'{{city}}'}</code>, <code className="bg-muted px-1 py-0.5 rounded">{'{{ctaUrl}}'}</code> para personalizar cada envío.
+          </div>
+        )}
+      </div>
+
       {/* ========== MANUAL BROADCAST + AUDIENCE (existing power, now enhanced) ========== */}
       <div id="broadcast-composer" className="bg-card border border-border rounded-2xl p-4 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-4">
@@ -848,8 +1090,27 @@ export default function AdminMarketingPage() {
                     </Button>
                   )}
                 </div>
-                <select value={segment} onChange={(e) => setSegment(e.target.value)} className="w-full border border-border bg-background rounded-lg px-3 py-2 text-sm">
-                  {SEGMENTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                <select
+                  value={segment}
+                  onChange={(e) => {
+                    setSegment(e.target.value);
+                    const pbId = e.target.value.replace('playbook:', '');
+                    setSelectedPlaybookId(e.target.value.startsWith('playbook:') ? pbId : null);
+                  }}
+                  className="w-full border border-border bg-background rounded-lg px-3 py-2 text-sm"
+                >
+                  <optgroup label="Clásico">
+                    {SEGMENTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </optgroup>
+                  {playbooks.length > 0 && (
+                    <optgroup label="Playbooks inteligentes">
+                      {playbooks.map(pb => (
+                        <option key={pb.segment} value={pb.segment}>
+                          {pb.label} ({pb.reachable})
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
                 <div>
                   <label className="text-sm font-medium">Filtro por ciudad (opcional)</label>

@@ -55,7 +55,7 @@ export function LaunchPromoBanner({ sellerCount, maxSlots = 50 }: LaunchPromoBan
           <span className="sm:hidden"> cupos →</span>
           {' — '}
           <Link
-            href="/create-gig"
+            href="/para-profesionales"
             className="font-semibold underline underline-offset-2 decoration-orange-700/50 hover:decoration-orange-800 transition-colors"
           >
             Publica tu servicio ahora

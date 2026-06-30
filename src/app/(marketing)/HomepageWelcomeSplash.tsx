@@ -223,7 +223,7 @@ export function HomepageWelcomeSplash() {
               variant="outline"
               className="h-12 w-full rounded-xl border-2 font-semibold"
             >
-              <Link href="/create-gig" onClick={dismiss}>
+              <Link href="/para-profesionales" onClick={dismiss}>
                 Soy profesional • Publica gratis
               </Link>
             </Button>

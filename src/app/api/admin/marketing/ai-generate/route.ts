@@ -3,12 +3,14 @@ import { requireAdminPanelSession } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
 import { normalizeGeneratedCampaign } from '@/lib/marketing-campaign-types';
+import { getPlaybookById } from '@/lib/marketing-playbooks';
 
 interface GenerateRequest {
   goal: string;                    // e.g. "Adquirir más compradores en Bucaramanga", "Promocionar nueva categoría plomería"
   prompt?: string;                 // free-form additional instructions
   channels: string[];              // ["email", "instagram", "facebook", "x", "whatsapp", "tiktok"]
   segmentHint?: string;            // optional current segment
+  playbookId?: string;             // behavioral playbook for educational copy
   tone?: string;                   // "profesional", "cercano", "urgente", "amigable", "confiable"
   language?: 'es' | 'en';
   variations?: number;             // how many ad variants
@@ -22,24 +24,55 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+  let effectiveGoal = "Promocionar Oigagig";
+  let playbook: ReturnType<typeof getPlaybookById>;
+  let channels: string[] = ["email", "instagram", "facebook"];
+  let tone = "cercano y confiable";
+  let isSpanish = true;
+  let variations = 4;
+
   try {
     const body: GenerateRequest = await req.json();
     const {
       goal = "Promocionar Oigagig",
       prompt = "",
-      channels = ["email", "instagram", "facebook"],
+      channels: reqChannels = ["email", "instagram", "facebook"],
       segmentHint = "",
-      tone = "cercano y confiable",
+      playbookId = "",
+      tone: reqTone = "cercano y confiable",
       language = "es",
-      variations = 4,
+      variations: reqVariations = 4,
     } = body;
+
+    channels = reqChannels;
+    tone = reqTone;
+    variations = reqVariations;
+    isSpanish = language === "es";
+    playbook = playbookId ? getPlaybookById(playbookId) : undefined;
+    effectiveGoal = playbook?.aiGoal || goal;
+    const playbookBlock = playbook
+      ? `
+MODO PLAYBOOK EDUCATIVO (prioridad máxima):
+- Playbook: ${playbook.label}
+- Audiencia exacta: ${playbook.description}
+- Contexto del problema: ${playbook.aiContext}
+- CTA obligatorio: "${playbook.defaultCta}" → ${playbook.defaultCtaUrl}
+- Estructura del email.body OBLIGATORIA:
+  1. Saludo con {{name}} (usar literalmente ese placeholder)
+  2. Diagnóstico ("notamos que…" / "vimos que…")
+  3. Por qué importa (1-2 frases)
+  4. Tres pasos numerados y concretos
+  5. CTA con URL {{ctaUrl}} (usar literalmente ese placeholder)
+- Tono: maestro amable que enseña, NO vendedor agresivo
+- PROHIBIDO inventar descuentos, promociones o urgencia falsa
+- recommendedSegment debe ser exactamente: "${playbook.segment}"
+`
+      : '';
 
     const apiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: "Grok API key not configured" }, { status: 500 });
     }
-
-    const isSpanish = language === 'es';
 
     const systemPrompt = `Eres el director creativo de marketing más inteligente y efectivo de Colombia para Oigagig (oigagig.com).
 
@@ -86,12 +119,13 @@ Estructura exacta esperada:
 }
 
 Contexto del pedido actual:
-- Objetivo del usuario: ${goal}
+- Objetivo del usuario: ${effectiveGoal}
 - Instrucciones adicionales: ${prompt || 'Ninguna'}
 - Canales objetivo: ${channels.join(', ')}
-- Segmento sugerido por el admin: ${segmentHint || 'ninguno'}
+- Segmento sugerido por el admin: ${playbook?.segment || segmentHint || 'ninguno'}
 - Tono deseado: ${tone}
 - Idioma: ${isSpanish ? 'Español colombiano natural' : 'English'}
+${playbookBlock}
 
 Genera contenido de clase mundial, específico para servicios locales en Colombia. Sé creativo pero medible.`;
 
@@ -132,11 +166,15 @@ Genera contenido de clase mundial, específico para servicios locales en Colombi
     } catch (e) {
       devLog("Failed to parse Grok JSON, raw content:", content);
       // Fallback: create a minimal useful structure
-      parsed = createFallbackCampaign(goal, channels, tone, isSpanish);
+      parsed = createFallbackCampaign(effectiveGoal, channels, tone, isSpanish, playbook);
     }
 
     // Ensure minimum structure
-    parsed = normalizeGeneratedCampaign(parsed, goal, variations);
+    parsed = normalizeGeneratedCampaign(parsed, effectiveGoal, variations);
+    if (playbook) {
+      parsed.recommendedSegment = playbook.segment;
+      parsed.segmentReason = playbook.description;
+    }
 
     return NextResponse.json({ 
       success: true, 
@@ -149,10 +187,11 @@ Genera contenido de clase mundial, específico para servicios locales en Colombi
     
     // Always return something usable
     const fallback = createFallbackCampaign(
-      "Promocionar Oigagig", 
-      ["email", "instagram", "facebook"], 
-      "cercano y confiable", 
-      true
+      effectiveGoal || "Promocionar Oigagig",
+      ["email", "instagram", "facebook"],
+      "cercano y confiable",
+      true,
+      playbook,
     );
     return NextResponse.json({ 
       success: true, 
@@ -163,23 +202,37 @@ Genera contenido de clase mundial, específico para servicios locales en Colombi
   }
 }
 
-function createFallbackCampaign(goal: string, channels: string[], tone: string, isSpanish: boolean) {
-  const subject = isSpanish 
-    ? "Oigagig: Encuentra el servicio que necesitas hoy mismo" 
-    : "Oigagig: Find trusted local services today";
+function createFallbackCampaign(
+  goal: string,
+  channels: string[],
+  tone: string,
+  isSpanish: boolean,
+  playbook?: ReturnType<typeof getPlaybookById>,
+) {
+  const subject = playbook
+    ? (isSpanish ? `${playbook.label} — te ayudamos con el siguiente paso` : `${playbook.label} — next steps`)
+    : isSpanish
+      ? "Oigagig: Encuentra el servicio que necesitas hoy mismo"
+      : "Oigagig: Find trusted local services today";
+
+  const body = playbook
+    ? (isSpanish
+        ? `Hola {{name}},\n\n${playbook.description}.\n\nSabemos que a veces no está claro cuál es el siguiente paso. Aquí te guiamos:\n\n1. Revisa tu cuenta en Oigagig\n2. Sigue las instrucciones del panel\n3. Completa la acción pendiente\n\n👉 ${playbook.defaultCta}: {{ctaUrl}}\n\nSi necesitas ayuda, escríbenos a support@oigagig.com.\n\n— El equipo de Oigagig`
+        : `Hello {{name}},\n\n${playbook.description}.\n\n👉 ${playbook.defaultCta}: {{ctaUrl}}\n\n— Oigagig`)
+    : isSpanish
+      ? `Hola,\n\nEn Oigagig conectamos a personas con los mejores profesionales locales de Bucaramanga y el área metropolitana.\n\n¿Necesitas un plomero, electricista, estilista o servicio de limpieza? Encuentra opciones confiables con reseñas reales en segundos.\n\nExplora ahora: https://oigagig.com/gigs\n\n— El equipo de Oigagig`
+      : `Hello,\n\nOigagig connects you with trusted local professionals in Bucaramanga.\n\nFind plumbers, electricians, cleaners and more with real reviews.\n\nBrowse now: https://oigagig.com/gigs`;
 
   return {
     campaignName: "Campaña Oigagig - " + goal.slice(0, 40),
     objective: goal,
-    recommendedSegment: "usuarios activos",
-    segmentReason: "Mayor probabilidad de conversión y engagement.",
+    recommendedSegment: playbook?.segment || "usuarios activos",
+    segmentReason: playbook?.description || "Mayor probabilidad de conversión y engagement.",
     email: {
       subject,
-      previewText: "Servicios locales de confianza en Bucaramanga y más.",
-      body: isSpanish 
-        ? `Hola,\n\nEn Oigagig conectamos a personas con los mejores profesionales locales de Bucaramanga y el área metropolitana.\n\n¿Necesitas un plomero, electricista, estilista o servicio de limpieza? Encuentra opciones confiables con reseñas reales en segundos.\n\nExplora ahora: https://oigagig.com/gigs\n\n— El equipo de Oigagig`
-        : `Hello,\n\nOigagig connects you with trusted local professionals in Bucaramanga.\n\nFind plumbers, electricians, cleaners and more with real reviews.\n\nBrowse now: https://oigagig.com/gigs`,
-      cta: "Explorar servicios"
+      previewText: playbook?.description || "Servicios locales de confianza en Bucaramanga y más.",
+      body,
+      cta: playbook?.defaultCta || "Explorar servicios",
     },
     social: {
       instagram: "🔧 ¿Buscas un servicio de confianza en Bucaramanga? En Oigagig encuentras profesionales verificados con reseñas reales. ¡Publica tu necesidad o ofrece tus servicios hoy! #Oigagig #Bucaramanga #ServiciosLocales",

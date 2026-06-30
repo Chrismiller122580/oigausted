@@ -9,6 +9,7 @@ import {
   isMissingMarketingCampaignTable,
   resolveMarketingRecipients,
 } from '@/lib/marketing-audience';
+import { applyMergeFields, getPlaybookById, parsePlaybookId } from '@/lib/marketing-playbooks';
 
 interface BroadcastBody {
   subject: string;
@@ -16,6 +17,7 @@ interface BroadcastBody {
   segment?: string;
   city?: string;
   userIds?: string[];
+  playbookId?: string;
   dryRun?: boolean;
   testOnly?: boolean;
 }
@@ -50,9 +52,13 @@ export async function POST(req: NextRequest) {
     segment = 'all',
     city,
     userIds,
+    playbookId,
     dryRun = false,
     testOnly = false,
   } = body;
+
+  const resolvedPlaybookId = playbookId || parsePlaybookId(segment || '') || undefined;
+  const playbook = resolvedPlaybookId ? getPlaybookById(resolvedPlaybookId) : undefined;
 
   if (!subject || !message) {
     return NextResponse.json({ error: 'subject and message are required' }, { status: 400 });
@@ -128,16 +134,27 @@ export async function POST(req: NextRequest) {
     let sent = 0;
     let failed = 0;
 
+    const ctaUrl = playbook?.defaultCtaUrl;
+
     for (const user of recipients) {
       if (!user.id) continue;
       try {
+        const personalizedSubject = applyMergeFields(subject, user, { ctaUrl });
+        const personalizedMessage = applyMergeFields(message, user, { ctaUrl });
         await notifications.sendNotification({
           userId: user.id,
           category: 'marketing',
           type: 'email',
-          title: subject,
-          message,
+          title: personalizedSubject,
+          message: personalizedMessage,
           priority: 'high',
+          data: playbook
+            ? {
+                playbookId: playbook.id,
+                ctaLabel: playbook.defaultCta,
+                ...(ctaUrl ? { ctaUrl } : {}),
+              }
+            : undefined,
         });
         sent++;
       } catch (e) {

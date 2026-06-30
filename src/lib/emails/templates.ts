@@ -228,6 +228,81 @@ export function referralPayoutRequestEmail({ userName = 'Usuario', amount, reque
   };
 }
 
+interface LifecycleNudgeProps extends BaseEmailProps {
+  subject: string;
+  body: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+}
+
+function plainTextToHtml(text: string): string {
+  return text
+    .split(/\n\n+/)
+    .map((para) => {
+      const trimmed = para.trim();
+      if (!trimmed) return '';
+      const lines = trimmed.split('\n').map((l) => l.trim()).filter(Boolean);
+      const inner = lines
+        .map((line) => {
+          const numbered = line.match(/^(\d+)\.\s+(.+)$/);
+          if (numbered) {
+            return `<li style="margin-bottom: 8px;">${numbered[2]}</li>`;
+          }
+          return line;
+        })
+        .join('');
+      const isList = lines.some((l) => /^\d+\.\s+/.test(l));
+      if (isList) {
+        return `<ol style="margin: 16px 0; padding-left: 20px; color: #444;">${inner}</ol>`;
+      }
+      return `<p style="color: #444; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">${trimmed.replace(/\n/g, '<br>')}</p>`;
+    })
+    .filter(Boolean)
+    .join('');
+}
+
+/** Educational lifecycle nudge for marketing playbooks (seller no gig, buyer no order, etc.). */
+export function lifecycleNudgeEmail({
+  userName = 'Usuario',
+  subject,
+  body,
+  ctaLabel,
+  ctaUrl,
+}: LifecycleNudgeProps) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
+  const href = ctaUrl?.startsWith('http') ? ctaUrl : `${appUrl}${ctaUrl || '/gigs'}`;
+  const bodyHtml = plainTextToHtml(body);
+
+  return {
+    subject,
+    html: `
+      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #fff;">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #f97316, #dc2626); border-radius: 14px; margin: 0 auto; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: 900;">
+            O
+          </div>
+        </div>
+        <h1 style="color: #111; font-size: 22px; margin: 0 0 20px 0; line-height: 1.3;">${subject}</h1>
+        ${bodyHtml}
+        ${ctaLabel ? `
+          <div style="margin: 28px 0; text-align: center;">
+            <a href="${href}"
+               style="background: #f97316; color: white; padding: 14px 28px; border-radius: 9999px; text-decoration: none; font-weight: 600; display: inline-block;">
+              ${ctaLabel} →
+            </a>
+          </div>
+        ` : ''}
+        <p style="color: #666; font-size: 14px; text-align: center; margin-top: 32px;">
+          ¿Necesitas ayuda? <a href="mailto:support@oigagig.com" style="color: #f97316;">support@oigagig.com</a>
+        </p>
+        <p style="color: #aaa; font-size: 12px; text-align: center; margin-top: 16px;">
+          Oigagig • Servicios locales de confianza en Colombia
+        </p>
+      </div>
+    `,
+  };
+}
+
 interface AdminAlertProps {
   title: string;
   bodyHtml: string;

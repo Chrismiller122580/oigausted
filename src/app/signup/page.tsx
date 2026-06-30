@@ -38,6 +38,13 @@ function SignUpClient() {
   const siteName = platformConfig?.siteName || 'Oigagig';
 
   useEffect(() => {
+    const roleParam = searchParams.get('role');
+    if (roleParam === 'seller' || roleParam === 'buyer') {
+      setFormData((prev) => ({ ...prev, role: roleParam }));
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     fetch('/api/auth/config')
       .then(r => r.json())
       .then(g => {

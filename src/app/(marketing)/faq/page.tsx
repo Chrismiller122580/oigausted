@@ -93,10 +93,10 @@ export default async function FaqPage() {
             Crear cuenta gratis
           </Link>
           <Link
-            href="/create-gig"
+            href="/para-profesionales"
             className="inline-flex justify-center rounded-xl border border-orange-300 px-6 py-3 font-semibold text-orange-700 dark:text-orange-300 hover:bg-orange-100/50 dark:hover:bg-orange-900/20 transition-colors"
           >
-            Publicar mi servicio
+            Soy profesional
           </Link>
         </div>
         <p className="mt-4 text-sm text-muted-foreground">
