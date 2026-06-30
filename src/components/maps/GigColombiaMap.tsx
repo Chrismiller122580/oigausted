@@ -1,6 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState, useImperativeHandle, forwardRef, useCallback } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useImperativeHandle,
+  forwardRef,
+  useCallback,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { loadGoogleMaps } from '@/lib/googleMapsLoader';
@@ -21,22 +28,26 @@ export type GigColombiaMapHandle = {
 type GigColombiaMapProps = {
   pins: GigMapPin[];
   clusters: CityCluster[];
-  height?: string;
+  className?: string;
 };
 
 const GigColombiaMap = forwardRef<GigColombiaMapHandle, GigColombiaMapProps>(
-  function GigColombiaMap({ pins, clusters, height = 'min(70vh, 560px)' }, ref) {
+  function GigColombiaMap({ pins, clusters, className }, ref) {
     const router = useRouter();
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<GoogleMapInstance | null>(null);
-    const markersRef = useRef<unknown[]>([]);
-    const jitteredPins = useRef(jitterPinsInCity(pins));
+    const markersRef = useRef<GoogleMapsMarkerInstance[]>([]);
+    const pinsRef = useRef(pins);
+    const clustersRef = useRef(clusters);
     const [loadError, setLoadError] = useState(false);
+    const [mapReady, setMapReady] = useState(false);
+
+    pinsRef.current = pins;
+    clustersRef.current = clusters;
 
     const clearMarkers = useCallback(() => {
       for (const marker of markersRef.current) {
-        const m = marker as { setMap?: (map: null) => void };
-        m.setMap?.(null);
+        marker.setMap?.(null);
       }
       markersRef.current = [];
     }, []);
@@ -44,12 +55,15 @@ const GigColombiaMap = forwardRef<GigColombiaMapHandle, GigColombiaMapProps>(
     const renderMarkers = useCallback(
       (map: GoogleMapInstance) => {
         clearMarkers();
-        const zoom = (map as { getZoom?: () => number }).getZoom?.() ?? COLOMBIA_MAP_CENTER.zoom;
+        const zoom = map.getZoom?.() ?? COLOMBIA_MAP_CENTER.zoom;
         const MarkerCtor = window.google?.maps?.Marker;
         if (!MarkerCtor) return;
 
+        const currentClusters = clustersRef.current;
+        const jittered = jitterPinsInCity(pinsRef.current);
+
         if (zoom < ZOOM_THRESHOLD) {
-          for (const cluster of clusters) {
+          for (const cluster of currentClusters) {
             const marker = new MarkerCtor({
               position: { lat: cluster.lat, lng: cluster.lng },
               map,
@@ -71,7 +85,7 @@ const GigColombiaMap = forwardRef<GigColombiaMapHandle, GigColombiaMapProps>(
           return;
         }
 
-        for (const pin of jitteredPins.current) {
+        for (const pin of jittered) {
           const marker = new MarkerCtor({
             position: { lat: pin.lat, lng: pin.lng },
             map,
@@ -86,7 +100,7 @@ const GigColombiaMap = forwardRef<GigColombiaMapHandle, GigColombiaMapProps>(
           markersRef.current.push(marker);
         }
       },
-      [clearMarkers, clusters, router],
+      [clearMarkers, router],
     );
 
     const focusCity = useCallback((lat: number, lng: number) => {
@@ -98,20 +112,19 @@ const GigColombiaMap = forwardRef<GigColombiaMapHandle, GigColombiaMapProps>(
     useImperativeHandle(ref, () => ({ focusCity }), [focusCity]);
 
     useEffect(() => {
-      jitteredPins.current = jitterPinsInCity(pins);
-      if (mapRef.current) {
-        renderMarkers(mapRef.current);
-      }
-    }, [pins, renderMarkers]);
+      if (!mapReady || !mapRef.current) return;
+      renderMarkers(mapRef.current);
+    }, [mapReady, pins, clusters, renderMarkers]);
 
     useEffect(() => {
       let isMounted = true;
 
-      const initMap = () => {
+      const initMap = async () => {
+        const container = mapContainerRef.current;
         const MapCtor = window.google?.maps?.Map;
-        if (!mapContainerRef.current || !MapCtor || !isMounted) return;
+        if (!container || !MapCtor || !isMounted) return;
 
-        const map = new MapCtor(mapContainerRef.current, {
+        const map = new MapCtor(container, {
           center: { lat: COLOMBIA_MAP_CENTER.lat, lng: COLOMBIA_MAP_CENTER.lng },
           zoom: COLOMBIA_MAP_CENTER.zoom,
           mapTypeControl: false,
@@ -120,16 +133,27 @@ const GigColombiaMap = forwardRef<GigColombiaMapHandle, GigColombiaMapProps>(
         });
 
         mapRef.current = map;
-        renderMarkers(map);
 
         map.addListener?.('zoom_changed', () => {
           if (mapRef.current) renderMarkers(mapRef.current);
+        });
+
+        // Google Maps needs an explicit resize when the container was hidden or zero-height during load
+        requestAnimationFrame(() => {
+          if (!isMounted || !mapRef.current) return;
+          window.google?.maps?.event?.trigger?.(mapRef.current, 'resize');
+          mapRef.current.setCenter?.({
+            lat: COLOMBIA_MAP_CENTER.lat,
+            lng: COLOMBIA_MAP_CENTER.lng,
+          });
+          renderMarkers(mapRef.current);
+          setMapReady(true);
         });
       };
 
       loadGoogleMaps([])
         .then(() => {
-          if (isMounted) initMap();
+          if (isMounted) void initMap();
         })
         .catch((error) => {
           console.error('Failed to load Colombia gig map:', error);
@@ -138,6 +162,7 @@ const GigColombiaMap = forwardRef<GigColombiaMapHandle, GigColombiaMapProps>(
 
       return () => {
         isMounted = false;
+        setMapReady(false);
         clearMarkers();
         mapRef.current = null;
       };
@@ -146,13 +171,15 @@ const GigColombiaMap = forwardRef<GigColombiaMapHandle, GigColombiaMapProps>(
     if (pins.length === 0) {
       return (
         <div
-          style={{ height, width: '100%' }}
-          className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center text-center p-8"
+          className={`flex h-full min-h-[320px] w-full flex-col items-center justify-center bg-slate-50 p-8 text-center dark:bg-slate-900 ${className ?? ''}`}
         >
-          <p className="text-muted-foreground mb-4">
+          <p className="mb-4 text-muted-foreground">
             Aún no hay servicios con ubicación en el mapa.
           </p>
-          <Link href="/gigs" className="text-orange-700 hover:text-orange-800 font-medium hover:underline">
+          <Link
+            href="/gigs"
+            className="font-medium text-orange-700 hover:text-orange-800 hover:underline"
+          >
             Explorar todos los servicios
           </Link>
         </div>
@@ -162,8 +189,7 @@ const GigColombiaMap = forwardRef<GigColombiaMapHandle, GigColombiaMapProps>(
     if (loadError) {
       return (
         <div
-          style={{ height, width: '100%' }}
-          className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-100 flex items-center justify-center text-center p-6 text-sm text-muted-foreground"
+          className={`flex h-full min-h-[320px] w-full items-center justify-center bg-slate-100 p-6 text-center text-sm text-muted-foreground ${className ?? ''}`}
         >
           No se pudo cargar el mapa.
           <br />
@@ -175,8 +201,7 @@ const GigColombiaMap = forwardRef<GigColombiaMapHandle, GigColombiaMapProps>(
     return (
       <div
         ref={mapContainerRef}
-        style={{ height, width: '100%' }}
-        className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-100 overflow-hidden"
+        className={`h-full w-full bg-slate-200 ${className ?? ''}`}
         role="application"
         aria-label="Mapa de servicios en Colombia"
       />

@@ -40,6 +40,16 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
     );
   }
 
+  // Full-screen map — no chrome navbar
+  if (pathname === '/mapa') {
+    return (
+      <>
+        {banner}
+        {children}
+      </>
+    );
+  }
+
   if (isAuthenticated && role === 'admin') {
     return (
       <>

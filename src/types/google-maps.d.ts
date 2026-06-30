@@ -39,9 +39,14 @@ declare global {
 
   interface GoogleMapInstance {
     panTo?: (latLng: GoogleMapsLatLng) => void
+    setCenter?: (latLng: GoogleMapsLatLng) => void
     setZoom?: (zoom: number) => void
     getZoom?: () => number
     addListener?: (event: string, handler: () => void) => GoogleMapsEventListener
+  }
+
+  interface GoogleMapsEventNamespace {
+    trigger?: (instance: GoogleMapInstance, eventName: string) => void
   }
 
   type GoogleMapsMarkerConstructor = new (options: GoogleMapsMarkerOptions) => GoogleMapsMarkerInstance
@@ -62,6 +67,7 @@ declare global {
   interface GoogleMapsNamespace {
     Map: GoogleMapsMapConstructor
     Marker: GoogleMapsMarkerConstructor
+    event?: GoogleMapsEventNamespace
     places?: GoogleMapsPlacesNamespace
     importLibrary?: (name: string) => Promise<unknown>
   }

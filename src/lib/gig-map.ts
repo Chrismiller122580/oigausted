@@ -42,13 +42,35 @@ function normalizeCity(city: string): string {
     .toLowerCase()
 }
 
+function hashCityCoords(city: string): { lat: number; lng: number } {
+  let hash = 0
+  for (let i = 0; i < city.length; i++) {
+    hash = (hash + city.charCodeAt(i) * (i + 1)) % 1000
+  }
+  const angle = (hash / 1000) * 2 * Math.PI
+  const radius = 0.6 + (hash % 80) / 100
+  return {
+    lat: COLOMBIA_MAP_CENTER.lat + Math.cos(angle) * radius,
+    lng: COLOMBIA_MAP_CENTER.lng + Math.sin(angle) * radius,
+  }
+}
+
 function lookupCityCoords(city: string | null | undefined): { lat: number; lng: number } | null {
   if (!city?.trim()) return null
   const normalized = normalizeCity(city)
-  const match = colombianCities.find(
+  const exact = colombianCities.find(
     (c) => normalizeCity(c.label) === normalized || normalizeCity(c.slug) === normalized,
   )
-  return match ? { lat: match.lat, lng: match.lng } : null
+  if (exact) return { lat: exact.lat, lng: exact.lng }
+
+  const partial = colombianCities.find(
+    (c) =>
+      normalized.includes(normalizeCity(c.label)) ||
+      normalizeCity(c.label).includes(normalized),
+  )
+  if (partial) return { lat: partial.lat, lng: partial.lng }
+
+  return hashCityCoords(city.trim())
 }
 
 function resolveCoords(
@@ -62,8 +84,6 @@ function resolveCoords(
 }
 
 export function resolveGigPin(gig: GigMapSource): GigMapPin | null {
-  if (gig.isRemote) return null
-
   const city = gig.city?.trim() || gig.seller?.city?.trim() || ''
 
   const gigCoords = resolveCoords(gig.latitude, gig.longitude)
