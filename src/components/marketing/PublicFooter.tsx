@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { AppStoreBadges } from '@/components/marketing/AppStoreBadges';
+import { ShareOigaGig } from '@/components/marketing/ShareOigaGig';
 
 const FOOTER_LINKS = [
   { href: '/gigs', label: 'Explorar servicios' },
@@ -15,7 +17,7 @@ export function PublicFooter({ siteName = 'OigaGig' }: { siteName?: string }) {
   return (
     <footer className="border-t bg-card dark:bg-card py-10 text-sm">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="font-semibold text-zinc-900 dark:text-white mb-1">{siteName}</div>
             <p className="text-zinc-500 leading-relaxed">
@@ -34,6 +36,11 @@ export function PublicFooter({ siteName = 'OigaGig' }: { siteName?: string }) {
               </Link>
             ))}
           </nav>
+
+          <div className="space-y-5">
+            <AppStoreBadges />
+            <ShareOigaGig siteName={siteName} />
+          </div>
 
           <div className="text-zinc-500">
             <p className="font-medium text-zinc-700 dark:text-zinc-300 mb-1">Legal</p>

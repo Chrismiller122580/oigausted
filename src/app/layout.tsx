@@ -14,6 +14,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import ConsentedGoogleAnalytics from "@/components/analytics/ConsentedGoogleAnalytics";
 import CookieConsent from "@/components/common/CookieConsent";
+import PwaInstallPrompt from "@/components/common/PwaInstallPrompt";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
 
@@ -215,6 +216,7 @@ export default async function RootLayout({
           </NavbarWrapper>
           <Toaster position="top-center" richColors closeButton />
           <CookieConsent />
+          <PwaInstallPrompt />
           <Analytics />
           <SpeedInsights />
           <ConsentedGoogleAnalytics />

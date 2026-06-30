@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
+import { recordMeaningfulPwaAction } from '@/lib/pwa-install'
 
 const STORAGE_KEY = 'oiga_login_recorded'
 
@@ -20,6 +21,7 @@ export default function RecordLogin() {
     if (sessionStorage.getItem(STORAGE_KEY) === '1') return
 
     attemptedRef.current = true
+    recordMeaningfulPwaAction()
     fetch('/api/auth/record-login', { method: 'POST' })
       .then((res) => {
         if (res.ok) sessionStorage.setItem(STORAGE_KEY, '1')
