@@ -30,9 +30,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
   }
 
-  const goal =
-    body.goal?.trim() ||
-    'Promocionar mi servicio en redes sociales y conseguir más clientes';
+  const goal = body.goal?.trim();
+  const gigId = body.gigId?.trim();
+
+  if (!gigId) {
+    return NextResponse.json({ error: 'Selecciona un servicio a promocionar' }, { status: 400 });
+  }
+
+  if (!goal) {
+    return NextResponse.json({ error: 'El objetivo es obligatorio' }, { status: 400 });
+  }
 
   try {
     const access = await assertCanGenerate(uid, {
@@ -40,16 +47,14 @@ export async function POST(req: NextRequest) {
       req,
     });
 
-    const ctx = await loadSellerMarketingContext(uid, body.gigId, req);
+    const ctx = await loadSellerMarketingContext(uid, gigId, req);
     if (!ctx) {
       return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 });
     }
 
-    if (body.gigId) {
-      const ownsGig = ctx.gigs.some((g) => g.id === body.gigId) || ctx.selectedGig?.id === body.gigId;
-      if (!ownsGig) {
-        return NextResponse.json({ error: 'Gig no válido' }, { status: 403 });
-      }
+    const ownsGig = ctx.gigs.some((g) => g.id === gigId) || ctx.selectedGig?.id === gigId;
+    if (!ownsGig) {
+      return NextResponse.json({ error: 'Gig no válido' }, { status: 403 });
     }
 
     const baseUrl = getAppBaseUrl(req);

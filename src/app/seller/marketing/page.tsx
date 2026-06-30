@@ -109,19 +109,32 @@ function SellerMarketingPageClient() {
     toast.success(label ? `${label} copiado` : 'Copiado');
   };
 
-  const generate = async (quickGoal?: string) => {
-    const effectiveGoal = quickGoal || goal || QUICK_GOALS[0];
-    if (quickGoal) setGoal(quickGoal);
+  const getFormErrors = (goalValue: string, gigId: string): string[] => {
+    const errors: string[] = [];
+    if (!gigId) errors.push('Selecciona un servicio a promocionar');
+    if (!goalValue.trim()) errors.push('Escribe un objetivo o elige una sugerencia abajo');
+    return errors;
+  };
+
+  const generate = async () => {
+    const errors = getFormErrors(goal, selectedGigId);
+    if (errors.length > 0) {
+      toast.error(errors[0]);
+      return;
+    }
+
     setGenerating(true);
+    setContent(null);
+    setBrandCardUrls(null);
     try {
       const res = await fetch('/api/seller/marketing/ai-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          goal: effectiveGoal,
-          prompt,
+          goal: goal.trim(),
+          prompt: prompt.trim(),
           tone,
-          gigId: selectedGigId || undefined,
+          gigId: selectedGigId,
         }),
       });
       const data = await res.json();
@@ -134,9 +147,15 @@ function SellerMarketingPageClient() {
         return;
       }
       setContent(data.content);
-      setBrandCardUrls(data.brandCardUrls);
-      setActiveTab('instagram');
-      toast.success(data.fallback ? 'Contenido de respaldo generado' : '¡Contenido generado!');
+      const cacheBust = Date.now();
+      if (data.brandCardUrls) {
+        setBrandCardUrls({
+          feed: `${data.brandCardUrls.feed}&_t=${cacheBust}`,
+          story: `${data.brandCardUrls.story}&_t=${cacheBust}`,
+        });
+      }
+      setActiveTab('downloads');
+      toast.success(data.fallback ? 'Contenido de respaldo generado' : '¡Contenido e imágenes generados!');
       await fetchSubscription();
     } catch {
       toast.error('Error de conexión');
@@ -198,6 +217,9 @@ function SellerMarketingPageClient() {
   const blocked = !!(subscription && !subscription.allowed);
   const atLimit = !!(subscription && !subscription.canGenerate && !subscription.isUnlimited);
   const noGigs = gigs.length === 0;
+
+  const formErrors = getFormErrors(goal, selectedGigId);
+  const canGenerate = formErrors.length === 0 && !generating && !atLimit;
 
   return (
     <div className="bg-background py-8 pb-24">
@@ -312,29 +334,18 @@ function SellerMarketingPageClient() {
               </div>
             )}
 
-            <div className="flex flex-wrap gap-2">
-              {QUICK_GOALS.map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  onClick={() => void generate(g)}
-                  disabled={generating || atLimit}
-                  className="text-sm px-3 py-1.5 rounded-full border border-border hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition"
-                >
-                  {g}
-                </button>
-              ))}
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Servicio a promocionar</label>
+                <label className="text-sm font-medium">
+                  Servicio a promocionar <span className="text-orange-600">*</span>
+                </label>
                 <select
                   value={selectedGigId}
                   onChange={(e) => setSelectedGigId(e.target.value)}
                   className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  required
                 >
-                  <option value="">Todos mis servicios</option>
+                  <option value="">Selecciona un servicio…</option>
                   {gigs.map((g) => (
                     <option key={g.id} value={g.id}>
                       {g.title}
@@ -359,13 +370,34 @@ function SellerMarketingPageClient() {
             </div>
 
             <div>
-              <label className="text-sm font-medium">Objetivo</label>
+              <label className="text-sm font-medium">
+                Objetivo <span className="text-orange-600">*</span>
+              </label>
               <Input
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
                 placeholder="Ej: Conseguir más clientes por WhatsApp esta semana"
                 className="mt-1"
+                required
               />
+              <p className="text-xs text-muted-foreground mt-2 mb-2">Sugerencias rápidas (solo rellenan el objetivo):</p>
+              <div className="flex flex-wrap gap-2">
+                {QUICK_GOALS.map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setGoal(g)}
+                    disabled={generating || atLimit}
+                    className={`text-sm px-3 py-1.5 rounded-full border transition ${
+                      goal === g
+                        ? 'border-orange-500 bg-orange-50 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200'
+                        : 'border-border hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30'
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>
@@ -379,19 +411,58 @@ function SellerMarketingPageClient() {
               />
             </div>
 
+            {formErrors.length > 0 && !atLimit && (
+              <p className="text-sm text-muted-foreground">
+                Completa los campos obligatorios: {formErrors.join(' · ')}
+              </p>
+            )}
+
             <Button
               onClick={() => void generate()}
-              disabled={generating || atLimit}
+              disabled={!canGenerate}
               className="bg-orange-600 hover:bg-orange-700 gap-2"
             >
               {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              Generar contenido
+              {generating ? 'Generando contenido e imágenes…' : 'Generar contenido'}
             </Button>
           </div>
         )}
 
         {content && (
-          <div className="bg-card border rounded-2xl p-6 space-y-4">
+          <div className="bg-card border rounded-2xl p-6 space-y-6">
+            {brandCardUrls && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <ImageIcon className="h-5 w-5 text-orange-500" />
+                  Imágenes con tu marca
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {(
+                    [
+                      ['feed', 'Imagen feed (1080×1080)', brandCardUrls.feed],
+                      ['story', 'Imagen story (1080×1920)', brandCardUrls.story],
+                    ] as const
+                  ).map(([key, label, url]) => (
+                    <div key={key} className="space-y-3">
+                      <p className="font-medium text-sm">{label}</p>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={label}
+                        className="w-full rounded-xl border border-border shadow-sm bg-muted/30"
+                      />
+                      <Button asChild variant="outline" size="sm" className="w-full gap-2">
+                        <a href={url} download={`oigagig-marketing-${key}.png`} target="_blank" rel="noreferrer">
+                          <Download className="h-4 w-4" />
+                          Descargar con marca
+                        </a>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-2 border-b border-border pb-3">
               {(
                 [
@@ -446,33 +517,15 @@ function SellerMarketingPageClient() {
             )}
 
             {activeTab === 'downloads' && brandCardUrls && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {(
-                  [
-                    ['feed', 'Imagen feed (1080×1080)', brandCardUrls.feed],
-                    ['story', 'Imagen story (1080×1920)', brandCardUrls.story],
-                  ] as const
-                ).map(([key, label, url]) => (
-                  <div key={key} className="space-y-3">
-                    <p className="font-medium flex items-center gap-2">
-                      <ImageIcon className="h-4 w-4" />
-                      {label}
-                    </p>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={url}
-                      alt={label}
-                      className="w-full rounded-xl border border-border shadow-sm"
-                    />
-                    <Button asChild variant="outline" size="sm" className="w-full gap-2">
-                      <a href={url} download={`oigagig-marketing-${key}.png`} target="_blank" rel="noreferrer">
-                        <Download className="h-4 w-4" />
-                        Descargar con marca
-                      </a>
-                    </Button>
-                  </div>
-                ))}
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Las imágenes con tu marca y código QR están arriba. Descárgalas para publicar en Instagram o WhatsApp.
+              </p>
+            )}
+
+            {activeTab === 'downloads' && !brandCardUrls && (
+              <p className="text-sm text-muted-foreground">
+                No se pudieron generar las imágenes. Intenta de nuevo o contacta soporte.
+              </p>
             )}
 
             {activeTab === 'tips' && (
