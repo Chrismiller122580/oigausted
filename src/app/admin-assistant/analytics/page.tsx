@@ -1,3 +1,5 @@
-import AdminAnalyticsPage from '../../admin/analytics/page';
+import { redirect } from 'next/navigation';
 
-export default AdminAnalyticsPage;
+export default function AdminAssistantAnalyticsPage() {
+  redirect('/admin-assistant');
+}

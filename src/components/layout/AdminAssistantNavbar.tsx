@@ -4,30 +4,13 @@ import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import {
-  LogOut, Home, Users, Package, List, Tag, DollarSign, TrendingUp, BarChart3,
-  MessageCircle, Megaphone, Bell, Settings, Menu, X, type LucideIcon,
-} from 'lucide-react';
+import { LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import MobileMenu from './MobileMenu';
 import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import Logo from '@/components/common/Logo';
-
-const navItems: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: '/admin-assistant', label: 'Overview', icon: Home },
-  { href: '/admin-assistant/users', label: 'Users (View)', icon: Users },
-  { href: '/admin-assistant/orders', label: 'Orders', icon: List },
-  { href: '/admin-assistant/gigs', label: 'Gigs', icon: Package },
-  { href: '/admin-assistant/categories', label: 'Categories', icon: Tag },
-  { href: '/admin-assistant/marketing', label: 'Marketing', icon: Megaphone },
-  { href: '/admin-assistant/payouts', label: 'Payouts', icon: DollarSign },
-  { href: '/admin-assistant/earnings', label: 'Earnings & Reports', icon: TrendingUp },
-  { href: '/admin-assistant/support', label: 'Support', icon: MessageCircle },
-  { href: '/admin-assistant/notifications', label: 'Notifications', icon: Bell },
-  { href: '/admin-assistant/analytics', label: 'Reports', icon: BarChart3 },
-  { href: '/admin-assistant/settings', label: 'Safe Settings', icon: Settings },
-];
+import { ADMIN_ASSISTANT_NAV_ITEMS } from '@/lib/admin-assistant-nav';
 
 export default function AdminAssistantNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
@@ -104,7 +87,7 @@ export default function AdminAssistantNavbar({ children }: { children: React.Rea
         >
           <div className="p-2 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
             <nav className="space-y-1">
-              {navItems.map((item) => {
+              {ADMIN_ASSISTANT_NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
                 const showLabel = isSidebarOpen || isSidebarHovered;

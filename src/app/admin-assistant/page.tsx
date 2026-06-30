@@ -52,8 +52,9 @@ export default function AdminAssistantOverviewPage() {
           <CardTitle>Quick links</CardTitle>
         </CardHeader>
         <CardContent className="text-muted-foreground text-sm">
-          Use the sidebar to manage orders, support tickets, users, marketing, and safe settings.
-          Sensitive actions (user roles, payment keys, impersonation) remain admin-only.
+          Use the sidebar for support tickets, users (view-only), orders (view-only), gigs (view-only),
+          marketing, payouts, and notifications. Categories, settings, analytics, and earnings are
+          admin-only. Sensitive actions (user roles, payment keys, impersonation) remain admin-only.
         </CardContent>
       </Card>
     </div>

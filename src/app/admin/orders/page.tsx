@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Trash2, Eye, RefreshCw } from 'lucide-react';
+import { useAdminAssistantViewOnly } from '@/hooks/useAdminAssistantViewOnly';
 
 interface Order {
   id: string;
@@ -19,6 +20,7 @@ interface Order {
 }
 
 export default function AdminOrdersPage() {
+  const viewOnly = useAdminAssistantViewOnly();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -124,7 +126,9 @@ export default function AdminOrdersPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
             <h1 className="text-5xl font-bold">Orders</h1>
-            <p className="text-muted-foreground mt-1">All platform orders • {orders.length} total</p>
+            <p className="text-muted-foreground mt-1">
+              {viewOnly ? 'View-only' : 'All platform orders'} • {orders.length} total
+            </p>
           </div>
 
           <div className="flex flex-wrap gap-3 items-center">
@@ -211,26 +215,30 @@ export default function AdminOrdersPage() {
                         </Button>
                       </Link>
 
-                      <select
-                        value={order.status}
-                        onChange={(e) => updateStatus(order.id, e.target.value)}
-                        className="text-xs bg-background border border-border rounded px-2 py-1"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Paid">Paid</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Cancelled">Cancelled</option>
-                      </select>
+                      {!viewOnly && (
+                        <>
+                          <select
+                            value={order.status}
+                            onChange={(e) => updateStatus(order.id, e.target.value)}
+                            className="text-xs bg-background border border-border rounded px-2 py-1"
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Paid">Paid</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                          </select>
 
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => deleteOrder(order.id)}
-                        className="text-xs"
-                      >
-                        <Trash2 size={14} className="mr-1" /> Delete
-                      </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => deleteOrder(order.id)}
+                            className="text-xs"
+                          >
+                            <Trash2 size={14} className="mr-1" /> Delete
+                          </Button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -240,7 +248,9 @@ export default function AdminOrdersPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Admin view — all orders across the platform. Use caution with delete (irreversible).
+          {viewOnly
+            ? 'View-only access — contact a full admin to change or delete orders.'
+            : 'Admin view — all orders across the platform. Use caution with delete (irreversible).'}
         </p>
       </div>
     </div>

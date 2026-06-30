@@ -1,3 +1,5 @@
-import AdminEarningsPage from '../../admin/earnings/page';
+import { redirect } from 'next/navigation';
 
-export default AdminEarningsPage;
+export default function AdminAssistantEarningsPage() {
+  redirect('/admin-assistant');
+}

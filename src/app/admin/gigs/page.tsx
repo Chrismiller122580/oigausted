@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Pause, Play, Trash2, Eye, Edit2 } from 'lucide-react';
+import { useAdminAssistantViewOnly } from '@/hooks/useAdminAssistantViewOnly';
 
 interface Gig {
   id: string;
@@ -29,6 +30,7 @@ interface Gig {
 }
 
 export default function AdminGigsPage() {
+  const viewOnly = useAdminAssistantViewOnly();
   const [gigs, setGigs] = useState<Gig[]>([]);
   const [filtered, setFiltered] = useState<Gig[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -207,7 +209,9 @@ export default function AdminGigsPage() {
         <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
           <div>
             <h1 className="text-5xl font-bold">Gig Moderation</h1>
-            <p className="text-muted-foreground mt-1">Manage all platform services — delete, edit, restore</p>
+            <p className="text-muted-foreground mt-1">
+              {viewOnly ? 'View-only — browse all platform services' : 'Manage all platform services — delete, edit, restore'}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <Input
@@ -267,52 +271,56 @@ export default function AdminGigsPage() {
                   </div>
 
                   <div className="flex gap-2 flex-wrap md:flex-nowrap">
-                    {!gig.deletedAt && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleActive(gig)}
-                        className="border-border flex items-center gap-2"
-                      >
-                        {gig.isActive ? <Pause size={16} /> : <Play size={16} />}
-                        {gig.isActive ? 'Pause' : 'Activate'}
-                      </Button>
-                    )}
-
                     <a href={`/gigs/${gig.id}`} target="_blank" rel="noreferrer">
                       <Button variant="outline" size="sm" className="border-border flex items-center gap-2">
                         <Eye size={16} /> View
                       </Button>
                     </a>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEdit(gig)}
-                      className="border-border flex items-center gap-2"
-                    >
-                      <Edit2 size={16} /> Edit
-                    </Button>
+                    {!viewOnly && (
+                      <>
+                        {!gig.deletedAt && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleActive(gig)}
+                            className="border-border flex items-center gap-2"
+                          >
+                            {gig.isActive ? <Pause size={16} /> : <Play size={16} />}
+                            {gig.isActive ? 'Pause' : 'Activate'}
+                          </Button>
+                        )}
 
-                    {gig.deletedAt ? (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => restoreGig(gig)}
-                        className="flex items-center gap-2"
-                      >
-                        Restore
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => softDeleteGig(gig)}
-                        className="flex items-center gap-2"
-                        title="Soft delete (can be restored later)"
-                      >
-                        <Trash2 size={16} /> Delete
-                      </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEdit(gig)}
+                          className="border-border flex items-center gap-2"
+                        >
+                          <Edit2 size={16} /> Edit
+                        </Button>
+
+                        {gig.deletedAt ? (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => restoreGig(gig)}
+                            className="flex items-center gap-2"
+                          >
+                            Restore
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => softDeleteGig(gig)}
+                            className="flex items-center gap-2"
+                            title="Soft delete (can be restored later)"
+                          >
+                            <Trash2 size={16} /> Delete
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                 </CardContent>

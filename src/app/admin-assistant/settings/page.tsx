@@ -1,3 +1,5 @@
-import AdminSettingsPage from '../../admin/settings/page';
+import { redirect } from 'next/navigation';
 
-export default AdminSettingsPage;
+export default function AdminAssistantSettingsPage() {
+  redirect('/admin-assistant');
+}

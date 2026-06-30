@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminPanelSession } from '@/lib/admin-auth';
+import { requireAdminFromDb, requireAdminPanelSession } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
@@ -98,9 +98,9 @@ export async function GET(req: NextRequest) {
 // PATCH for moderation actions (full edit, isActive toggle, soft delete/restore)
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await requireAdminPanelSession();
+    const session = await requireAdminFromDb();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: 'Only full admins can modify gigs' }, { status: 403 });
     }
 
     const body = await req.json();
@@ -174,9 +174,9 @@ export async function PATCH(req: NextRequest) {
 // DELETE gig (admin moderation) - now performs soft delete to support restore
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await requireAdminPanelSession();
+    const session = await requireAdminFromDb();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: 'Only full admins can delete gigs' }, { status: 403 });
     }
 
     const { gigId } = await req.json();

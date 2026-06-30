@@ -1,3 +1,5 @@
-import AdminCategoriesPage from '../../admin/categories/page';
+import { redirect } from 'next/navigation';
 
-export default AdminCategoriesPage;
+export default function AdminAssistantCategoriesPage() {
+  redirect('/admin-assistant');
+}

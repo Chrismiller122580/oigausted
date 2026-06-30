@@ -139,15 +139,25 @@ export async function PATCH(
     if (!existingOrder) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
-    const isAdmin = userId
+    const isFullAdmin = userId && session?.user?.role === 'admin'
+      ? await verifyAdminFromDb(userId)
+      : false
+    const hasAdminPanelAccess = userId && session
       ? await verifyAdminPanelAccess(userId, session)
       : false
-    if (!isAdmin && existingOrder.buyerId !== userId && existingOrder.sellerId !== userId) {
+    if (!hasAdminPanelAccess && existingOrder.buyerId !== userId && existingOrder.sellerId !== userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
 
     const isBuyer = existingOrder.buyerId === userId;
     const isSeller = existingOrder.sellerId === userId;
+
+    if (hasAdminPanelAccess && !isFullAdmin && !isBuyer && !isSeller) {
+      return NextResponse.json(
+        { error: 'View-only access — cannot modify orders' },
+        { status: 403 }
+      )
+    }
 
     const updateData: Prisma.OrderUpdateInput = {}
 
@@ -161,7 +171,7 @@ export async function PATCH(
       const current = normalizeOrderStatus(existingOrder.status)
 
       // Role-aware transition rules (prevents buyers forcing completion, etc.)
-      if (!isAdmin) {
+      if (!isFullAdmin) {
         if (statusLabel === OrderStatusLabel.Paid) {
           if (!allowDevPaymentSimulate()) {
             return NextResponse.json({ error: 'Cannot manually set to Paid outside payment flow' }, { status: 400 });
@@ -208,13 +218,13 @@ export async function PATCH(
 
     if (customFields !== undefined) {
       const currentForFields = normalizeOrderStatus(existingOrder.status)
-      if (!isAdmin && currentForFields !== OrderStatusLabel.Pending) {
+      if (!isFullAdmin && currentForFields !== OrderStatusLabel.Pending) {
         return NextResponse.json(
           { error: 'No se pueden modificar los detalles después del pago' },
           { status: 400 }
         )
       }
-      if (!isAdmin && !isBuyer) {
+      if (!isFullAdmin && !isBuyer) {
         return NextResponse.json({ error: 'Solo el comprador puede actualizar los detalles' }, { status: 403 })
       }
       updateData.customFields = customFields ? JSON.stringify(customFields) : null
@@ -231,7 +241,7 @@ export async function PATCH(
           : {}
       updateData.price = computeOrderPrice(gig.price, gig.fields, selections)
     } else if (price !== undefined) {
-      if (!isAdmin) {
+      if (!isFullAdmin) {
         return NextResponse.json({ error: 'Price cannot be changed directly' }, { status: 403 })
       }
       const n = Number(price)
@@ -333,7 +343,7 @@ export async function PATCH(
       });
     }
 
-    if ((sellerPayoutAtUpdate !== undefined || wompiPayoutRefUpdate !== undefined) && !isAdmin) {
+    if ((sellerPayoutAtUpdate !== undefined || wompiPayoutRefUpdate !== undefined) && !isFullAdmin) {
       return NextResponse.json({ error: 'Only admins can update payout fields' }, { status: 403 })
     }
 
