@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp,
   MessageCircle, Settings, Tag, Briefcase, Bell, Megaphone, Activity, ScanSearch,
-  Receipt, ShieldCheck, AlertCircle, FileText, List,
+  Receipt, ShieldCheck, AlertCircle, FileText, List, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getStaffPortalPath, isStaffRole } from '@/lib/session';
@@ -127,6 +127,9 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             </Link>
             <Link href="/seller/network" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Users size={22} /> Red de Vendedores
+            </Link>
+            <Link href="/seller/marketing" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Sparkles size={22} /> Marketing IA
             </Link>
             <Link href="/seller/profile" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Briefcase size={22} /> Mi Negocio

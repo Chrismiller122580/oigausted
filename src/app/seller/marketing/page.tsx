@@ -1,0 +1,521 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import {
+  Sparkles,
+  Copy,
+  Loader2,
+  Instagram,
+  MessageCircle,
+  Download,
+  ExternalLink,
+  Crown,
+  Store,
+  ImageIcon,
+  Clock,
+  Lightbulb,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
+import { MARKETING_BRAND_LOGO_PATH } from '@/lib/seller-marketing-brand';
+import { buildWompiWidgetConfig } from '@/lib/wompi-widget';
+import type { WompiPrepareResponse, WompiWidgetResult } from '@/types/wompi';
+import type { SellerGeneratedContent } from '@/lib/seller-marketing-types';
+
+type GigOption = { id: string; title: string; isActive?: boolean };
+
+type SubscriptionState = {
+  tier: string;
+  usedThisMonth: number;
+  limit: number | null;
+  canGenerate: boolean;
+  isUnlimited: boolean;
+  allowed: boolean;
+  blockedReason?: string;
+  expiresAt: string | null;
+  storeUrl: string;
+  storePath: string;
+  proPriceCOP: number;
+  adminState: { enabled: boolean; adminOverride: string | null; adminNote: string | null };
+};
+
+const QUICK_GOALS = [
+  'Promocionar mi servicio en Instagram',
+  'Conseguir clientes por WhatsApp',
+  'Anunciar un servicio nuevo',
+  'Destacar mis reseñas y confianza',
+];
+
+const TONES = [
+  'cercano y confiable',
+  'profesional',
+  'amigable y local',
+  'inspirador',
+  'directo y claro',
+];
+
+type ResultTab = 'instagram' | 'whatsapp' | 'downloads' | 'tips';
+
+export default function SellerMarketingPage() {
+  const searchParams = useSearchParams();
+  const [subscription, setSubscription] = useState<SubscriptionState | null>(null);
+  const [gigs, setGigs] = useState<GigOption[]>([]);
+  const [selectedGigId, setSelectedGigId] = useState('');
+  const [goal, setGoal] = useState('');
+  const [prompt, setPrompt] = useState('');
+  const [tone, setTone] = useState(TONES[0]);
+  const [generating, setGenerating] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
+  const [content, setContent] = useState<SellerGeneratedContent | null>(null);
+  const [brandCardUrls, setBrandCardUrls] = useState<{ feed: string; story: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<ResultTab>('instagram');
+  const [loading, setLoading] = useState(true);
+
+  const fetchSubscription = useCallback(async () => {
+    const res = await fetch('/api/seller/marketing/subscription');
+    if (res.ok) {
+      const data = await res.json();
+      setSubscription(data);
+    }
+  }, []);
+
+  const fetchGigs = useCallback(async () => {
+    const res = await fetch('/api/seller/gigs');
+    if (res.ok) {
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : data?.gigs || [];
+      setGigs(list.filter((g: GigOption) => g.isActive !== false));
+    }
+  }, []);
+
+  useEffect(() => {
+    Promise.all([fetchSubscription(), fetchGigs()]).finally(() => setLoading(false));
+  }, [fetchSubscription, fetchGigs]);
+
+  useEffect(() => {
+    if (searchParams.get('upgraded') === '1') {
+      toast.success('¡Pago recibido! Tu plan Pro se activará en unos segundos.');
+      void fetchSubscription();
+    }
+  }, [searchParams, fetchSubscription]);
+
+  const copyText = (text: string, label?: string) => {
+    void navigator.clipboard.writeText(text);
+    toast.success(label ? `${label} copiado` : 'Copiado');
+  };
+
+  const generate = async (quickGoal?: string) => {
+    const effectiveGoal = quickGoal || goal || QUICK_GOALS[0];
+    if (quickGoal) setGoal(quickGoal);
+    setGenerating(true);
+    try {
+      const res = await fetch('/api/seller/marketing/ai-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          goal: effectiveGoal,
+          prompt,
+          tone,
+          gigId: selectedGigId || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 402) {
+          toast.error(data.error || 'Límite alcanzado. Mejora a Pro.');
+        } else {
+          toast.error(data.error || 'No se pudo generar');
+        }
+        return;
+      }
+      setContent(data.content);
+      setBrandCardUrls(data.brandCardUrls);
+      setActiveTab('instagram');
+      toast.success(data.fallback ? 'Contenido de respaldo generado' : '¡Contenido generado!');
+      await fetchSubscription();
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const openWompiUpgrade = async () => {
+    setUpgrading(true);
+    try {
+      const res = await fetch('/api/seller/marketing/subscribe', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'No se pudo iniciar el pago');
+        return;
+      }
+
+      const widgetConfig = buildWompiWidgetConfig(data as WompiPrepareResponse);
+      const scriptId = 'wompi-marketing-widget';
+      if (!document.getElementById(scriptId)) {
+        const script = document.createElement('script');
+        script.id = scriptId;
+        script.src = 'https://checkout.wompi.co/widget.js';
+        script.async = true;
+        document.body.appendChild(script);
+        await new Promise<void>((resolve) => {
+          script.onload = () => resolve();
+        });
+      }
+
+      const WidgetCheckout = window.WidgetCheckout || window.WompiCheckout;
+      if (!WidgetCheckout) {
+        toast.error('Widget de pago no disponible');
+        return;
+      }
+      const checkout = new WidgetCheckout(widgetConfig);
+      checkout.open((result: WompiWidgetResult) => {
+        if (result.transaction?.status === 'APPROVED') {
+          toast.success('¡Plan Pro activado!');
+          void fetchSubscription();
+        }
+      });
+    } catch {
+      toast.error('Error abriendo pago');
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
+      </div>
+    );
+  }
+
+  const blocked = subscription && !subscription.allowed;
+  const atLimit = subscription && !subscription.canGenerate && !subscription.isUnlimited;
+  const noGigs = gigs.length === 0;
+
+  return (
+    <div className="bg-background py-8 pb-24">
+      <div className="max-w-5xl mx-auto px-6 space-y-8">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 text-white shrink-0">
+              <Sparkles className="h-7 w-7" />
+            </div>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Estudio de Marketing IA</h1>
+              <p className="text-muted-foreground mt-1">
+                Genera posts para Instagram y WhatsApp con tu tienda OigaGig incluida.
+              </p>
+            </div>
+          </div>
+          <Image
+            src={MARKETING_BRAND_LOGO_PATH}
+            alt="Oiga Gig"
+            width={160}
+            height={72}
+            className="object-contain shrink-0"
+          />
+        </div>
+
+        {subscription?.storeUrl && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-orange-200 bg-orange-50/80 dark:bg-orange-950/30 dark:border-orange-900/50 px-4 py-3">
+            <Store className="h-5 w-5 text-orange-600 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">Tu tienda pública</p>
+              <p className="text-xs text-muted-foreground truncate">
+                Todas las descargas incluyen {subscription.storeUrl.replace(/^https?:\/\//, '')}
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm" className="gap-1.5 shrink-0">
+              <Link href={subscription.storePath} target="_blank" rel="noreferrer">
+                <ExternalLink className="h-3.5 w-3.5" />
+                Ver tienda
+              </Link>
+            </Button>
+          </div>
+        )}
+
+        {subscription && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
+            <div className="text-sm">
+              {subscription.isUnlimited ? (
+                <span className="inline-flex items-center gap-1.5 font-medium text-orange-600">
+                  <Crown className="h-4 w-4" />
+                  Plan Pro · generaciones ilimitadas
+                  {subscription.expiresAt && (
+                    <span className="text-muted-foreground font-normal">
+                      · hasta {new Date(subscription.expiresAt).toLocaleDateString('es-CO')}
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <span>
+                  <strong>{subscription.usedThisMonth}</strong> de{' '}
+                  <strong>{subscription.limit ?? 3}</strong> generaciones este mes (gratis)
+                </span>
+              )}
+            </div>
+            {!subscription.isUnlimited && (
+              <Button
+                size="sm"
+                className="bg-orange-600 hover:bg-orange-700 gap-1.5"
+                onClick={openWompiUpgrade}
+                disabled={upgrading}
+              >
+                {upgrading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
+                Mejorar a Pro · ${(subscription.proPriceCOP || 29900).toLocaleString('es-CO')}/mes
+              </Button>
+            )}
+          </div>
+        )}
+
+        {blocked && (
+          <div className="rounded-2xl border border-red-300 bg-red-50 dark:bg-red-950/30 p-6 text-center">
+            <h2 className="text-lg font-semibold text-red-800 dark:text-red-200">Acceso desactivado</h2>
+            <p className="text-sm text-red-700 dark:text-red-300 mt-2">
+              {subscription?.blockedReason || 'Contacta soporte para más información.'}
+            </p>
+            <Button asChild variant="outline" className="mt-4">
+              <Link href="/support">Contactar soporte</Link>
+            </Button>
+          </div>
+        )}
+
+        {!blocked && noGigs && (
+          <div className="rounded-2xl border border-dashed border-orange-300 p-8 text-center">
+            <h2 className="text-xl font-semibold">Publica tu primer servicio</h2>
+            <p className="text-muted-foreground mt-2 mb-6">
+              Necesitas al menos un gig activo para generar contenido de marketing.
+            </p>
+            <Button asChild className="bg-orange-600 hover:bg-orange-700">
+              <Link href="/create-gig">Crear mi servicio</Link>
+            </Button>
+          </div>
+        )}
+
+        {!blocked && !noGigs && (
+          <div className="bg-card border-2 border-orange-500/30 rounded-2xl p-6 space-y-5">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-orange-500" />
+              Generador de contenido
+            </h2>
+
+            {atLimit && (
+              <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-300 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+                Has alcanzado el límite gratuito este mes. Mejora a Pro para seguir generando.
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              {QUICK_GOALS.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => void generate(g)}
+                  disabled={generating || atLimit}
+                  className="text-sm px-3 py-1.5 rounded-full border border-border hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition"
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Servicio a promocionar</label>
+                <select
+                  value={selectedGigId}
+                  onChange={(e) => setSelectedGigId(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Todos mis servicios</option>
+                  {gigs.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Tono</label>
+                <select
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                >
+                  {TONES.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Objetivo</label>
+              <Input
+                value={goal}
+                onChange={(e) => setGoal(e.target.value)}
+                placeholder="Ej: Conseguir más clientes por WhatsApp esta semana"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Instrucciones extra (opcional)</label>
+              <Textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                rows={2}
+                placeholder="Menciona tu zona, horarios, especialidad..."
+                className="mt-1"
+              />
+            </div>
+
+            <Button
+              onClick={() => void generate()}
+              disabled={generating || atLimit}
+              className="bg-orange-600 hover:bg-orange-700 gap-2"
+            >
+              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Generar contenido
+            </Button>
+          </div>
+        )}
+
+        {content && (
+          <div className="bg-card border rounded-2xl p-6 space-y-4">
+            <div className="flex flex-wrap gap-2 border-b border-border pb-3">
+              {(
+                [
+                  ['instagram', 'Instagram', Instagram],
+                  ['whatsapp', 'WhatsApp', MessageCircle],
+                  ['downloads', 'Descargas', Download],
+                  ['tips', 'Consejos', Lightbulb],
+                ] as const
+              ).map(([key, label, Icon]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setActiveTab(key)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition ${
+                    activeTab === key
+                      ? 'bg-orange-600 text-white'
+                      : 'border border-border hover:bg-muted'
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {activeTab === 'instagram' && (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium flex items-center gap-2">
+                    <Instagram className="h-4 w-4" /> Instagram
+                  </span>
+                  <Button size="sm" variant="ghost" onClick={() => copyText(content.social.instagram, 'Instagram')}>
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded-xl p-4">{content.social.instagram}</p>
+              </div>
+            )}
+
+            {activeTab === 'whatsapp' && (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                  </span>
+                  <Button size="sm" variant="ghost" onClick={() => copyText(content.social.whatsapp, 'WhatsApp')}>
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded-xl p-4">{content.social.whatsapp}</p>
+              </div>
+            )}
+
+            {activeTab === 'downloads' && brandCardUrls && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {(
+                  [
+                    ['feed', 'Imagen feed (1080×1080)', brandCardUrls.feed],
+                    ['story', 'Imagen story (1080×1920)', brandCardUrls.story],
+                  ] as const
+                ).map(([key, label, url]) => (
+                  <div key={key} className="space-y-3">
+                    <p className="font-medium flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4" />
+                      {label}
+                    </p>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt={label}
+                      className="w-full rounded-xl border border-border shadow-sm"
+                    />
+                    <Button asChild variant="outline" size="sm" className="w-full gap-2">
+                      <a href={url} download={`oigagig-marketing-${key}.png`} target="_blank" rel="noreferrer">
+                        <Download className="h-4 w-4" />
+                        Descargar con marca
+                      </a>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeTab === 'tips' && (
+              <div className="space-y-4 text-sm">
+                <div>
+                  <p className="font-medium flex items-center gap-2 mb-2">
+                    <Clock className="h-4 w-4" /> Mejores horarios
+                  </p>
+                  <p className="text-muted-foreground">{content.bestTimes}</p>
+                </div>
+                <div>
+                  <p className="font-medium mb-2">{content.postingTips}</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {content.hashtags.map((h) => (
+                    <span key={h} className="text-xs px-2 py-0.5 bg-muted rounded-full">
+                      {h}
+                    </span>
+                  ))}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="ml-auto"
+                    onClick={() => copyText(content.hashtags.join(' '), 'Hashtags')}
+                  >
+                    Copiar hashtags
+                  </Button>
+                </div>
+                {content.visualPrompts.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="font-medium">Prompts visuales (con marca OigaGig)</p>
+                    {content.visualPrompts.map((p, i) => (
+                      <p key={i} className="text-xs font-mono bg-muted p-3 rounded-lg">
+                        {p}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

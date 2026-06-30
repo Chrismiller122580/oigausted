@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { logAuditEvent } from '@/lib/audit'
 import { devLog } from '@/lib/utils'
 import { confirmWompiPayment } from '@/lib/server/confirm-wompi-payment'
+import { activateProSubscription } from '@/lib/seller-marketing-access'
 import {
   verifyWompiSignature,
   verifyWompiSignatureDetailed,
@@ -166,6 +167,39 @@ export async function POST(request: Request) {
     // Handle different transaction statuses
     if (event === 'transaction.updated') {
       const reference = transaction.reference
+
+      // Seller Marketing Studio Pro subscription (MKT-{userIdPrefix}-{timestamp})
+      if (reference?.startsWith('MKT-') && transaction.status === 'APPROVED') {
+        const parts = reference.split('-');
+        const userPrefix = parts[1];
+        if (userPrefix) {
+          try {
+            const seller = await prisma.user.findFirst({
+              where: { id: { startsWith: userPrefix } },
+              select: { id: true, role: true },
+            });
+            if (seller && (seller.role === 'seller' || seller.role === 'admin')) {
+              await activateProSubscription(seller.id, reference);
+              await logAuditEvent({
+                adminId: null,
+                action: 'MARKETING_STUDIO_PRO_ACTIVATED',
+                targetType: 'User',
+                targetId: seller.id,
+                details: {
+                  reference,
+                  wompiTransactionId: transaction.id,
+                  amount_in_cents: transaction.amount_in_cents,
+                },
+              });
+              devLog(`[Wompi][Webhook] Marketing Studio Pro activated for ${seller.id}`);
+            }
+          } catch (mktErr) {
+            devLog('[Wompi][Webhook] MKT subscription activation failed', mktErr);
+          }
+        }
+        return NextResponse.json({ received: true, marketingStudio: true });
+      }
+
       const orderId = reference?.replace('order_', '')
 
       if (!orderId) {

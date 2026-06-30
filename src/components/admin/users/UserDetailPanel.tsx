@@ -7,7 +7,9 @@ import {
   Pencil,
   Trash2,
   UserCog,
+  Sparkles,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -59,11 +61,44 @@ export function UserDetailPanel({
   const [role, setRole] = useState(user.role);
   const [staffRole, setStaffRole] = useState(user.staffRole || '');
   const [savingRole, setSavingRole] = useState(false);
+  const [marketingEnabled, setMarketingEnabled] = useState(true);
+  const [marketingOverride, setMarketingOverride] = useState('auto');
+  const [marketingNote, setMarketingNote] = useState('');
+  const [marketingUsage, setMarketingUsage] = useState<string>('');
+  const [savingMarketing, setSavingMarketing] = useState(false);
+  const [loadingMarketing, setLoadingMarketing] = useState(false);
 
   useEffect(() => {
     setRole(user.role);
     setStaffRole(user.staffRole || '');
   }, [user.id, user.role, user.staffRole]);
+
+  useEffect(() => {
+    if (user.role !== 'seller' && user.role !== 'admin') return;
+    setLoadingMarketing(true);
+    fetch(`/api/admin/seller-marketing?userId=${encodeURIComponent(user.id)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        const sub = data.subscription;
+        const access = data.access;
+        setMarketingEnabled(sub?.enabled !== false);
+        setMarketingOverride(sub?.adminOverride || 'auto');
+        setMarketingNote(sub?.adminNote || '');
+        if (access) {
+          const used = access.usedThisMonth ?? 0;
+          const limit = access.limit;
+          const tier = access.effectiveTier ?? 'free';
+          setMarketingUsage(
+            access.isUnlimited || limit == null
+              ? `Pro · ilimitado (${tier})`
+              : `${used}/${limit} este mes · ${tier}`,
+          );
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMarketing(false));
+  }, [user.id, user.role]);
 
   const roleDirty = role !== user.role || (staffRole || null) !== (user.staffRole || null);
   const isSelf = user.id === currentUserId;
@@ -85,6 +120,34 @@ export function UserDetailPanel({
       await onSaveRole(user.id, role, staffRole || null);
     } finally {
       setSavingRole(false);
+    }
+  };
+
+  const handleSaveMarketing = async () => {
+    setSavingMarketing(true);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          marketingStudio: {
+            enabled: marketingEnabled,
+            adminOverride: marketingOverride === 'auto' ? null : marketingOverride,
+            adminNote: marketingNote || null,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Error guardando Marketing Studio');
+        return;
+      }
+      toast.success('Marketing Studio actualizado');
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setSavingMarketing(false);
     }
   };
 
@@ -204,6 +267,61 @@ export function UserDetailPanel({
             </div>
           )}
         </div>
+
+        {(user.role === 'seller' || user.role === 'admin') && (
+          <div className="space-y-3 mb-5 p-4 rounded-xl border border-orange-200/60 bg-orange-50/30 dark:bg-orange-950/20">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-orange-500" />
+              Marketing Studio
+            </p>
+            {loadingMarketing ? (
+              <p className="text-sm text-muted-foreground">Cargando...</p>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">{marketingUsage || 'Sin datos de uso'}</p>
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="text-sm">Habilitado</Label>
+                  <input
+                    type="checkbox"
+                    checked={marketingEnabled}
+                    onChange={(e) => setMarketingEnabled(e.target.checked)}
+                    className="h-4 w-4 accent-orange-600"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Override de plan</Label>
+                  <select
+                    value={marketingOverride}
+                    onChange={(e) => setMarketingOverride(e.target.value)}
+                    className="w-full mt-1 bg-background border border-border rounded px-3 py-2 text-sm"
+                  >
+                    <option value="auto">Automático (suscripción / gratis)</option>
+                    <option value="pro">Forzar Pro</option>
+                    <option value="free">Forzar Free</option>
+                    <option value="blocked">Bloquear</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs">Nota admin (opcional)</Label>
+                  <input
+                    value={marketingNote}
+                    onChange={(e) => setMarketingNote(e.target.value)}
+                    className="w-full mt-1 bg-background border border-border rounded px-3 py-2 text-sm"
+                    placeholder="Motivo del override..."
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => void handleSaveMarketing()}
+                  disabled={savingMarketing}
+                  className="w-full bg-orange-600 hover:bg-orange-700"
+                >
+                  {savingMarketing ? 'Guardando...' : 'Guardar Marketing Studio'}
+                </Button>
+              </>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2 mb-5">
           {user.role === 'seller' && (

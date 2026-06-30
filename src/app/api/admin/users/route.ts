@@ -109,7 +109,8 @@ export async function PATCH(req: NextRequest) {
       bio,
       nit,
       isActive,
-      customReferralRate 
+      customReferralRate,
+      marketingStudio,
     } = await req.json();
 
     if (!userId) {
@@ -213,6 +214,49 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
+    let marketingSubscriptionResult = null;
+    if (marketingStudio && typeof marketingStudio === 'object') {
+      const targetUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+      if (targetUser?.role === 'seller' || targetUser?.role === 'admin') {
+        const ms = marketingStudio as {
+          enabled?: boolean;
+          adminOverride?: string | null;
+          adminNote?: string | null;
+        };
+        const overrideVal =
+          ms.adminOverride === '' || ms.adminOverride === 'auto' || ms.adminOverride === null
+            ? null
+            : ms.adminOverride;
+        const validOverrides = new Set(['pro', 'free', 'blocked', null]);
+        if (overrideVal !== undefined && !validOverrides.has(overrideVal as null)) {
+          return NextResponse.json({ error: 'adminOverride no válido' }, { status: 400 });
+        }
+        try {
+          marketingSubscriptionResult = await prisma.sellerMarketingSubscription.upsert({
+            where: { userId },
+            create: {
+              userId,
+              enabled: ms.enabled ?? true,
+              adminOverride: overrideVal ?? null,
+              adminNote: ms.adminNote ?? null,
+              updatedByAdminId: session.user.id,
+            },
+            update: {
+              ...(ms.enabled !== undefined && { enabled: ms.enabled }),
+              ...(overrideVal !== undefined && { adminOverride: overrideVal }),
+              ...(ms.adminNote !== undefined && { adminNote: ms.adminNote }),
+              updatedByAdminId: session.user.id,
+            },
+          });
+        } catch (subErr) {
+          devLog('Marketing subscription upsert failed (table may be missing):', subErr);
+        }
+      }
+    }
+
     let updated;
     try {
       updated = await prisma.user.update({
@@ -268,7 +312,8 @@ export async function PATCH(req: NextRequest) {
 
     // Choose more specific action when possible (matches schema examples + better filtering on audit page)
     let action = 'USER_UPDATED';
-    if (role || staffRole !== undefined) action = 'USER_ROLE_CHANGED';
+    if (marketingSubscriptionResult) action = 'MARKETING_STUDIO_ADMIN_UPDATE';
+    else if (role || staffRole !== undefined) action = 'USER_ROLE_CHANGED';
     else if (isActive !== undefined) action = isActive ? 'USER_ACTIVATED' : 'USER_DEACTIVATED';
     else if (customReferralRate !== undefined) action = 'USER_REFERRAL_RATE_UPDATED';
 
@@ -312,7 +357,11 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, user: updated });
+    return NextResponse.json({
+      success: true,
+      user: updated,
+      marketingSubscription: marketingSubscriptionResult,
+    });
   } catch (error) {
     devLog('Admin user update error:', error);
     return NextResponse.json({ error: 'Error actualizando usuario' }, { status: 500 });

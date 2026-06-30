@@ -128,6 +128,10 @@ model User {
   buyerInquiries        InquiryThread[]  @relation("BuyerInquiries")
   sellerInquiries       InquiryThread[]  @relation("SellerInquiries")
   contactViolations     ContactViolation[]
+
+  // Seller AI Marketing Studio
+  marketingSubscription SellerMarketingSubscription?
+  marketingGenerations  SellerMarketingGeneration[]
 }
 
 model PasswordResetToken {
@@ -429,6 +433,10 @@ model PlatformConfig {
   // Tutorials & Onboarding (admin can globally enable/disable auto + manual training flows)
   tutorialsEnabled Boolean @default(true)
 
+  // Seller AI Marketing Studio (freemium)
+  marketingStudioProPriceCOP       Int @default(29900)
+  marketingStudioFreeMonthlyLimit  Int @default(3)
+
   updatedAt               DateTime @updatedAt
 }
 
@@ -473,6 +481,35 @@ model SupportTicket {
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+}
+
+model SellerMarketingSubscription {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier             String    @default("free") // free | pro
+  expiresAt        DateTime?
+  wompiReference   String?
+  enabled          Boolean   @default(true)
+  adminOverride    String?   // null | pro | free | blocked
+  adminNote        String?
+  updatedByAdminId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([tier])
+  @@index([expiresAt])
+}
+
+model SellerMarketingGeneration {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gigId     String?
+  channel   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model MarketingCampaign {

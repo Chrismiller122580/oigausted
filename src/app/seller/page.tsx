@@ -6,7 +6,7 @@ import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { DollarSign, Package, Star, Plus, TrendingUp, Users, Link2 } from 'lucide-react';
+import { DollarSign, Package, Star, Plus, TrendingUp, Users, Link2, Sparkles } from 'lucide-react';
 import OnboardingTutorial from '@/components/common/OnboardingTutorial';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 import { getOrderStatusDisplayEs, OrderStatusLabel } from '@/lib/order-status';
@@ -111,6 +111,21 @@ export default function SellerDashboard() {
               <Link href="/seller/profile">
                 <Button size="sm" variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-100">
                   Ver y compartir mi enlace público
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-rose-50 to-white dark:from-rose-950/30 border-rose-200 dark:border-rose-900/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300 font-semibold mb-2">
+                <Sparkles size={18} /> Marketing IA
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Genera posts para Instagram y WhatsApp con tu tienda OigaGig y descargas con marca.
+              </p>
+              <Link href="/seller/marketing">
+                <Button size="sm" variant="outline" className="border-rose-300 text-rose-700 hover:bg-rose-100 dark:hover:bg-rose-950/50">
+                  Abrir Estudio de Marketing
                 </Button>
               </Link>
             </CardContent>
