@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { rm } from 'node:fs/promises';
 import fs from 'fs';
 import path from 'path';
-import type { Browser } from 'playwright-core';
+import type { Browser, BrowserContext, BrowserContextOptions } from 'playwright-core';
 import playwrightBrowsersManifest from '@/lib/userlens/playwright-browsers.json';
 
 export const USERLENS_DEBUG_PORT = 9222;
@@ -202,8 +202,15 @@ function attachUserDataCleanup(browser: Browser, userDataDir: string): Browser {
   return browser;
 }
 
+export type UserLensBrowserSession = {
+  browser: Browser;
+  context: BrowserContext;
+};
+
 /** Launch Chromium for UserLens — bundled bin or chromium-pack.tar on Vercel, local Playwright elsewhere. */
-export async function launchUserLensBrowser(): Promise<Browser> {
+export async function launchUserLensBrowser(
+  contextOptions: BrowserContextOptions,
+): Promise<UserLensBrowserSession> {
   ensurePlaywrightBrowsersJson();
   const { chromium } = await import('playwright-core');
 
@@ -212,19 +219,26 @@ export async function launchUserLensBrowser(): Promise<Browser> {
     const userDataDir = `/tmp/pw-${randomUUID()}`;
 
     try {
-      const browser = await chromium.launch({
+      // Playwright 1.59+ rejects --user-data-dir on launch(); use persistent context instead.
+      const context = await chromium.launchPersistentContext(userDataDir, {
+        ...contextOptions,
         args: [
           ...args,
           `--remote-debugging-port=${USERLENS_DEBUG_PORT}`,
           '--disable-dev-shm-usage',
-          `--user-data-dir=${userDataDir}`,
         ],
         executablePath,
         headless: true,
         timeout: 30_000,
       });
 
-      return attachUserDataCleanup(browser, userDataDir);
+      const browser = context.browser();
+      if (!browser) {
+        await context.close();
+        throw new Error('browserType.launch: persistent context did not expose a browser instance');
+      }
+
+      return { browser: attachUserDataCleanup(browser, userDataDir), context };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       throw new Error(`browserType.launch: ${message} (executable: ${executablePath})`);
@@ -233,20 +247,24 @@ export async function launchUserLensBrowser(): Promise<Browser> {
 
   let primaryError: unknown;
   try {
-    return await chromium.launch({
+    const browser = await chromium.launch({
       headless: true,
       args: LOCAL_CHROMIUM_ARGS,
     });
+    const context = await browser.newContext(contextOptions);
+    return { browser, context };
   } catch (err) {
     primaryError = err;
   }
 
   try {
     const { chromium: bundledChromium } = await import('playwright');
-    return await bundledChromium.launch({
+    const browser = await bundledChromium.launch({
       headless: true,
       args: LOCAL_CHROMIUM_ARGS,
     });
+    const context = await browser.newContext(contextOptions);
+    return { browser, context };
   } catch (fallbackErr) {
     const primary =
       primaryError instanceof Error ? primaryError.message : String(primaryError ?? 'unknown');

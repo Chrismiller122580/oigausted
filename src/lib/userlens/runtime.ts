@@ -108,7 +108,8 @@ export function classifyUserLensScanError(err: unknown): {
     lower.includes('spawn enoent') ||
     lower.includes('no browser binary found') ||
     lower.includes('failed to load chromium') ||
-    lower.includes('playwright browsers are not installed');
+    lower.includes('playwright browsers are not installed') ||
+    lower.includes('userdata dir parameter');
 
   if (isBrowserLaunch) {
     const onVercel = process.env.VERCEL === '1';

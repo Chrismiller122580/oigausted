@@ -110,18 +110,17 @@ export async function runUserLensScan(
   }
 
   const axeSource = await getAxeSource();
-  const browser = await launchUserLensBrowser();
+  const { browser, context } = await launchUserLensBrowser({
+    viewport: VIEWPORTS[viewport],
+    // Allow injecting axe-core on sites with strict CSP (e.g. github.com)
+    bypassCSP: true,
+    userAgent:
+      viewport === 'mobile'
+        ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+        : undefined,
+  });
 
   try {
-    const context = await browser.newContext({
-      viewport: VIEWPORTS[viewport],
-      // Allow injecting axe-core on sites with strict CSP (e.g. github.com)
-      bypassCSP: true,
-      userAgent:
-        viewport === 'mobile'
-          ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
-          : undefined,
-    });
 
     // Skip first-visit overlays so audits measure page content, not modals/banners.
     await context.addInitScript(() => {
