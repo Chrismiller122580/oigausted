@@ -6,12 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { 
-  Sparkles, Copy, Send, Target, Users, Instagram, Facebook, 
+  Sparkles, Copy, Send, Users, Instagram, Facebook, 
   Twitter, MessageCircle, Image as ImageIcon, Clock, TrendingUp,
-  RefreshCw, Check, Megaphone
+  RefreshCw, X, Mail
 } from 'lucide-react';
 import type { GeneratedCampaign } from '@/lib/marketing-campaign-types';
 import { normalizeGeneratedCampaign } from '@/lib/marketing-campaign-types';
+import { mapRecommendedSegment } from '@/lib/marketing-segment-map';
 
 interface AudienceUser {
   id: string;
@@ -22,7 +23,10 @@ interface AudienceUser {
   city: string | null;
   isActive: boolean;
   createdAt: string;
+  emailReachable?: boolean;
 }
+
+type RecipientMode = 'segment' | 'user';
 
 interface Campaign {
   id: string;
@@ -54,11 +58,11 @@ const CHANNEL_OPTIONS = [
 const TONES = ['cercano y confiable', 'profesional', 'urgente pero honesto', 'amigable y local', 'inspirador', 'directo y claro'];
 
 const SEGMENTS = [
-  { value: 'all', label: 'All active users' },
-  { value: 'buyers', label: 'Buyers only' },
-  { value: 'sellers', label: 'Sellers only' },
-  { value: 'active', label: 'Active accounts only' },
-  { value: 'inactive', label: 'Inactive accounts' },
+  { value: 'all', label: 'Todos los usuarios activos' },
+  { value: 'buyers', label: 'Solo compradores' },
+  { value: 'sellers', label: 'Solo vendedores' },
+  { value: 'active', label: 'Activos últimos 30 días' },
+  { value: 'inactive', label: 'Cuentas inactivas' },
 ];
 
 export default function AdminMarketingPage() {
@@ -67,7 +71,13 @@ export default function AdminMarketingPage() {
   const [message, setMessage] = useState('');
   const [segment, setSegment] = useState('all');
   const [cityFilter, setCityFilter] = useState('');
+  const [recipientMode, setRecipientMode] = useState<RecipientMode>('segment');
+  const [selectedUser, setSelectedUser] = useState<AudienceUser | null>(null);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerResults, setPickerResults] = useState<AudienceUser[]>([]);
+  const [pickerLoading, setPickerLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [polishing, setPolishing] = useState(false);
   const [lastResult, setLastResult] = useState<Record<string, unknown> | null>(null);
 
   // Audience / mailing list
@@ -151,13 +161,51 @@ export default function AdminMarketingPage() {
     void generateWithAI();
   };
 
+  const applyAiSegment = (recommendedSegment?: string, silent = false) => {
+    const text = recommendedSegment ?? generatedCampaign?.recommendedSegment;
+    if (!text) return;
+    const mapped = mapRecommendedSegment(text);
+    setSegment(mapped.segment);
+    if (mapped.city) setCityFilter(mapped.city);
+    if (!silent) {
+      toast.success(`Segmento aplicado: ${mapped.segment}${mapped.city ? ` · ${mapped.city}` : ''}`);
+    }
+  };
+
   const loadAiIntoComposer = () => {
     if (!generatedCampaign) return;
     setSubject(generatedCampaign.email.subject);
     setMessage(generatedCampaign.email.body);
-    toast.success('Email cargado en el compositor');
-    // Scroll to composer
+    applyAiSegment(generatedCampaign.recommendedSegment, true);
+    setRecipientMode('segment');
     document.getElementById('broadcast-composer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    toast.success('Email y segmento cargados en el compositor');
+  };
+
+  const selectUserForSend = (user: AudienceUser) => {
+    setSelectedUser(user);
+    setRecipientMode('user');
+    setPickerSearch('');
+    setPickerResults([]);
+    document.getElementById('broadcast-composer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    toast.success(`Destinatario: ${user.name || user.email}`);
+  };
+
+  const buildBroadcastBody = (extra: { dryRun?: boolean; testOnly?: boolean } = {}) => {
+    const base = {
+      subject: subject.trim(),
+      message: message.trim(),
+      ...extra,
+    };
+    if (extra.testOnly) return base;
+    if (recipientMode === 'user' && selectedUser) {
+      return { ...base, userIds: [selectedUser.id] };
+    }
+    return {
+      ...base,
+      segment,
+      city: cityFilter || undefined,
+    };
   };
 
   const copyText = (text: string, label = 'Texto') => {
@@ -178,11 +226,52 @@ export default function AdminMarketingPage() {
     if (!generatedCampaign) return;
     setRefining(true);
     try {
-      // Re-generate with refinement instruction appended
       const refinementPrompt = `Mejora la campaña anterior siguiendo esta instrucción: ${instruction}. Mantén el mismo objetivo pero hazlo más efectivo.`;
       await generateWithAI(refinementPrompt);
     } finally {
       setRefining(false);
+    }
+  };
+
+  const polishComposerWithAI = async (field: 'subject' | 'message', instruction: string) => {
+    if (!subject.trim() && !message.trim()) {
+      toast.error('Escribe un asunto o mensaje primero');
+      return;
+    }
+    setPolishing(true);
+    try {
+      const context = `Asunto actual: "${subject}"\n\nMensaje actual:\n${message}`;
+      const payload = {
+        goal: aiGoal || 'Mejorar copy de email de marketing',
+        prompt: `${instruction}\n\n${context}`,
+        channels: ['email'],
+        segmentHint: segment,
+        tone: aiTone,
+        language: 'es',
+        variations: 1,
+      };
+
+      const res = await fetch('/api/admin/marketing/ai-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success && data.campaign?.email) {
+        if (field === 'subject' && data.campaign.email.subject) {
+          setSubject(data.campaign.email.subject);
+        }
+        if (field === 'message' && data.campaign.email.body) {
+          setMessage(data.campaign.email.body);
+        }
+        toast.success(field === 'subject' ? 'Asunto mejorado' : 'Mensaje mejorado');
+      } else {
+        toast.error('No se pudo mejorar el texto');
+      }
+    } catch {
+      toast.error('Error conectando con la IA');
+    } finally {
+      setPolishing(false);
     }
   };
 
@@ -243,7 +332,6 @@ export default function AdminMarketingPage() {
     }
   };
 
-  // Refresh audience when filters change
   useEffect(() => {
     const t = setTimeout(() => {
       fetchAudience(true);
@@ -252,41 +340,66 @@ export default function AdminMarketingPage() {
   }, [segment, cityFilter, audienceSearch]);
 
   useEffect(() => {
+    if (recipientMode !== 'user') return;
+    if (!pickerSearch.trim()) {
+      setPickerResults([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      setPickerLoading(true);
+      try {
+        const params = new URLSearchParams();
+        params.set('segment', 'all');
+        params.set('search', pickerSearch.trim());
+        params.set('limit', '10');
+        const res = await fetch(`/api/admin/marketing/audience?${params.toString()}`);
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) setPickerResults(data.sample || []);
+      } finally {
+        setPickerLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [pickerSearch, recipientMode]);
+
+  useEffect(() => {
+    setDryRunResult(null);
+  }, [segment, cityFilter, recipientMode, selectedUser?.id]);
+
+  useEffect(() => {
     fetchHistory();
   }, []);
 
   const runDryRun = async () => {
     if (!subject.trim() || !message.trim()) {
-      toast.error('Add a subject and message first');
+      toast.error('Agrega asunto y mensaje primero');
+      return;
+    }
+    if (recipientMode === 'user' && !selectedUser) {
+      toast.error('Selecciona un usuario destinatario');
       return;
     }
     try {
       const res = await fetch('/api/admin/marketing/broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject: subject.trim(),
-          message: message.trim(),
-          segment,
-          city: cityFilter || undefined,
-          dryRun: true,
-        }),
+        body: JSON.stringify(buildBroadcastBody({ dryRun: true })),
       });
       const data = await res.json();
       if (res.ok) {
         setDryRunResult(data);
-        toast.success(`Dry run: ${data.recipientCount} recipients would receive this`);
+        toast.success(`Simulación: ${data.recipientCount} destinatario(s)`);
       } else {
-        toast.error(data.error || 'Dry run failed');
+        toast.error(data.error || 'La simulación falló');
       }
-    } catch (e) {
-      toast.error('Request failed');
+    } catch {
+      toast.error('Error en la solicitud');
     }
   };
 
   const sendTest = async () => {
     if (!subject.trim() || !message.trim()) {
-      toast.error('Subject and message required');
+      toast.error('Asunto y mensaje son obligatorios');
       return;
     }
     setSending(true);
@@ -294,22 +407,18 @@ export default function AdminMarketingPage() {
       const res = await fetch('/api/admin/marketing/broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject: subject.trim(),
-          message: message.trim(),
-          testOnly: true,
-        }),
+        body: JSON.stringify(buildBroadcastBody({ testOnly: true })),
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success(data.message || 'Test email sent to you');
+        toast.success(data.message || 'Correo de prueba enviado');
         setLastResult(data);
         fetchHistory();
       } else {
-        toast.error(data.error || 'Test send failed');
+        toast.error(data.error || 'El envío de prueba falló');
       }
-    } catch (e) {
-      toast.error('Send failed');
+    } catch {
+      toast.error('Error al enviar');
     } finally {
       setSending(false);
     }
@@ -317,42 +426,48 @@ export default function AdminMarketingPage() {
 
   const sendBroadcast = async () => {
     if (!subject.trim() || !message.trim()) {
-      toast.error('Subject and message are required');
+      toast.error('Asunto y mensaje son obligatorios');
+      return;
+    }
+    if (recipientMode === 'user' && !selectedUser) {
+      toast.error('Selecciona un usuario destinatario');
       return;
     }
 
-    const targetCount = dryRunResult?.recipientCount ?? audienceReachable ?? audienceTotal;
+    const isSingleUser = recipientMode === 'user' && selectedUser;
+    const targetCount = isSingleUser
+      ? (dryRunResult?.recipientCount ?? (selectedUser.emailReachable === false ? 0 : 1))
+      : (dryRunResult?.recipientCount ?? audienceReachable ?? audienceTotal);
 
-    if (!confirm(`Send this message to approximately ${targetCount} users?\n\nSegment: ${segment}${cityFilter ? ' • City: ' + cityFilter : ''}\n\nThis action is logged and respects user email + marketing preferences.`)) {
-      return;
-    }
+    const confirmMsg = isSingleUser
+      ? `¿Enviar este mensaje a ${selectedUser.name || 'usuario'} (${selectedUser.email})?\n\nSe respeta preferencias de email y marketing.`
+      : `¿Enviar este mensaje a aproximadamente ${targetCount} usuarios?\n\nSegmento: ${segment}${cityFilter ? ' · Ciudad: ' + cityFilter : ''}\n\nSe registra en auditoría y respeta preferencias de email.`;
+
+    if (!confirm(confirmMsg)) return;
 
     setSending(true);
     try {
       const res = await fetch('/api/admin/marketing/broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject: subject.trim(),
-          message: message.trim(),
-          segment,
-          city: cityFilter || undefined,
-        }),
+        body: JSON.stringify(buildBroadcastBody()),
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success(data.message || `Broadcast sent to ${data.sent} users`);
+        toast.success(data.message || `Enviado a ${data.sent} destinatario(s)`);
         setLastResult(data);
-        setSubject('');
-        setMessage('');
+        if (!isSingleUser) {
+          setSubject('');
+          setMessage('');
+        }
         setDryRunResult(null);
         fetchHistory();
         fetchAudience(true);
       } else {
-        toast.error(data.error || 'Broadcast failed');
+        toast.error(data.error || 'El envío falló');
       }
-    } catch (e) {
-      toast.error('Network error while sending');
+    } catch {
+      toast.error('Error de red al enviar');
     } finally {
       setSending(false);
     }
@@ -360,7 +475,7 @@ export default function AdminMarketingPage() {
 
   const exportAudienceCSV = () => {
     if (audience.length === 0) {
-      toast.error('No audience data to export');
+      toast.error('No hay datos de audiencia para exportar');
       return;
     }
     const headers = ['ID', 'Name', 'Email', 'Role', 'Business', 'City', 'Active', 'Joined'];
@@ -387,7 +502,7 @@ export default function AdminMarketingPage() {
     a.download = `marketing-audience-${segment}${cityFilter ? '-' + cityFilter : ''}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('Exported audience CSV');
+    toast.success('Muestra CSV exportada');
   };
 
   const presetMessage = (type: string) => {
@@ -704,31 +819,95 @@ export default function AdminMarketingPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Composer */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Segmento</label>
-              {generatedCampaign && (
-                <Button size="sm" variant="ghost" onClick={() => {
-                  // Try to give a hint
-                  toast.info(`IA recomienda: ${generatedCampaign.recommendedSegment}`);
-                }}>Ver recomendación IA</Button>
-              )}
-            </div>
-            <select value={segment} onChange={(e) => setSegment(e.target.value)} className="w-full border border-border bg-background rounded-lg px-3 py-2 text-sm">
-              {SEGMENTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-            </select>
+        <div className="mb-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => { setRecipientMode('segment'); setSelectedUser(null); }}
+            className={`text-sm px-4 py-2 rounded-full border transition ${recipientMode === 'segment' ? 'bg-orange-600 text-white border-orange-600' : 'border-border hover:bg-muted'}`}
+          >
+            Por segmento
+          </button>
+          <button
+            type="button"
+            onClick={() => setRecipientMode('user')}
+            className={`text-sm px-4 py-2 rounded-full border transition ${recipientMode === 'user' ? 'bg-orange-600 text-white border-orange-600' : 'border-border hover:bg-muted'}`}
+          >
+            Usuario específico
+          </button>
+        </div>
 
-            <div>
-              <label className="text-sm font-medium">Filtro por ciudad (opcional)</label>
-              <Input value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} placeholder="Bucaramanga, Floridablanca..." />
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            {recipientMode === 'segment' ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Segmento</label>
+                  {generatedCampaign && (
+                    <Button size="sm" variant="ghost" onClick={() => applyAiSegment()}>
+                      Aplicar segmento IA
+                    </Button>
+                  )}
+                </div>
+                <select value={segment} onChange={(e) => setSegment(e.target.value)} className="w-full border border-border bg-background rounded-lg px-3 py-2 text-sm">
+                  {SEGMENTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
+                <div>
+                  <label className="text-sm font-medium">Filtro por ciudad (opcional)</label>
+                  <Input value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} placeholder="Bucaramanga, Floridablanca..." />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Buscar usuario por nombre o email</label>
+                <Input
+                  value={pickerSearch}
+                  onChange={(e) => setPickerSearch(e.target.value)}
+                  placeholder="email@ejemplo.com o nombre..."
+                />
+                {pickerLoading && <div className="text-xs text-muted-foreground">Buscando...</div>}
+                {pickerResults.length > 0 && !selectedUser && (
+                  <div className="border rounded-lg overflow-hidden bg-background">
+                    {pickerResults.map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => selectUserForSend(u)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 border-b last:border-b-0"
+                      >
+                        <div className="font-medium">{u.name || '—'}</div>
+                        <div className="text-xs text-muted-foreground">{u.email} · {u.role}{u.city ? ` · ${u.city}` : ''}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedUser && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg border bg-muted/30">
+                    <Mail className="h-4 w-4 text-orange-600 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{selectedUser.name || selectedUser.email}</div>
+                      <div className="text-xs text-muted-foreground truncate">{selectedUser.email}</div>
+                    </div>
+                    <button type="button" onClick={() => setSelectedUser(null)} className="p-1 hover:bg-muted rounded">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div>
               <div className="flex justify-between">
                 <label className="text-sm font-medium">Asunto</label>
-                {subject && <Button size="sm" variant="ghost" onClick={() => refineCampaign(`Mejora este asunto actual: "${subject}"`)}><Sparkles className="h-3 w-3 mr-1" /> Pulir con IA</Button>}
+                {subject && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={polishing}
+                    onClick={() => polishComposerWithAI('subject', 'Mejora este asunto para mayor tasa de apertura')}
+                  >
+                    <Sparkles className="h-3 w-3 mr-1" /> Pulir con IA
+                  </Button>
+                )}
               </div>
               <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Asunto potente..." />
             </div>
@@ -736,36 +915,77 @@ export default function AdminMarketingPage() {
             <div>
               <div className="flex justify-between">
                 <label className="text-sm font-medium">Mensaje</label>
-                {message && <Button size="sm" variant="ghost" onClick={() => refineCampaign(`Reescribe y mejora este mensaje: "${message.slice(0,120)}..."`)}><Sparkles className="h-3 w-3 mr-1" /> Mejorar con IA</Button>}
+                {message && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={polishing}
+                    onClick={() => polishComposerWithAI('message', 'Reescribe y mejora este mensaje, más directo y persuasivo')}
+                  >
+                    <Sparkles className="h-3 w-3 mr-1" /> Mejorar con IA
+                  </Button>
+                )}
               </div>
               <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={8} placeholder="Cuerpo del mensaje..." />
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Button onClick={runDryRun} variant="outline" disabled={sending || !subject || !message}>Dry Run</Button>
-              <Button onClick={sendTest} variant="outline" disabled={sending || !subject || !message}>Enviar prueba a mí</Button>
-              <Button onClick={sendBroadcast} disabled={sending || !subject || !message} className="bg-orange-600 hover:bg-orange-700 flex-1 md:flex-none">
-                {sending ? 'Enviando...' : 'Enviar Broadcast'}
+              <Button
+                onClick={runDryRun}
+                variant="outline"
+                disabled={sending || polishing || !subject || !message || (recipientMode === 'user' && !selectedUser)}
+              >
+                Simulación
+              </Button>
+              <Button onClick={sendTest} variant="outline" disabled={sending || polishing || !subject || !message}>
+                Enviar prueba a mí
+              </Button>
+              <Button
+                onClick={sendBroadcast}
+                disabled={sending || polishing || !subject || !message || (recipientMode === 'user' && !selectedUser)}
+                className="bg-orange-600 hover:bg-orange-700 flex-1 md:flex-none"
+              >
+                {sending ? 'Enviando...' : recipientMode === 'user' ? 'Enviar a usuario' : 'Enviar broadcast'}
               </Button>
             </div>
 
-            {dryRunResult && <div className="text-xs p-3 bg-muted rounded border">Dry run: <strong>{String(dryRunResult.recipientCount ?? 0)}</strong> destinatarios para el segmento actual.</div>}
+            {dryRunResult && (
+              <div className="text-xs p-3 bg-muted rounded border">
+                Simulación: <strong>{String(dryRunResult.recipientCount ?? 0)}</strong> destinatario(s).
+                {Array.isArray(dryRunResult.sample) && (dryRunResult.sample as Array<{ email?: string; name?: string }>).length === 1 && (
+                  <span> → {(dryRunResult.sample as Array<{ email?: string; name?: string }>)[0].name || (dryRunResult.sample as Array<{ email?: string }>)[0].email}</span>
+                )}
+              </div>
+            )}
             {lastResult && <div className="text-xs text-green-600">Última acción: {String(lastResult.message ?? '')}</div>}
           </div>
 
-          {/* Audience summary */}
           <div className="border rounded-2xl p-5 bg-background text-sm">
             <div className="font-semibold mb-3 flex items-center gap-2"><Users className="h-4 w-4" /> Audiencia actual (en vivo)</div>
-            <div className="text-5xl font-semibold tabular-nums tracking-tighter">{audienceReachable.toLocaleString()}</div>
-            <div className="text-muted-foreground">alcanzables (email + marketing activado)</div>
-            <div className="text-xs mt-1">Total que coincide con filtros: {audienceTotal.toLocaleString()}</div>
+            {recipientMode === 'user' && selectedUser ? (
+              <>
+                <div className="text-5xl font-semibold tabular-nums tracking-tighter">1</div>
+                <div className="text-muted-foreground">destinatario seleccionado</div>
+                <div className="text-xs mt-2 font-medium">{selectedUser.name || '—'}</div>
+                <div className="text-xs text-muted-foreground">{selectedUser.email}</div>
+                {selectedUser.emailReachable === false && (
+                  <div className="text-xs mt-2 text-amber-600">Este usuario tiene el email desactivado en preferencias.</div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="text-5xl font-semibold tabular-nums tracking-tighter">{audienceReachable.toLocaleString()}</div>
+                <div className="text-muted-foreground">alcanzables (email + marketing activado)</div>
+                <div className="text-xs mt-1">Total que coincide con filtros: {audienceTotal.toLocaleString()}</div>
+              </>
+            )}
 
             <div className="my-4 h-px bg-border" />
 
             <div className="text-xs space-y-1 text-muted-foreground">
-              <div>• Respeta preferencias de email y marketingEmails</div>
-              <div>• Los blasts de marketing omiten quiet hours intencionalmente</div>
-              <div>• Todo queda registrado en Auditoría + MarketingCampaign</div>
+              <div>• Respeta preferencias de email y marketing</div>
+              <div>• Los envíos de marketing omiten quiet hours intencionalmente</div>
+              <div>• Todo queda registrado en Auditoría + historial de campañas</div>
             </div>
           </div>
         </div>
@@ -781,30 +1001,49 @@ export default function AdminMarketingPage() {
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Input placeholder="Buscar nombre, email..." value={audienceSearch} onChange={e => setAudienceSearch(e.target.value)} className="w-full sm:w-60" />
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={exportAudienceCSV}>Exportar CSV</Button>
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={exportAudienceCSV}>Exportar muestra CSV</Button>
               <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => fetchAudience(true)} disabled={audienceLoading}>Actualizar</Button>
             </div>
           </div>
         </div>
 
         <div className="border rounded-2xl overflow-x-auto bg-card">
-          <table className="w-full text-sm min-w-[640px]">
+          <table className="w-full text-sm min-w-[760px]">
             <thead className="bg-muted/60">
               <tr>
                 <th className="p-3 text-left font-medium">Usuario</th>
                 <th className="p-3 text-left font-medium">Email</th>
                 <th className="p-3 text-left font-medium">Rol / Ciudad</th>
+                <th className="p-3 text-left font-medium">Estado</th>
                 <th className="p-3 text-left font-medium">Registrado</th>
+                <th className="p-3 text-left font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {audience.length === 0 && !audienceLoading && <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">No hay usuarios que coincidan.</td></tr>}
+              {audience.length === 0 && !audienceLoading && <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No hay usuarios que coincidan.</td></tr>}
               {audience.map(u => (
-                <tr key={u.id} className="border-t hover:bg-muted/30">
+                <tr
+                  key={u.id}
+                  className={`border-t hover:bg-muted/30 ${selectedUser?.id === u.id ? 'bg-orange-50/50 dark:bg-orange-950/20' : ''}`}
+                >
                   <td className="p-3 font-medium">{u.name || '—'}</td>
                   <td className="p-3">{u.email}</td>
                   <td className="p-3 text-xs">{u.role} {u.city ? `· ${u.city}` : ''}</td>
+                  <td className="p-3">
+                    {!u.email ? (
+                      <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">Sin email</span>
+                    ) : u.emailReachable === false ? (
+                      <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">Opt-out</span>
+                    ) : (
+                      <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200">Alcanzable</span>
+                    )}
+                  </td>
                   <td className="p-3 text-xs text-muted-foreground">{new Date(u.createdAt).toLocaleDateString('es-CO')}</td>
+                  <td className="p-3">
+                    <Button size="sm" variant="outline" onClick={() => selectUserForSend(u)}>
+                      Seleccionar
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminPanelSession } from '@/lib/admin-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import {
   buildAudienceWhere,
   countReachableAudience,
   isNotificationPreferenceDrift,
+  isUserEmailReachable,
 } from '@/lib/marketing-audience';
 
 export async function GET(req: NextRequest) {
@@ -43,10 +43,28 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
+    type SampleUser = (typeof sample)[number];
+    const sampleIds = sample.map((u: SampleUser) => u.id);
+    let prefMap = new Map<string, { emailEnabled: boolean }>();
+
+    if (sampleIds.length > 0) {
+      try {
+        const prefs = await prisma.notificationPreference.findMany({
+          where: { userId: { in: sampleIds } },
+          select: { userId: true, emailEnabled: true },
+        });
+        prefMap = new Map(
+          prefs.map((p: { userId: string; emailEnabled: boolean }) => [p.userId, p]),
+        );
+      } catch (err) {
+        if (!isNotificationPreferenceDrift(err)) throw err;
+      }
+    }
+
     return NextResponse.json({
       total,
       reachable,
-      sample: sample.map((u: (typeof sample)[number]) => ({
+      sample: sample.map((u: SampleUser) => ({
         id: u.id,
         name: u.name,
         email: u.email,
@@ -55,6 +73,7 @@ export async function GET(req: NextRequest) {
         city: u.city,
         isActive: u.isActive,
         createdAt: u.createdAt,
+        emailReachable: isUserEmailReachable(u, prefMap.get(u.id)),
       })),
       segment,
       filters: { city, search },

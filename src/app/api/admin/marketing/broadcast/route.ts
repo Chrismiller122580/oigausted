@@ -1,21 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminPanelSession } from '@/lib/admin-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { notifications } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
 import {
   buildAudienceWhere,
+  formatBroadcastSegment,
   isMissingMarketingCampaignTable,
+  resolveMarketingRecipients,
 } from '@/lib/marketing-audience';
 
 interface BroadcastBody {
   subject: string;
   message: string;
-  segment?: string; // all | buyers | sellers | active | inactive | city:xxx
+  segment?: string;
   city?: string;
+  userIds?: string[];
   dryRun?: boolean;
-  testOnly?: boolean; // send only to the current admin for preview
+  testOnly?: boolean;
 }
 
 function parseSegment(segment: string | undefined, city?: string) {
@@ -28,9 +30,9 @@ function parseSegment(segment: string | undefined, city?: string) {
 
 export async function POST(req: NextRequest) {
   const session = await requireAdminPanelSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
 
   const adminId = session.user.id;
   const adminEmail = session.user.email;
@@ -42,81 +44,78 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { subject, message, segment = 'all', city, dryRun = false, testOnly = false } = body;
+  const {
+    subject,
+    message,
+    segment = 'all',
+    city,
+    userIds,
+    dryRun = false,
+    testOnly = false,
+  } = body;
 
   if (!subject || !message) {
     return NextResponse.json({ error: 'subject and message are required' }, { status: 400 });
+  }
+
+  if (userIds && userIds.length === 0) {
+    return NextResponse.json({ error: 'userIds must not be empty' }, { status: 400 });
   }
 
   const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
   const userAgent = req.headers.get('user-agent') || null;
 
   try {
-    let recipients: Array<{ id: string; email: string | null; name: string | null }> = [];
+    let recipients: Awaited<ReturnType<typeof resolveMarketingRecipients>> = [];
 
     if (testOnly) {
-      // Send a test only to the admin themselves
-      const me = await prisma.user.findUnique({ where: { id: adminId }, select: { id: true, email: true, name: true } });
+      const me = await prisma.user.findUnique({
+        where: { id: adminId },
+        select: { id: true, email: true, name: true },
+      });
       if (me?.email) recipients = [me];
+    } else if (userIds && userIds.length > 0) {
+      recipients = await resolveMarketingRecipients({ userIds });
     } else {
       const where = parseSegment(segment, city);
-
-      // Base audience: active + has email
-      const baseUsers = await prisma.user.findMany({
-        where,
-        select: { id: true, email: true, name: true },
-        orderBy: { createdAt: 'desc' },
-        take: 5000, // safety cap for now
-      });
-
-      // Filter further by email + marketing preference (defensive: missing pref row = allowed)
-      // IMPORTANT: select only columns guaranteed to exist (omit marketingEmails) to survive prod DB drift.
-      // We default-allow marketing (as per schema @default(true)) when we cannot read the flag.
-      const userIds = baseUsers.map((u: { id: string }) => u.id);
-
-      const prefs = await prisma.notificationPreference.findMany({
-        where: { userId: { in: userIds } },
-        select: { userId: true, emailEnabled: true },
-      });
-
-      const prefMap = new Map<string, { userId: string; emailEnabled: boolean }>(
-        prefs.map((p: { userId: string; emailEnabled: boolean }) => [p.userId, p])
-      );
-
-      recipients = baseUsers.filter((u: { id: string; email: string | null }) => {
-        if (!u.email) return false;
-        const p = prefMap.get(u.id);
-        if (!p) return true; // no prefs row yet → default allow
-        if (p.emailEnabled === false) return false;
-        // marketingEmails not selected (drift protection); default to allowed
-        return true;
-      });
+      recipients = await resolveMarketingRecipients({ where });
     }
 
     const recipientCount = recipients.length;
+    const historySegment = formatBroadcastSegment({
+      testOnly,
+      userIds,
+      recipients,
+      segment,
+      city,
+    });
 
     if (dryRun) {
       return NextResponse.json({
         dryRun: true,
         recipientCount,
-        sample: recipients.slice(0, 10).map(r => ({ id: r.id, email: r.email, name: r.name })),
-        segment,
+        sample: recipients.slice(0, 10).map((r) => ({ id: r.id, email: r.email, name: r.name })),
+        segment: historySegment,
         city: city || null,
+        userIds: userIds || null,
       });
     }
 
     if (recipientCount === 0) {
-      return NextResponse.json({ success: true, sent: 0, message: 'No matching recipients after preference filters.' });
+      return NextResponse.json({
+        success: true,
+        sent: 0,
+        message: 'No hay destinatarios alcanzables después de aplicar filtros de preferencias.',
+      });
     }
 
-    // Record the campaign first (for history). Skip if table not migrated yet.
     let campaign: { id: string; segment: string } | null = null;
     try {
       campaign = await prisma.marketingCampaign.create({
         data: {
           subject,
           message,
-          segment: testOnly ? 'test-only' : (city ? `${segment}+city:${city}` : segment),
+          segment: historySegment,
           recipientCount,
           sentById: adminId,
         },
@@ -126,11 +125,6 @@ export async function POST(req: NextRequest) {
       console.warn('MarketingCampaign table missing; broadcast will send without history record.');
     }
 
-    // Send loop (best effort).
-    // We call the core sendNotification with category 'marketing' + high priority.
-    // - Respects emailEnabled + new marketingEmails granular pref
-    // - High priority + explicit marketing path bypasses quiet hours (deliberate admin communication)
-    // - Creates proper Notification rows with resendEmailId for tracking + webhook events
     let sent = 0;
     let failed = 0;
 
@@ -152,7 +146,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Audit
     await logAuditEvent({
       adminId,
       action: 'ADMIN_MARKETING_BROADCAST',
@@ -160,11 +153,12 @@ export async function POST(req: NextRequest) {
       targetId: campaign?.id ?? 'pending-migration',
       details: {
         subject,
-        segment: campaign?.segment ?? (testOnly ? 'test-only' : (city ? `${segment}+city:${city}` : segment)),
+        segment: campaign?.segment ?? historySegment,
         recipientCount,
         sent,
         failed,
         testOnly,
+        userIds: userIds || null,
         historyRecorded: Boolean(campaign),
       },
       ipAddress,
@@ -177,9 +171,11 @@ export async function POST(req: NextRequest) {
       sent,
       failed,
       recipientCount,
-      message: testOnly 
-        ? `Test email sent to ${adminEmail}` 
-        : `Sent to ${sent} recipients (${failed} failed)`,
+      message: testOnly
+        ? `Correo de prueba enviado a ${adminEmail}`
+        : userIds && userIds.length === 1
+          ? `Enviado a ${recipients[0]?.email ?? 'usuario'} (${sent} exitoso, ${failed} fallido)`
+          : `Enviado a ${sent} destinatarios (${failed} fallidos)`,
     });
   } catch (error) {
     console.error('Marketing broadcast error:', error);
