@@ -34,6 +34,22 @@ export function isUuidIdentifier(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
 }
 
+/** Request a sharper Google/OAuth avatar when the stored URL is thumbnail-sized. */
+export function enhanceProfilePictureUrl(url: string, preferredSize = 256): string {
+  const trimmed = url.trim()
+  if (!trimmed.includes('googleusercontent.com')) return trimmed
+
+  if (/=s\d+(-[a-z])?$/i.test(trimmed)) {
+    return trimmed.replace(/=s\d+(-[a-z])?$/i, `=s${preferredSize}-c`)
+  }
+  if (/-s\d+(-[a-z])?$/i.test(trimmed)) {
+    return trimmed.replace(/-s\d+(-[a-z])?$/i, `-s${preferredSize}-c`)
+  }
+
+  const separator = trimmed.includes('?') ? '&' : '?'
+  return `${trimmed}${separator}s=${preferredSize}`
+}
+
 /**
  * Safely parse a field that may be stored as a JSON string (e.g. gig.fields, gig.addons).
  * Returns an array, or empty array on failure / missing value.

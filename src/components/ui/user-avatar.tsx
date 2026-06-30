@@ -1,5 +1,5 @@
 import { User } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, enhanceProfilePictureUrl } from "@/lib/utils"
 
 interface UserAvatarProps {
   src?: string | null
@@ -23,7 +23,7 @@ export function UserAvatar({ src, name, size = "md", className }: UserAvatarProp
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={src}
+        src={enhanceProfilePictureUrl(src)}
         alt={name || "Usuario"}
         className={cn(
           sizes.container,
