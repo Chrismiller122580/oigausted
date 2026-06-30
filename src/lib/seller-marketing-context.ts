@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getAppBaseUrl } from '@/lib/app-url';
-import { canonicalSellerPath } from '@/lib/seller-profile';
+import { ensureSellerPublicSlug } from '@/lib/seller-profile';
 import type { NextRequest } from 'next/server';
 
 export type SellerMarketingGig = {
@@ -102,7 +102,8 @@ export async function loadSellerMarketingContext(
     selectedGig = gigs[0];
   }
 
-  const storePath = `/sellers/${canonicalSellerPath(seller)}`;
+  const publicSegment = await ensureSellerPublicSlug(seller);
+  const storePath = `/sellers/${publicSegment}`;
   const baseUrl = getAppBaseUrl(req);
   const storeUrl = `${baseUrl}${storePath}`;
 
@@ -112,7 +113,7 @@ export async function loadSellerMarketingContext(
     name: seller.name,
     bio: seller.bio,
     city: seller.city,
-    slug: seller.slug,
+    slug: seller.slug ?? publicSegment,
     rating: seller.rating ?? 0,
     reviewCount: seller.reviewCount ?? 0,
     storePath,
