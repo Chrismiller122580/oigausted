@@ -78,7 +78,6 @@ export async function POST(req: NextRequest) {
     const brandCardQuery = new URLSearchParams({
       headline,
       businessName: ctx.businessName,
-      storePath: ctx.storePath.replace(/^\//, ''),
     });
 
     return NextResponse.json({

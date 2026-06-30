@@ -33,13 +33,11 @@ function buildBrandCardUrl(
   format: 'feed' | 'story',
   headline: string,
   businessName: string,
-  storePath: string,
 ): string {
   const params = new URLSearchParams({
     format,
     headline: headline.slice(0, 80),
     businessName: businessName.slice(0, 60),
-    storePath: storePath.replace(/^\//, ''),
   });
   return `/api/seller/marketing/brand-card?${params}`;
 }
@@ -131,10 +129,10 @@ export default function MarketingPreviewPanel({
 
   const liveBrandUrls = useMemo(
     () => ({
-      feed: buildBrandCardUrl('feed', headline, businessName, storePath),
-      story: buildBrandCardUrl('story', headline, businessName, storePath),
+      feed: buildBrandCardUrl('feed', headline, businessName),
+      story: buildBrandCardUrl('story', headline, businessName),
     }),
-    [headline, businessName, storePath],
+    [headline, businessName],
   );
 
   const imageUrl =
