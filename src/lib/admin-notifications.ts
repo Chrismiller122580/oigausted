@@ -6,7 +6,7 @@ import type { JsonObject } from '@/types/json'
 
 export const DEFAULT_ADMIN_EMAIL = 'support@oigagig.com'
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Oigagig <support@oigagig.com>'
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'OigaGIG <support@oigagig.com>'
 
 export async function getAdminNotificationRecipients(): Promise<string[]> {
   let supportEmail = DEFAULT_ADMIN_EMAIL
@@ -54,7 +54,7 @@ export async function sendAdminEmail({
     await resend.emails.send({
       from: FROM_EMAIL,
       to: recipients,
-      subject: subject.startsWith('[Oigagig') ? subject : `[Oigagig Admin] ${subject}`,
+      subject: subject.startsWith('[OigaGIG') ? subject : `[OigaGIG Admin] ${subject}`,
       html,
     })
 

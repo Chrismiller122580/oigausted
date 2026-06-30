@@ -14,6 +14,7 @@
     "create-admin": "tsx scripts/create-admin.ts",
     "chromium-pack": "node scripts/chromium-pack.mjs",
     "copy-playwright-browsers": "node scripts/copy-playwright-browsers.mjs",
+    "logos:export": "node scripts/export-oigagig-logos.mjs",
     "postinstall": "node scripts/chromium-pack.mjs && node scripts/copy-playwright-browsers.mjs && node scripts/playwright-install.mjs"
   },
   "dependencies": {

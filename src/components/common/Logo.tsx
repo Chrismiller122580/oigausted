@@ -3,45 +3,44 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
+import { BRAND_NAME, BRAND_LOGO_PATH } from '@/lib/brand';
 import { sanitizeLogoUrl } from '@/lib/logo-url';
 
 interface LogoProps {
   size?: number;
   showText?: boolean;
+  /** compact: nav bars; hero: login/signup */
+  variant?: 'compact' | 'hero';
   className?: string;
   linkClassName?: string;
 }
 
-export default function Logo({ 
-  size = 36, 
-  showText = false, 
-  className = '', 
-  linkClassName = '' 
+export default function Logo({
+  size = 36,
+  showText = false,
+  variant = 'compact',
+  className = '',
+  linkClassName = '',
 }: LogoProps) {
   const { config } = usePlatformConfig();
-  const siteName = config?.siteName || 'Oigagig';
-  const logoUrl = sanitizeLogoUrl(config?.logoUrl);
+  const siteName = config?.siteName || BRAND_NAME;
+  const logoUrl = sanitizeLogoUrl(config?.logoUrl) ?? BRAND_LOGO_PATH;
 
   const iconSize = size;
-  const icon = logoUrl ? (
-    <img 
-      src={logoUrl} 
-      alt={siteName} 
-      style={{ width: iconSize, height: iconSize }} 
-      className="rounded-xl object-contain shadow-sm" 
+  const maxWidth = variant === 'hero' ? iconSize * 2.4 : iconSize * 1.75;
+
+  const icon = (
+    <img
+      src={logoUrl}
+      alt={siteName}
+      style={{ height: iconSize, width: 'auto', maxWidth }}
+      className="object-contain"
     />
-  ) : (
-    <div 
-      style={{ width: iconSize, height: iconSize }} 
-      className="bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-sm"
-    >
-      OG
-    </div>
   );
 
   return (
-    <Link 
-      href="/" 
+    <Link
+      href="/"
       className={`flex items-center gap-2.5 text-muted-foreground hover:text-foreground transition ${linkClassName} ${className}`}
     >
       {icon}

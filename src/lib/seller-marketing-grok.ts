@@ -47,7 +47,7 @@ export async function generateSellerMarketingContent(
     return { content: fallback, fallback: true };
   }
 
-  const systemPrompt = `Eres un experto en marketing para vendedores de servicios locales en Colombia en OigaGig.
+  const systemPrompt = `Eres un experto en marketing para vendedores de servicios locales en Colombia en OigaGIG.
 
 El vendedor promociona SU PROPIO negocio (no la plataforma genérica).
 - Negocio: ${businessName}
@@ -65,7 +65,7 @@ REGLAS ESTRICTAS:
 - Cada campo social DEBE incluir ${storeUrl} y ${BRAND_PLATFORM_URL}
 - No inventar descuentos ni urgencia falsa
 - No incluir teléfono ni email del vendedor
-- Enfócate en confianza, servicio local y reservar en OigaGig
+- Enfócate en confianza, servicio local y reservar en OigaGIG
 
 Responde SOLO JSON válido (sin markdown):
 {
@@ -74,8 +74,8 @@ Responde SOLO JSON válido (sin markdown):
     "instagram": "string (post feed con emojis y hashtags)",
     "whatsapp": "string (mensaje directo y accionable)"
   },
-  "hashtags": ["#OigaGig", "..."],
-  "visualPrompts": ["prompt en inglés para imagen con logo OigaGig"],
+  "hashtags": ["#OigaGIG", "..."],
+  "visualPrompts": ["prompt en inglés para imagen con logo OigaGIG"],
   "bestTimes": "string",
   "postingTips": "string"
 }

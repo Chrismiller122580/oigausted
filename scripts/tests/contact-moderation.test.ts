@@ -42,7 +42,7 @@ assert(
 )
 
 assert(
-  CONTACT_BLOCKED_MESSAGE.includes('Oigagig'),
+  CONTACT_BLOCKED_MESSAGE.includes('OigaGIG'),
   'blocked message mentions platform chat'
 )
 

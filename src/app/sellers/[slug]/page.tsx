@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import { BRAND_LOGO_PATH } from '@/lib/brand';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import GigCard from '@/components/common/GigCard';
@@ -22,12 +23,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const displayName = user?.businessName || user?.name || 'Vendedor';
   return {
-    title: `${displayName} | Oigagig`,
-    description: `Conoce los servicios de ${displayName} en Oigagig. Servicios locales confiables en Colombia.`,
+    title: `${displayName} | OigaGIG`,
+    description: `Conoce los servicios de ${displayName} en OigaGIG. Servicios locales confiables en Colombia.`,
     openGraph: {
-      title: `${displayName} en Oigagig`,
+      title: `${displayName} en OigaGIG`,
       description: `Descubre gigs y servicios ofrecidos por ${displayName}. Profesionales locales en Colombia.`,
-      images: [{ url: '/logo.png' }],
+      images: [{ url: BRAND_LOGO_PATH }],
     },
   };
 }
@@ -110,7 +111,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
               )}
 
               <p className="mt-4 text-sm text-white/80 max-w-xl mx-auto md:mx-0">
-                Coordina con {displayName} usando el chat de Oigagig — sin salir de la plataforma.
+                Coordina con {displayName} usando el chat de OigaGIG — sin salir de la plataforma.
               </p>
             </div>
 
@@ -224,7 +225,7 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
       {/* Footer CTA */}
       <div className="border-t py-6 sm:py-8 bg-card">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center text-sm text-muted-foreground">
-          ¿Te gusta lo que ves? <Link href="/gigs" className="text-orange-600 hover:underline">Explora más servicios locales</Link> o publica tu propia necesidad en Oigagig.
+          ¿Te gusta lo que ves? <Link href="/gigs" className="text-orange-600 hover:underline">Explora más servicios locales</Link> o publica tu propia necesidad en OigaGIG.
         </div>
       </div>
     </div>

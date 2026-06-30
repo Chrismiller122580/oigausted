@@ -70,7 +70,7 @@ export default function GrokBuildPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Hello. I\'m Grok Build — the most capable AI integrated into Oigagig.\n\nI\'m specifically designed to help you build, analyze, optimize, and scale the platform. I can reason deeply about data, users, product, and operations.\n\nWhat would you like to create, analyze, or improve today?',
+      content: 'Hello. I\'m Grok Build — the most capable AI integrated into OigaGIG.\n\nI\'m specifically designed to help you build, analyze, optimize, and scale the platform. I can reason deeply about data, users, product, and operations.\n\nWhat would you like to create, analyze, or improve today?',
     },
   ]);
   const [input, setInput] = useState('');
@@ -582,7 +582,7 @@ export default function GrokBuildPage() {
     setMessages([
       {
         role: 'assistant',
-        content: 'Hello. I\'m Grok Build — the most capable AI integrated into Oigagig.\n\nI\'m specifically designed to help you build, analyze, optimize, and scale the platform. I can reason deeply about data, users, product, and operations.\n\nWhat would you like to create, analyze, or improve today?',
+        content: 'Hello. I\'m Grok Build — the most capable AI integrated into OigaGIG.\n\nI\'m specifically designed to help you build, analyze, optimize, and scale the platform. I can reason deeply about data, users, product, and operations.\n\nWhat would you like to create, analyze, or improve today?',
       },
     ]);
     setCustomContext('');

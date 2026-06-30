@@ -194,7 +194,7 @@ export default function GigCard({
             <Button onClick={handleBuyNow} variant="brand" className="w-full">
               Comprar Ahora
             </Button>
-            <StartInquiryButton gigId={gig.id} fullWidth size="sm" label="Chatear en Oigagig" />
+            <StartInquiryButton gigId={gig.id} fullWidth size="sm" label="Chatear en OigaGIG" />
           </div>
         ) : (
           <Button

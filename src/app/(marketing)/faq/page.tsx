@@ -9,9 +9,9 @@ import {
 } from '@/lib/public-site';
 
 export const metadata = buildPublicPageMetadata({
-  title: 'Preguntas frecuentes • Unirse a OigaGig',
+  title: 'Preguntas frecuentes • Unirse a OigaGIG',
   description:
-    'FAQ para compradores y vendedores en Colombia: cómo funciona OigaGig, registro gratis, pagos con Wompi, comisiones, promoción de lanzamiento y más.',
+    'FAQ para compradores y vendedores en Colombia: cómo funciona OigaGIG, registro gratis, pagos con Wompi, comisiones, promoción de lanzamiento y más.',
   path: '/faq',
   keywords: [
     'faq oigagig',
@@ -70,7 +70,7 @@ export default async function FaqPage() {
     <PublicPageShell
       siteName={site.siteName}
       title="Preguntas frecuentes"
-      subtitle="Todo lo que necesitas saber antes de unirte a OigaGig como comprador o vendedor."
+      subtitle="Todo lo que necesitas saber antes de unirte a OigaGIG como comprador o vendedor."
     >
       <script
         type="application/ld+json"

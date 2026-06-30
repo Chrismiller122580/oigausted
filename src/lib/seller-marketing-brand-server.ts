@@ -83,7 +83,7 @@ export function generateMarketingBrandCardSvg(input: BrandCardInput): string {
   const logoY = input.format === 'story' ? 120 : 80;
   const logoBlock = logoDataUrl
     ? `<image href="${logoDataUrl}" x="${(width - 320) / 2}" y="${logoY}" width="320" height="140" preserveAspectRatio="xMidYMid meet" />`
-    : `<text x="${width / 2}" y="${logoY + 90}" text-anchor="middle" fill="white" font-size="56" font-weight="800" font-family="system-ui, sans-serif">Oiga Gig</text>`;
+    : `<text x="${width / 2}" y="${logoY + 90}" text-anchor="middle" fill="white" font-size="56" font-weight="800" font-family="system-ui, sans-serif">OigaGIG</text>`;
 
   const headlineSvg = headlineLines
     .map(

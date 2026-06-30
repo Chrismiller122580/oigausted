@@ -30,9 +30,9 @@ export function normalizeGeneratedCampaign(
   variations = 4,
 ): GeneratedCampaign {
   const fallbackEmail = {
-    subject: 'Oigagig: Encuentra servicios locales de confianza',
+    subject: 'OigaGIG: Encuentra servicios locales de confianza',
     previewText: '',
-    body: `Hola,\n\nEn Oigagig conectamos a personas con profesionales locales de confianza.\n\nExplora ahora: https://oigagig.com/gigs\n\n— El equipo de Oigagig`,
+    body: `Hola,\n\nEn OigaGIG conectamos a personas con profesionales locales de confianza.\n\nExplora ahora: https://oigagig.com/gigs\n\n— El equipo de OigaGIG`,
     cta: 'Explorar servicios',
   };
 
@@ -83,7 +83,7 @@ export function normalizeGeneratedCampaign(
     : [];
 
   return {
-    campaignName: String(raw.campaignName ?? `Campaña Oigagig — ${goal.slice(0, 40)}`),
+    campaignName: String(raw.campaignName ?? `Campaña OigaGIG — ${goal.slice(0, 40)}`),
     objective: String(raw.objective ?? goal),
     recommendedSegment: String(raw.recommendedSegment ?? 'usuarios activos'),
     segmentReason: String(raw.segmentReason ?? 'Mayor probabilidad de conversión y engagement.'),

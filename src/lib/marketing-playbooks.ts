@@ -38,7 +38,7 @@ export const MARKETING_PLAYBOOKS: MarketingPlaybook[] = [
       role: 'seller',
       gigs: { none: { deletedAt: null } },
     }),
-    aiGoal: 'Ayudar a vendedores a publicar su primer gig en Oigagig',
+    aiGoal: 'Ayudar a vendedores a publicar su primer gig en OigaGIG',
     aiContext: `Audiencia: vendedores con cuenta activa pero CERO gigs publicados.
 Problema: los compradores no pueden encontrarlos ni contratarlos.
 El email debe: (1) diagnosticar ("notamos que aún no publicaste un servicio"), (2) explicar por qué importa, (3) dar 3 pasos concretos para publicar en menos de 5 minutos.
@@ -100,7 +100,7 @@ Explicar que sin activarlos pierden visibilidad y pedidos.`,
       role: 'buyer',
       ordersAsBuyer: { none: {} },
     }),
-    aiGoal: 'Guiar a compradores nuevos a hacer su primer pedido en Oigagig',
+    aiGoal: 'Guiar a compradores nuevos a hacer su primer pedido en OigaGIG',
     aiContext: `Audiencia: compradores registrados que NUNCA han pedido un servicio.
 Problema: quizás no saben cómo buscar, comparar o contratar.
 Pasos: (1) explorar /gigs por categoría o ciudad, (2) elegir un servicio con reseñas, (3) hacer el pedido y pagar seguro con Wompi.
@@ -255,5 +255,5 @@ export function applyMergeFields(
 }
 
 export function defaultPlaybookMessage(playbook: MarketingPlaybook): string {
-  return `Hola {{name}},\n\n${playbook.description}.\n\n${playbook.aiContext.split('\n')[0]}\n\n👉 ${playbook.defaultCta}: {{ctaUrl}}\n\n— El equipo de Oigagig`;
+  return `Hola {{name}},\n\n${playbook.description}.\n\n${playbook.aiContext.split('\n')[0]}\n\n👉 ${playbook.defaultCta}: {{ctaUrl}}\n\n— El equipo de OigaGIG`;
 }

@@ -23,7 +23,7 @@ export function normalizeSellerGeneratedContent(
 
   const hashtags = Array.isArray(raw.hashtags)
     ? raw.hashtags.map((h) => String(h)).filter(Boolean)
-    : ['#OigaGig', '#ServiciosLocales', '#Colombia'];
+    : ['#OigaGIG', '#ServiciosLocales', '#Colombia'];
 
   const visualPrompts = Array.isArray(raw.visualPrompts)
     ? raw.visualPrompts.map((p) => String(p)).filter(Boolean)
@@ -43,7 +43,7 @@ export function normalizeSellerGeneratedContent(
     ),
     postingTips: String(
       raw.postingTips ??
-        'Publica con la imagen con marca de OigaGig y el enlace a tu tienda.',
+        'Publica con la imagen con marca de OigaGIG y el enlace a tu tienda.',
     ),
   };
 }
@@ -62,7 +62,7 @@ export function createSellerFallbackContent(
       instagram: `✨ ${base}\n\nConfianza, precios claros y atención local.\n\n${storeUrl}\n${BRAND_PLATFORM_URL}`,
       whatsapp: `Hola 👋 Soy ${businessName}. Te ayudo con ${service}.\n\nReserva aquí: ${storeUrl}\n${BRAND_PLATFORM_URL}`,
     },
-    hashtags: ['#OigaGig', '#ServiciosLocales', '#Colombia', '#Emprendedores'],
+    hashtags: ['#OigaGIG', '#ServiciosLocales', '#Colombia', '#Emprendedores'],
     visualPrompts: [
       `Professional Colombian local service photo, ${businessName}, warm lighting, include subtle ${BRAND_PLATFORM_URL} branding`,
     ],

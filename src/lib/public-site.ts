@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { BRAND_NAME, BRAND_LOGO_PATH } from '@/lib/brand';
 import { getPlatformConfig } from '@/lib/prisma';
 
 export function getSiteUrl(): string {
@@ -26,7 +27,7 @@ export interface JoinFaqItem {
 }
 
 export const JOIN_FAQ_CATEGORIES: Record<string, string> = {
-  join: 'Unirse a OigaGig',
+  join: 'Unirse a OigaGIG',
   buyer: 'Para compradores',
   seller: 'Para vendedores',
   payments: 'Pagos y seguridad',
@@ -39,21 +40,21 @@ export const JOIN_FAQS: JoinFaqItem[] = [
   {
     id: 'what-is-oigagig',
     category: 'join',
-    question: '¿Qué es OigaGig y cómo funciona?',
+    question: '¿Qué es OigaGIG y cómo funciona?',
     answer:
-      'OigaGig es un marketplace colombiano que conecta personas que necesitan un servicio con profesionales locales de confianza. Publicas o buscas gigs (servicios), chateas directo, pagas de forma segura con Wompi (Nequi, PSE, tarjetas) y dejas reseñas reales después del trabajo.',
+      'OigaGIG es un marketplace colombiano que conecta personas que necesitan un servicio con profesionales locales de confianza. Publicas o buscas gigs (servicios), chateas directo, pagas de forma segura con Wompi (Nequi, PSE, tarjetas) y dejas reseñas reales después del trabajo.',
   },
   {
     id: 'free-to-join',
     category: 'join',
-    question: '¿Es gratis unirse a OigaGig?',
+    question: '¿Es gratis unirse a OigaGIG?',
     answer:
-      'Sí. Crear cuenta y explorar servicios es gratis. Los vendedores pueden publicar gigs sin costo de registro. OigaGig cobra una comisión solo cuando se completa una venta exitosa (configurada de forma transparente en la plataforma).',
+      'Sí. Crear cuenta y explorar servicios es gratis. Los vendedores pueden publicar gigs sin costo de registro. OigaGIG cobra una comisión solo cuando se completa una venta exitosa (configurada de forma transparente en la plataforma).',
   },
   {
     id: 'who-can-join',
     category: 'join',
-    question: '¿Quién puede usar OigaGig?',
+    question: '¿Quién puede usar OigaGIG?',
     answer:
       'Cualquier persona en Colombia mayor de edad con documento válido. Puedes registrarte como comprador para contratar servicios, como vendedor para ofrecer los tuyos, o convertirte en vendedor más adelante desde tu perfil.',
   },
@@ -74,7 +75,7 @@ export const JOIN_FAQS: JoinFaqItem[] = [
   {
     id: 'seller-how-to-start',
     category: 'seller',
-    question: '¿Cómo empiezo a vender en OigaGig?',
+    question: '¿Cómo empiezo a vender en OigaGIG?',
     answer:
       'Regístrate, completa tu perfil (foto, descripción, WhatsApp) y publica tu primer gig en menos de 5 minutos: título, categoría, precio, ciudad y fotos. Los compradores te contactan directo desde la plataforma.',
   },
@@ -83,7 +84,7 @@ export const JOIN_FAQS: JoinFaqItem[] = [
     category: 'seller',
     question: '¿Cómo recibo mi dinero como vendedor?',
     answer:
-      'Configura tus datos bancarios en la sección de ganancias. Cuando completes un pedido, el pago del comprador se registra en la plataforma y los desembolsos se gestionan según el flujo de pagos y retiros de OigaGig (Wompi / transferencias según disponibilidad).',
+      'Configura tus datos bancarios en la sección de ganancias. Cuando completes un pedido, el pago del comprador se registra en la plataforma y los desembolsos se gestionan según el flujo de pagos y retiros de OigaGIG (Wompi / transferencias según disponibilidad).',
   },
   {
     id: 'seller-launch-promo',
@@ -102,9 +103,9 @@ export const JOIN_FAQS: JoinFaqItem[] = [
   {
     id: 'commission',
     category: 'payments',
-    question: '¿Cuánto cobra OigaGig de comisión?',
+    question: '¿Cuánto cobra OigaGIG de comisión?',
     answer:
-      'OigaGig retiene un porcentaje de comisión sobre ventas completadas para mantener la plataforma, el soporte y los pagos seguros. El porcentaje vigente se muestra de forma transparente antes de publicar o vender.',
+      'OigaGIG retiene un porcentaje de comisión sobre ventas completadas para mantener la plataforma, el soporte y los pagos seguros. El porcentaje vigente se muestra de forma transparente antes de publicar o vender.',
   },
   {
     id: 'signup-requirements',
@@ -126,7 +127,7 @@ export async function getPublicSiteInfo(): Promise<PublicSiteInfo> {
   try {
     const config = await getPlatformConfig();
     return {
-      siteName: config.siteName || 'OigaGig',
+      siteName: config.siteName || BRAND_NAME,
       siteTagline:
         config.siteTagline || 'Conecta con profesionales locales en Colombia',
       supportEmail: config.supportEmail || 'support@oigagig.com',
@@ -134,7 +135,7 @@ export async function getPublicSiteInfo(): Promise<PublicSiteInfo> {
     };
   } catch {
     return {
-      siteName: 'OigaGig',
+      siteName: BRAND_NAME,
       siteTagline: 'Conecta con profesionales locales en Colombia',
       supportEmail: 'support@oigagig.com',
       supportPhone: null,
@@ -164,15 +165,15 @@ export function buildPublicPageMetadata({
       title,
       description,
       url: canonical,
-      siteName: 'OigaGig',
+      siteName: BRAND_NAME,
       locale: 'es_CO',
       type: 'website',
       images: [
         {
-          url: '/logo.png',
-          width: 1200,
-          height: 630,
-          alt: 'OigaGig - Servicios locales en Colombia',
+          url: BRAND_LOGO_PATH,
+          width: 832,
+          height: 1248,
+          alt: 'OigaGIG - Servicios locales en Colombia',
         },
       ],
     },
@@ -180,7 +181,7 @@ export function buildPublicPageMetadata({
       card: 'summary_large_image',
       title,
       description,
-      images: ['/logo.png'],
+      images: [BRAND_LOGO_PATH],
     },
     robots: { index: true, follow: true },
   };
