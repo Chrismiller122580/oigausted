@@ -67,7 +67,7 @@ export function HomeHero() {
           </h1>
 
           <p className="text-base sm:text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Bogotá • Medellín • Cali • toda Colombia • Pagos seguros con Wompi
+            Bucaramanga • Bogotá • Medellín • Cali • Toda Colombia • Pagos seguros con Wompi
           </p>
         </div>
 

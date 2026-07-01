@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,16 +16,21 @@ import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider
 import { trackEvent } from '@/lib/analytics';
 import { buildWompiWidgetConfig } from '@/lib/wompi-widget';
 import { MapPin, AlertTriangle, CheckCircle } from 'lucide-react';
+import BuyGigConfirmDialog from '@/components/gigs/BuyGigConfirmDialog';
 
 export default function CheckoutPage() {
   const params = useParams();
   const gigId = params.gigId as string;
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const purchaseConfirmed = searchParams.get('confirmed') === '1';
   const { data: session, status: sessionStatus } = useSession();
 
   const [gig, setGig] = useState<CheckoutGig | null>(null);
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPurchaseConfirm, setShowPurchaseConfirm] = useState(false);
+  const [orderCreating, setOrderCreating] = useState(false);
   const [opening, setOpening] = useState(false);
   const [wompiReady, setWompiReady] = useState(false);
   const [wompiLoadFailed, setWompiLoadFailed] = useState(false);
@@ -223,42 +228,66 @@ export default function CheckoutPage() {
       return;
     }
 
-    // User is authenticated → proceed to create order
-    loadGigAndCreateOrder();
-  }, [gigId, sessionStatus, session?.user, router]);
+    loadGig();
+  }, [gigId, sessionStatus, session?.user, router, purchaseConfirmed]);
 
-  const loadGigAndCreateOrder = async () => {
+  const createOrder = async (gigData: CheckoutGig) => {
+    setOrderCreating(true);
     try {
-      // Load gig details (the API now returns { gig: ... } or the gig directly)
-      const gigRes = await fetch(`/api/gigs/${gigId}`);
-      const gigResponse = await gigRes.json();
-      const gigData = gigResponse.gig || gigResponse;
-
-      if (!gigData) throw new Error("Gig not found");
-
-      setGig(gigData);
-
-      // Create order (Pending) — this happens before payment
       const orderRes = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gigId })
+        body: JSON.stringify({ gigId }),
       });
 
       const orderResponse = await orderRes.json();
-      if (!orderRes.ok) throw new Error(orderResponse.error || "Failed to create order");
-      
+      if (!orderRes.ok) throw new Error(orderResponse.error || 'Failed to create order');
+
       const createdOrder = orderResponse.order || orderResponse;
       setOrder(createdOrder);
+      setShowPurchaseConfirm(false);
       trackEvent('checkout_started', {
         gig_category: gigData.category || 'unknown',
       });
     } catch (err: unknown) {
+      devLog('Checkout order creation error:', err);
+      toast.error(err instanceof Error ? err.message : 'No se pudo crear el pedido.');
+      throw err;
+    } finally {
+      setOrderCreating(false);
+    }
+  };
+
+  const loadGig = async () => {
+    try {
+      const gigRes = await fetch(`/api/gigs/${gigId}`);
+      const gigResponse = await gigRes.json();
+      const gigData = gigResponse.gig || gigResponse;
+
+      if (!gigData) throw new Error('Gig not found');
+
+      setGig(gigData);
+
+      if (purchaseConfirmed) {
+        await createOrder(gigData);
+      } else {
+        setShowPurchaseConfirm(true);
+      }
+    } catch (err: unknown) {
       devLog('Checkout load error:', err);
-      toast.error(err instanceof Error ? err.message : "No se pudo cargar el checkout. ¿Estás logueado?");
+      toast.error(err instanceof Error ? err.message : 'No se pudo cargar el checkout. ¿Estás logueado?');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConfirmPurchase = async () => {
+    if (!gig) return;
+    await createOrder(gig);
+  };
+
+  const handleCancelPurchase = () => {
+    router.push(`/gigs/${gigId}`);
   };
 
   // Per latest targeted fix: openPayment uses server-returned full config + setWompiReady to drive a strict useEffect.
@@ -563,7 +592,40 @@ export default function CheckoutPage() {
     );
   }
 
-  if (!gig || !order) {
+  if (!gig) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 text-xl mb-4">Error cargando el checkout</p>
+          <Button onClick={() => router.push('/gigs')} variant="outline">
+            Volver a los gigs
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!order && showPurchaseConfirm) {
+    return (
+      <>
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <p className="text-muted-foreground text-center">
+            Revisa los detalles y confirma tu compra para continuar.
+          </p>
+        </div>
+        <BuyGigConfirmDialog
+          open
+          title={gig.title}
+          price={gig.price ?? gig.basePrice ?? 0}
+          confirming={orderCreating}
+          onConfirm={handleConfirmPurchase}
+          onCancel={handleCancelPurchase}
+        />
+      </>
+    );
+  }
+
+  if (!order) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

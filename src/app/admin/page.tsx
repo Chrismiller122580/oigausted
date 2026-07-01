@@ -171,7 +171,7 @@ export default function AdminDashboard() {
             </Card>
           </Link>
 
-          <Link href="/admin/reports">
+          <Link href="/admin/orders">
             <Card className="bg-card border-border hover:border-accent hover:shadow-sm transition cursor-pointer h-full">
               <CardContent className="p-4 sm:p-6">
                 <TrendingUp className="h-8 w-8 text-purple-400 mb-3" />

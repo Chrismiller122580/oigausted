@@ -8,6 +8,8 @@ import { ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import ChatPanel, { type ChatMessage } from '@/components/chat/ChatPanel'
 import { Button } from '@/components/ui/button'
+import BuyGigConfirmDialog from '@/components/gigs/BuyGigConfirmDialog'
+import { useBuyGigConfirm } from '@/hooks/useBuyGigConfirm'
 
 type ThreadDetail = {
   id: string
@@ -32,6 +34,7 @@ export default function MessageThreadPage() {
 
   const userId = session?.user?.id
   const isBuyer = thread ? thread.buyerId === userId : false
+  const { open, pending, requestBuy, confirm, cancel } = useBuyGigConfirm()
 
   const loadMessages = useCallback(async () => {
     const res = await fetch(`/api/inquiries/${threadId}/messages`)
@@ -138,11 +141,28 @@ export default function MessageThreadPage() {
 
       {isBuyer && (
         <div className="mt-4 text-center">
-          <Link href={`/checkout/${thread.gig.id}`}>
-            <Button className="bg-emerald-600 hover:bg-emerald-700">
-              Comprar este servicio
-            </Button>
-          </Link>
+          <Button
+            className="bg-emerald-600 hover:bg-emerald-700"
+            onClick={() =>
+              requestBuy({
+                gigId: thread.gig.id,
+                title: thread.gig.title,
+                price: thread.gig.price ?? 0,
+                sellerId: thread.sellerId,
+              })
+            }
+          >
+            Comprar este servicio
+          </Button>
+          {pending && (
+            <BuyGigConfirmDialog
+              open={open}
+              title={pending.title}
+              price={pending.price}
+              onConfirm={confirm}
+              onCancel={cancel}
+            />
+          )}
         </div>
       )}
     </div>

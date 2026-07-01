@@ -1,34 +1,39 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import StartInquiryButton from '@/components/common/StartInquiryButton'
-import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl'
+import BuyGigConfirmDialog from '@/components/gigs/BuyGigConfirmDialog'
+import { useBuyGigConfirm } from '@/hooks/useBuyGigConfirm'
 
 type Props = {
   gigId: string
+  gigTitle: string
+  gigPrice: number
   sellerId: string
   isActive: boolean
 }
 
-export default function GigDetailActions({ gigId, sellerId, isActive }: Props) {
-  const router = useRouter()
+export default function GigDetailActions({
+  gigId,
+  gigTitle,
+  gigPrice,
+  sellerId,
+  isActive,
+}: Props) {
   const { data: session } = useSession()
   const userId = session?.user?.id
   const isOwnGig = userId === sellerId
+  const { open, pending, requestBuy, confirm, cancel } = useBuyGigConfirm()
 
   const handleBuyNow = () => {
-    if (!isActive) {
-      toast.error('Este servicio está pausado y no se puede comprar.')
-      return
-    }
-    if (!session?.user) {
-      router.push(`/login?callbackUrl=${encodeURIComponent(getAuthCallbackUrl(`/gigs/${gigId}`))}`)
-      return
-    }
-    router.push(`/checkout/${gigId}`)
+    requestBuy({
+      gigId,
+      title: gigTitle,
+      price: gigPrice,
+      isActive,
+      sellerId,
+    })
   }
 
   if (isOwnGig) {
@@ -56,6 +61,16 @@ export default function GigDetailActions({ gigId, sellerId, isActive }: Props) {
           size="lg"
           label="Chatear con vendedor"
           className="py-6 text-lg rounded-3xl"
+        />
+      )}
+
+      {pending && (
+        <BuyGigConfirmDialog
+          open={open}
+          title={pending.title}
+          price={pending.price}
+          onConfirm={confirm}
+          onCancel={cancel}
         />
       )}
     </div>

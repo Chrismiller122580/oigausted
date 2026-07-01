@@ -5,8 +5,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { toast } from 'sonner'
 import StartInquiryButton from '@/components/common/StartInquiryButton'
+import BuyGigConfirmDialog from '@/components/gigs/BuyGigConfirmDialog'
+import { useBuyGigConfirm } from '@/hooks/useBuyGigConfirm'
 import { CategoryIcon } from "@/lib/icon-registry"
 import { StarRating } from "@/components/ui/star-rating"
 import { UserAvatar } from "@/components/ui/user-avatar"
@@ -57,6 +58,7 @@ export default function GigCard({
 }) {
   const router = useRouter()
   const { data: session } = useSession()
+  const { open, pending, requestBuy, confirm, cancel } = useBuyGigConfirm()
 
   const sellerName =
     gig.seller?.name ||
@@ -67,15 +69,13 @@ export default function GigCard({
   const isOwnGig = userId && gig.seller?.id === userId
 
   const handleBuyNow = () => {
-    if (isOwnGig) {
-      toast.error("No puedes comprar tu propio gig")
-      return
-    }
-    if (gig.isActive === false) {
-      toast.error("Este servicio está pausado temporalmente")
-      return
-    }
-    router.push(`/checkout/${gig.id}`)
+    requestBuy({
+      gigId: gig.id,
+      title: gig.title,
+      price: gig.price,
+      isActive: gig.isActive,
+      sellerId: gig.seller?.id,
+    })
   }
 
   return (
@@ -194,7 +194,7 @@ export default function GigCard({
             <Button onClick={handleBuyNow} variant="brand" className="w-full">
               Comprar Ahora
             </Button>
-            <StartInquiryButton gigId={gig.id} fullWidth size="sm" label="Chatear en Oigagig" />
+            <StartInquiryButton gigId={gig.id} fullWidth size="sm" label="Chatear en OigaGIG" />
           </div>
         ) : (
           <Button
@@ -207,6 +207,16 @@ export default function GigCard({
           </Button>
         )}
       </CardFooter>
+
+      {pending && (
+        <BuyGigConfirmDialog
+          open={open}
+          title={pending.title}
+          price={pending.price}
+          onConfirm={confirm}
+          onCancel={cancel}
+        />
+      )}
     </Card>
   )
 }
