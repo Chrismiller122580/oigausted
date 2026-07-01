@@ -39,6 +39,9 @@ export function HomeNavbar() {
             <Link href="/gigs">Explorar</Link>
           </Button>
           <Button variant="ghost" asChild size="sm" className="text-sm">
+            <Link href="/para-compradores">Para compradores</Link>
+          </Button>
+          <Button variant="ghost" asChild size="sm" className="text-sm">
             <Link href="/para-profesionales">Para profesionales</Link>
           </Button>
         </div>
@@ -71,6 +74,11 @@ export function HomeNavbar() {
             <Button variant="ghost" asChild className="justify-start">
               <Link href="/gigs" onClick={() => setMobileOpen(false)}>
                 Explorar servicios
+              </Link>
+            </Button>
+            <Button variant="ghost" asChild className="justify-start">
+              <Link href="/para-compradores" onClick={() => setMobileOpen(false)}>
+                Para compradores
               </Link>
             </Button>
             <Button variant="ghost" asChild className="justify-start">

@@ -214,8 +214,17 @@ export function HomepageWelcomeSplash() {
               asChild
               className={cn(brandButtonClass, 'h-12 w-full rounded-xl font-semibold shadow-lg')}
             >
+              <Link href="/para-compradores" onClick={dismiss}>
+                Registrarme gratis • Buscar servicios
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="h-12 w-full rounded-xl border-2 font-semibold"
+            >
               <Link href="/gigs" onClick={dismiss}>
-                Buscar servicios
+                Explorar sin cuenta
               </Link>
             </Button>
             <Button

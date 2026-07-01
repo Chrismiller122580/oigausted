@@ -103,6 +103,14 @@ export function HomeHero() {
             size="lg"
             className="h-12 px-8 rounded-xl border-2 border-white/70 bg-transparent text-white hover:bg-white/10 font-semibold"
           >
+            <Link href="/para-compradores">Necesito un servicio • Registro gratis</Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="h-12 px-8 rounded-xl border-2 border-white/70 bg-transparent text-white hover:bg-white/10 font-semibold"
+          >
             <Link href="/para-profesionales">Soy profesional • Publica gratis</Link>
           </Button>
         </div>
