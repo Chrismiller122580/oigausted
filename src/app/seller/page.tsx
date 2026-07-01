@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DollarSign, Package, Star, Plus, TrendingUp, Users, Link2, Sparkles } from 'lucide-react';
 import OnboardingTutorial from '@/components/common/OnboardingTutorial';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
+import { markTutorialDismissed, shouldAutoShowTutorial } from '@/lib/tutorial';
 import { getOrderStatusDisplayEs, OrderStatusLabel } from '@/lib/order-status';
 
 export default function SellerDashboard() {
@@ -55,7 +56,7 @@ export default function SellerDashboard() {
   // Respects global admin toggle from PlatformConfig.tutorialsEnabled (buyer->seller unlock will re-trigger when enabled)
   useEffect(() => {
     const uid = session?.user?.id;
-    if (uid && !loading && platformConfig?.tutorialsEnabled !== false) {
+    if (uid && !loading && platformConfig?.tutorialsEnabled !== false && shouldAutoShowTutorial()) {
       const seenKey = `tutorial_seller_${uid}`;
       if (!localStorage.getItem(seenKey)) {
         const t = setTimeout(() => setShowTutorial(true), 1100);
@@ -121,7 +122,7 @@ export default function SellerDashboard() {
                 <Sparkles size={18} /> Marketing IA
               </div>
               <p className="text-sm text-muted-foreground mb-3">
-                Genera posts para Instagram y WhatsApp con tu tienda OigaGig y descargas con marca.
+                Genera posts para Instagram y WhatsApp con tu tienda OigaGIG y descargas con marca.
               </p>
               <Link href="/seller/marketing">
                 <Button size="sm" variant="outline" className="border-rose-300 text-rose-700 hover:bg-rose-100 dark:hover:bg-rose-950/50">
@@ -357,10 +358,14 @@ export default function SellerDashboard() {
           mode="seller"
           onComplete={() => {
             const uid = session?.user?.id;
-            if (uid) localStorage.setItem(`tutorial_seller_${uid}`, 'true');
+            if (uid) markTutorialDismissed('seller', uid);
             setShowTutorial(false);
           }}
-          onClose={() => setShowTutorial(false)}
+          onClose={() => {
+            const uid = session?.user?.id;
+            if (uid) markTutorialDismissed('seller', uid);
+            setShowTutorial(false);
+          }}
         />
       )}
     </div>

@@ -8,6 +8,7 @@ import { devLog } from '@/lib/utils';
 import { isSecretUnchanged, maskSecretConfigured } from '@/lib/secrets';
 import type { PublicPlatformConfig } from '@/types/platform-config';
 import type { JsonObject } from '@/types/json';
+import { BRAND_NAME, BRAND_LOGO_PATH } from '@/lib/brand';
 import { sanitizeLogoUrl } from '@/lib/logo-url';
 
 function errMessage(e: unknown): string {
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
         maintenanceMode: config.maintenanceMode,
         maintenanceMessage: config.maintenanceMessage,
         maintenanceBypassIps: config.maintenanceBypassIps || '',
-        siteName: config.siteName || 'Oigagig',
+        siteName: config.siteName || BRAND_NAME,
         siteTagline: config.siteTagline || 'Conecta con profesionales locales en Colombia',
         logoUrl: sanitizeLogoUrl(config.logoUrl),
         allowNewSignups: config.allowNewSignups ?? true,
@@ -148,7 +149,7 @@ export async function GET(req: NextRequest) {
       referralsEnabled: config.referralsEnabled ?? true,
       allowNewSignups: config.allowNewSignups ?? true,
       maxUploadSizeMB: config.maxUploadSizeMB ?? 10,
-      siteName: config.siteName || 'Oigagig',
+      siteName: config.siteName || BRAND_NAME,
       siteTagline: config.siteTagline || 'Conecta con profesionales locales en Colombia',
       logoUrl: sanitizeLogoUrl(config.logoUrl),
       globalPushNotificationsEnabled: config.globalPushNotificationsEnabled ?? true,
@@ -183,9 +184,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         maintenanceMode: false,
         maintenanceMessage: "Estamos realizando mejoras. Volveremos pronto.",
-        siteName: 'Oigagig',
+        siteName: BRAND_NAME,
         siteTagline: 'Conecta con profesionales locales en Colombia',
-        logoUrl: null,
+        logoUrl: BRAND_LOGO_PATH,
         allowNewSignups: true,
         referralsEnabled: true,
         globalPushNotificationsEnabled: true,
@@ -196,7 +197,7 @@ export async function GET(req: NextRequest) {
       });
     } catch (finalErr) {
       console.error('Config GET ultimate fallback error (returning plain 200):', finalErr);
-      return new Response('{"maintenanceMode":false,"maintenanceMessage":"Estamos realizando mejoras. Volveremos pronto.","maintenanceBypassIps":"","siteName":"Oigagig","siteTagline":"Conecta con profesionales locales en Colombia","logoUrl":null,"allowNewSignups":true,"referralsEnabled":true,"globalPushNotificationsEnabled":true,"globalEmailNotificationsEnabled":true,"wompiRealPaymentsEnabled":false,"wompiSftpEnabled":false,"tutorialsEnabled":true}', {
+      return new Response('{"maintenanceMode":false,"maintenanceMessage":"Estamos realizando mejoras. Volveremos pronto.","maintenanceBypassIps":"","siteName":"OigaGIG","siteTagline":"Conecta con profesionales locales en Colombia","logoUrl":"/brand/oiga-gig-marketing.png","allowNewSignups":true,"referralsEnabled":true,"globalPushNotificationsEnabled":true,"globalEmailNotificationsEnabled":true,"wompiRealPaymentsEnabled":false,"wompiSftpEnabled":false,"tutorialsEnabled":true}', {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -244,7 +245,7 @@ export async function PUT(request: NextRequest) {
           referralsEnabled: body.referralsEnabled ?? true,
           allowNewSignups: body.allowNewSignups ?? true,
           maxUploadSizeMB: body.maxUploadSizeMB ?? 10,
-          siteName: body.siteName ?? 'Oigagig',
+          siteName: body.siteName ?? BRAND_NAME,
           siteTagline: body.siteTagline ?? 'Conecta con profesionales locales en Colombia',
           logoUrl: sanitizeLogoUrl(body.logoUrl),
           globalPushNotificationsEnabled: body.globalPushNotificationsEnabled ?? true,

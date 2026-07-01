@@ -7,6 +7,7 @@ import SessionExpiryHandler from "./SessionExpiryHandler";
 import { PlatformConfigProvider } from "./PlatformConfigProvider";
 import RecordLogin from "@/components/auth/RecordLogin";
 import PresenceHeartbeat from "@/components/auth/PresenceHeartbeat";
+import CapacitorShellInit from "@/components/native/CapacitorShellInit";
 
 export default function SessionProviderWrapper({
   children,
@@ -21,6 +22,7 @@ export default function SessionProviderWrapper({
         <PlatformConfigProvider>
           <RecordLogin />
           <PresenceHeartbeat />
+          <CapacitorShellInit />
           <SessionExpiryHandler>
             {children}
           </SessionExpiryHandler>

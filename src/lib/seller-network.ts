@@ -109,7 +109,7 @@ export function networkGigToBundleItem(gig: NetworkGig): ProjectBundleItem {
 
 export function formatProjectQuote(items: ProjectBundleItem[]): string {
   if (items.length === 0) {
-    return 'Proyecto combinado — OigaGig\n(No hay servicios seleccionados)'
+    return 'Proyecto combinado — OigaGIG\n(No hay servicios seleccionados)'
   }
 
   const lines = items.map(
@@ -118,7 +118,7 @@ export function formatProjectQuote(items: ProjectBundleItem[]): string {
   const total = items.reduce((sum, item) => sum + item.price, 0)
 
   return [
-    'Proyecto combinado — OigaGig',
+    'Proyecto combinado — OigaGIG',
     '─────────────────────────',
     ...lines,
     '─────────────────────────',

@@ -276,13 +276,13 @@ function SellerMarketingPageClient() {
             <div>
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Estudio de Marketing IA</h1>
               <p className="text-muted-foreground mt-1">
-                Genera posts para Instagram y WhatsApp con tu tienda OigaGig incluida.
+                Genera posts para Instagram y WhatsApp con tu tienda OigaGIG incluida.
               </p>
             </div>
           </div>
           <Image
             src={MARKETING_BRAND_LOGO_PATH}
-            alt="Oiga Gig"
+            alt="OigaGIG"
             width={160}
             height={72}
             className="object-contain shrink-0"
@@ -668,7 +668,7 @@ function SellerMarketingPageClient() {
                 </div>
                 {content.visualPrompts.length > 0 && (
                   <div className="space-y-2">
-                    <p className="font-medium">Prompts visuales (con marca OigaGig)</p>
+                    <p className="font-medium">Prompts visuales (con marca OigaGIG)</p>
                     {content.visualPrompts.map((p, i) => (
                       <p key={i} className="text-xs font-mono bg-muted p-3 rounded-lg">
                         {p}

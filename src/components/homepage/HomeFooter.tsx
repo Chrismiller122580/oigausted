@@ -1,5 +1,8 @@
 import Link from 'next/link';
 import { MapPin, Mail, Heart } from 'lucide-react';
+import { AppStoreBadges } from '@/components/marketing/AppStoreBadges';
+import { BRAND_NAME } from '@/lib/brand';
+import { ShareOigaGig } from '@/components/marketing/ShareOigaGig';
 
 const FOOTER_LINKS = {
   servicios: [
@@ -20,11 +23,11 @@ const FOOTER_LINKS = {
   ],
 } as const;
 
-export function HomeFooter({ siteName = 'OigaGIG' }: { siteName?: string }) {
+export function HomeFooter({ siteName = BRAND_NAME }: { siteName?: string }) {
   return (
     <footer className="border-t border-slate-800 bg-slate-900 text-slate-300">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 sm:py-14">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           {/* Brand */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-1.5 font-bold text-xl text-white mb-3">
@@ -62,6 +65,11 @@ export function HomeFooter({ siteName = 'OigaGIG' }: { siteName?: string }) {
               </ul>
             </nav>
           ))}
+
+          <div className="space-y-5 sm:col-span-2 lg:col-span-1">
+            <AppStoreBadges />
+            <ShareOigaGig siteName={siteName} className="text-slate-400 [&_button]:border-slate-700 [&_button]:bg-slate-800/50 [&_button]:text-slate-200 [&_a]:border-slate-700 [&_a]:bg-slate-800/50 [&_a]:text-slate-200" />
+          </div>
         </div>
 
         <div className="mt-10 pt-6 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-400">

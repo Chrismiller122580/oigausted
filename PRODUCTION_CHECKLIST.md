@@ -1,4 +1,4 @@
-# 🚀 Production Deployment Checklist - Oiga Usted
+# 🚀 Production Deployment Checklist - OigaGIG
 
 This checklist ensures a safe and complete production deployment on Vercel.
 

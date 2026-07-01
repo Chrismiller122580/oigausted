@@ -298,9 +298,9 @@ export default function NotificationPreferences() {
                 if (perm === 'granted') {
                   toast.success('¡Notificaciones de escritorio activadas!');
                   // fire a test notification
-                  new Notification('Oigagig', {
+                  new Notification('OigaGIG', {
                     body: 'Notificaciones de escritorio listas ✅',
-                    icon: '/logo.png'
+                    icon: '/brand/oiga-gig-marketing.png'
                   });
                 } else if (perm === 'denied') {
                   toast.error('Permiso denegado. Habilítalo en la configuración del navegador.');

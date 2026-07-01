@@ -12,6 +12,8 @@ import { getCurrentLocation, calculateDistance } from "@/lib/distance";
 import LocationPermissionPrompt from "@/components/maps/LocationPermissionPrompt";
 import { MapPin, Wifi, X, ChevronLeft, ChevronRight, LayoutGrid } from "lucide-react";
 import { CategoryIcon } from "@/lib/icon-registry";
+import { recordMeaningfulPwaAction } from "@/lib/pwa-install";
+import { ShareOigaGig } from "@/components/marketing/ShareOigaGig";
 
 import type { PublicGigListItem } from '@/lib/gig-queries'
 import { buildGigMapPins, groupGigsByCity } from '@/lib/gig-map';
@@ -55,6 +57,10 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+
+  useEffect(() => {
+    recordMeaningfulPwaAction();
+  }, []);
 
   // Update URL when category changes (for shareability)
   useEffect(() => {
@@ -228,11 +234,12 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
     <div className="max-w-7xl mx-auto px-6 py-8">
       <div className="mb-8">
         <h1 className="text-5xl font-bold tracking-tight">Encuentra Servicios Locales</h1>
-        <div className="flex items-center gap-3 mt-3">
+        <div className="flex flex-col gap-3 mt-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xl text-muted-foreground">
             {filteredGigs.length} servicios disponibles
             {selectedCategory !== "Todas" && ` en ${selectedCategory}`}
           </p>
+          <ShareOigaGig variant="inline" className="md:hidden" />
         </div>
       </div>
 

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import Link from 'next/link';
 import OnboardingTutorial from '@/components/common/OnboardingTutorial';
+import { markTutorialDismissed } from '@/lib/tutorial';
 import { ShoppingBag, Briefcase } from 'lucide-react';
 
 interface Ticket {
@@ -294,7 +295,7 @@ export default function SupportPage() {
         {/* FAQ & How-To - Full training and self-service support */}
         <div className="mt-12">
           <h2 className="text-3xl font-bold mb-2">Centro de Ayuda y Capacitación</h2>
-          <p className="text-muted-foreground mb-6">Respuestas rápidas, guías paso a paso y tutoriales interactivos para que aproveches Oigagig al máximo.</p>
+          <p className="text-muted-foreground mb-6">Respuestas rápidas, guías paso a paso y tutoriales interactivos para que aproveches OigaGIG al máximo.</p>
 
           {/* FAQ */}
           <div className="mb-10">
@@ -322,7 +323,7 @@ export default function SupportPage() {
                   <Card className="bg-card border-border">
                     <CardContent className="p-5">
                       <p className="font-semibold mb-1">¿Cómo contacto al vendedor?</p>
-                      <p className="text-sm text-muted-foreground">Usa &quot;Chatear en Oigagig&quot; en el servicio o perfil del vendedor para preguntar antes de comprar. Después del pago, coordina la entrega en el chat del pedido (/orders/[id]).</p>
+                      <p className="text-sm text-muted-foreground">Usa &quot;Chatear en OigaGIG&quot; en el servicio o perfil del vendedor para preguntar antes de comprar. Después del pago, coordina la entrega en el chat del pedido (/orders/[id]).</p>
                     </CardContent>
                   </Card>
                   <Card className="bg-card border-border">
@@ -357,12 +358,12 @@ export default function SupportPage() {
                     </div>
                     <div>
                       <div className="font-semibold text-lg">Para Compradores (4 pasos)</div>
-                      <div className="text-xs text-muted-foreground">Nuevo en Oigagig</div>
+                      <div className="text-xs text-muted-foreground">Nuevo en OigaGIG</div>
                     </div>
                   </div>
                   <ol className="list-decimal ml-5 space-y-2 text-sm">
                     <li><strong>Explora gigs:</strong> Ve a /gigs, filtra por categoría, precio o cerca de ti usando ubicación.</li>
-                    <li><strong>Contacta:</strong> Lee reseñas y usa el chat de Oigagig antes de pagar (sin compartir teléfonos ni correos).</li>
+                    <li><strong>Contacta:</strong> Lee reseñas y usa el chat de OigaGIG antes de pagar (sin compartir teléfonos ni correos).</li>
                     <li><strong>Paga seguro:</strong> Elige Nequi/PayU en checkout. Tu dinero está protegido hasta que confirmes el servicio.</li>
                     <li><strong>Sigue y califica:</strong> Revisa estado en "Mis Pedidos". Al completar, deja una reseña honesta para ayudar a la comunidad.</li>
                   </ol>
@@ -420,13 +421,15 @@ export default function SupportPage() {
           mode={tutorialMode}
           onComplete={() => {
             const uid = session?.user?.id;
-            if (uid) {
-              localStorage.setItem(`tutorial_${tutorialMode}_${uid}`, 'true');
-            }
+            if (uid) markTutorialDismissed(tutorialMode, uid);
             setShowTutorial(false);
-            toast.success('¡Gracias! Tutorial completado. ¡Éxito con Oigagig!');
+            toast.success('¡Gracias! Tutorial completado. ¡Éxito con OigaGIG!');
           }}
-          onClose={() => setShowTutorial(false)}
+          onClose={() => {
+            const uid = session?.user?.id;
+            if (uid) markTutorialDismissed(tutorialMode, uid);
+            setShowTutorial(false);
+          }}
         />
       )}
     </div>

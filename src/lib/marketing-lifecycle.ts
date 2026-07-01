@@ -64,7 +64,7 @@ const LIFECYCLE_EMAIL_COPY: Record<string, { subject: string; message: string }>
     subject: '¿Listo para recibir clientes? Publica tu primer gig',
     message: `Hola {{name}},
 
-Llevas más de 3 días como vendedor en Oigagig y notamos que aún no publicaste ningún servicio. Sin un gig, los compradores no pueden encontrarte ni contratarte.
+Llevas más de 3 días como vendedor en OigaGIG y notamos que aún no publicaste ningún servicio. Sin un gig, los compradores no pueden encontrarte ni contratarte.
 
 Publicar toma menos de 5 minutos:
 1. Entra a Crear gig y elige tu categoría (plomería, belleza, electricidad…)
@@ -75,13 +75,13 @@ Publicar toma menos de 5 minutos:
 
 ¿Tienes dudas? Escríbenos a support@oigagig.com.
 
-— El equipo de Oigagig`,
+— El equipo de OigaGIG`,
   },
   'buyers-no-orders': {
-    subject: 'Descubre servicios locales de confianza en Oigagig',
+    subject: 'Descubre servicios locales de confianza en OigaGIG',
     message: `Hola {{name}},
 
-Hace más de una semana te uniste a Oigagig y queremos ayudarte a encontrar el servicio que necesitas en {{city}}.
+Hace más de una semana te uniste a OigaGIG y queremos ayudarte a encontrar el servicio que necesitas en {{city}}.
 
 Así puedes hacer tu primer pedido:
 1. Explora servicios por categoría o ciudad
@@ -90,7 +90,7 @@ Así puedes hacer tu primer pedido:
 
 👉 Explorar servicios: {{ctaUrl}}
 
-— El equipo de Oigagig`,
+— El equipo de OigaGIG`,
   },
 };
 

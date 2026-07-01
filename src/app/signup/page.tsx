@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
-import Image from "next/image"
+import Logo from "@/components/common/Logo"
 import { toast } from 'sonner'
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl"
 import { Eye, EyeOff } from "lucide-react"
 import { usePlatformConfig } from "@/components/providers/PlatformConfigProvider"
 import { trackEvent } from "@/lib/analytics"
 import TurnstileWidget from "@/components/security/TurnstileWidget"
+import { BRAND_NAME } from "@/lib/brand"
 
 function SignUpClient() {
   const router = useRouter()
@@ -35,7 +36,7 @@ function SignUpClient() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const { config: platformConfig } = usePlatformConfig();
   const signupsEnabled = platformConfig?.allowNewSignups ?? true;
-  const siteName = platformConfig?.siteName || 'Oigagig';
+  const siteName = platformConfig?.siteName || BRAND_NAME;
 
   useEffect(() => {
     const roleParam = searchParams.get('role');
@@ -140,7 +141,8 @@ function SignUpClient() {
     const callbackUrl = fromQuery || getAuthCallbackUrl('/');
 
     try {
-      await signIn('google', { callbackUrl });
+      const { signInWithGoogle } = await import('@/lib/capacitor-native');
+      await signInWithGoogle(callbackUrl);
     } catch (err) {
       console.error('Google sign-in error:', err);
       setError('Error al registrarse con Google. Intenta con el formulario.');
@@ -154,14 +156,7 @@ function SignUpClient() {
         {/* Hero with Logo */}
         <div className="bg-gradient-to-r from-orange-500 to-red-600 p-8 sm:p-10 text-white text-center">
           <div className="flex justify-center mb-6">
-            <Image 
-              src="/logo.png" 
-              alt="Oigagig" 
-              width={100} 
-              height={100} 
-              className="drop-shadow-lg"
-              priority
-            />
+            <Logo size={88} variant="hero" linkClassName="justify-center drop-shadow-lg" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold">¡Bienvenido a {siteName}!</h1>
           <p className="mt-2 text-white/90">Crea tu cuenta y comienza a conectar</p>

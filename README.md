@@ -1,8 +1,8 @@
-# Oigagig
+# OigaGIG
 
 **La plataforma colombiana de gigs y servicios locales**
 
-Oigagig conecta personas que necesitan servicios con freelancers y negocios locales confiables en Colombia (enfoque inicial en Bucaramanga).
+OigaGIG conecta personas que necesitan servicios con freelancers y negocios locales confiables en Colombia (enfoque inicial en Bucaramanga).
 
 ## Estado Actual (Mayo 2026)
 

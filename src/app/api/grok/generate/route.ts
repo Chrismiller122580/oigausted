@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     let prompt = '';
     if (type === 'faq') {
-      prompt = `Eres un experto en soporte al cliente para Oigagig, el marketplace de servicios locales en Colombia (gigs con Nequi/PayU, chat por WhatsApp, perfiles públicos de vendedores).
+      prompt = `Eres un experto en soporte al cliente para OigaGIG, el marketplace de servicios locales en Colombia (gigs con Nequi/PayU, chat por WhatsApp, perfiles públicos de vendedores).
 
 Genera UNA entrada de FAQ útil, clara y precisa en español.
 

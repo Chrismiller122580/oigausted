@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">OigaGig</string>
+    <string name="title_activity_main">OigaGig</string>
+    <string name="package_name">com.oigagig.app</string>
+    <string name="custom_url_scheme">com.oigagig.app</string>
+</resources>

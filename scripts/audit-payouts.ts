@@ -10,7 +10,7 @@ import { runPayoutAudit } from '../src/lib/payout-audit';
 async function main() {
   const report = await runPayoutAudit();
 
-  console.log('\n=== Oiga Gig Payout Audit ===\n');
+  console.log('\n=== OigaGIG Payout Audit ===\n');
   console.log(`Audited at: ${report.auditedAt}`);
   console.log(`Healthy: ${report.healthy ? 'YES' : 'NO'}\n`);
 

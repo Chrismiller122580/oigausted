@@ -12,7 +12,7 @@ export type ContactDetectionResult = {
 }
 
 export const CONTACT_BLOCKED_MESSAGE =
-  'No compartas teléfonos, correos o redes sociales. Usa el chat de Oigagig para coordinar.'
+  'No compartas teléfonos, correos o redes sociales. Usa el chat de OigaGIG para coordinar.'
 
 const EMAIL_RE =
   /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i

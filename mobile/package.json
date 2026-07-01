@@ -1,0 +1,36 @@
+{
+  "name": "oigagig-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor native shell for OigaGig (loads https://oigagig.com)",
+  "scripts": {
+    "postinstall": "node scripts/sync-assets.mjs",
+    "assets:sync": "node scripts/sync-assets.mjs",
+    "cap:sync": "cap sync && node scripts/configure-native.mjs",
+    "cap:copy": "cap copy && node scripts/configure-native.mjs",
+    "cap:open:android": "cap open android",
+    "cap:open:ios": "cap open ios",
+    "cap:run:android": "cap run android",
+    "cap:run:ios": "cap run ios",
+    "verify": "node scripts/verify-scaffold.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/browser": "^8.0.3",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.4.1",
+    "typescript": "^5.8.3"
+  },
+  "capacitor": {
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  }
+}

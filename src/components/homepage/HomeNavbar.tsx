@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { brandButtonClass } from '@/lib/design-tokens';
 import { cn } from '@/lib/utils';
+import Logo from '@/components/common/Logo';
 import { MegaSearchBar } from './MegaSearchBar';
 
 export function HomeNavbar() {
@@ -18,17 +19,11 @@ export function HomeNavbar() {
         className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 sm:px-6"
         aria-label="Navegación principal"
       >
-        <Link
-          href="/"
-          className="flex shrink-0 items-center gap-1.5 font-bold text-lg sm:text-xl"
-        >
-          <span className="text-xl" aria-hidden>
-            🧡
-          </span>
-          <span className="bg-gradient-to-r from-orange-700 to-orange-500 bg-clip-text text-transparent">
-            OigaGIG
-          </span>
-        </Link>
+        <Logo
+          size={40}
+          variant="compact"
+          linkClassName="shrink-0 text-foreground hover:text-foreground"
+        />
 
         <div className="hidden lg:flex flex-1 max-w-md mx-2">
           <MegaSearchBar variant="compact" />
