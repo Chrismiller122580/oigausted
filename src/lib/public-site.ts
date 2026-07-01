@@ -171,8 +171,8 @@ export function buildPublicPageMetadata({
       images: [
         {
           url: BRAND_LOGO_PATH,
-          width: 832,
-          height: 1248,
+          width: 1200,
+          height: 630,
           alt: 'OigaGIG - Servicios locales en Colombia',
         },
       ],
