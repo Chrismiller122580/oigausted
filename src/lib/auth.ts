@@ -4,6 +4,7 @@ import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
 import { devLog } from './utils'
 import { verifyImpersonationToken } from './impersonation'
+import { verifyMobileAuthToken } from './mobile-auth-token'
 import type { NextAuthOptions, Session } from 'next-auth'
 import type { JWT } from 'next-auth/jwt'
 import { getUserRole, isStaffRole, isUserRole, type UserRole } from './session'
@@ -100,6 +101,47 @@ export function isSeller(session: SessionLike): boolean {
 }
 
 const providers: AuthProvider[] = [
+  CredentialsProvider({
+    id: 'mobile-handoff',
+    name: 'Mobile Handoff',
+    credentials: {
+      token: { label: 'Token', type: 'text' },
+    },
+    async authorize(credentials) {
+      const handoffToken = credentials?.token
+      if (!handoffToken) return null
+
+      const verified = verifyMobileAuthToken(handoffToken)
+      if (!verified) return null
+
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: verified.userId },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            staffRole: true,
+            isActive: true,
+          },
+        })
+
+        if (!user || user.isActive === false) return null
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          staffRole: user.staffRole,
+        }
+      } catch (err) {
+        console.error('[auth] mobile-handoff authorize failed:', err)
+        return null
+      }
+    },
+  }),
   CredentialsProvider({
     name: "Credentials",
     credentials: {

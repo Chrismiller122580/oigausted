@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import Link from 'next/link';
 import OnboardingTutorial from '@/components/common/OnboardingTutorial';
+import { markTutorialDismissed } from '@/lib/tutorial';
 import { ShoppingBag, Briefcase } from 'lucide-react';
 
 interface Ticket {
@@ -420,13 +421,15 @@ export default function SupportPage() {
           mode={tutorialMode}
           onComplete={() => {
             const uid = session?.user?.id;
-            if (uid) {
-              localStorage.setItem(`tutorial_${tutorialMode}_${uid}`, 'true');
-            }
+            if (uid) markTutorialDismissed(tutorialMode, uid);
             setShowTutorial(false);
             toast.success('¡Gracias! Tutorial completado. ¡Éxito con OigaGIG!');
           }}
-          onClose={() => setShowTutorial(false)}
+          onClose={() => {
+            const uid = session?.user?.id;
+            if (uid) markTutorialDismissed(tutorialMode, uid);
+            setShowTutorial(false);
+          }}
         />
       )}
     </div>

@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import OnboardingTutorial from "@/components/common/OnboardingTutorial"
 import { usePlatformConfig } from "@/components/providers/PlatformConfigProvider"
+import { markTutorialDismissed, shouldAutoShowTutorial } from "@/lib/tutorial"
 
 export default function BuyerDashboard() {
   const { data: session } = useSession()
@@ -67,7 +68,7 @@ export default function BuyerDashboard() {
   // Respects global admin toggle from PlatformConfig.tutorialsEnabled
   useEffect(() => {
     const uid = session?.user?.id
-    if (uid && !loading && platformConfig?.tutorialsEnabled !== false) {
+    if (uid && !loading && platformConfig?.tutorialsEnabled !== false && shouldAutoShowTutorial()) {
       const seenKey = `tutorial_buyer_${uid}`
       if (!localStorage.getItem(seenKey)) {
         const t = setTimeout(() => setShowTutorial(true), 900)
@@ -244,10 +245,14 @@ export default function BuyerDashboard() {
           mode="buyer"
           onComplete={() => {
             const uid = session?.user?.id
-            if (uid) localStorage.setItem(`tutorial_buyer_${uid}`, 'true')
+            if (uid) markTutorialDismissed('buyer', uid)
             setShowTutorial(false)
           }}
-          onClose={() => setShowTutorial(false)}
+          onClose={() => {
+            const uid = session?.user?.id
+            if (uid) markTutorialDismissed('buyer', uid)
+            setShowTutorial(false)
+          }}
         />
       )}
     </div>

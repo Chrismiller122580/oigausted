@@ -114,8 +114,9 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
           <Home size={22} />
           <span className="mt-0.5">Inicio</span>
         </Link>
-        <Link 
-          href="/gigs" 
+        <Link
+          id="tutorial-explore-gigs"
+          href="/gigs"
           className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/gigs') ? 'text-orange-600' : 'text-muted-foreground'}`}
         >
           <Package size={22} />

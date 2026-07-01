@@ -54,8 +54,12 @@ npm run mobile:sync
 ### 1. Google OAuth
 
 - Add authorized redirect URI: `https://oigagig.com/api/auth/callback/google`
-- For native system-browser flow, add custom scheme handler (already patched by `scripts/configure-native.mjs`)
-- Finish session handoff in `src/app/auth/mobile-callback/page.tsx` if cookies do not persist across browser ↔ WebView
+- Custom scheme handler is patched by `scripts/configure-native.mjs` (`oigagig://app/...`)
+- Session handoff flow (implemented):
+  1. WebView opens system browser → Google OAuth
+  2. Browser lands on `/auth/mobile-handoff` (has session cookie)
+  3. Handoff issues a 90s one-time token → deep link `oigagig://app/auth/mobile-callback?token=…`
+  4. WebView exchanges token via NextAuth `mobile-handoff` credentials provider
 
 ### 2. Google Maps
 

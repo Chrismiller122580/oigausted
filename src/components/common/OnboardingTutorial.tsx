@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { isMobileBrowser } from '@/lib/pwa-install';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -133,9 +134,17 @@ const sellerSteps: TutorialStep[] = [
 export default function OnboardingTutorial({ mode, onComplete, onClose }: OnboardingTutorialProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [useCompactLayout, setUseCompactLayout] = useState(false);
   const steps = mode === 'buyer' ? buyerSteps : sellerSteps;
   const step = steps[currentStep];
   const progress = ((currentStep + 1) / steps.length) * 100;
+
+  useEffect(() => {
+    const syncLayout = () => setUseCompactLayout(isMobileBrowser());
+    syncLayout();
+    window.addEventListener('resize', syncLayout);
+    return () => window.removeEventListener('resize', syncLayout);
+  }, []);
 
   // Compute highlight target rect (viewport-relative) when step changes
   const updateTargetRect = () => {
@@ -187,8 +196,90 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
     onComplete();
   };
 
-  const isHighlighting = !!targetRect && !!step.target;
+  const isHighlighting = !!targetRect && !!step.target && !useCompactLayout;
+  const showSpotlight = !!targetRect && !!step.target;
   const StepIcon = step.icon;
+
+  const stepCardBody = (
+    <>
+      <div className={`border-b border-border flex items-center justify-between ${useCompactLayout ? 'p-4' : 'p-5'}`}>
+        <div className="flex items-center gap-3 min-w-0">
+          {StepIcon && (
+            <div className={`rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center flex-shrink-0 ${useCompactLayout ? 'w-9 h-9' : 'w-10 h-10'}`}>
+              <StepIcon size={useCompactLayout ? 18 : 20} />
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="text-xs text-muted-foreground">
+              {mode === 'buyer' ? 'Capacitación para Compradores' : 'Capacitación para Vendedores'} • Paso {currentStep + 1} de {steps.length}
+            </div>
+            <h2 className={`font-bold text-foreground truncate ${useCompactLayout ? 'text-lg' : 'text-xl'}`}>{step.title}</h2>
+          </div>
+        </div>
+        <Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar tutorial">
+          <X size={18} />
+        </Button>
+      </div>
+
+      <CardContent className={`space-y-4 text-sm ${useCompactLayout ? 'p-4' : 'p-5'}`}>
+        <p className="text-muted-foreground leading-relaxed">{step.description}</p>
+
+        <div className="bg-muted/50 rounded-xl p-4">
+          <p className="font-semibold text-xs mb-2 text-orange-600">Consejos clave:</p>
+          <ul className="space-y-1.5 text-xs">
+            {step.tips.map((tip, index) => (
+              <li key={index} className="flex items-start gap-2">
+                <span className="text-orange-600 mt-0.5">•</span>
+                <span>{tip}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {showSpotlight && useCompactLayout ? (
+          <p className="text-[10px] text-muted-foreground text-center">
+            Mira el área resaltada en naranja en la pantalla.
+          </p>
+        ) : null}
+
+        <div className="w-full bg-muted rounded-full h-1.5">
+          <div
+            className="bg-orange-600 h-1.5 rounded-full transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </CardContent>
+
+      <div className={`border-t border-border flex items-center justify-between gap-2 ${useCompactLayout ? 'p-3' : 'p-4'}`}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handlePrev}
+          disabled={currentStep === 0}
+          className="gap-1 text-xs"
+        >
+          <ArrowLeft size={14} /> Anterior
+        </Button>
+
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" onClick={onClose} className="text-xs">
+            Saltar
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleNext}
+            className="gap-1 bg-orange-600 hover:bg-orange-700 text-xs"
+          >
+            {currentStep === steps.length - 1 ? (
+              <>Finalizar <Check size={14} /></>
+            ) : (
+              <>Siguiente <ArrowRight size={14} /></>
+            )}
+          </Button>
+        </div>
+      </div>
+    </>
+  );
 
   // Position the callout card relative to the highlight (default bottom)
   const getCardStyle = () => {
@@ -240,189 +331,50 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
   };
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0 z-[260]">
       {isHighlighting ? (
         <>
-          {/* Dark overlay (click to close) */}
-          <div 
-            className="fixed inset-0 bg-black/70" 
-            onClick={onClose}
-          />
+          <div className="fixed inset-0 bg-black/70" onClick={onClose} />
 
-          {/* Highlight / spotlight box with glow cutout */}
           <div
-            className="fixed z-[52] border-[5px] border-orange-500 rounded-3xl pointer-events-none transition-all duration-200"
+            className="fixed z-[262] border-[5px] border-orange-500 rounded-3xl pointer-events-none transition-all duration-200"
             style={{
-              top: `${targetRect.top - 8}px`,
-              left: `${targetRect.left - 8}px`,
-              width: `${targetRect.width + 16}px`,
-              height: `${targetRect.height + 16}px`,
+              top: `${targetRect!.top - 8}px`,
+              left: `${targetRect!.left - 8}px`,
+              width: `${targetRect!.width + 16}px`,
+              height: `${targetRect!.height + 16}px`,
               boxShadow: '0 0 0 9999px rgba(0,0,0,0.75)',
             }}
           />
 
-          {/* Callout card positioned next to the highlight */}
-          <Card 
-            className="bg-card border-border shadow-2xl w-full"
-            style={getCardStyle()}
-          >
-            {/* small pointing arrow */}
+          <Card className="bg-card border-border shadow-2xl w-full" style={getCardStyle()}>
             <div style={getArrowStyle()} />
+            {stepCardBody}
+          </Card>
+        </>
+      ) : showSpotlight && useCompactLayout ? (
+        <>
+          <div className="fixed inset-0 bg-black/70" onClick={onClose} />
 
-            <div className="p-5 border-b border-border flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {StepIcon && (
-                  <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center flex-shrink-0">
-                    <StepIcon size={20} />
-                  </div>
-                )}
-                <div>
-                  <div className="text-xs text-muted-foreground">
-                    {mode === 'buyer' ? 'Capacitación para Compradores' : 'Capacitación para Vendedores'} • Paso {currentStep + 1} de {steps.length}
-                  </div>
-                  <h2 className="text-xl font-bold text-foreground">{step.title}</h2>
-                </div>
-              </div>
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <X size={18} />
-              </Button>
-            </div>
+          <div
+            className="fixed z-[262] border-[5px] border-orange-500 rounded-3xl pointer-events-none transition-all duration-200"
+            style={{
+              top: `${targetRect!.top - 8}px`,
+              left: `${targetRect!.left - 8}px`,
+              width: `${targetRect!.width + 16}px`,
+              height: `${targetRect!.height + 16}px`,
+              boxShadow: '0 0 0 9999px rgba(0,0,0,0.75)',
+            }}
+          />
 
-            <CardContent className="p-5 space-y-4 text-sm">
-              <p className="text-muted-foreground leading-relaxed">
-                {step.description}
-              </p>
-
-              <div className="bg-muted/50 rounded-xl p-4">
-                <p className="font-semibold text-xs mb-2 text-orange-600">Consejos clave:</p>
-                <ul className="space-y-1.5 text-xs">
-                  {step.tips.map((tip, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-orange-600 mt-0.5">•</span>
-                      <span>{tip}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="text-[10px] text-muted-foreground text-center">
-                Mira el área resaltada en naranja. Este tutorial te ayudará a aprovechar OigaGIG al máximo.
-              </div>
-
-              {/* Progress bar small */}
-              <div className="w-full bg-muted rounded-full h-1.5 mt-2">
-                <div 
-                  className="bg-orange-600 h-1.5 rounded-full transition-all duration-300" 
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </CardContent>
-
-            <div className="p-4 border-t border-border flex items-center justify-between gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handlePrev} 
-                disabled={currentStep === 0}
-                className="gap-1 text-xs"
-              >
-                <ArrowLeft size={14} /> Anterior
-              </Button>
-
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={onClose} className="text-xs">
-                  Saltar
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={handleNext} 
-                  className="gap-1 bg-orange-600 hover:bg-orange-700 text-xs"
-                >
-                  {currentStep === steps.length - 1 ? (
-                    <>Finalizar <Check size={14} /></>
-                  ) : (
-                    <>Siguiente <ArrowRight size={14} /></>
-                  )}
-                </Button>
-              </div>
-            </div>
+          <Card className="fixed inset-x-0 bottom-0 z-[263] rounded-t-2xl rounded-b-none border-border shadow-2xl max-h-[78vh] overflow-y-auto safe-area-inset-bottom">
+            {stepCardBody}
           </Card>
         </>
       ) : (
-        /* Fallback centered modal (when no target or launched from pages without elements) */
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <Card className="w-full max-w-2xl bg-card border-border shadow-2xl">
-            <div className="p-6 border-b border-border flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {StepIcon && (
-                  <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center flex-shrink-0">
-                    <StepIcon size={24} />
-                  </div>
-                )}
-                <div>
-                  <div className="text-sm text-muted-foreground">
-                    {mode === 'buyer' ? 'Capacitación para Compradores' : 'Capacitación para Vendedores'} • Paso {currentStep + 1} de {steps.length}
-                  </div>
-                  <h2 className="text-2xl font-bold text-foreground">{step.title}</h2>
-                </div>
-              </div>
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <X size={20} />
-              </Button>
-            </div>
-
-            <CardContent className="p-8 space-y-6">
-              <div className="w-full bg-muted rounded-full h-2">
-                <div 
-                  className="bg-orange-600 h-2 rounded-full transition-all duration-300" 
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                {step.description}
-              </p>
-
-              <div className="bg-muted/50 rounded-2xl p-6">
-                <p className="font-semibold text-sm mb-3 text-orange-600">Consejos clave:</p>
-                <ul className="space-y-2 text-sm">
-                  {step.tips.map((tip, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-orange-600 mt-0.5">•</span>
-                      <span>{tip}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="text-xs text-muted-foreground text-center">
-                Este tutorial te ayudará a aprovechar OigaGIG al máximo. Puedes volver a verlo desde Soporte.
-              </div>
-            </CardContent>
-
-            <div className="p-6 border-t border-border flex items-center justify-between">
-              <Button 
-                variant="outline" 
-                onClick={handlePrev} 
-                disabled={currentStep === 0}
-                className="gap-2"
-              >
-                <ArrowLeft size={16} /> Anterior
-              </Button>
-
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={onClose}>
-                  Saltar por ahora
-                </Button>
-                <Button onClick={handleNext} className="gap-2 bg-orange-600 hover:bg-orange-700">
-                  {currentStep === steps.length - 1 ? (
-                    <>Finalizar <Check size={16} /></>
-                  ) : (
-                    <>Siguiente <ArrowRight size={16} /></>
-                  )}
-                </Button>
-              </div>
-            </div>
+        <div className={`fixed inset-0 flex bg-black/60 ${useCompactLayout ? 'items-end p-0' : 'items-center p-4'}`}>
+          <Card className={`w-full bg-card border-border shadow-2xl ${useCompactLayout ? 'rounded-t-2xl rounded-b-none max-h-[85vh] overflow-y-auto safe-area-inset-bottom' : 'max-w-2xl'}`}>
+            {stepCardBody}
           </Card>
         </div>
       )}

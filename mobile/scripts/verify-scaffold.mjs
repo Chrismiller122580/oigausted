@@ -49,6 +49,13 @@ assert(existsSync(bridgePath), 'missing web bridge: src/lib/capacitor-native.ts'
 const bridge = readFileSync(bridgePath, 'utf8')
 assert(bridge.includes('signInWithGoogle'), 'capacitor-native.ts missing signInWithGoogle')
 assert(bridge.includes('initCapacitorShell'), 'capacitor-native.ts missing initCapacitorShell')
+assert(bridge.includes('closeInAppBrowser'), 'capacitor-native.ts missing closeInAppBrowser')
+
+const handoffPage = join(root, '..', 'src', 'app', 'auth', 'mobile-handoff', 'page.tsx')
+assert(existsSync(handoffPage), 'missing web handoff page: src/app/auth/mobile-handoff/page.tsx')
+
+const tokenLib = join(root, '..', 'src', 'lib', 'mobile-auth-token.ts')
+assert(existsSync(tokenLib), 'missing token lib: src/lib/mobile-auth-token.ts')
 
 if (errors.length) {
   console.error('❌ mobile scaffold verification failed:\n')

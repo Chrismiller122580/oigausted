@@ -76,7 +76,7 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             <Link href="/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Bell size={22} /> Notificaciones
             </Link>
-            <Link href="/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+            <Link id="tutorial-explore-gigs" href="/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Home size={22} /> Explorar Gigs
             </Link>
             <Link href="/buyer" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">

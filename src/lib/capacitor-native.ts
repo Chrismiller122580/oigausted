@@ -1,7 +1,7 @@
 /**
  * Capacitor native-shell bridge.
  * Active only when the app runs inside the iOS/Android wrapper (not mobile Safari).
- * OAuth token handoff and store signing are completed at release — see mobile/README.md.
+ * Store signing and marketplace metadata are completed at release — see mobile/README.md.
  */
 
 import { Capacitor } from '@capacitor/core'
@@ -81,17 +81,29 @@ export async function openExternalUrl(url: string): Promise<void> {
   await Browser.open({ url, presentationStyle: 'popover' })
 }
 
+export async function closeInAppBrowser(): Promise<void> {
+  if (!isCapacitorNative()) return
+
+  try {
+    const { Browser } = await import('@capacitor/browser')
+    await Browser.close()
+  } catch {
+    // Browser may already be closed after the deep link fires
+  }
+}
+
 /**
  * Google OAuth in embedded WebViews is blocked by Google.
- * Native shell opens the system browser; session handoff is finished at release time.
+ * Native shell opens the system browser, completes OAuth there, then hands off
+ * the session via /auth/mobile-handoff → deep link → mobile-handoff credentials.
  */
 export async function signInWithGoogle(callbackPath: string): Promise<void> {
   if (isCapacitorNative()) {
+    const handoffUrl = new URL('/auth/mobile-handoff', window.location.origin)
+    handoffUrl.searchParams.set('next', callbackPath)
+
     const signInUrl = new URL('/api/auth/signin/google', window.location.origin)
-    signInUrl.searchParams.set(
-      'callbackUrl',
-      buildNativeDeepLink(`${NATIVE_CALLBACK_PATH}?next=${encodeURIComponent(callbackPath)}`),
-    )
+    signInUrl.searchParams.set('callbackUrl', handoffUrl.toString())
     await openExternalUrl(signInUrl.toString())
     return
   }

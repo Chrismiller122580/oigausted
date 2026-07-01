@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { brandButtonClass, heroCollageImages, trustBadges } from '@/lib/design-tokens';
 import { cn } from '@/lib/utils';
 import {
-  hasSeenHomepageWelcome,
   markHomepageWelcomeSeen,
+  shouldShowHomepageWelcome,
 } from '@/lib/first-visit-banners';
 
 const steps = [
@@ -59,7 +59,7 @@ export function HomepageWelcomeSplash() {
     setMounted(true);
 
     const showIfNeeded = () => {
-      if (!hasSeenHomepageWelcome()) {
+      if (shouldShowHomepageWelcome()) {
         setVisible(true);
       }
     };
