@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/prisma'
-import { BRAND_NAME, BRAND_NAV_LOGO_PATH } from '@/lib/brand'
+import { BRAND_NAME, BRAND_ICON_PATH } from '@/lib/brand'
 import { isSqliteDatabase, slugify } from '@/lib/utils'
 
 export const PLATFORM_SELLER_SLUG = 'oigagig'
@@ -29,7 +29,7 @@ async function ensurePlatformSellerSqlite(): Promise<{ id: string; slug: string 
             role = 'seller',
             "businessName" = ${BRAND_NAME},
             bio = ${PLATFORM_BIO},
-            "profilePicture" = ${BRAND_NAV_LOGO_PATH},
+            "profilePicture" = ${BRAND_ICON_PATH},
             city = 'Colombia',
             "isActive" = 1,
             "updatedAt" = datetime('now')
@@ -47,7 +47,7 @@ async function ensurePlatformSellerSqlite(): Promise<{ id: string; slug: string 
       "isActive", "createdAt", "updatedAt", "reviewCount", rating
     ) VALUES (
       ${id}, ${PLATFORM_SELLER_EMAIL}, ${BRAND_NAME}, ${BRAND_NAME}, ${PLATFORM_SELLER_SLUG},
-      'seller', ${PLATFORM_BIO}, ${BRAND_NAV_LOGO_PATH}, 'Colombia',
+      'seller', ${PLATFORM_BIO}, ${BRAND_ICON_PATH}, 'Colombia',
       1, ${now}, ${now}, 0, 0
     )
   `
@@ -75,7 +75,7 @@ export async function ensurePlatformSeller(): Promise<{ id: string; slug: string
       slug: PLATFORM_SELLER_SLUG,
       role: 'seller',
       bio: PLATFORM_BIO,
-      profilePicture: BRAND_NAV_LOGO_PATH,
+      profilePicture: BRAND_ICON_PATH,
       city: 'Colombia',
       isActive: true,
     },
@@ -84,7 +84,7 @@ export async function ensurePlatformSeller(): Promise<{ id: string; slug: string
       slug: PLATFORM_SELLER_SLUG,
       role: 'seller',
       bio: PLATFORM_BIO,
-      profilePicture: BRAND_NAV_LOGO_PATH,
+      profilePicture: BRAND_ICON_PATH,
       isActive: true,
     },
     select: SELLER_SELECT,

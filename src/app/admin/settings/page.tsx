@@ -14,7 +14,7 @@ import {
 import type { AdminSettingsFormConfig, AdminPlatformConfigResponse } from '@/types/platform-config';
 import { asAuditDetails, type AuditLogEntry } from '@/types/audit';
 import type { WompiTestSummary, WompiWebhookEvent } from '@/types/wompi';
-import { BRAND_NAME, BRAND_LOGO_PATH } from '@/lib/brand';
+import { BRAND_NAME, BRAND_ICON_PATH, BRAND_LOGO_PATH } from '@/lib/brand';
 
 // Enhanced accessible Switch using native input for reliable tap/keyboard behavior on all devices (incl. Android)
 function Switch({ checked, onCheckedChange, disabled }: { checked: boolean; onCheckedChange: (v: boolean) => void; disabled?: boolean }) {
@@ -150,7 +150,7 @@ const DEFAULTS: Partial<PlatformConfig> = {
   maxUploadSizeMB: 10,
   siteName: BRAND_NAME,
   siteTagline: 'Conecta con profesionales locales en Colombia',
-  logoUrl: BRAND_LOGO_PATH,
+  logoUrl: BRAND_ICON_PATH,
   globalPushNotificationsEnabled: true,
   globalEmailNotificationsEnabled: true,
   maintenanceBypassIps: '',

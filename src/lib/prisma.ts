@@ -1,6 +1,6 @@
 import { PrismaClient, type Prisma } from '@prisma/client'
 import { withAccelerate } from '@prisma/extension-accelerate'
-import { BRAND_NAME, BRAND_LOGO_PATH } from '@/lib/brand'
+import { BRAND_NAME, BRAND_ICON_PATH, BRAND_LOGO_PATH } from '@/lib/brand'
 import { devLog } from './utils'
 
 const globalForPrisma = globalThis as unknown as {
@@ -127,7 +127,7 @@ export async function ensurePlatformConfig(): Promise<void> {
         maxUploadSizeMB: 10,
         siteName: BRAND_NAME,
         siteTagline: 'Conecta con profesionales locales en Colombia',
-        logoUrl: BRAND_LOGO_PATH,
+        logoUrl: BRAND_ICON_PATH,
         globalPushNotificationsEnabled: true,
         globalEmailNotificationsEnabled: true,
         maintenanceBypassIps: '',
@@ -230,7 +230,7 @@ export async function getPlatformConfig(force = false) {
     maxUploadSizeMB: 10,
     siteName: BRAND_NAME,
     siteTagline: 'Conecta con profesionales locales en Colombia',
-    logoUrl: BRAND_LOGO_PATH,
+    logoUrl: BRAND_ICON_PATH,
     globalPushNotificationsEnabled: true,
     globalEmailNotificationsEnabled: true,
     maintenanceBypassIps: '',

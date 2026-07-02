@@ -3,13 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
-import { BRAND_NAME, BRAND_LOGO_PATH, BRAND_NAV_LOGO_PATH } from '@/lib/brand';
+import { BRAND_NAME, BRAND_ICON_PATH } from '@/lib/brand';
 import { sanitizeLogoUrl } from '@/lib/logo-url';
 
 interface LogoProps {
   size?: number;
   showText?: boolean;
-  /** compact: nav bars; hero: login/signup */
+  /** compact: nav bars; hero: login/signup (slightly larger radius) */
   variant?: 'compact' | 'hero';
   className?: string;
   linkClassName?: string;
@@ -24,18 +24,17 @@ export default function Logo({
 }: LogoProps) {
   const { config } = usePlatformConfig();
   const siteName = config?.siteName || BRAND_NAME;
-  const defaultLogo = variant === 'compact' ? BRAND_NAV_LOGO_PATH : BRAND_LOGO_PATH;
-  const logoUrl = sanitizeLogoUrl(config?.logoUrl) ?? defaultLogo;
+  const logoUrl = sanitizeLogoUrl(config?.logoUrl) ?? BRAND_ICON_PATH;
 
   const iconSize = size;
-  const maxWidth = variant === 'compact' ? iconSize * 2.8 : iconSize * 2.4;
+  const radius = variant === 'hero' ? 'rounded-2xl' : 'rounded-xl';
 
   const icon = (
     <img
       src={logoUrl}
       alt={siteName}
-      style={{ height: iconSize, width: 'auto', maxWidth }}
-      className="object-contain"
+      style={{ width: iconSize, height: iconSize }}
+      className={`${radius} object-contain shadow-sm`}
     />
   );
 

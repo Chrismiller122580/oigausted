@@ -8,7 +8,7 @@ import { devLog } from '@/lib/utils';
 import { isSecretUnchanged, maskSecretConfigured } from '@/lib/secrets';
 import type { PublicPlatformConfig } from '@/types/platform-config';
 import type { JsonObject } from '@/types/json';
-import { BRAND_NAME, BRAND_LOGO_PATH } from '@/lib/brand';
+import { BRAND_NAME, BRAND_ICON_PATH } from '@/lib/brand';
 import { sanitizeLogoUrl } from '@/lib/logo-url';
 
 function errMessage(e: unknown): string {
@@ -186,7 +186,7 @@ export async function GET(req: NextRequest) {
         maintenanceMessage: "Estamos realizando mejoras. Volveremos pronto.",
         siteName: BRAND_NAME,
         siteTagline: 'Conecta con profesionales locales en Colombia',
-        logoUrl: BRAND_LOGO_PATH,
+        logoUrl: BRAND_ICON_PATH,
         allowNewSignups: true,
         referralsEnabled: true,
         globalPushNotificationsEnabled: true,
@@ -197,7 +197,7 @@ export async function GET(req: NextRequest) {
       });
     } catch (finalErr) {
       console.error('Config GET ultimate fallback error (returning plain 200):', finalErr);
-      return new Response('{"maintenanceMode":false,"maintenanceMessage":"Estamos realizando mejoras. Volveremos pronto.","maintenanceBypassIps":"","siteName":"OigaGIG","siteTagline":"Conecta con profesionales locales en Colombia","logoUrl":"/brand/oiga-gig-marketing.png","allowNewSignups":true,"referralsEnabled":true,"globalPushNotificationsEnabled":true,"globalEmailNotificationsEnabled":true,"wompiRealPaymentsEnabled":false,"wompiSftpEnabled":false,"tutorialsEnabled":true}', {
+      return new Response('{"maintenanceMode":false,"maintenanceMessage":"Estamos realizando mejoras. Volveremos pronto.","maintenanceBypassIps":"","siteName":"OigaGIG","siteTagline":"Conecta con profesionales locales en Colombia","logoUrl":"/icon.png","allowNewSignups":true,"referralsEnabled":true,"globalPushNotificationsEnabled":true,"globalEmailNotificationsEnabled":true,"wompiRealPaymentsEnabled":false,"wompiSftpEnabled":false,"tutorialsEnabled":true}', {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
