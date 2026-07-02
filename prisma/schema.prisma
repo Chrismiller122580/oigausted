@@ -132,6 +132,9 @@ model User {
   // Seller AI Marketing Studio
   marketingSubscription SellerMarketingSubscription?
   marketingGenerations  SellerMarketingGeneration[]
+
+  // Buro de Documentos (platform-owned)
+  documentRequests DocumentRequest[]
 }
 
 model PasswordResetToken {
@@ -437,7 +440,73 @@ model PlatformConfig {
   marketingStudioProPriceCOP       Int @default(29900)
   marketingStudioFreeMonthlyLimit  Int @default(3)
 
+  // Buro de Documentos — Presentado por OigaGIG
+  documentStudioEnabled     Boolean @default(true)
+  documentPrintShopEmail    String? @default("impresion@oigagig.com")
+  documentBasePriceCOP      Int     @default(15000)
+  documentCustomPriceCOP    Int     @default(25000)
+  documentLearnThreshold    Int     @default(3) // requests before surfacing as community template
+
   updatedAt               DateTime @updatedAt
+}
+
+enum DocumentRequestStatus {
+  Draft
+  PendingPayment
+  Paid
+  Completed
+  Failed
+}
+
+// Tracks custom document types users request that are not in the static catalog.
+// The system learns from repeated requests and can surface them as community templates.
+model DocumentLearnedRequest {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  displayName     String
+  rawDescription  String
+  categoryHint    String?
+  sampleFields    Json?
+  aiPromptHint    String?
+  requestCount    Int      @default(1)
+  status          String   @default("learning") // learning | suggested | promoted | dismissed
+  lastRequestedAt DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  documentRequests DocumentRequest[]
+
+  @@index([status])
+  @@index([requestCount])
+  @@index([lastRequestedAt])
+}
+
+model DocumentRequest {
+  id                String                @id @default(cuid())
+  userId            String
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId        String
+  templateName      String
+  isCustom          Boolean               @default(false)
+  customDescription String?
+  customFields      Json                  @default("{}")
+  generatedContent  Json?
+  editedContent     Json?
+  priceCOP          Float
+  status            DocumentRequestStatus @default(Draft)
+  wompiReference    String?               @unique
+  pdfUrl            String?
+  printShopEmail    String?
+  buyerEmail        String
+  learnedRequestId  String?
+  learnedRequest    DocumentLearnedRequest? @relation(fields: [learnedRequestId], references: [id])
+  createdAt         DateTime              @default(now())
+  completedAt       DateTime?
+
+  @@index([userId])
+  @@index([status])
+  @@index([templateId])
+  @@index([learnedRequestId])
 }
 
 model ReferralEarning {

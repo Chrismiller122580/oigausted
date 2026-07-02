@@ -85,6 +85,11 @@ const platformConfigSelect = {
   wompiSftpRemotePath: true,
   marketingStudioProPriceCOP: true,
   marketingStudioFreeMonthlyLimit: true,
+  documentStudioEnabled: true,
+  documentPrintShopEmail: true,
+  documentBasePriceCOP: true,
+  documentCustomPriceCOP: true,
+  documentLearnThreshold: true,
   updatedAt: true,
 } satisfies Prisma.PlatformConfigSelect
 
@@ -240,6 +245,11 @@ export async function getPlatformConfig(force = false) {
     tutorialsEnabled: true,
     marketingStudioProPriceCOP: 29900,
     marketingStudioFreeMonthlyLimit: 3,
+    documentStudioEnabled: true,
+    documentPrintShopEmail: 'impresion@oigagig.com',
+    documentBasePriceCOP: 15000,
+    documentCustomPriceCOP: 25000,
+    documentLearnThreshold: 3,
     updatedAt: new Date(),
   }
 

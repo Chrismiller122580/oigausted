@@ -64,6 +64,13 @@ node -e '
     /status\s+OrderStatus @default\(Pending\)/,
     "status          String   @default(\"Pending\")"
   );
+  s = s.replace(/enum DocumentRequestStatus \{[\s\S]*?\}\n\n/, "");
+  s = s.replace(
+    /status\s+DocumentRequestStatus @default\(Draft\)/,
+    "status            String   @default(\"Draft\")"
+  );
+  // SQLite does not support String[] — store as JSON string locally
+  s = s.replace(/violationTypes\s+String\[\]/, "violationTypes  String  // JSON array (sqlite)");
   fs.writeFileSync(process.argv[1], s);
   console.log("  (schema patched to sqlite for this dev session)");
 ' "$SCHEMA"

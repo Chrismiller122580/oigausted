@@ -201,6 +201,32 @@ export async function POST(request: Request) {
         return NextResponse.json({ received: true, marketingStudio: true });
       }
 
+      // Buro de Documentos (DOC-{requestIdPrefix}-{timestamp})
+      if (reference?.startsWith('DOC-') && transaction.status === 'APPROVED') {
+        try {
+          const { fulfillDocumentByWompiReference } = await import('@/lib/server/fulfill-document-request');
+          const result = await fulfillDocumentByWompiReference(reference);
+          if (result.ok) {
+            await logAuditEvent({
+              action: 'DOCUMENT_REQUEST_FULFILLED',
+              targetType: 'DocumentRequest',
+              targetId: result.documentRequestId || reference,
+              details: {
+                reference,
+                wompiTransactionId: transaction.id,
+                ...(transaction.amount_in_cents != null
+                  ? { amount_in_cents: transaction.amount_in_cents }
+                  : {}),
+              },
+            });
+            devLog(`[Wompi][Webhook] Document fulfilled for ${reference}`);
+          }
+        } catch (docErr) {
+          devLog('[Wompi][Webhook] DOC fulfillment failed', docErr);
+        }
+        return NextResponse.json({ received: true, documentStudio: true });
+      }
+
       const orderId = reference?.replace('order_', '')
 
       if (!orderId) {

@@ -22,6 +22,13 @@ function getBuyerFields(categoryName: string) {
         { key: 'packageSize', label: 'Tamaño del paquete', type: 'select', options: ['Pequeño', 'Mediano', 'Grande'] },
         { key: 'urgency', label: 'Urgencia', type: 'select', options: ['Normal', 'Rápido', 'Mismo día'] },
       ];
+    case 'Buro de Documentos — Presentado por OigaGIG':
+      return [
+        { key: 'descripcion', label: 'Tipo de documento', type: 'text' },
+        { key: 'partes', label: 'Partes involucradas', type: 'text' },
+        { key: 'ciudad', label: 'Ciudad', type: 'text' },
+        { key: 'printShopEmail', label: 'Correo de imprenta (opcional)', type: 'text' },
+      ];
     case 'Plomería y Fontanería':
       return [
         { key: 'problemType', label: 'Tipo de problema', type: 'select', options: ['Fuga de agua', 'Desagüe tapado', 'Instalación nueva', 'Reparación general'] },

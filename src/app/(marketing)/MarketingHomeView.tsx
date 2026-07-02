@@ -7,6 +7,7 @@ import type { HomepageStats, PopularGig } from '@/components/homepage/StatsAndPo
 import type { HomepageTestimonial } from '@/components/homepage/TestimonialsCarousel';
 import { MarketingHomeWelcome } from './MarketingHomeWelcome';
 import { MarketingHomeBelowFold } from './MarketingHomeBelowFold';
+import { DocumentosHomeSection } from '@/components/homepage/DocumentosHomeSection';
 
 const CategoriesSection = dynamic(
   () =>
@@ -44,6 +45,7 @@ export function MarketingHomeView({
       <main>
         <HomeHero />
         <CategoriesSection categories={categories} />
+        <DocumentosHomeSection />
         <StatsAndPopular stats={stats} popularGigs={popularGigs} />
         <MarketingHomeBelowFold testimonials={testimonials} />
       </main>

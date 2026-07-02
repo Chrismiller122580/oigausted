@@ -180,6 +180,14 @@ export const gigCategories = [
     ]
   },
   {
+    name: "Buro de Documentos — Presentado por OigaGIG",
+    icon: "📄",
+    fields: [
+      { key: "copias", label: "Copias adicionales", type: "number", extraPrice: 3000 },
+      { key: "urgencia", label: "Entrega urgente", type: "checkbox", extraPrice: 8000 }
+    ]
+  },
+  {
     name: "Turismo",
     icon: "🗺️",
     fields: [
