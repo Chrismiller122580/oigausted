@@ -37,6 +37,10 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     return NextResponse.json({ error: 'Genera el documento antes de pagar' }, { status: 400 })
   }
 
+  if (!doc.printShopEmail?.trim()) {
+    return NextResponse.json({ error: 'Ingresa el correo de tu imprenta antes de pagar' }, { status: 400 })
+  }
+
   if (!realPaymentsEnabled) {
     return NextResponse.json({
       testMode: true,

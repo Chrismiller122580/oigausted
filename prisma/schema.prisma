@@ -520,6 +520,8 @@ model DocumentRequest {
   wompiReference    String?               @unique
   pdfUrl            String?
   printShopEmail    String?
+  printShopName     String?
+  printShopPhone    String?
   buyerEmail        String
   learnedRequestId  String?
   learnedRequest    DocumentLearnedRequest? @relation(fields: [learnedRequestId], references: [id])

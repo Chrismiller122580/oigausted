@@ -53,6 +53,9 @@ type OrderRow = {
   status: string
   priceCOP: number
   buyerEmail: string
+  printShopEmail: string | null
+  printShopName: string | null
+  printShopPhone: string | null
   pdfUrl: string | null
   createdAt: string
   user: { name: string | null; email: string | null }
@@ -260,7 +263,7 @@ export function AdminDocumentosPanel() {
               <span className="font-medium">Servicio activo</span>
             </label>
             <div className="space-y-2">
-              <Label>Correo imprenta predeterminado</Label>
+              <Label>Correo de ejemplo (placeholder en el formulario)</Label>
               <Input
                 value={settings.documentPrintShopEmail}
                 onChange={(e) =>
@@ -412,6 +415,13 @@ export function AdminDocumentosPanel() {
                     <span className="font-medium">{o.templateName}</span>
                     <span className="text-muted-foreground ml-2">{o.status}</span>
                     <p className="text-muted-foreground">{o.buyerEmail}</p>
+                    {o.printShopEmail && (
+                      <p className="text-muted-foreground">
+                        Imprenta: {o.printShopName ? `${o.printShopName} — ` : ''}
+                        {o.printShopEmail}
+                        {o.printShopPhone ? ` · ${o.printShopPhone}` : ''}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground">
                       {new Date(o.createdAt).toLocaleString('es-CO')}
                     </p>

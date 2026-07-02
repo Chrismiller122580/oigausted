@@ -38,7 +38,9 @@ export function DocumentWizard({
   const isAdmin = session?.user?.role === 'admin'
   const [step, setStep] = useState<Step>('form')
   const [formData, setFormData] = useState<Record<string, string | number | boolean>>({})
-  const [printShopEmail, setPrintShopEmail] = useState(defaultPrintShopEmail || '')
+  const [printShopEmail, setPrintShopEmail] = useState('')
+  const [printShopName, setPrintShopName] = useState('')
+  const [printShopPhone, setPrintShopPhone] = useState('')
   const [requestId, setRequestId] = useState<string | null>(null)
   const [content, setContent] = useState<GeneratedContent | null>(null)
   const [editedBody, setEditedBody] = useState('')
@@ -192,16 +194,31 @@ export function DocumentWizard({
 
   const saveAndPay = async () => {
     if (!requestId || !content) return
+
+    const email = printShopEmail.trim()
+    if (!email) {
+      toast.error('Ingresa el correo de tu imprenta')
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Correo de imprenta inválido')
+      return
+    }
+
     setLoading(true)
     try {
-      await fetch(`/api/documents/${requestId}`, {
+      const patchRes = await fetch(`/api/documents/${requestId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           editedContent: { ...content, body: editedBody },
-          printShopEmail: printShopEmail.trim() || undefined,
+          printShopEmail: email,
+          printShopName: printShopName.trim() || undefined,
+          printShopPhone: printShopPhone.trim() || undefined,
         }),
       })
+      const patchData = await patchRes.json()
+      if (!patchRes.ok) throw new Error(patchData.error || 'Error al guardar')
 
       const checkoutRes = await fetch(`/api/documents/${requestId}/checkout`, {
         method: 'POST',
@@ -341,17 +358,40 @@ export function DocumentWizard({
             />
             <p className="text-xs text-muted-foreground">{content.disclaimer}</p>
 
-            <div className="space-y-2">
-              <Label>Correo de imprenta (opcional)</Label>
-              <Input
-                type="email"
-                value={printShopEmail}
-                onChange={(e) => setPrintShopEmail(e.target.value)}
-                placeholder={defaultPrintShopEmail || 'imprenta@ejemplo.com'}
-              />
-              <p className="text-xs text-muted-foreground">
-                También recibirás el PDF en {session?.user?.email}
-              </p>
+            <div className="space-y-4 rounded-lg border p-4">
+              <div>
+                <p className="font-medium text-sm">Tu imprenta</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Enviaremos el PDF a tu imprenta y a {session?.user?.email}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Nombre de la imprenta</Label>
+                <Input
+                  value={printShopName}
+                  onChange={(e) => setPrintShopName(e.target.value)}
+                  placeholder="Ej: Imprenta El Centro"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Teléfono de la imprenta</Label>
+                <Input
+                  type="tel"
+                  value={printShopPhone}
+                  onChange={(e) => setPrintShopPhone(e.target.value)}
+                  placeholder="Ej: 300 123 4567"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Correo de la imprenta *</Label>
+                <Input
+                  type="email"
+                  required
+                  value={printShopEmail}
+                  onChange={(e) => setPrintShopEmail(e.target.value)}
+                  placeholder={defaultPrintShopEmail || 'imprenta@ejemplo.com'}
+                />
+              </div>
             </div>
 
             <div className="flex gap-3 justify-end">

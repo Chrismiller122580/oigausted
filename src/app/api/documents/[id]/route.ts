@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions, isAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isSqliteDatabase, toPrismaJson } from '@/lib/utils'
+import { parsePrintShopInput } from '@/lib/documents/print-shop'
 
 type RouteCtx = { params: Promise<{ id: string }> }
 
@@ -43,8 +44,16 @@ export async function PATCH(req: NextRequest, ctx: RouteCtx) {
       ? JSON.stringify(body.editedContent)
       : toPrismaJson(body.editedContent)
   }
-  if (typeof body.printShopEmail === 'string') {
-    data.printShopEmail = body.printShopEmail.trim() || null
+  const hasPrintShopFields =
+    'printShopEmail' in body || 'printShopName' in body || 'printShopPhone' in body
+  if (hasPrintShopFields) {
+    const parsed = parsePrintShopInput(body)
+    if ('error' in parsed) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
+    }
+    data.printShopEmail = parsed.printShopEmail
+    data.printShopName = parsed.printShopName
+    data.printShopPhone = parsed.printShopPhone
   }
   if (body.generatedContent && typeof body.generatedContent === 'object') {
     data.generatedContent = isSqliteDatabase()

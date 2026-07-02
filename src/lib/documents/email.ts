@@ -8,6 +8,8 @@ const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'OigaGIG <support@oigagig.co
 export async function sendDocumentDeliveryEmails(opts: {
   buyerEmail: string
   printShopEmail?: string | null
+  printShopName?: string | null
+  printShopPhone?: string | null
   templateName: string
   pdfUrl: string
   content: GeneratedDocumentContent
@@ -17,7 +19,8 @@ export async function sendDocumentDeliveryEmails(opts: {
     return
   }
 
-  const { buyerEmail, printShopEmail, templateName, pdfUrl, content } = opts
+  const { buyerEmail, printShopEmail, printShopName, printShopPhone, templateName, pdfUrl, content } =
+    opts
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'
 
   const buyerHtml = `
@@ -38,11 +41,18 @@ export async function sendDocumentDeliveryEmails(opts: {
   })
 
   if (printShopEmail && printShopEmail !== buyerEmail) {
+    const shopLines = [
+      printShopName ? `<p>Imprenta: <strong>${printShopName}</strong></p>` : '',
+      printShopPhone ? `<p>Teléfono imprenta: ${printShopPhone}</p>` : '',
+    ]
+      .filter(Boolean)
+      .join('')
     const printHtml = `
       <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
         <h2 style="color: #111;">Pedido de impresión — OigaGIG</h2>
         <p>Documento: <strong>${templateName}</strong></p>
         <p>Cliente: ${buyerEmail}</p>
+        ${shopLines}
         <p><a href="${pdfUrl}" style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">Descargar para imprimir</a></p>
         <p style="font-size: 12px; color: #666;">Enviado automáticamente por OigaGIG Buro de Documentos.</p>
       </div>`

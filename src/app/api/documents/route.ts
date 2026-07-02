@@ -73,7 +73,6 @@ export async function POST(req: NextRequest) {
       : (config.documentBasePriceCOP ?? 15000)
 
   const priceCOP = computeDocumentPrice(basePrice, template, customFields)
-  const defaultPrintShop = config.documentPrintShopEmail || undefined
 
   const fieldsJson = isSqliteDatabase()
     ? JSON.stringify(customFields)
@@ -89,7 +88,6 @@ export async function POST(req: NextRequest) {
       customFields: fieldsJson as never,
       priceCOP,
       buyerEmail,
-      printShopEmail: defaultPrintShop,
       learnedRequestId: learnedRequestId || null,
       status: 'Draft',
     },

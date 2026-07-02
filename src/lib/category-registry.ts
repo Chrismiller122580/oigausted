@@ -27,7 +27,9 @@ function getBuyerFields(categoryName: string) {
         { key: 'descripcion', label: 'Tipo de documento', type: 'text' },
         { key: 'partes', label: 'Partes involucradas', type: 'text' },
         { key: 'ciudad', label: 'Ciudad', type: 'text' },
-        { key: 'printShopEmail', label: 'Correo de imprenta (opcional)', type: 'text' },
+        { key: 'printShopName', label: 'Nombre de la imprenta', type: 'text' },
+        { key: 'printShopPhone', label: 'Teléfono de la imprenta', type: 'text' },
+        { key: 'printShopEmail', label: 'Correo de la imprenta', type: 'text' },
       ];
     case 'Plomería y Fontanería':
       return [

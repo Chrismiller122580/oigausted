@@ -52,6 +52,8 @@ export async function fulfillDocumentRequest(
     await sendDocumentDeliveryEmails({
       buyerEmail: doc.buyerEmail,
       printShopEmail: doc.printShopEmail,
+      printShopName: doc.printShopName,
+      printShopPhone: doc.printShopPhone,
       templateName: doc.templateName,
       pdfUrl,
       content,
