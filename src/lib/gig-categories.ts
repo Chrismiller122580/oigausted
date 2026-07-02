@@ -193,6 +193,49 @@ export const gigCategories = [
         { label: "Portugués", extraPrice: 15000 }
       ] }
     ]
+  },
+  {
+    name: "Recursos Naturales y Minerales",
+    icon: "🌿",
+    fields: [
+      { key: "resourceType", label: "Tipo de recurso", type: "select", options: [
+        { label: "Carbón", extraPrice: 0 },
+        { label: "Oro", extraPrice: 50000 },
+        { label: "Cobre", extraPrice: 35000 },
+        { label: "Plantas", extraPrice: 15000 },
+        { label: "Árboles", extraPrice: 25000 },
+        { label: "Frutas", extraPrice: 12000 },
+        { label: "Semillas", extraPrice: 10000 },
+        { label: "Otros minerales", extraPrice: 20000 }
+      ] },
+      { key: "quantity", label: "Cantidad", type: "number", extraPrice: 8000 },
+      { key: "unit", label: "Unidad de medida", type: "select", options: [
+        { label: "Toneladas", extraPrice: 0 },
+        { label: "Kilogramos", extraPrice: 5000 },
+        { label: "Unidades", extraPrice: 3000 },
+        { label: "Metros cúbicos", extraPrice: 15000 }
+      ] },
+      { key: "transport", label: "Transporte/entrega incluido", type: "checkbox", extraPrice: 45000 },
+      { key: "certification", label: "Certificación de calidad u origen", type: "checkbox", extraPrice: 30000 }
+    ]
+  },
+  {
+    name: "Servicios de Recursos Naturales",
+    icon: "⛏️",
+    fields: [
+      { key: "serviceType", label: "Tipo de servicio", type: "select", options: [
+        { label: "Minería y extracción", extraPrice: 80000 },
+        { label: "Forestal y tala", extraPrice: 55000 },
+        { label: "Agricultura y cultivo", extraPrice: 40000 },
+        { label: "Consultoría ambiental", extraPrice: 60000 },
+        { label: "Transporte de recursos", extraPrice: 35000 },
+        { label: "Otro", extraPrice: 0 }
+      ] },
+      { key: "hours", label: "Horas o días de servicio", type: "number", extraPrice: 40000 },
+      { key: "area", label: "Área o volumen aproximado", type: "number", extraPrice: 25000 },
+      { key: "equipment", label: "Equipo y maquinaria incluidos", type: "checkbox", extraPrice: 70000 },
+      { key: "permits", label: "Gestión de permisos/licencias incluida", type: "checkbox", extraPrice: 50000 }
+    ]
   }
 ];
 

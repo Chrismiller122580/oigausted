@@ -28,6 +28,20 @@ function getBuyerFields(categoryName: string) {
         { key: 'urgency', label: '¿Es urgente (sin agua)?', type: 'checkbox' },
         { key: 'access', label: 'Acceso a la zona (ej: sótano, azotea)', type: 'text' },
       ];
+    case 'Recursos Naturales y Minerales':
+      return [
+        { key: 'resourceSpecs', label: 'Especificaciones del recurso (pureza, variedad, etc.)', type: 'text' },
+        { key: 'deliveryAddress', label: 'Dirección de entrega', type: 'text' },
+        { key: 'preferredDate', label: 'Fecha de entrega preferida', type: 'date' },
+        { key: 'notes', label: 'Notas adicionales', type: 'text' },
+      ];
+    case 'Servicios de Recursos Naturales':
+      return [
+        { key: 'siteLocation', label: 'Ubicación del sitio de trabajo', type: 'text' },
+        { key: 'preferredDate', label: 'Fecha de inicio preferida', type: 'date' },
+        { key: 'urgency', label: '¿Es urgente?', type: 'checkbox' },
+        { key: 'notes', label: 'Detalles del proyecto o terreno', type: 'text' },
+      ];
     default:
       // For newly created admin categories (or any not explicitly configured),
       // provide a sensible generic set of buyer fields.
@@ -57,6 +71,12 @@ function getTools(categoryName: string) {
     return ['maps'];
   }
   if (name.includes('jardin') || name.includes('pintura') || name.includes('hogar')) {
+    return ['maps'];
+  }
+  if (name.includes('recursos naturales') && name.includes('servicios')) {
+    return ['maps'];
+  }
+  if (name.includes('recursos naturales') || name.includes('minerales')) {
     return ['maps'];
   }
   return [];
@@ -89,6 +109,20 @@ function getUpgrades(categoryName: string) {
   if (name.includes('evento') || name.includes('fiesta')) {
     return [
       { name: 'Coordinación extra', price: 20000, description: 'Más horas de atención' },
+      ...base,
+    ];
+  }
+  if (name.includes('recursos naturales y minerales')) {
+    return [
+      { name: 'Entrega urgente', price: 35000, description: 'Entrega prioritaria en menos tiempo' },
+      { name: 'Muestreo de calidad', price: 25000, description: 'Análisis o muestra antes de la compra' },
+      ...base,
+    ];
+  }
+  if (name.includes('servicios de recursos naturales')) {
+    return [
+      { name: 'Informe técnico incluido', price: 45000, description: 'Documentación profesional del trabajo' },
+      { name: 'Seguro de operación', price: 40000, description: 'Cobertura durante la ejecución' },
       ...base,
     ];
   }
