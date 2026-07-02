@@ -14,7 +14,7 @@ import {
 import type { AdminSettingsFormConfig, AdminPlatformConfigResponse } from '@/types/platform-config';
 import { asAuditDetails, type AuditLogEntry } from '@/types/audit';
 import type { WompiTestSummary, WompiWebhookEvent } from '@/types/wompi';
-import { BRAND_NAME, BRAND_LOGO_PATH } from '@/lib/brand';
+import { BRAND_NAME, BRAND_LOGO_PATH, BRAND_NAV_LOGO_PATH } from '@/lib/brand';
 
 // Enhanced accessible Switch using native input for reliable tap/keyboard behavior on all devices (incl. Android)
 function Switch({ checked, onCheckedChange, disabled }: { checked: boolean; onCheckedChange: (v: boolean) => void; disabled?: boolean }) {
@@ -1852,7 +1852,7 @@ export default function AdminSettings() {
                   className="mt-1.5 bg-background border-border font-mono text-xs"
                   placeholder="/brand/oiga-gig-marketing.png or https://..."
                 />
-                <p className="text-[10px] text-muted-foreground mt-1">Site path (e.g. {BRAND_LOGO_PATH}, /icon.png) or HTTPS URL. Local dev paths like /workspaces/... are ignored. Leave empty for the default brand logo.</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Site path (e.g. {BRAND_NAV_LOGO_PATH} for nav, {BRAND_LOGO_PATH} for full logo) or HTTPS URL. Local dev paths like /workspaces/... are ignored. Leave empty for defaults.</p>
               </div>
             </div>
           </div>

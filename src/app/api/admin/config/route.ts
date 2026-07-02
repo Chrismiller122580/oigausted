@@ -8,7 +8,7 @@ import { devLog } from '@/lib/utils';
 import { isSecretUnchanged, maskSecretConfigured } from '@/lib/secrets';
 import type { PublicPlatformConfig } from '@/types/platform-config';
 import type { JsonObject } from '@/types/json';
-import { BRAND_NAME, BRAND_LOGO_PATH } from '@/lib/brand';
+import { BRAND_NAME, BRAND_LOGO_PATH, normalizeSiteName } from '@/lib/brand';
 import { sanitizeLogoUrl } from '@/lib/logo-url';
 
 function errMessage(e: unknown): string {
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
         maintenanceMode: config.maintenanceMode,
         maintenanceMessage: config.maintenanceMessage,
         maintenanceBypassIps: config.maintenanceBypassIps || '',
-        siteName: config.siteName || BRAND_NAME,
+        siteName: normalizeSiteName(config.siteName),
         siteTagline: config.siteTagline || 'Conecta con profesionales locales en Colombia',
         logoUrl: sanitizeLogoUrl(config.logoUrl),
         allowNewSignups: config.allowNewSignups ?? true,

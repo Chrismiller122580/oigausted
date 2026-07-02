@@ -135,10 +135,10 @@ export function HomepageWelcomeSplash() {
           <button
             type="button"
             onClick={dismiss}
-            className="absolute right-4 top-4 z-10 rounded-full border border-white/20 bg-white/10 p-1.5 text-white/90 backdrop-blur-sm transition-colors hover:bg-white/20"
+            className="absolute right-4 top-4 z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/90 backdrop-blur-sm transition-colors hover:bg-white/20"
             aria-label="Cerrar"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4 shrink-0" strokeWidth={2.5} />
           </button>
 
           <div className="relative z-10">
