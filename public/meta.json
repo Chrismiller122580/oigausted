@@ -1,0 +1,10 @@
+{
+  "name": "OigaGIG",
+  "short_name": "OigaGIG",
+  "description": "Conecta con profesionales locales en Colombia. Servicios confiables en Bogotá, Medellín, Cali y más.",
+  "url": "https://oigagig.com",
+  "locale": "es_CO",
+  "image": "https://oigagig.com/icon.png",
+  "og:image": "https://oigagig.com/icon.png",
+  "twitter:card": "summary_large_image"
+}

@@ -1,4 +1,13 @@
 {
+  "headers": [
+    {
+      "source": "/meta.json",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400" },
+        { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+      ]
+    }
+  ],
   "buildCommand": "prisma generate --no-engine && ./scripts/prisma-safe-migrate.sh && node scripts/chromium-pack.mjs && node scripts/copy-playwright-browsers.mjs && next build --webpack",
   "functions": {
     "src/app/api/admin/userlens/scan/route.ts": {
