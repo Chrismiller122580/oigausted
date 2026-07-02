@@ -35,6 +35,7 @@ export function DocumentWizard({
 }: Props) {
   const router = useRouter()
   const { data: session, status } = useSession()
+  const isAdmin = session?.user?.role === 'admin'
   const [step, setStep] = useState<Step>('form')
   const [formData, setFormData] = useState<Record<string, string | number | boolean>>({})
   const [printShopEmail, setPrintShopEmail] = useState(defaultPrintShopEmail || '')
@@ -48,6 +49,14 @@ export function DocumentWizard({
   } | null>(null)
   const [learningNote, setLearningNote] = useState<string | null>(null)
   const [testMode, setTestMode] = useState(false)
+
+  useEffect(() => {
+    if (document.querySelector('script[src*="checkout.wompi.co"]')) return
+    const script = document.createElement('script')
+    script.src = 'https://checkout.wompi.co/widget.js'
+    script.async = true
+    document.head.appendChild(script)
+  }, [])
 
   const isCustom = template.id === 'custom' || template.fromLearning
   const basePrice = isCustom ? customPriceCOP : basePriceCOP
@@ -362,13 +371,22 @@ export function DocumentWizard({
         </Card>
       )}
 
-      {step === 'pay' && testMode && (
+      {step === 'pay' && testMode && isAdmin && (
         <Card>
           <CardContent className="py-8 text-center space-y-4">
-            <p>Modo prueba activo — Wompi deshabilitado en admin.</p>
+            <p>Modo prueba — solo administradores pueden simular el pago.</p>
             <Button onClick={simulatePay} disabled={loading}>
               Simular pago y enviar PDF
             </Button>
+          </CardContent>
+        </Card>
+      )}
+      {step === 'pay' && testMode && !isAdmin && (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <p className="text-muted-foreground">
+              Pagos no disponibles en este entorno. Contacta soporte o activa Wompi en admin.
+            </p>
           </CardContent>
         </Card>
       )}

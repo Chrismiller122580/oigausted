@@ -6,6 +6,7 @@ import { DocumentCatalogCard } from '@/components/documents/DocumentCatalogCard'
 import { getPlatformConfig } from '@/lib/prisma'
 import { getCustomTemplate } from '@/lib/colombian-documents'
 import { getFullDocumentCatalog } from '@/lib/documents/learning'
+import { ensurePlatformSeller, PLATFORM_SELLER_SLUG } from '@/lib/platform-seller'
 
 export const metadata = {
   title: 'Buro de Documentos — OigaGIG',
@@ -14,6 +15,7 @@ export const metadata = {
 }
 
 export default async function DocumentosPage() {
+  await ensurePlatformSeller()
   const config = await getPlatformConfig()
   if (config.documentStudioEnabled === false) {
     return (
@@ -47,6 +49,12 @@ export default async function DocumentosPage() {
             ¿No encuentras tu documento? Pídelo como &quot;Otro documento&quot; — OigaGIG aprende de
             cada solicitud nueva.
           </p>
+          <Link
+            href={`/sellers/${PLATFORM_SELLER_SLUG}`}
+            className="inline-block mt-3 text-sm text-white/90 underline hover:text-white"
+          >
+            Servicio oficial de OigaGIG
+          </Link>
           <Button
             asChild
             size="lg"

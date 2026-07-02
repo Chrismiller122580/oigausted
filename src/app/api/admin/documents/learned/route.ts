@@ -31,10 +31,16 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'id y status requeridos' }, { status: 400 })
   }
 
-  const updated = await prisma.documentLearnedRequest.update({
+  let updated = await prisma.documentLearnedRequest.update({
     where: { id },
     data: { status },
   })
+
+  if (status === 'promoted') {
+    const { promoteLearnedToTemplate } = await import('@/lib/documents/templates-db')
+    await promoteLearnedToTemplate(id)
+    updated = await prisma.documentLearnedRequest.findUniqueOrThrow({ where: { id } })
+  }
 
   return NextResponse.json({ learned: updated })
 }

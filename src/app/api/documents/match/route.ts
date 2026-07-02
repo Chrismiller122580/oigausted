@@ -10,6 +10,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 })
   }
 
+  const { checkDocumentAiRateLimit } = await import('@/lib/documents/rate-limit')
+  const rate = await checkDocumentAiRateLimit(session.user.id, 'DOCUMENT_AI_MATCH')
+  if (!rate.allowed) {
+    return NextResponse.json({ error: 'Demasiadas consultas. Intenta más tarde.' }, { status: 429 })
+  }
+
   const body = await req.json()
   const description = typeof body.description === 'string' ? body.description.trim() : ''
   if (description.length < 5) {

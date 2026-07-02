@@ -93,6 +93,22 @@ async function main() {
   });
   console.log('✅ PlatformConfig singleton ensured.');
 
+  try {
+    const { ensurePlatformSeller } = await import('../src/lib/platform-seller');
+    const seller = await ensurePlatformSeller();
+    console.log(`✅ Platform seller ensured: ${seller.slug}`);
+  } catch (e) {
+    console.warn('⚠️  Platform seller seed skipped:', e);
+  }
+
+  try {
+    const { seedStaticDocumentTemplates } = await import('../src/lib/documents/templates-db');
+    const count = await seedStaticDocumentTemplates();
+    console.log(`✅ Seeded ${count} document templates.`);
+  } catch (e) {
+    console.warn('⚠️  Document templates seed skipped (run migration first):', e);
+  }
+
   console.log("🌱 Seeding complete — no users or sample data seeded.");
 
   // The database starts completely empty.

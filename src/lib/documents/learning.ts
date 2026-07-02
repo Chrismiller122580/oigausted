@@ -6,6 +6,10 @@ import {
   STATIC_COLOMBIAN_DOCUMENTS,
   type ColombianDocumentTemplate,
 } from '@/lib/colombian-documents'
+import {
+  getActiveDocumentTemplates,
+  resolveDocumentTemplate,
+} from '@/lib/documents/templates-db'
 import type { DynamicFieldDef } from '@/types/gig-fields'
 import type { Prisma } from '@prisma/client'
 
@@ -311,23 +315,19 @@ export async function getLearnedCatalogTemplates(
 }
 
 export async function getFullDocumentCatalog(learnThreshold?: number) {
+  const dbTemplates = await getActiveDocumentTemplates()
+  const dbSlugs = new Set(dbTemplates.map((t) => t.id))
   const learned = await getLearnedCatalogTemplates(learnThreshold)
-  const staticIds = new Set(STATIC_COLOMBIAN_DOCUMENTS.map((t) => t.id))
-  const uniqueLearned = learned.filter((t) => !staticIds.has(t.id))
-  return [...STATIC_COLOMBIAN_DOCUMENTS, ...uniqueLearned]
+  const uniqueLearned = learned.filter((t) => !dbSlugs.has(t.id) && !dbSlugs.has(t.id.replace(/^learned-/, '')))
+  return [...dbTemplates, ...uniqueLearned]
 }
 
 export async function resolveTemplate(
   templateId: string,
   learnThreshold?: number,
 ): Promise<ColombianDocumentTemplate | null> {
-  if (templateId === 'custom') {
-    const { getCustomTemplate } = await import('@/lib/colombian-documents')
-    return getCustomTemplate()
-  }
-
-  const staticTpl = getStaticTemplateById(templateId)
-  if (staticTpl) return staticTpl
+  const dbTpl = await resolveDocumentTemplate(templateId)
+  if (dbTpl) return dbTpl
 
   if (templateId.startsWith('learned-')) {
     const slug = templateId.replace(/^learned-/, '')

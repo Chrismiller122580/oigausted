@@ -71,6 +71,7 @@ node -e '
   );
   // SQLite does not support String[] — store as JSON string locally
   s = s.replace(/violationTypes\s+String\[\]/, "violationTypes  String  // JSON array (sqlite)");
+  // DocumentTemplate.fields + DocumentRequest customFields etc. already handled by Json? -> String? patch above
   fs.writeFileSync(process.argv[1], s);
   console.log("  (schema patched to sqlite for this dev session)");
 ' "$SCHEMA"

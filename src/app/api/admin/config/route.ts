@@ -253,6 +253,11 @@ export async function PUT(request: NextRequest) {
           maintenanceBypassIps: body.maintenanceBypassIps ?? '',
           wompiRealPaymentsEnabled: body.wompiRealPaymentsEnabled ?? false,
           tutorialsEnabled: body.tutorialsEnabled ?? true,
+          documentStudioEnabled: body.documentStudioEnabled ?? true,
+          documentPrintShopEmail: body.documentPrintShopEmail ?? 'impresion@oigagig.com',
+          documentBasePriceCOP: body.documentBasePriceCOP ?? 15000,
+          documentCustomPriceCOP: body.documentCustomPriceCOP ?? 25000,
+          documentLearnThreshold: body.documentLearnThreshold ?? 3,
           // SFTP defaults are supplied in the best-effort block below (or left to schema @default)
         },
         update: {
@@ -281,6 +286,11 @@ export async function PUT(request: NextRequest) {
           // Wompi real payments master switch
           wompiRealPaymentsEnabled: body.wompiRealPaymentsEnabled ?? false,
           tutorialsEnabled: body.tutorialsEnabled,
+          documentStudioEnabled: body.documentStudioEnabled,
+          documentPrintShopEmail: body.documentPrintShopEmail,
+          documentBasePriceCOP: body.documentBasePriceCOP,
+          documentCustomPriceCOP: body.documentCustomPriceCOP,
+          documentLearnThreshold: body.documentLearnThreshold,
         },
         // Select now includes wompiSftp* (safe selects in prisma.ts + here were updated).
         // The previous omit was causing SFTP values to disappear after save + reload.
@@ -314,6 +324,11 @@ export async function PUT(request: NextRequest) {
           wompiSftpPrivateKey: true,
           wompiSftpRemotePath: true,
           tutorialsEnabled: true,
+          documentStudioEnabled: true,
+          documentPrintShopEmail: true,
+          documentBasePriceCOP: true,
+          documentCustomPriceCOP: true,
+          documentLearnThreshold: true,
           updatedAt: true,
         },
       });

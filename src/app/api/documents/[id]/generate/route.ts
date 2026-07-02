@@ -15,6 +15,15 @@ export async function POST(_req: NextRequest, ctx: RouteCtx) {
     return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 })
   }
 
+  const { checkDocumentAiRateLimit } = await import('@/lib/documents/rate-limit')
+  const rate = await checkDocumentAiRateLimit(session.user.id, 'DOCUMENT_AI_GENERATE')
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: 'Demasiadas generaciones. Intenta más tarde.' },
+      { status: 429 },
+    )
+  }
+
   const config = await getPlatformConfig()
   const doc = await prisma.documentRequest.findUnique({
     where: { id },

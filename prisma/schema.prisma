@@ -458,6 +458,29 @@ enum DocumentRequestStatus {
   Failed
 }
 
+// Admin-managed document templates (replaces static-only catalog).
+model DocumentTemplate {
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  name             String
+  description      String
+  icon             String   @default("📄")
+  categoryHint     String   @default("custom")
+  fields           Json     @default("[]")
+  aiPromptHint     String
+  basePriceCOP     Int?
+  source           String   @default("admin") // static | learned | admin
+  learnedRequestId String?  @unique
+  isActive         Boolean  @default(true)
+  order            Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([order])
+  @@index([source])
+}
+
 // Tracks custom document types users request that are not in the static catalog.
 // The system learns from repeated requests and can surface them as community templates.
 model DocumentLearnedRequest {

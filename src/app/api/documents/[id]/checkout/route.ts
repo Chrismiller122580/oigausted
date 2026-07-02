@@ -64,7 +64,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     currency: 'COP',
     amountInCents,
     reference,
-    redirectUrl: `${baseUrl}/documentos/${id}/success`,
+    redirectUrl: `${baseUrl}/documentos/pedido/${id}/exito`,
     customerData: {
       email: session.user.email || doc.buyerEmail,
       fullName: session.user.name || '',

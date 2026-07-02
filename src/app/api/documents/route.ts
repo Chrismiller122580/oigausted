@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Plantilla no encontrada' }, { status: 404 })
   }
 
-  const isCustom = templateId === CUSTOM_TEMPLATE_ID || template.fromLearning === true
+  const isCustom = templateId === CUSTOM_TEMPLATE_ID
   const description =
     customDescription ||
     (typeof customFields.descripcion === 'string' ? customFields.descripcion : '') ||

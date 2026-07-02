@@ -159,6 +159,11 @@ const DEFAULTS: Partial<PlatformConfig> = {
   wompiSftpPort: 22,
   wompiSftpRemotePath: '/',
   tutorialsEnabled: true,
+  documentStudioEnabled: true,
+  documentPrintShopEmail: 'impresion@oigagig.com',
+  documentBasePriceCOP: 15000,
+  documentCustomPriceCOP: 25000,
+  documentLearnThreshold: 3,
 };
 
 export default function AdminSettings() {
@@ -247,6 +252,11 @@ export default function AdminSettings() {
     wompiSftpPrivateKey: config.wompiSftpPrivateKey || '',
     wompiSftpRemotePath: config.wompiSftpRemotePath || '/',
     tutorialsEnabled: config.tutorialsEnabled ?? true,
+    documentStudioEnabled: config.documentStudioEnabled ?? true,
+    documentPrintShopEmail: config.documentPrintShopEmail || '',
+    documentBasePriceCOP: config.documentBasePriceCOP ?? 15000,
+    documentCustomPriceCOP: config.documentCustomPriceCOP ?? 25000,
+    documentLearnThreshold: config.documentLearnThreshold ?? 3,
   }) !== JSON.stringify({
     commissionRate: originalConfig.commissionRate,
     referralCommissionRate: originalConfig.referralCommissionRate,
@@ -275,6 +285,11 @@ export default function AdminSettings() {
     wompiSftpPrivateKey: originalConfig.wompiSftpPrivateKey || '',
     wompiSftpRemotePath: originalConfig.wompiSftpRemotePath || '/',
     tutorialsEnabled: originalConfig.tutorialsEnabled ?? true,
+    documentStudioEnabled: originalConfig.documentStudioEnabled ?? true,
+    documentPrintShopEmail: originalConfig.documentPrintShopEmail || '',
+    documentBasePriceCOP: originalConfig.documentBasePriceCOP ?? 15000,
+    documentCustomPriceCOP: originalConfig.documentCustomPriceCOP ?? 25000,
+    documentLearnThreshold: originalConfig.documentLearnThreshold ?? 3,
   });
 
   const payment = config?._meta?.payment;
@@ -304,6 +319,11 @@ export default function AdminSettings() {
     wompiSftpPrivateKey: '',
     wompiSftpRemotePath: c.wompiSftpRemotePath || '/',
     tutorialsEnabled: c.tutorialsEnabled ?? true,
+    documentStudioEnabled: c.documentStudioEnabled ?? true,
+    documentPrintShopEmail: c.documentPrintShopEmail ?? 'impresion@oigagig.com',
+    documentBasePriceCOP: c.documentBasePriceCOP ?? 15000,
+    documentCustomPriceCOP: c.documentCustomPriceCOP ?? 25000,
+    documentLearnThreshold: c.documentLearnThreshold ?? 3,
   } as PlatformConfig);
 
   async function fetchConfig(fresh = false) {
@@ -420,6 +440,11 @@ export default function AdminSettings() {
           : (config.wompiSftpPrivateKeyConfigured ? '__UNCHANGED__' : ''),
         wompiSftpRemotePath: config.wompiSftpRemotePath || '/',
         tutorialsEnabled: config.tutorialsEnabled ?? true,
+        documentStudioEnabled: config.documentStudioEnabled ?? true,
+        documentPrintShopEmail: config.documentPrintShopEmail || 'impresion@oigagig.com',
+        documentBasePriceCOP: config.documentBasePriceCOP ?? 15000,
+        documentCustomPriceCOP: config.documentCustomPriceCOP ?? 25000,
+        documentLearnThreshold: config.documentLearnThreshold ?? 3,
       };
 
       const res = await fetch('/api/admin/config', {

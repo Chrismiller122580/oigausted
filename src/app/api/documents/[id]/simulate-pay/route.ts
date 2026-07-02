@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions, isAdmin } from '@/lib/auth'
-import { prisma, getPlatformConfig } from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { fulfillDocumentRequest } from '@/lib/server/fulfill-document-request'
 
 type RouteCtx = { params: Promise<{ id: string }> }
@@ -14,13 +14,12 @@ export async function POST(_req: NextRequest, ctx: RouteCtx) {
     return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 })
   }
 
-  const config = await getPlatformConfig()
-  if (config.wompiRealPaymentsEnabled && !isAdmin(session)) {
-    return NextResponse.json({ error: 'Usa Wompi para pagar' }, { status: 403 })
+  if (!isAdmin(session)) {
+    return NextResponse.json({ error: 'Solo administradores pueden simular pagos' }, { status: 403 })
   }
 
   const doc = await prisma.documentRequest.findUnique({ where: { id } })
-  if (!doc || (doc.userId !== session.user.id && !isAdmin(session))) {
+  if (!doc) {
     return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
   }
 
