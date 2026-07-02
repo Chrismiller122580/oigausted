@@ -43,6 +43,19 @@ assert(manifest.includes('android.permission.INTERNET'), 'Android INTERNET permi
 
 const plist = read('ios/App/App/Info.plist')
 assert(plist.includes('<string>oigagig</string>'), 'iOS URL scheme missing')
+assert(plist.includes('<string>OigaGIG</string>'), 'iOS display name should be OigaGIG')
+assert(plist.includes('<string>arm64</string>'), 'iOS should require arm64 (not legacy armv7)')
+
+const pbxproj = read('ios/App/App.xcodeproj/project.pbxproj')
+assert(pbxproj.includes('PRODUCT_BUNDLE_IDENTIFIER = com.oigagig.app'), 'iOS bundle ID missing')
+assert(pbxproj.includes('IPHONEOS_DEPLOYMENT_TARGET = 15.0'), 'iOS deployment target missing')
+assert(pbxproj.includes('MARKETING_VERSION = 1.0'), 'iOS marketing version missing')
+
+const iosCapConfig = read('ios/App/App/capacitor.config.json')
+assert(iosCapConfig.includes('https://oigagig.com'), 'iOS capacitor.config.json missing production URL')
+
+const appIcon = join(root, 'ios', 'App', 'App', 'Assets.xcassets', 'AppIcon.appiconset', 'AppIcon-512@2x.png')
+assert(existsSync(appIcon), 'missing iOS App Store icon (1024x1024)')
 
 const bridgePath = join(root, '..', 'src', 'lib', 'capacitor-native.ts')
 assert(existsSync(bridgePath), 'missing web bridge: src/lib/capacitor-native.ts')

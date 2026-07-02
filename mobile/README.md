@@ -129,6 +129,47 @@ Mobile uses production APIs on `oigagig.com`. Check **Vercel → Project → Log
 
 After layout fixes, force-close the app (or clear WebView cache) so the latest JS/CSS loads from production.
 
+## iOS check (requires macOS)
+
+Cannot build or run the iOS target from Linux/Codespaces. On a Mac:
+
+```bash
+npm run mobile:install
+npm run mobile:sync
+npm run mobile:open:ios   # opens Xcode
+```
+
+In Xcode (project `mobile/ios/App/App.xcodeproj`):
+
+1. Select the **App** target → **Signing & Capabilities** → set your **Team** (Apple Developer account)
+2. Confirm **Bundle Identifier**: `com.oigagig.app`
+3. **Product → Run** on simulator or device (loads `https://oigagig.com`)
+4. For TestFlight: **Product → Archive** → Distribute to App Store Connect
+
+### iOS remote debugging (Safari Web Inspector)
+
+1. On iPhone: Settings → Safari → Advanced → **Web Inspector** ON
+2. Connect device to Mac via USB
+3. Safari → Develop → [your device] → **OigaGIG**
+4. Inspect console, network, and layout (same web app as Android)
+
+### iOS scaffold status (automated)
+
+```bash
+npm run mobile:verify
+```
+
+Checks: URL scheme `oigagig://`, bundle ID, deployment target iOS 15+, 1024×1024 app icon, production server URL.
+
+| Item | Current value |
+|------|----------------|
+| Bundle ID | `com.oigagig.app` |
+| Min iOS | 15.0 |
+| Version | 1.0 (build 1) |
+| Deep link | `oigagig://app/...` |
+| WebView URL | `https://oigagig.com` |
+| Signing team | Not set in repo (configure in Xcode) |
+
 ## Scripts (repo root)
 
 | Script | Action |
