@@ -1875,9 +1875,9 @@ export default function AdminSettings() {
                   value={config.logoUrl || ''}
                   onChange={(e) => updateField('logoUrl', e.target.value || null)}
                   className="mt-1.5 bg-background border-border font-mono text-xs"
-                  placeholder="/brand/oiga-gig-marketing.png or https://..."
+                  placeholder="/icon.png or https://..."
                 />
-                <p className="text-[10px] text-muted-foreground mt-1">Site path (e.g. {BRAND_LOGO_PATH}, /icon.png) or HTTPS URL. Local dev paths like /workspaces/... are ignored. Leave empty for the default brand logo.</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Square nav icon (e.g. {BRAND_ICON_PATH}) or HTTPS URL. Use {BRAND_LOGO_PATH} only for wide marketing art. Leave empty for the default icon.</p>
               </div>
             </div>
           </div>
