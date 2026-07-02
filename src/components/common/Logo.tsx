@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
-import { BRAND_NAME, BRAND_MARKETING_LOGO_PATH, BRAND_NAV_LOGO_PATH } from '@/lib/brand';
+import { BRAND_NAME, BRAND_NAV_LOGO_PATH, isSquareBrandLogo } from '@/lib/brand';
 import { sanitizeLogoUrl } from '@/lib/logo-url';
 
 interface LogoProps {
@@ -24,19 +24,23 @@ export default function Logo({
 }: LogoProps) {
   const { config } = usePlatformConfig();
   const siteName = config?.siteName || BRAND_NAME;
-  const defaultLogoPath =
-    variant === 'hero' ? BRAND_MARKETING_LOGO_PATH : BRAND_NAV_LOGO_PATH;
+  // Default to the square OU app mark everywhere for now; admin logoUrl can override.
+  const defaultLogoPath = BRAND_NAV_LOGO_PATH;
   const logoUrl = sanitizeLogoUrl(config?.logoUrl) ?? defaultLogoPath;
 
   const iconSize = size;
-  const maxWidth = variant === 'hero' ? iconSize * 2.4 : iconSize * 2.5;
+  const square = isSquareBrandLogo(logoUrl);
 
   const icon = (
     <img
       src={logoUrl}
       alt={BRAND_NAME}
-      style={{ height: iconSize, width: 'auto', maxWidth }}
-      className="object-contain"
+      style={
+        square
+          ? { width: iconSize, height: iconSize }
+          : { height: iconSize, width: 'auto', maxWidth: variant === 'hero' ? iconSize * 2.4 : iconSize * 2.5 }
+      }
+      className={square ? 'rounded-xl object-contain shadow-sm' : 'object-contain'}
     />
   );
 

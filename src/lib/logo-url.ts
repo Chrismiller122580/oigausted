@@ -1,9 +1,6 @@
-/** PWA / favicon assets — not valid nav or marketing logos */
-const LEGACY_APP_ICON_PATHS = new Set(['/icon.png', '/apple-icon.png', '/favicon.ico'])
-
 /**
  * Normalize admin-configured logo URLs for safe client rendering.
- * Rejects local dev filesystem paths and legacy app-icon paths used by mistake.
+ * Rejects local dev filesystem paths.
  */
 export function sanitizeLogoUrl(url: string | null | undefined): string | null {
   if (!url || typeof url !== 'string') return null
@@ -30,9 +27,7 @@ export function sanitizeLogoUrl(url: string | null | undefined): string | null {
 
   if (trimmed.startsWith('/')) {
     if (trimmed.includes('..')) return null
-    const normalized = trimmed.replace(/^\/public\//, '/')
-    if (LEGACY_APP_ICON_PATHS.has(normalized)) return null
-    return normalized
+    return trimmed.replace(/^\/public\//, '/')
   }
 
   return null
