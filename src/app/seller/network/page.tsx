@@ -418,7 +418,7 @@ export default function SellerNetworkPage() {
       </div>
 
       {/* Mobile project toggle + sheet */}
-      <div className="lg:hidden fixed bottom-16 left-0 right-0 z-30 px-4">
+      <div className="lg:hidden fixed left-0 right-0 z-30 px-4 bottom-[calc(4rem+env(safe-area-inset-bottom,0px))]">
         <Button
           className="w-full bg-orange-600 hover:bg-orange-700 shadow-lg gap-2"
           onClick={() => setShowMobileProject((v) => !v)}

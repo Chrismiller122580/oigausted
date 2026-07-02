@@ -248,7 +248,13 @@ export function NotificationsBell() {
       </Button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-80 bg-background border border-border rounded-xl shadow-lg z-50 overflow-hidden">
+        <>
+          <div
+            className="fixed inset-0 z-40 md:hidden bg-black/20"
+            onClick={() => setIsOpen(false)}
+            aria-hidden
+          />
+          <div className="fixed left-3 right-3 top-[calc(3.75rem+env(safe-area-inset-top,0px))] z-50 max-h-[min(70vh,24rem)] overflow-hidden rounded-xl border border-border bg-background shadow-lg md:absolute md:inset-auto md:right-0 md:top-full md:mt-2 md:w-80 md:max-h-none">
           <div className="flex items-center justify-between px-4 py-3 border-b">
             <span className="font-semibold">Notificaciones</span>
             {unreadCount > 0 && (
@@ -309,7 +315,8 @@ export function NotificationsBell() {
               Ver todas las notificaciones →
             </Link>
           </div>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

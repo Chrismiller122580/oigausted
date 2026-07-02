@@ -266,7 +266,7 @@ function SellerMarketingPageClient() {
     session?.user?.businessName || session?.user?.name || 'Mi negocio';
 
   return (
-    <div className="bg-background py-8 pb-24">
+    <div className="bg-background py-8 mobile-page-bottom">
       <div className="max-w-6xl mx-auto px-6 space-y-8">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="flex items-start gap-3">

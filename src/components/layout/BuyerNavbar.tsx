@@ -33,7 +33,7 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
 
   return (
     <>
-      <nav className="bg-background border-b sticky top-0 z-50 shadow-sm">
+      <nav className="bg-background border-b sticky top-0 z-50 shadow-sm safe-area-inset-top">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo - links to homepage (respects admin branding settings) */}
@@ -108,6 +108,7 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
 
             {/* Mobile compact controls */}
             <div className="md:hidden flex items-center gap-1">
+              <NotificationsBell />
               <ModeToggle />
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -130,7 +131,7 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
 
       <MobileBottomNav role="buyer" />
 
-      <main className="pb-16 md:pb-0">{children}</main>
+      <main className="mobile-page-bottom">{children}</main>
     </>
   );
 }

@@ -52,9 +52,13 @@ export async function initCapacitorShell(): Promise<void> {
 
   try {
     await StatusBar.setStyle({ style: Style.Default })
+    // Prevent WebView drawing under the status bar on Android (fixes top clipping).
+    await StatusBar.setOverlaysWebView({ overlay: false })
   } catch {
     // non-fatal
   }
+
+  document.documentElement.classList.add('native-app')
 
   const navigateFromDeepLink = (incoming: string) => {
     const path = resolveDeepLinkPath(incoming)

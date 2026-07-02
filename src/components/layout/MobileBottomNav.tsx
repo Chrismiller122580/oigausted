@@ -15,8 +15,8 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
 
   if (role === 'seller') {
     return (
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border safe-area-inset-bottom">
-        <div className="flex items-center justify-around h-16 px-2 text-xs">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-background/95 backdrop-blur border-t border-border safe-area-inset-bottom">
+        <div className="flex items-center justify-around h-16 px-1 text-[11px]">
           <Link 
             href="/seller" 
             className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/seller') && !isActive('/seller/gigs') && !isActive('/seller/profile') && !isActive('/seller/earnings') ? 'text-orange-600' : 'text-muted-foreground'}`}
@@ -61,8 +61,8 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
 
   if (role === 'admin') {
     return (
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border safe-area-inset-bottom">
-        <div className="flex items-center justify-around h-16 px-2 text-xs">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-background/95 backdrop-blur border-t border-border safe-area-inset-bottom">
+        <div className="flex items-center justify-around h-16 px-1 text-[11px]">
           <Link 
             href="/admin" 
             className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/admin') && !isActive('/admin/users') && !isActive('/admin/gigs') && !isActive('/admin/categories') && !isActive('/admin/support') ? 'text-orange-600' : 'text-muted-foreground'}`}
@@ -105,8 +105,8 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
 
   // Buyer bottom nav
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border safe-area-inset-bottom">
-      <div className="flex items-center justify-around h-16 px-2 text-xs">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-background/95 backdrop-blur border-t border-border safe-area-inset-bottom">
+      <div className="flex items-center justify-around h-16 px-1 text-[11px]">
         <Link 
           href="/buyer" 
           className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/buyer') ? 'text-orange-600' : 'text-muted-foreground'}`}

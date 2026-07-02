@@ -72,7 +72,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
 
   return (
     <>
-      <nav className="bg-background border-b sticky top-0 z-50 shadow-sm">
+      <nav className="bg-background border-b sticky top-0 z-50 shadow-sm safe-area-inset-top">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center h-16 gap-4">
             <Logo size={36} />
@@ -135,6 +135,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
             </div>
 
             <div className="md:hidden flex items-center gap-1 ml-auto">
+              <NotificationsBell />
               <ModeToggle />
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -156,7 +157,7 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
 
       <MobileBottomNav role="seller" />
 
-      <main className="pb-16 md:pb-0">{children}</main>
+      <main className="mobile-page-bottom">{children}</main>
     </>
   );
 }

@@ -7,7 +7,7 @@ import "./globals.css";
 import NavbarWrapper from "@/components/layout/NavbarWrapper";
 import SessionProviderWrapper from "@/components/providers/SessionProviderWrapper";
 import MaintenanceBanner from "@/components/layout/MaintenanceBanner";
-import { Toaster } from "sonner"; // 2027-grade beautiful toasts
+import AppToaster from "@/components/common/AppToaster";
 import { ensurePlatformConfig } from "@/lib/prisma"; // one-off ensure of PlatformConfig singleton (maintenanceMode etc.) on first boot/request
 import { BRAND_LOGO_PATH } from "@/lib/brand";
 import { getPublicSiteInfo, getSiteUrl } from "@/lib/public-site";
@@ -109,6 +109,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
@@ -204,7 +207,7 @@ export default async function RootLayout({
 
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.className} pb-safe-area-inset-bottom`}>
+      <body className={inter.className}>
         <Script
           id="maps-guard"
           strategy="afterInteractive"
@@ -215,7 +218,7 @@ export default async function RootLayout({
           <NavbarWrapper>
             {children}
           </NavbarWrapper>
-          <Toaster position="top-center" richColors closeButton />
+          <AppToaster />
           <CookieConsent />
           <PwaInstallPrompt />
           <Analytics />

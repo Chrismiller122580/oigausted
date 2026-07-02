@@ -86,6 +86,49 @@ npm run mobile:sync
 - **Android:** Upload keystore + Play App Signing
 - **iOS:** Distribution cert + App Store Connect record for `com.oigagig.app`
 
+## Debugging on Android (logs & WebView inspect)
+
+There is no separate mobile log file in the repo — the shell loads the live web app, so most issues are **WebView + JavaScript** and are debugged remotely.
+
+### 1. Enable WebView remote debugging
+
+```bash
+export CAPACITOR_DEBUG=true
+npm run mobile:sync
+```
+
+Rebuild/reinstall the APK, then on a computer with Chrome:
+
+1. Connect the phone via USB (USB debugging on)
+2. Open `chrome://inspect/#devices`
+3. Find **OigaGIG** / `com.oigagig.app` → **inspect**
+4. Use **Console**, **Network**, and **Elements** like desktop DevTools
+
+This shows `console.log`, failed fetches, layout/CSS issues, and notification toasts.
+
+### 2. Android native logs (`adb logcat`)
+
+```bash
+adb logcat | grep -iE "chromium|Capacitor|Console|oigagig"
+```
+
+Useful for WebView crashes, SSL errors, and Capacitor plugin failures. Filter further with `Capacitor` or your package name.
+
+### 3. Server / API logs
+
+Mobile uses production APIs on `oigagig.com`. Check **Vercel → Project → Logs** for `/api/notifications`, `/api/auth`, etc. These are not on the device.
+
+### 4. Common Android layout symptoms
+
+| Symptom | Typical cause |
+|---------|----------------|
+| Bottom nav covers content | Missing `mobile-page-bottom` padding (nav height + gesture inset) |
+| Toasts off-screen | Sonner position + safe-area; fixed in `AppToaster` + `globals.css` |
+| Notification dropdown clipped | Bell dropdown now uses fixed panel on mobile |
+| Top content under status bar | `viewportFit: cover` + `StatusBar.setOverlaysWebView(false)` |
+
+After layout fixes, force-close the app (or clear WebView cache) so the latest JS/CSS loads from production.
+
 ## Scripts (repo root)
 
 | Script | Action |
