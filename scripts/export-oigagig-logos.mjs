@@ -40,5 +40,11 @@ await sharp(referencePath)
   })
   .resize({ width: 832, height: 414, fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
   .png()
+  .toFile(path.join(brandDir, 'oiga-gig-wordmark.png'));
+console.log(`Wrote ${path.join(brandDir, 'oiga-gig-wordmark.png')}`);
+
+// Back-compat alias for old /logo.png references
+await sharp(path.join(brandDir, 'oiga-gig-wordmark.png'))
+  .png()
   .toFile(path.join(root, 'public', 'logo.png'));
-console.log(`Wrote ${path.join(root, 'public', 'logo.png')}`);
+console.log(`Wrote ${path.join(root, 'public', 'logo.png')} (legacy alias)`);

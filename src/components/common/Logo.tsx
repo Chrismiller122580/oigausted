@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
-import { BRAND_NAME, BRAND_LOGO_PATH } from '@/lib/brand';
+import { BRAND_NAME, BRAND_LOGO_PATH, BRAND_NAV_LOGO_PATH } from '@/lib/brand';
 import { sanitizeLogoUrl } from '@/lib/logo-url';
 
 interface LogoProps {
@@ -24,10 +24,11 @@ export default function Logo({
 }: LogoProps) {
   const { config } = usePlatformConfig();
   const siteName = config?.siteName || BRAND_NAME;
-  const logoUrl = sanitizeLogoUrl(config?.logoUrl) ?? BRAND_LOGO_PATH;
+  const defaultLogo = variant === 'compact' ? BRAND_NAV_LOGO_PATH : BRAND_LOGO_PATH;
+  const logoUrl = sanitizeLogoUrl(config?.logoUrl) ?? defaultLogo;
 
   const iconSize = size;
-  const maxWidth = variant === 'hero' ? iconSize * 2.4 : iconSize * 1.75;
+  const maxWidth = variant === 'compact' ? iconSize * 2.8 : iconSize * 2.4;
 
   const icon = (
     <img
