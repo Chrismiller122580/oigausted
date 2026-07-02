@@ -19,28 +19,71 @@ if (!existsSync(referencePath)) {
   process.exit(1);
 }
 
+/** Turn near-white JPEG backdrop into true PNG transparency (keeps soft edges). */
+async function stripWhiteBackground(pipeline, { threshold = 248, feather = 18 } = {}) {
+  const { data, info } = await pipeline.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const pixels = data;
+  const softStart = threshold - feather;
+
+  for (let i = 0; i < pixels.length; i += 4) {
+    const r = pixels[i];
+    const g = pixels[i + 1];
+    const b = pixels[i + 2];
+    const min = Math.min(r, g, b);
+    const max = Math.max(r, g, b);
+
+    // Ignore saturated brand colors (yellow/blue/red megaphone)
+    if (max - min > 28) continue;
+
+    if (min >= threshold) {
+      pixels[i + 3] = 0;
+      continue;
+    }
+
+    if (min >= softStart) {
+      const t = (min - softStart) / (threshold - softStart);
+      pixels[i + 3] = Math.round(pixels[i + 3] * (1 - t));
+    }
+  }
+
+  return sharp(Buffer.from(pixels), {
+    raw: { width: info.width, height: info.height, channels: 4 },
+  }).png();
+}
+
 const meta = await sharp(referencePath).metadata();
 const scale = meta.width / 683;
 
-await sharp(referencePath)
-  .resize({ width: 832, height: 1248, fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-  .png()
-  .toFile(path.join(brandDir, 'oiga-gig-marketing.png'));
+const marketing = await stripWhiteBackground(
+  sharp(referencePath).resize({
+    width: 832,
+    height: 1248,
+    fit: 'contain',
+    background: { r: 0, g: 0, b: 0, alpha: 0 },
+  }),
+);
+await marketing.toFile(path.join(brandDir, 'oiga-gig-marketing.png'));
 console.log(`Wrote ${path.join(brandDir, 'oiga-gig-marketing.png')}`);
 
 const cropTop = Math.round(248 * scale);
 const cropHeight = Math.round(390 * scale);
 
-await sharp(referencePath)
-  .extract({
-    left: 0,
-    top: cropTop,
-    width: meta.width,
-    height: Math.min(cropHeight, meta.height - cropTop),
-  })
-  .resize({ width: 832, height: 414, fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-  .png()
-  .toFile(path.join(brandDir, 'oiga-gig-wordmark.png'));
+const wordmark = await stripWhiteBackground(
+  sharp(referencePath)
+    .extract({
+      left: 0,
+      top: cropTop,
+      width: meta.width,
+      height: Math.min(cropHeight, meta.height - cropTop),
+    })
+    .resize({
+      width: 832,
+      height: 414,
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    }),
+);
+await wordmark.toFile(path.join(brandDir, 'oiga-gig-wordmark.png'));
 console.log(`Wrote ${path.join(brandDir, 'oiga-gig-wordmark.png')}`);
 
 // Back-compat alias for old /logo.png references
