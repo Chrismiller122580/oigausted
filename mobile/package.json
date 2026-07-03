@@ -12,6 +12,7 @@
     "cap:open:ios": "cap open ios",
     "cap:run:android": "cap run android",
     "cap:run:ios": "cap run ios",
+    "build:ios:simulator": "bash scripts/ios-simulator-build.sh",
     "verify": "node scripts/verify-scaffold.mjs"
   },
   "dependencies": {
