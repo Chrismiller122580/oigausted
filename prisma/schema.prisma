@@ -45,6 +45,7 @@ model User {
   tagline       String?
   email         String?   @unique
   role          String    @default("buyer")
+  countryCode   String    @default("co") // ISO alpha-2 market: co, pa, sv, ...
   staffRole     String?   // null | accountant | admin_assistant (additive staff tools)
   phone         String?
   idNumber      String?

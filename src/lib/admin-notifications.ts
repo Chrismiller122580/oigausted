@@ -131,29 +131,45 @@ export async function notifyAdminsNewSignup({
   email,
   role,
   viaGoogle = false,
+  countryName,
+  pioneerNumber,
 }: {
   name?: string | null
   email: string
   role: string
   viaGoogle?: boolean
+  countryName?: string
+  pioneerNumber?: number | null
 }) {
   const displayName = name || email
   const source = viaGoogle ? 'Google' : 'registro directo'
+  const countryLine = countryName ? `País: ${countryName}` : ''
+  const pioneerLine =
+    pioneerNumber != null ? `Pionero #${pioneerNumber} en ${countryName ?? 'mercado nuevo'}` : ''
+  const extras = [countryLine, pioneerLine].filter(Boolean).join(' • ')
+  const title = pioneerNumber != null ? 'Nuevo pionero registrado' : 'Nuevo usuario registrado'
+
   await notifyAdmins({
-    title: 'Nuevo usuario registrado',
-    message: `${displayName} (${email}) se registró como ${role}.`,
+    title,
+    message: `${displayName} (${email}) se registró como ${role}.${extras ? ` ${extras}` : ''}`,
     link: '/admin/users',
-    emailSubject: `Nuevo registro: ${displayName}`,
-    eventLabel: 'Nuevo usuario',
+    emailSubject: pioneerNumber != null ? `Nuevo pionero: ${displayName}` : `Nuevo registro: ${displayName}`,
+    eventLabel: pioneerNumber != null ? 'Pionero' : 'Nuevo usuario',
     ctaLabel: 'Ver usuarios en admin',
     ctaHref: '/admin/users',
     emailBodyHtml: `
       <p><strong>${escapeHtml(displayName)}</strong> acaba de crear una cuenta.</p>
       <p><strong>Email:</strong> ${escapeHtml(email)}<br>
          <strong>Rol:</strong> ${escapeHtml(role)}<br>
-         <strong>Origen:</strong> ${escapeHtml(source)}</p>
+         <strong>Origen:</strong> ${escapeHtml(source)}${countryName ? `<br><strong>País:</strong> ${escapeHtml(countryName)}` : ''}${pioneerNumber != null ? `<br><strong>Pionero:</strong> #${pioneerNumber}` : ''}</p>
     `,
-    data: { email, role, viaGoogle },
+    data: {
+      email,
+      role,
+      viaGoogle,
+      ...(countryName ? { countryName } : {}),
+      ...(pioneerNumber != null ? { pioneerNumber } : {}),
+    },
   })
 }
 

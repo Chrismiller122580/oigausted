@@ -6,11 +6,24 @@ import { logAuditEvent } from '@/lib/audit'
 import { notifyAdminsNewSignup } from '@/lib/admin-notifications'
 import { checkRateLimit, getRequestIp, RATE_LIMITS } from '@/lib/rate-limit'
 import { verifyTurnstileToken } from '@/lib/turnstile'
+import { getCountry, normalizeCountryCode, isComingSoonCountry } from '@/lib/countries'
+import {
+  countActiveSellers,
+  isPioneerEligible,
+  getPioneerNumber,
+} from '@/lib/country-stats'
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password, referralCode, role: requestedRole, turnstileToken } =
-      await request.json()
+    const {
+      name,
+      email,
+      password,
+      referralCode,
+      role: requestedRole,
+      turnstileToken,
+      countryCode: requestedCountry,
+    } = await request.json()
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: "Faltan campos requeridos (nombre, email, contraseña)" }, { status: 400 })
@@ -64,6 +77,12 @@ export async function POST(request: NextRequest) {
     }
 
     const safeRole = requestedRole === 'seller' ? 'seller' : 'buyer'
+    const countryCode = normalizeCountryCode(requestedCountry)
+    const country = getCountry(countryCode)!
+    const sellerCountBefore = await countActiveSellers(countryCode)
+    const pioneerEligible =
+      safeRole === 'seller' && isPioneerEligible(countryCode, sellerCountBefore)
+    const pioneerNumber = pioneerEligible ? getPioneerNumber(sellerCountBefore) : null
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } })
@@ -83,6 +102,7 @@ export async function POST(request: NextRequest) {
           name,
           email,
           role: safeRole,
+          countryCode,
           password: hashedPassword,
           ...(safeRole === 'seller' && {
             businessName: String(name).trim() || 'Mi Negocio',
@@ -124,7 +144,13 @@ export async function POST(request: NextRequest) {
       action: 'USER_REGISTERED',
       targetType: 'User',
       targetId: newUser.id,
-      details: { email: newUser.email, role: safeRole, viaReferral: !!referralCode },
+      details: {
+        email: newUser.email,
+        role: safeRole,
+        countryCode,
+        viaReferral: !!referralCode,
+        pioneerNumber,
+      },
     });
 
     // Link referral if referralCode was provided (outside tx for simplicity; can be improved)
@@ -140,11 +166,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send welcome email (now uses rich welcomeEmail template + benefits from new reliable tracking + resendEmailId)
+    const welcomeMessage = pioneerEligible
+      ? `Hola ${name}, eres el profesional pionero #${pioneerNumber} en ${country.name}. Destacado gratis y cero comisiones el primer mes cuando lancemos.`
+      : isComingSoonCountry(countryCode) && safeRole === 'buyer'
+        ? `Hola ${name}, gracias por registrarte. Te avisaremos cuando ${country.name} esté en vivo.`
+        : `Hola ${name}, gracias por registrarte. Ya puedes explorar servicios o publicar los tuyos.`
+
     await notifications.sendEmail(
       newUser.id,
       '¡Bienvenido!',
-      `Hola ${name}, gracias por registrarte. Ya puedes explorar servicios o publicar los tuyos.`,
+      welcomeMessage,
       `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/gigs`,
       { isWelcome: true }
     )
@@ -153,16 +184,23 @@ export async function POST(request: NextRequest) {
       name: newUser.name,
       email: newUser.email,
       role: newUser.role,
+      countryName: country.name,
+      pioneerNumber,
     }).catch(() => {})
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       user: {
         id: newUser.id,
         name: newUser.name,
         email: newUser.email,
-        role: newUser.role
-      }
+        role: newUser.role,
+        countryCode,
+      },
+      pioneer: pioneerEligible
+        ? { number: pioneerNumber, countryName: country.name }
+        : null,
+      comingSoonCountry: isComingSoonCountry(countryCode),
     })
 
   } catch (error) {

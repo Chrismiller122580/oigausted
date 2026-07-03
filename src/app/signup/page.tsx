@@ -15,11 +15,14 @@ import { usePlatformConfig } from "@/components/providers/PlatformConfigProvider
 import { trackEvent } from "@/lib/analytics"
 import TurnstileWidget from "@/components/security/TurnstileWidget"
 import { BRAND_NAME } from "@/lib/brand"
+import { getCountry, normalizeCountryCode, isComingSoonCountry } from "@/lib/countries"
 
 function SignUpClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const refCode = searchParams.get('ref') || searchParams.get('referral') || ''
+  const countryCode = normalizeCountryCode(searchParams.get('country'))
+  const signupCountry = getCountry(countryCode)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -92,6 +95,7 @@ function SignUpClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          countryCode,
           referralCode: refCode || undefined,
           turnstileToken,
         }),
@@ -105,7 +109,16 @@ function SignUpClient() {
         return
       }
 
-      toast.success(`¡Registro exitoso como ${formData.role === "buyer" ? "Comprador" : "Vendedor"}!`)
+      if (data.pioneer) {
+        toast.success(
+          `¡Eres el profesional #${data.pioneer.number} en ${data.pioneer.countryName}! Destacado gratis el primer mes.`,
+          { duration: 8000 },
+        )
+      } else if (data.comingSoonCountry && formData.role === 'buyer' && signupCountry) {
+        toast.success(`Te avisaremos cuando ${signupCountry.name} esté en vivo.`)
+      } else {
+        toast.success(`¡Registro exitoso como ${formData.role === "buyer" ? "Comprador" : "Vendedor"}!`)
+      }
 
       // Auto sign-in so the user lands inside the app immediately
       const loginResult = await signIn('credentials', {
@@ -163,6 +176,18 @@ function SignUpClient() {
         </div>
 
         <div className="p-6 sm:p-10 space-y-8">
+          {signupCountry && isComingSoonCountry(signupCountry.code) && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl text-sm text-blue-900">
+              <div className="font-semibold">
+                {signupCountry.flag} Registro en {signupCountry.name}
+              </div>
+              <div className="mt-1 text-blue-800">
+                {formData.role === 'seller'
+                  ? `Te registras como pionero en ${signupCountry.name}. Los primeros ${signupCountry.pioneerLimit} profesionales obtienen beneficios especiales.`
+                  : `Te avisaremos cuando ${signupCountry.name} esté en vivo.`}
+              </div>
+            </div>
+          )}
           {error && (
             <p className="text-red-600 text-sm text-center font-medium bg-red-50 p-3 rounded-2xl">
               {error}

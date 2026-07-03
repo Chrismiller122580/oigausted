@@ -8,6 +8,7 @@ import {
   publicGigWhereFallback,
 } from '@/lib/public-gigs';
 import type { Prisma } from '@prisma/client';
+import { countAllCountrySellers } from '@/lib/country-stats';
 import { MarketingHomeView } from './MarketingHomeView';
 
 async function resolvePublicGigWhere(): Promise<Prisma.GigWhereInput> {
@@ -174,7 +175,10 @@ const loadMarketingHomeData = unstable_cache(
 );
 
 export default async function MarketingHomePageServer() {
-  const data = await loadMarketingHomeData();
+  const [data, sellerCounts] = await Promise.all([
+    loadMarketingHomeData(),
+    countAllCountrySellers(),
+  ]);
 
   return (
     <MarketingHomeView
@@ -182,6 +186,7 @@ export default async function MarketingHomePageServer() {
       stats={data.stats}
       popularGigs={data.popularGigs}
       testimonials={data.testimonials}
+      sellerCounts={sellerCounts}
     />
   );
 }

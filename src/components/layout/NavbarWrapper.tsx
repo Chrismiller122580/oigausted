@@ -17,6 +17,7 @@ import BuyerNavbar from './BuyerNavbar';
 import SellerNavbar from './SellerNavbar';
 import ImpersonationBanner from './ImpersonationBanner';
 import { isStaffRole, isUserRole } from '@/lib/session';
+import { isCountryLandingPath } from '@/lib/countries';
 
 export default function NavbarWrapper({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
@@ -30,8 +31,8 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   const staffRole = isStaffRole(session?.user?.staffRole) ? session.user.staffRole : null;
   const isAuthenticated = !!session?.user;
 
-  // Marketing homepage renders its own HomeNavbar — skip role-based navbars here
-  if (pathname === '/') {
+  // Marketing homepage and country landings render WorldwideHeader — skip role navbars
+  if (pathname === '/' || isCountryLandingPath(pathname)) {
     return (
       <>
         {banner}
