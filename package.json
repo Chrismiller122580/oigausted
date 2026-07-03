@@ -20,6 +20,8 @@
     "mobile:open:android": "npm run cap:open:android --prefix mobile",
     "mobile:open:ios": "npm run cap:open:ios --prefix mobile",
     "mobile:build:ios": "npm run build:ios:simulator --prefix mobile",
+    "mobile:build:android": "npm run build:android:release --prefix mobile",
+    "mobile:keystore": "npm run keystore --prefix mobile",
     "mobile:verify": "npm run verify --prefix mobile",
     "logos:export": "node scripts/export-oigagig-logos.mjs",
     "postinstall": "node scripts/chromium-pack.mjs && node scripts/copy-playwright-browsers.mjs && node scripts/playwright-install.mjs"

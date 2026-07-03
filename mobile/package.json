@@ -13,6 +13,8 @@
     "cap:run:android": "cap run android",
     "cap:run:ios": "cap run ios",
     "build:ios:simulator": "bash scripts/ios-simulator-build.sh",
+    "build:android:release": "bash scripts/android-release-build.sh",
+    "keystore": "bash scripts/generate-upload-keystore.sh",
     "verify": "node scripts/verify-scaffold.mjs"
   },
   "dependencies": {

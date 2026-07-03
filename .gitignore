@@ -66,6 +66,10 @@ next-env.d.ts
 /mobile/android/app/build/
 /mobile/android/build/
 /mobile/android/local.properties
+/mobile/android/keystore.properties
+/mobile/android/keystore/
+/mobile/android/*.jks
+/mobile/android/*.keystore
 /mobile/android/capacitor-cordova-android-plugins/
 /mobile/ios/App/Pods/
 /mobile/ios/App/build/
