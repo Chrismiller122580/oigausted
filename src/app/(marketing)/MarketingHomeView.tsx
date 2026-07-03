@@ -1,5 +1,5 @@
 import dynamic from 'next/dynamic';
-import { WorldwideHeader } from '@/components/marketing/WorldwideHeader';
+import { HomeNavbar } from '@/components/homepage/HomeNavbar';
 import { HomeHero } from '@/components/homepage/HomeHero';
 import { HomeFooter } from '@/components/homepage/HomeFooter';
 import { CountryMapSection } from '@/components/homepage/CountryMapSection';
@@ -8,7 +8,6 @@ import type { HomepageStats, PopularGig } from '@/components/homepage/StatsAndPo
 import type { HomepageTestimonial } from '@/components/homepage/TestimonialsCarousel';
 import { MarketingHomeWelcome } from './MarketingHomeWelcome';
 import { MarketingHomeBelowFold } from './MarketingHomeBelowFold';
-import { WorldMapHashScroll } from '@/components/homepage/WorldMapHashScroll';
 
 const CategoriesSection = dynamic(
   () =>
@@ -44,14 +43,13 @@ export function MarketingHomeView({
   return (
     <>
       <MarketingHomeWelcome />
-      <WorldMapHashScroll />
-      <WorldwideHeader activeCountry="co" />
+      <HomeNavbar />
       <main>
         <HomeHero />
-        <CountryMapSection sellerCounts={sellerCounts} />
         <CategoriesSection categories={categories} />
         <StatsAndPopular stats={stats} popularGigs={popularGigs} />
         <MarketingHomeBelowFold testimonials={testimonials} />
+        <CountryMapSection sellerCounts={sellerCounts} />
       </main>
       <HomeFooter />
     </>

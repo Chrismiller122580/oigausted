@@ -31,7 +31,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   const staffRole = isStaffRole(session?.user?.staffRole) ? session.user.staffRole : null;
   const isAuthenticated = !!session?.user;
 
-  // Marketing homepage and country landings render WorldwideHeader — skip role navbars
+  // Marketing homepage and country landings render their own HomeNavbar — skip role navbars
   if (pathname === '/' || isCountryLandingPath(pathname)) {
     return (
       <>

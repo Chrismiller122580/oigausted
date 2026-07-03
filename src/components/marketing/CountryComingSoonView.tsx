@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { WorldwideHeader } from '@/components/marketing/WorldwideHeader';
+import { HomeNavbar } from '@/components/homepage/HomeNavbar';
 import { CountryIntentDialog } from '@/components/marketing/CountryIntentDialog';
 import { HomeFooter } from '@/components/homepage/HomeFooter';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ export function CountryComingSoonView({
 
   return (
     <>
-      <WorldwideHeader activeCountry={country.code} />
+      <HomeNavbar />
 
       <section
         className="text-white py-16 sm:py-20"
