@@ -29,11 +29,11 @@ jobs:
       - name: Install mobile dependencies
         run: npm run mobile:install
 
-      - name: Verify scaffold
-        run: npm run mobile:verify
-
       - name: Capacitor sync
         run: npm run mobile:sync
+
+      - name: Verify scaffold
+        run: npm run mobile:verify
 
       - name: Build iOS (Simulator, no signing)
         working-directory: mobile/ios/App

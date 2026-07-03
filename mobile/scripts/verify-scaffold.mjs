@@ -51,8 +51,13 @@ assert(pbxproj.includes('PRODUCT_BUNDLE_IDENTIFIER = com.oigagig.app'), 'iOS bun
 assert(pbxproj.includes('IPHONEOS_DEPLOYMENT_TARGET = 15.0'), 'iOS deployment target missing')
 assert(pbxproj.includes('MARKETING_VERSION = 1.0'), 'iOS marketing version missing')
 
-const iosCapConfig = read('ios/App/App/capacitor.config.json')
-assert(iosCapConfig.includes('https://oigagig.com'), 'iOS capacitor.config.json missing production URL')
+const iosCapConfigPath = join(root, 'ios', 'App', 'App', 'capacitor.config.json')
+if (existsSync(iosCapConfigPath)) {
+  const iosCapConfig = readFileSync(iosCapConfigPath, 'utf8')
+  assert(iosCapConfig.includes('https://oigagig.com'), 'iOS capacitor.config.json missing production URL')
+} else {
+  assert(config.includes('https://oigagig.com'), 'capacitor.config.ts missing production URL (run npm run mobile:sync)')
+}
 
 const appIcon = join(root, 'ios', 'App', 'App', 'Assets.xcassets', 'AppIcon.appiconset', 'AppIcon-512@2x.png')
 assert(existsSync(appIcon), 'missing iOS App Store icon (1024x1024)')
