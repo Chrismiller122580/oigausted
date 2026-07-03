@@ -54,7 +54,7 @@ export function CountryComingSoonView({
           <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
             <Button
               size="lg"
-              className="rounded-xl bg-white px-8 py-6 text-lg font-bold text-blue-700 hover:bg-white/90"
+              className="h-auto min-h-12 w-full max-w-md shrink whitespace-normal text-balance rounded-xl bg-white px-5 py-4 text-base font-bold leading-snug text-blue-700 hover:bg-white/90 sm:w-auto sm:max-w-none sm:px-8 sm:py-6 sm:text-lg"
               onClick={openPioneerDialog}
             >
               Sé el primer profesional en {country.name} → destacado GRATIS
@@ -62,7 +62,7 @@ export function CountryComingSoonView({
             <Button
               size="lg"
               variant="outline"
-              className="rounded-xl border-2 border-white bg-transparent px-8 py-6 text-lg font-bold text-white hover:bg-white/10"
+              className="h-auto min-h-12 w-full max-w-md shrink whitespace-normal text-balance rounded-xl border-2 border-white bg-transparent px-5 py-4 text-base font-bold leading-snug text-white hover:bg-white/10 sm:w-auto sm:max-w-none sm:px-8 sm:py-6 sm:text-lg"
               onClick={openNotifySignup}
             >
               Avísame cuando esté en vivo
