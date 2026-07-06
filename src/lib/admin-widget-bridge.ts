@@ -1,6 +1,13 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { isCapacitorNative } from '@/lib/capacitor-native';
-import type { AdminStatsSnapshot } from '@/hooks/useAdminStats';
+
+export type AdminStatsSnapshot = {
+  onlineUsers?: number;
+  users?: number;
+  orders?: number;
+  completedOrders?: number;
+  totalRevenue?: number;
+};
 
 export type AdminWidgetPayload = {
   onlineUsers: number;

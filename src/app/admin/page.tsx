@@ -9,6 +9,7 @@ import type { AuditLogEntry } from '@/types/audit';
 import type { AnalyticsIntegration } from '@/lib/admin-analytics';
 import { AnalyticsIntegrationsPanel } from '@/components/admin/AnalyticsIntegrationsPanel';
 import { formatRelativeActive } from '@/lib/presence';
+import { syncAdminStatsToNativeWidget } from '@/lib/admin-widget-bridge';
 
 interface OnlineUser {
   id: string
@@ -53,6 +54,7 @@ export default function AdminDashboard() {
 
       const statsData = await statsRes.json();
       setStats(statsData);
+      void syncAdminStatsToNativeWidget(statsData);
 
       const activityData = await activityRes.json();
       setRecentActivity(activityData.logs || []);

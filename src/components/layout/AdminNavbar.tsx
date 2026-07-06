@@ -14,7 +14,6 @@ import MobileMenu from './MobileMenu';
 import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import Logo from '@/components/common/Logo';
-import AdminStatsWidget from '@/components/admin/AdminStatsWidget';
 
 interface NavItem {
   href: string;
@@ -113,8 +112,6 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
           </div>
         </div>
       </header>
-
-      <AdminStatsWidget />
 
       <div className="flex flex-1 max-w-7xl mx-auto w-full">
         {/* Desktop Sidebar */}
