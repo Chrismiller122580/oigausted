@@ -54,7 +54,7 @@ export default function AdminDashboard() {
 
       const statsData = await statsRes.json();
       setStats(statsData);
-      void syncAdminStatsToNativeWidget(statsData);
+      if (statsRes.ok) void syncAdminStatsToNativeWidget(statsData);
 
       const activityData = await activityRes.json();
       setRecentActivity(activityData.logs || []);

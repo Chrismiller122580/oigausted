@@ -14,6 +14,7 @@ import MobileMenu from './MobileMenu';
 import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import Logo from '@/components/common/Logo';
+import AdminWidgetSync from '@/components/admin/AdminWidgetSync';
 
 interface NavItem {
   href: string;
@@ -60,6 +61,7 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <AdminWidgetSync />
       {/* Top Header - always visible, compact */}
       <header className="bg-background border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">

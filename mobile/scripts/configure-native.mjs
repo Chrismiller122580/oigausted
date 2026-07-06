@@ -101,6 +101,30 @@ function patchAndroidAdminWidget() {
   }
 }
 
+function patchCapacitorPluginsJson() {
+  const pluginsPath = join(root, 'android', 'app', 'src', 'main', 'assets', 'capacitor.plugins.json')
+  if (!existsSync(pluginsPath)) return
+
+  let plugins = []
+  try {
+    plugins = JSON.parse(readFileSync(pluginsPath, 'utf8'))
+  } catch {
+    return
+  }
+
+  const entry = {
+    pkg: 'AdminWidget',
+    classpath: 'com.oigagig.app.AdminWidgetPlugin',
+  }
+  const hasEntry = plugins.some((p) => p.classpath === entry.classpath)
+  if (!hasEntry) {
+    plugins.push(entry)
+    writeFileSync(pluginsPath, `${JSON.stringify(plugins, null, '\t')}\n`)
+    console.log('[mobile/native] registered AdminWidget in capacitor.plugins.json')
+  }
+}
+
 patchAndroidManifest()
 patchAndroidAdminWidget()
+patchCapacitorPluginsJson()
 patchIosInfoPlist()

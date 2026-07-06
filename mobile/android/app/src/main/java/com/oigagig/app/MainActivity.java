@@ -10,4 +10,11 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AdminWidgetPlugin.class);
         super.onCreate(savedInstanceState);
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Refresh home-screen widget from cached stats when app returns to foreground.
+        AdminStatsWidgetProvider.updateAllWidgets(this);
+    }
 }

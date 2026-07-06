@@ -35,13 +35,18 @@ export function buildAdminWidgetPayload(stats: AdminStatsSnapshot): AdminWidgetP
   };
 }
 
+function isValidStats(stats: AdminStatsSnapshot): boolean {
+  return typeof stats.users === 'number' || typeof stats.onlineUsers === 'number';
+}
+
 /** Push latest admin stats to the Android home-screen widget (no-op on web/iOS). */
 export async function syncAdminStatsToNativeWidget(stats: AdminStatsSnapshot): Promise<void> {
   if (!isCapacitorNative() || Capacitor.getPlatform() !== 'android') return;
+  if (!isValidStats(stats)) return;
 
   try {
     await AdminWidget.updateStats(buildAdminWidgetPayload(stats));
-  } catch {
-    // Plugin unavailable on older builds — safe to ignore
+  } catch (err) {
+    console.warn('[AdminWidget] native updateStats failed:', err);
   }
 }

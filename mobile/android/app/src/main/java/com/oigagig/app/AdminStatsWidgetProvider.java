@@ -40,7 +40,7 @@ public class AdminStatsWidgetProvider extends AppWidgetProvider {
             views.setTextViewText(R.id.widget_orders, nf.format(payload.optInt("orders", 0)));
             views.setTextViewText(
                 R.id.widget_revenue,
-                formatRevenue(payload.optLong("totalRevenue", 0))
+                formatRevenue(Math.round(payload.optDouble("totalRevenue", 0d)))
             );
 
             String updatedAt = payload.optString("updatedAt", "");
@@ -94,5 +94,20 @@ public class AdminStatsWidgetProvider extends AppWidgetProvider {
         for (int id : appWidgetIds) {
             updateWidget(context, manager, id);
         }
+    }
+
+    @Override
+    public void onEnabled(Context context) {
+        updateAllWidgets(context);
+    }
+
+    @Override
+    public void onAppWidgetOptionsChanged(
+        Context context,
+        AppWidgetManager manager,
+        int appWidgetId,
+        android.os.Bundle newOptions
+    ) {
+        updateWidget(context, manager, appWidgetId);
     }
 }

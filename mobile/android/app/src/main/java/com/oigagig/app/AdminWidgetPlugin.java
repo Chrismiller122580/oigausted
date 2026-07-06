@@ -1,6 +1,5 @@
 package com.oigagig.app;
 
-import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -13,14 +12,15 @@ public class AdminWidgetPlugin extends Plugin {
 
     @PluginMethod
     public void updateStats(PluginCall call) {
-        JSObject data = call.getData();
-        if (data == null) {
-            call.reject("Missing stats payload");
-            return;
-        }
-
         try {
-            JSONObject payload = new JSONObject(data.toString());
+            JSONObject payload = new JSONObject();
+            payload.put("onlineUsers", call.getInt("onlineUsers", 0));
+            payload.put("users", call.getInt("users", 0));
+            payload.put("orders", call.getInt("orders", 0));
+            payload.put("completedOrders", call.getInt("completedOrders", 0));
+            payload.put("totalRevenue", Math.round(call.getDouble("totalRevenue", 0d)));
+            payload.put("updatedAt", call.getString("updatedAt", ""));
+
             AdminWidgetStorage.save(getContext(), payload);
             AdminStatsWidgetProvider.updateAllWidgets(getContext());
             call.resolve();
