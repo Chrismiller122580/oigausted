@@ -1,4 +1,5 @@
 import 'server-only'
+import type { ServiceAccount } from 'firebase-admin'
 import { devLog } from '@/lib/utils'
 
 type FcmMessaging = {
@@ -26,7 +27,7 @@ async function getFcmMessaging(): Promise<FcmMessaging | null> {
   try {
     const admin = await import('firebase-admin')
     if (!admin.apps.length) {
-      const serviceAccount = JSON.parse(raw) as admin.ServiceAccount
+      const serviceAccount = JSON.parse(raw) as ServiceAccount
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       })

@@ -518,8 +518,8 @@ async function sendDevicePushIfEnabled(
 
   if (subscriptions.length === 0) return;
 
-  const webSubs = subscriptions.filter((sub) => !sub.endpoint.startsWith('fcm:'));
-  const nativeSubs = subscriptions.filter((sub) => sub.endpoint.startsWith('fcm:'));
+  const webSubs = subscriptions.filter((sub: PushSubscription) => !sub.endpoint.startsWith('fcm:'));
+  const nativeSubs = subscriptions.filter((sub: PushSubscription) => sub.endpoint.startsWith('fcm:'));
 
   if (webSubs.length > 0) {
     const webpush = await import('web-push').catch(() => null);
@@ -573,8 +573,8 @@ async function sendDevicePushIfEnabled(
     const { parseNativePushEndpoint } = await import('@/lib/push-subscription');
     const { sendFcmPush } = await import('@/lib/fcm-push');
     const tokens = nativeSubs
-      .map((sub) => parseNativePushEndpoint(sub.endpoint)?.token)
-      .filter((token): token is string => !!token);
+      .map((sub: PushSubscription) => parseNativePushEndpoint(sub.endpoint)?.token)
+      .filter((token: string | undefined): token is string => !!token);
 
     await sendFcmPush(tokens, title, message, link);
 
