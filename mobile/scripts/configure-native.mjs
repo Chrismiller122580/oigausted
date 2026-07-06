@@ -66,5 +66,41 @@ function patchIosInfoPlist() {
   }
 }
 
+function patchAndroidAdminWidget() {
+  const manifestPath = join(
+    root,
+    'android',
+    'app',
+    'src',
+    'main',
+    'AndroidManifest.xml',
+  )
+  if (!existsSync(manifestPath)) return
+
+  let xml = readFileSync(manifestPath, 'utf8')
+  const receiverBlock = `
+        <receiver
+            android:name=".AdminStatsWidgetProvider"
+            android:exported="false"
+            android:label="@string/admin_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/admin_stats_widget_info" />
+        </receiver>`
+
+  if (!xml.includes('AdminStatsWidgetProvider')) {
+    xml = xml.replace(
+      '</application>',
+      `${receiverBlock}\n    </application>`,
+    )
+    writeFileSync(manifestPath, xml)
+    console.log('[mobile/native] patched Android admin stats widget receiver')
+  }
+}
+
 patchAndroidManifest()
+patchAndroidAdminWidget()
 patchIosInfoPlist()

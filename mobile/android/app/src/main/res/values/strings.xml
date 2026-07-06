@@ -4,4 +4,6 @@
     <string name="title_activity_main">OigaGIG</string>
     <string name="package_name">com.oigagig.app</string>
     <string name="custom_url_scheme">com.oigagig.app</string>
+    <string name="admin_widget_label">OigaGIG Admin Stats</string>
+    <string name="admin_widget_description">Live platform metrics for OigaGIG administrators.</string>
 </resources>

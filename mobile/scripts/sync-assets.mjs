@@ -3,6 +3,7 @@
  * Copies shared brand assets from the Next.js app into the Capacitor www bundle.
  * Run automatically on mobile/postinstall.
  */
+import { spawnSync } from 'node:child_process'
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -33,3 +34,15 @@ for (const { from, to } of copies) {
 }
 
 console.log(`[mobile/assets] synced ${copied} asset(s)`)
+
+try {
+  const iconScript = join(root, 'scripts', 'generate-app-icons.mjs')
+  if (existsSync(iconScript)) {
+    const result = spawnSync(process.execPath, [iconScript], { stdio: 'inherit' })
+    if (result.status !== 0) {
+      console.warn('[mobile/assets] icon generation exited with non-zero status')
+    }
+  }
+} catch (err) {
+  console.warn('[mobile/assets] icon generation skipped:', err instanceof Error ? err.message : err)
+}

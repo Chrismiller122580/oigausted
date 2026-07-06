@@ -40,6 +40,7 @@ assert(config.includes('checkout.wompi.co'), 'capacitor.config.ts missing Wompi 
 const manifest = read('android/app/src/main/AndroidManifest.xml')
 assert(manifest.includes('android:scheme="oigagig"'), 'Android deep link scheme missing')
 assert(manifest.includes('android.permission.INTERNET'), 'Android INTERNET permission missing')
+assert(manifest.includes('AdminStatsWidgetProvider'), 'Android admin stats widget receiver missing')
 
 const plist = read('ios/App/App/Info.plist')
 assert(plist.includes('<string>oigagig</string>'), 'iOS URL scheme missing')
@@ -49,7 +50,7 @@ assert(plist.includes('<string>arm64</string>'), 'iOS should require arm64 (not 
 const pbxproj = read('ios/App/App.xcodeproj/project.pbxproj')
 assert(pbxproj.includes('PRODUCT_BUNDLE_IDENTIFIER = com.oigagig.app'), 'iOS bundle ID missing')
 assert(pbxproj.includes('IPHONEOS_DEPLOYMENT_TARGET = 15.0'), 'iOS deployment target missing')
-assert(pbxproj.includes('MARKETING_VERSION = 1.0'), 'iOS marketing version missing')
+assert(pbxproj.includes('MARKETING_VERSION = 1.1'), 'iOS marketing version missing')
 
 const iosCapConfigPath = join(root, 'ios', 'App', 'App', 'capacitor.config.json')
 if (existsSync(iosCapConfigPath)) {

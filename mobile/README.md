@@ -71,17 +71,21 @@ npm run mobile:sync
 - E2E test checkout inside the shell on real devices
 - Confirm `checkout.wompi.co` is in `allowNavigation` (already configured)
 
-### 4. Push notifications (optional v2)
+### 4. Admin home-screen widget (Android)
+
+Admins can add the **OigaGIG Admin Stats** widget to their Android home screen. Metrics sync when the admin opens the app (live stats bar in the admin header pushes data to the widget). Tap the widget to open `/admin`.
+
+### 5. Push notifications (optional v2)
 
 - Web Push works in shell when installed; native APNs/FCM is a follow-up
 
-### 5. Store assets
+### 6. Store assets
 
 - App icons: `mobile/resources/` (synced from `public/icon.png` via `npm run mobile:assets`)
 - Screenshots, Spanish metadata, privacy policy URL: `https://oigagig.com/privacy`
 - Set `NEXT_PUBLIC_APP_STORE_URL` and `NEXT_PUBLIC_PLAY_STORE_URL` in Vercel after approval
 
-### 6. Signing
+### 7. Signing
 
 - **Android:** Upload keystore + Play App Signing (see [Google Play release](#google-play-release) below)
 - **iOS:** Distribution cert + App Store Connect record for `com.oigagig.app`
@@ -249,7 +253,7 @@ Checks: URL scheme `oigagig://`, bundle ID, deployment target iOS 15+, 1024×102
 |------|----------------|
 | Bundle ID | `com.oigagig.app` |
 | Min iOS | 15.0 |
-| Version | 1.0 (build 1) |
+| Version | 1.1 (build 2) |
 | Deep link | `oigagig://app/...` |
 | WebView URL | `https://oigagig.com` |
 | Signing team | Not set in repo (configure in Xcode) |
