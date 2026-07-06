@@ -17,7 +17,7 @@ import ConsentedGoogleAnalytics from "@/components/analytics/ConsentedGoogleAnal
 import CookieConsent from "@/components/common/CookieConsent";
 import PwaInstallPrompt from "@/components/common/PwaInstallPrompt";
 
-const inter = Inter({ subsets: ["latin"], display: "swap" });
+const inter = Inter({ subsets: ["latin"], display: "swap", preload: false });
 
 // Dynamic metadata powered by admin settings (branding)
 export async function generateMetadata(): Promise<Metadata> {

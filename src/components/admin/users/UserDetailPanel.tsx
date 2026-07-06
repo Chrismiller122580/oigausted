@@ -8,13 +8,33 @@ import {
   Trash2,
   UserCog,
   Sparkles,
+  AlertTriangle,
 } from 'lucide-react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { formatRelativeActive, isUserOnline } from '@/lib/presence';
 import type { User } from './types';
+
+interface ContactViolationRecord {
+  id: string;
+  contextType: string;
+  contextId: string;
+  violationTypes: string[];
+  snippet: string;
+  createdAt: string;
+}
+
+const VIOLATION_TYPE_LABELS: Record<string, string> = {
+  email: 'Email',
+  phone: 'Teléfono',
+  whatsapp: 'WhatsApp',
+  instagram: 'Instagram',
+  social_link: 'Red social',
+  handle: 'Usuario @',
+};
 
 interface UserDetailPanelProps {
   user: User;
@@ -67,6 +87,8 @@ export function UserDetailPanel({
   const [marketingUsage, setMarketingUsage] = useState<string>('');
   const [savingMarketing, setSavingMarketing] = useState(false);
   const [loadingMarketing, setLoadingMarketing] = useState(false);
+  const [violations, setViolations] = useState<ContactViolationRecord[]>([]);
+  const [loadingViolations, setLoadingViolations] = useState(false);
 
   useEffect(() => {
     setRole(user.role);
@@ -100,7 +122,23 @@ export function UserDetailPanel({
       .finally(() => setLoadingMarketing(false));
   }, [user.id, user.role]);
 
+  useEffect(() => {
+    if ((user.contactViolationCount ?? 0) === 0) {
+      setViolations([]);
+      return;
+    }
+    setLoadingViolations(true);
+    fetch(`/api/admin/users/contact-violations?userId=${encodeURIComponent(user.id)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.violations) setViolations(data.violations);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingViolations(false));
+  }, [user.id, user.contactViolationCount]);
+
   const roleDirty = role !== user.role || (staffRole || null) !== (user.staffRole || null);
+  const violationCount = user.contactViolationCount ?? 0;
   const isSelf = user.id === currentUserId;
   const gigCount = user._count?.gigs ?? 0;
   const buyerOrders = user._count?.ordersAsBuyer ?? 0;
@@ -152,7 +190,7 @@ export function UserDetailPanel({
   };
 
   return (
-    <Card className="bg-card border-border sticky top-8">
+    <Card className="bg-card border-border">
       <CardContent className="p-6">
         <div className="flex justify-between items-start mb-4">
           <div>
@@ -175,6 +213,85 @@ export function UserDetailPanel({
           <StatItem label="Business" value={user.businessName || '—'} />
           <StatItem label="Phone" value={user.phone || '—'} />
         </div>
+
+        {(violationCount > 0 || user.contactFlaggedAt) && (
+          <div className="mb-5 p-4 rounded-xl border border-amber-200/70 bg-amber-50/40 dark:bg-amber-950/25 dark:border-amber-800/50">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+              Chat violations
+            </p>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {violationCount > 0 && (
+                <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                  {violationCount} intento{violationCount !== 1 ? 's' : ''} de compartir contacto
+                </span>
+              )}
+              {user.contactFlaggedAt && (
+                <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200">
+                  Marcado desde {formatDateTime(user.contactFlaggedAt)}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              El usuario intentó compartir teléfono, email o redes fuera del chat de OigaGIG.
+            </p>
+            {loadingViolations ? (
+              <p className="text-sm text-muted-foreground">Cargando detalles...</p>
+            ) : violations.length > 0 ? (
+              <ul className="space-y-2">
+                {violations.map((v) => {
+                  const contextHref =
+                    v.contextType === 'order'
+                      ? `/orders/${v.contextId}`
+                      : v.contextType === 'inquiry'
+                        ? `/messages/${v.contextId}`
+                        : null;
+                  return (
+                    <li
+                      key={v.id}
+                      className="rounded-lg border border-amber-200/50 bg-background/80 p-3 text-sm"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                        <span className="text-xs text-muted-foreground">
+                          {formatDateTime(v.createdAt)}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          {v.contextType === 'order' ? 'Pedido' : 'Consulta'}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {v.violationTypes.map((t) => (
+                          <span
+                            key={t}
+                            className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100"
+                          >
+                            {VIOLATION_TYPE_LABELS[t] ?? t}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-xs font-mono text-muted-foreground break-words">
+                        {v.snippet}
+                      </p>
+                      {contextHref && (
+                        <Link
+                          href={contextHref}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-orange-600 hover:underline mt-2"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Ver {v.contextType === 'order' ? 'pedido' : 'conversación'}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">Sin registros detallados.</p>
+            )}
+          </div>
+        )}
 
         <div className="mb-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">

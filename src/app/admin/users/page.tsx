@@ -86,6 +86,9 @@ export default function AdminUsersPage() {
 
   const selectUser = (user: User) => {
     setSelectedUser(user);
+    if (detailRef.current) {
+      detailRef.current.scrollTop = 0;
+    }
     if (window.innerWidth < 1024) {
       setTimeout(() => {
         detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -454,7 +457,10 @@ export default function AdminUsersPage() {
               )}
             </div>
 
-            <div ref={detailRef}>
+            <div
+              ref={detailRef}
+              className="lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:overscroll-contain"
+            >
               {selectedUser ? (
                 <UserDetailPanel
                   user={selectedUser}
@@ -468,7 +474,7 @@ export default function AdminUsersPage() {
                   onSaveRole={saveRole}
                 />
               ) : (
-                <div className="text-muted-foreground p-8 border border-dashed border-border rounded-2xl text-center sticky top-8">
+                <div className="text-muted-foreground p-8 border border-dashed border-border rounded-2xl text-center">
                   Select a user to view details and manage their account.
                 </div>
               )}
