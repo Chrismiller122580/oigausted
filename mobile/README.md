@@ -83,9 +83,21 @@ Admins can add the **OigaGIG Admin Stats** widget to their Android home screen.
 
 If the widget shows dashes (`—`), open the app, go to `/admin`, and bring the app to the foreground once.
 
-### 5. Push notifications (optional v2)
+### 5. Push notifications (native FCM + web push)
 
-- Web Push works in shell when installed; native APNs/FCM is a follow-up
+The mobile app auto-registers for push when a user signs in (Android + iOS via `@capacitor/push-notifications`). Notifications use the same backend as web push.
+
+**Firebase setup (required for native push on device):**
+
+1. Create a [Firebase project](https://console.firebase.google.com/) and add an Android app with package `com.oigagig.app`
+2. Download `google-services.json` → save as `mobile/android/app/google-services.json` (see `google-services.json.example`)
+3. In Firebase → Project Settings → Service accounts → **Generate new private key**
+4. Add to **Vercel** env vars:
+   - `FIREBASE_SERVICE_ACCOUNT_JSON` = full JSON string (one line)
+   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` (for browser web push)
+5. Rebuild the app: `npm run mobile:sync` then `npm run mobile:build:android`
+
+On first launch after install, accept the notification permission prompt while signed in.
 
 ### 6. Store assets
 
@@ -261,7 +273,7 @@ Checks: URL scheme `oigagig://`, bundle ID, deployment target iOS 15+, 1024×102
 |------|----------------|
 | Bundle ID | `com.oigagig.app` |
 | Min iOS | 15.0 |
-| Version | 1.1 (build 2) |
+| Version | 1.3 (build 4) |
 | Deep link | `oigagig://app/...` |
 | WebView URL | `https://oigagig.com` |
 | Signing team | Not set in repo (configure in Xcode) |

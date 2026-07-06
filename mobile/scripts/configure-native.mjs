@@ -124,7 +124,49 @@ function patchCapacitorPluginsJson() {
   }
 }
 
+function patchAndroidPushPermissions() {
+  const manifestPath = join(
+    root,
+    'android',
+    'app',
+    'src',
+    'main',
+    'AndroidManifest.xml',
+  )
+  if (!existsSync(manifestPath)) return
+
+  let xml = readFileSync(manifestPath, 'utf8')
+  const permission = 'android.permission.POST_NOTIFICATIONS'
+  if (!xml.includes(permission)) {
+    xml = xml.replace(
+      '<uses-permission android:name="android.permission.INTERNET" />',
+      `<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="${permission}" />`,
+    )
+    writeFileSync(manifestPath, xml)
+    console.log('[mobile/native] patched Android POST_NOTIFICATIONS permission')
+  }
+}
+
+function patchIosPushBackgroundMode() {
+  const plistPath = join(root, 'ios', 'App', 'App', 'Info.plist')
+  if (!existsSync(plistPath)) return
+
+  let plist = readFileSync(plistPath, 'utf8')
+  if (!plist.includes('remote-notification')) {
+    const backgroundModes = `
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>`
+    plist = plist.replace('</dict>\n</plist>', `${backgroundModes}\n</dict>\n</plist>`)
+    writeFileSync(plistPath, plist)
+    console.log('[mobile/native] patched iOS remote-notification background mode')
+  }
+}
+
 patchAndroidManifest()
+patchAndroidPushPermissions()
 patchAndroidAdminWidget()
 patchCapacitorPluginsJson()
 patchIosInfoPlist()
+patchIosPushBackgroundMode()

@@ -430,7 +430,7 @@ export async function sendNotification(payload: NotificationPayload) {
   if ((type === 'push' || effectiveShouldSendPush) && effectiveShouldSendPush) {
     // Real Web Push will be attempted
     try {
-      await sendWebPushIfEnabled(userId, title, message, link, data);
+      await sendDevicePushIfEnabled(userId, title, message, link, data);
     } catch (e) {
       devLog('Web Push error:', e);
     }
@@ -501,81 +501,85 @@ function checkQuietHours(prefs: NotificationPrefs | null): boolean {
 }
 
 /**
- * Send real Web Push notification using VAPID + web-push library.
- * Requires: npm install web-push
- * And VAPID keys in environment:
- *   NEXT_PUBLIC_VAPID_PUBLIC_KEY=...
- *   VAPID_PRIVATE_KEY=...
+ * Send push to web (VAPID) and native mobile (FCM) subscriptions.
+ * Web: NEXT_PUBLIC_VAPID_PUBLIC_KEY + VAPID_PRIVATE_KEY
+ * Native: FIREBASE_SERVICE_ACCOUNT_JSON
  */
-async function sendWebPushIfEnabled(
+async function sendDevicePushIfEnabled(
   userId: string,
   title: string,
   message: string,
   link?: string,
   data?: JsonObject
 ) {
-  const webpush = await import('web-push').catch(() => null);
-  if (!webpush) {
-    devLog('[WebPush] web-push not installed - skipping real push');
-    return;
-  }
-
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-
-  if (!publicKey || !privateKey) {
-    devLog('[WebPush] VAPID keys not configured');
-    return;
-  }
-
-  webpush.setVapidDetails(
-    'mailto:support@oigagig.com',
-    publicKey,
-    privateKey
-  );
-
   const subscriptions = await prisma.pushSubscription.findMany({
     where: { userId },
   });
 
   if (subscriptions.length === 0) return;
 
-  const payload = JSON.stringify({
-    title,
-    body: message,
-    icon: '/brand/oiga-gig-marketing.png',
-    url: link || '/',
-    data: data || {},
-  });
+  const webSubs = subscriptions.filter((sub) => !sub.endpoint.startsWith('fcm:'));
+  const nativeSubs = subscriptions.filter((sub) => sub.endpoint.startsWith('fcm:'));
 
-  const sendPromises = subscriptions.map(async (sub: PushSubscription) => {
-    try {
-      await webpush.sendNotification(
-        {
-          endpoint: sub.endpoint,
-          keys: {
-            p256dh: sub.p256dh,
-            auth: sub.auth,
-          },
-        },
-        payload
-      );
-    } catch (err: unknown) {
-      // If subscription is expired/invalid, remove it
-      const statusCode =
-        err && typeof err === 'object' && 'statusCode' in err
-          ? (err as { statusCode: number }).statusCode
-          : undefined;
-      if (statusCode === 410 || statusCode === 404) {
-        await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
-      }
-      const message = err instanceof Error ? err.message : String(err);
-      devLog('Failed to send push to one subscription:', message);
+  if (webSubs.length > 0) {
+    const webpush = await import('web-push').catch(() => null);
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const privateKey = process.env.VAPID_PRIVATE_KEY;
+
+    if (webpush && publicKey && privateKey) {
+      webpush.setVapidDetails('mailto:support@oigagig.com', publicKey, privateKey);
+
+      const payload = JSON.stringify({
+        title,
+        body: message,
+        icon: '/brand/oiga-gig-marketing.png',
+        url: link || '/',
+        data: data || {},
+      });
+
+      const sendPromises = webSubs.map(async (sub: PushSubscription) => {
+        try {
+          await webpush.sendNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: {
+                p256dh: sub.p256dh,
+                auth: sub.auth,
+              },
+            },
+            payload
+          );
+        } catch (err: unknown) {
+          const statusCode =
+            err && typeof err === 'object' && 'statusCode' in err
+              ? (err as { statusCode: number }).statusCode
+              : undefined;
+          if (statusCode === 410 || statusCode === 404) {
+            await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
+          }
+          const errMsg = err instanceof Error ? err.message : String(err);
+          devLog('Failed to send web push to one subscription:', errMsg);
+        }
+      });
+
+      await Promise.allSettled(sendPromises);
+      devLog(`[WebPush] Attempted push to ${webSubs.length} web device(s) for user ${userId}`);
+    } else {
+      devLog('[WebPush] VAPID keys not configured — web push skipped');
     }
-  });
+  }
 
-  await Promise.allSettled(sendPromises);
-  devLog(`[WebPush] Attempted push to ${subscriptions.length} device(s) for user ${userId}`);
+  if (nativeSubs.length > 0) {
+    const { parseNativePushEndpoint } = await import('@/lib/push-subscription');
+    const { sendFcmPush } = await import('@/lib/fcm-push');
+    const tokens = nativeSubs
+      .map((sub) => parseNativePushEndpoint(sub.endpoint)?.token)
+      .filter((token): token is string => !!token);
+
+    await sendFcmPush(tokens, title, message, link);
+
+    devLog(`[FCM] Attempted push to ${tokens.length} native device(s) for user ${userId}`);
+  }
 }
 
 /** DB-backed hourly rate limit (reliable across serverless instances). */

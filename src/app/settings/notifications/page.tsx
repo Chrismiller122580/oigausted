@@ -439,8 +439,9 @@ export default function NotificationPreferences() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Recibe notificaciones incluso cuando la pestaña está cerrada o la app no está abierta. 
-            Requiere VAPID keys configuradas.
+            Recibe notificaciones incluso cuando la pestaña está cerrada o la app no está abierta.
+            En la <strong>app móvil</strong> se activan automáticamente al iniciar sesión (FCM).
+            En el navegador, usa el botón de abajo (requiere VAPID keys).
           </p>
 
           <div className="flex flex-wrap gap-3">

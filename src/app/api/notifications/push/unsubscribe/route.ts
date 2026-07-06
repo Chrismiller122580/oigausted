@@ -11,9 +11,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { endpoint } = await req.json();
+    const { endpoint, platform } = await req.json();
 
-    if (endpoint) {
+    if (platform === 'android' || platform === 'ios') {
+      await prisma.pushSubscription.deleteMany({
+        where: {
+          userId,
+          endpoint: { startsWith: `fcm:${platform}:` },
+        },
+      });
+    } else if (endpoint) {
       await prisma.pushSubscription.deleteMany({
         where: {
           endpoint,
