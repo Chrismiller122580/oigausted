@@ -27,6 +27,18 @@
     {
       "path": "/api/notifications/lifecycle",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/admin/marketing/seller-toolkit-blast",
+      "schedule": "0 20 6 7 *"
+    },
+    {
+      "path": "/api/admin/marketing/seller-toolkit-blast",
+      "schedule": "10 20 6 7 *"
+    },
+    {
+      "path": "/api/admin/marketing/seller-toolkit-blast",
+      "schedule": "20 20 6 7 *"
     }
   ]
 }
