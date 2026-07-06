@@ -119,6 +119,7 @@ const SEGMENTS = [
 function MarketingPageSkeleton() {
   return (
     <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 pb-12 animate-pulse">
+      <p className="text-sm text-muted-foreground">Cargando Marketing Studio…</p>
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-2xl bg-muted" />
         <div className="space-y-2">
@@ -272,11 +273,17 @@ function AdminMarketingContent() {
     }
   };
 
-  const quickGenerate = (goal: string, focus: 'acquisition' | 'retention' | 'both' = 'both') => {
+  const applyQuickGoal = (goal: string, focus: 'acquisition' | 'retention' | 'both' = 'both') => {
     setAiGoal(goal);
     setAiCustomPrompt('');
     setAiBuyerFocus(focus);
-    void generateWithAI();
+    toast.success('Objetivo cargado — revisa alcance, canales y tono, luego pulsa Generar');
+  };
+
+  const applySellerQuickGoal = () => {
+    setAiGoal(SELLER_QUICK_GOAL.goal);
+    setAiCustomPrompt('');
+    toast.success('Objetivo cargado — revisa alcance, canales y tono, luego pulsa Generar');
   };
 
   const fetchEstimatedAudience = async (recommendedSegment?: string) => {
@@ -842,41 +849,6 @@ function AdminMarketingContent() {
           </div>
         </div>
 
-        {/* Quick Goals — buyer-focused */}
-        <div className="mb-5">
-          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 font-medium">Objetivos rápidos — compradores</div>
-          <div className="flex flex-wrap gap-2">
-            {QUICK_GOALS.map((g, i) => (
-              <button
-                key={i}
-                onClick={() => quickGenerate(g.goal, g.focus)}
-                disabled={isGenerating}
-                className="text-sm px-3 py-1.5 rounded-full border border-border hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition active:scale-[0.985]"
-              >
-                {g.goal}
-              </button>
-            ))}
-          </div>
-          <div className="text-xs uppercase tracking-widest text-muted-foreground mt-4 mb-2 font-medium">Vendedores</div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => loadSellerToolkitCampaign('top')}
-              className="text-sm px-3 py-1.5 rounded-full border border-blue-300 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition"
-            >
-              Guía completa: conseguir compradores (email + IG + WhatsApp)
-            </button>
-            <button
-              type="button"
-              onClick={() => quickGenerate(SELLER_QUICK_GOAL.goal, SELLER_QUICK_GOAL.focus)}
-              disabled={isGenerating}
-              className="text-sm px-3 py-1.5 rounded-full border border-border hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition"
-            >
-              {SELLER_QUICK_GOAL.goal}
-            </button>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
           <div className="lg:col-span-4">
             <label className="text-sm font-medium">Alcance geográfico</label>
@@ -983,10 +955,49 @@ function AdminMarketingContent() {
           </div>
         </div>
 
+        {/* Quick goals — populate form only; generation requires explicit button click */}
+        <div className="mt-5 pt-5 border-t border-border">
+          <p className="text-xs text-muted-foreground mb-3">
+            Los objetivos rápidos solo cargan el formulario. Ajusta alcance, canales y tono antes de generar.
+          </p>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 font-medium">Objetivos rápidos — compradores</div>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_GOALS.map((g, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => applyQuickGoal(g.goal, g.focus)}
+                disabled={isGenerating}
+                className="text-sm px-3 py-1.5 rounded-full border border-border hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition active:scale-[0.985]"
+              >
+                {g.goal}
+              </button>
+            ))}
+          </div>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground mt-4 mb-2 font-medium">Vendedores</div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => loadSellerToolkitCampaign('top')}
+              className="text-sm px-3 py-1.5 rounded-full border border-blue-300 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition"
+            >
+              Guía completa: conseguir compradores (email + IG + WhatsApp)
+            </button>
+            <button
+              type="button"
+              onClick={applySellerQuickGoal}
+              disabled={isGenerating}
+              className="text-sm px-3 py-1.5 rounded-full border border-border hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition"
+            >
+              {SELLER_QUICK_GOAL.goal}
+            </button>
+          </div>
+        </div>
+
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <Button 
             onClick={() => generateWithAI()} 
-            disabled={isGenerating || (!aiGoal && !aiCustomPrompt)} 
+            disabled={isGenerating || (!aiGoal && !aiCustomPrompt)}
             size="lg"
             className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white px-8"
           >
