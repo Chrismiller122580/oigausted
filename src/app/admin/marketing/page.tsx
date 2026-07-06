@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useTransition, useRef, useMemo } from 'react';
+import { useState, useEffect, useTransition, useRef, useMemo, useSyncExternalStore } from 'react';
+import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -115,7 +116,41 @@ const SEGMENTS = [
   { value: 'inactive', label: 'Cuentas inactivas' },
 ];
 
+function MarketingPageSkeleton() {
+  return (
+    <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 pb-12 animate-pulse">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-2xl bg-muted" />
+        <div className="space-y-2">
+          <div className="h-8 w-64 rounded-lg bg-muted" />
+          <div className="h-4 w-96 max-w-full rounded bg-muted" />
+        </div>
+      </div>
+      <div className="h-72 rounded-2xl bg-muted/60" />
+      <div className="h-96 rounded-2xl bg-muted/40" />
+      <div className="h-64 rounded-2xl bg-muted/40" />
+    </div>
+  );
+}
+
+const subscribeNoop = () => () => {};
+
 export default function AdminMarketingPage() {
+  const isClient = useSyncExternalStore(subscribeNoop, () => true, () => false);
+
+  if (!isClient) {
+    return <MarketingPageSkeleton />;
+  }
+
+  return (
+    <>
+      <MapsPollutionNuke />
+      <AdminMarketingContent />
+    </>
+  );
+}
+
+function AdminMarketingContent() {
   // Compose state
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -134,13 +169,13 @@ export default function AdminMarketingPage() {
   const [audience, setAudience] = useState<AudienceUser[]>([]);
   const [audienceTotal, setAudienceTotal] = useState(0);
   const [audienceReachable, setAudienceReachable] = useState(0);
-  const [audienceLoading, setAudienceLoading] = useState(false);
+  const [audienceLoading, setAudienceLoading] = useState(true);
   const [audienceSearch, setAudienceSearch] = useState('');
 
   // History
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignsTotal, setCampaignsTotal] = useState(0);
-  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   // Dry run preview
   const [dryRunResult, setDryRunResult] = useState<Record<string, unknown> | null>(null);
@@ -156,11 +191,12 @@ export default function AdminMarketingPage() {
   const [refining, setRefining] = useState(false);
   const [apiWarning, setApiWarning] = useState<string | null>(null);
   const [, startCampaignTransition] = useTransition();
+  const [, startDataTransition] = useTransition();
   const generateRequestId = useRef(0);
 
   // Playbooks
   const [playbooks, setPlaybooks] = useState<PlaybookSummary[]>([]);
-  const [playbooksLoading, setPlaybooksLoading] = useState(false);
+  const [playbooksLoading, setPlaybooksLoading] = useState(true);
   const [selectedPlaybookId, setSelectedPlaybookId] = useState<string | null>(null);
   const [generatingPlaybookId, setGeneratingPlaybookId] = useState<string | null>(null);
   const [lifecycleDryRun, setLifecycleDryRun] = useState<Record<string, unknown> | null>(null);
@@ -328,8 +364,10 @@ export default function AdminMarketingPage() {
       const res = await fetch(`/api/admin/marketing/playbooks${qs ? `?${qs}` : ''}`);
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setPlaybooks(data.playbooks || []);
-        setBuyerFunnel(data.buyerFunnel || null);
+        startDataTransition(() => {
+          setPlaybooks(data.playbooks || []);
+          setBuyerFunnel(data.buyerFunnel || null);
+        });
       }
     } catch (e) {
       console.error(e);
@@ -509,12 +547,14 @@ export default function AdminMarketingPage() {
       const res = await fetch(`/api/admin/marketing/audience?${params.toString()}`);
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setAudience(data.sample || []);
-        setAudienceTotal(data.total || 0);
-        setAudienceReachable(data.reachable || 0);
-        if (data.tableMissing) {
-          setApiWarning('La tabla de audiencia aún no está sincronizada en producción. Los envíos seguirán funcionando.');
-        }
+        startDataTransition(() => {
+          setAudience(data.sample || []);
+          setAudienceTotal(data.total || 0);
+          setAudienceReachable(data.reachable || 0);
+          if (data.tableMissing) {
+            setApiWarning('La tabla de audiencia aún no está sincronizada en producción. Los envíos seguirán funcionando.');
+          }
+        });
       } else {
         setApiWarning(data.error || 'No se pudo cargar la audiencia.');
       }
@@ -531,11 +571,13 @@ export default function AdminMarketingPage() {
       const res = await fetch('/api/admin/marketing/campaigns?limit=30');
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setCampaigns(data.campaigns || []);
-        setCampaignsTotal(data.total || 0);
-        if (data.tableMissing) {
-          setApiWarning('El historial de campañas aún no está disponible hasta que termine la migración de base de datos.');
-        }
+        startDataTransition(() => {
+          setCampaigns(data.campaigns || []);
+          setCampaignsTotal(data.total || 0);
+          if (data.tableMissing) {
+            setApiWarning('El historial de campañas aún no está disponible hasta que termine la migración de base de datos.');
+          }
+        });
       } else {
         setApiWarning(data.error || 'No se pudo cargar el historial de campañas.');
       }
@@ -969,10 +1011,7 @@ export default function AdminMarketingPage() {
 
         {/* GENERATED CAMPAIGN RESULTS - VERY RICH UI */}
         {generatedCampaign && (
-          <div
-            key={`${generatedCampaign.campaignName}-${generatedCampaign.email.subject}`}
-            className="mt-8 pt-6 border-t border-border"
-          >
+          <div className="mt-8 pt-6 border-t border-border">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
               <div className="min-w-0">
                 <div className="uppercase text-[10px] tracking-[2px] text-orange-600 font-semibold">Campaña generada por IA</div>
@@ -1386,15 +1425,13 @@ export default function AdminMarketingPage() {
                   <optgroup label="Clásico">
                     {SEGMENTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </optgroup>
-                  {playbooks.length > 0 && (
-                    <optgroup label="Playbooks inteligentes">
-                      {playbooks.map(pb => (
-                        <option key={pb.segment} value={pb.segment}>
-                          {pb.label} ({pb.reachable})
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
+                  <optgroup label="Playbooks inteligentes">
+                    {playbooks.map(pb => (
+                      <option key={pb.id} value={pb.segment}>
+                        {pb.label} ({pb.reachable})
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
                 <div>
                   <label className="text-sm font-medium">Ciudad (opcional)</label>
