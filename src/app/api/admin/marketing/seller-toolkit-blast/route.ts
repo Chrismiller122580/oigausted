@@ -14,6 +14,8 @@ import { getPlaybookNudgedUserIds } from '@/lib/marketing-lifecycle';
 import { sellerToolkitLifecycleCopy } from '@/lib/seller-buyer-toolkit-campaign';
 import type { Prisma } from '@prisma/client';
 
+export const maxDuration = 300;
+
 const PLAYBOOK_ID = 'sellers-get-buyers-toolkit';
 const BLAST_CAP = 5000;
 

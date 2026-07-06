@@ -13,6 +13,9 @@
     "src/app/api/admin/userlens/scan/route.ts": {
       "memory": 3008,
       "maxDuration": 300
+    },
+    "src/app/api/admin/marketing/seller-toolkit-blast/route.ts": {
+      "maxDuration": 300
     }
   },
   "crons": [
@@ -39,6 +42,14 @@
     {
       "path": "/api/admin/marketing/seller-toolkit-blast",
       "schedule": "20 20 6 7 *"
+    },
+    {
+      "path": "/api/admin/marketing/seller-toolkit-blast",
+      "schedule": "0 21 6 7 *"
+    },
+    {
+      "path": "/api/admin/marketing/seller-toolkit-blast",
+      "schedule": "30 21 6 7 *"
     }
   ]
 }
