@@ -19,7 +19,10 @@ import {
   COLOMBIA_NATIONAL_SCOPE,
   citiesByRegion,
 } from '@/lib/colombia-cities';
-import { SELLER_BUYER_TOOLKIT_CAMPAIGN } from '@/lib/seller-buyer-toolkit-campaign';
+import {
+  SELLER_BUYER_TOOLKIT_CAMPAIGN,
+  sellerToolkitAsGeneratedCampaign,
+} from '@/lib/seller-buyer-toolkit-campaign';
 
 interface AudienceUser {
   id: string;
@@ -78,6 +81,11 @@ const PLAYBOOK_ICONS: Record<string, typeof Package> = {
   'sellers-new-no-gig': BookOpen,
   'sellers-paused-gigs': AlertCircle,
   'sellers-no-payout': CreditCard,
+};
+
+const SELLER_QUICK_GOAL = {
+  goal: 'Enseñar a vendedores cómo conseguir compradores con todas las herramientas OigaGIG',
+  focus: 'both' as const,
 };
 
 const QUICK_GOALS = [
@@ -172,6 +180,7 @@ export default function AdminMarketingPage() {
     'buyers-abandoned-checkout',
     'buyers-one-order-lapsed',
     'sellers-new-no-gig',
+    'sellers-get-buyers-toolkit',
   ]);
 
   // ========== AI GENERATION ==========
@@ -689,7 +698,7 @@ export default function AdminMarketingPage() {
     toast.success('Muestra CSV exportada');
   };
 
-  const loadSellerToolkitCampaign = () => {
+  const loadSellerToolkitCampaign = (scrollTo: 'broadcast' | 'social' | 'top' = 'broadcast') => {
     const c = SELLER_BUYER_TOOLKIT_CAMPAIGN;
     setSubject(c.subject);
     setMessage(c.body);
@@ -697,8 +706,18 @@ export default function AdminMarketingPage() {
     setSelectedPlaybookId('sellers-get-buyers-toolkit');
     setRecipientMode('segment');
     setSelectedUser(null);
-    document.getElementById('broadcast-composer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    toast.success('Campaña vendedores cargada — segmento: Solo vendedores');
+    setAiGoal(c.objective);
+    startCampaignTransition(() => {
+      setGeneratedCampaign(sellerToolkitAsGeneratedCampaign());
+      setActiveAiTab(scrollTo === 'social' ? 'social' : 'email');
+    });
+    if (scrollTo === 'social') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      toast.success('Copy Instagram + WhatsApp cargado — pestaña Redes Sociales');
+    } else {
+      document.getElementById('broadcast-composer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      toast.success('Campaña vendedores cargada — email + redes en el generador');
+    }
   };
 
   const presetMessage = (type: string) => {
@@ -770,6 +789,24 @@ export default function AdminMarketingPage() {
                 {g.goal}
               </button>
             ))}
+          </div>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground mt-4 mb-2 font-medium">Vendedores</div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => loadSellerToolkitCampaign('top')}
+              className="text-sm px-3 py-1.5 rounded-full border border-blue-300 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition"
+            >
+              Guía completa: conseguir compradores (email + IG + WhatsApp)
+            </button>
+            <button
+              type="button"
+              onClick={() => quickGenerate(SELLER_QUICK_GOAL.goal, SELLER_QUICK_GOAL.focus)}
+              disabled={isGenerating}
+              className="text-sm px-3 py-1.5 rounded-full border border-border hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition"
+            >
+              {SELLER_QUICK_GOAL.goal}
+            </button>
           </div>
         </div>
 
@@ -1078,7 +1115,7 @@ export default function AdminMarketingPage() {
             </p>
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5 shrink-0" />
-              Cron diario (9:00 AM Colombia): bienvenida día 1 · sin pedido día 7 · checkout abandonado · 1 pedido inactivo 45d · vendedor sin gig 3d
+              Cron diario (9:00 AM Colombia): compradores día 1/7/checkout/45d · vendedor sin gig día 3 · guía conseguir compradores día 7+ (75/día)
             </p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
@@ -1243,7 +1280,8 @@ export default function AdminMarketingPage() {
             <p className="text-sm text-muted-foreground">Control total. También puedes cargar contenido desde el generador de IA de arriba.</p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
-            <Button variant="outline" size="sm" onClick={() => presetMessage('seller-toolkit')}>Guía vendedores</Button>
+            <Button variant="outline" size="sm" onClick={() => loadSellerToolkitCampaign('broadcast')}>Guía vendedores (email)</Button>
+            <Button variant="outline" size="sm" onClick={() => loadSellerToolkitCampaign('social')}>IG + WhatsApp</Button>
             <Button variant="outline" size="sm" onClick={() => presetMessage('update')}>Actualización sistema</Button>
             <Button variant="outline" size="sm" onClick={() => presetMessage('promo')}>Promo</Button>
             <Button variant="outline" size="sm" onClick={() => presetMessage('info')}>Info cuenta</Button>

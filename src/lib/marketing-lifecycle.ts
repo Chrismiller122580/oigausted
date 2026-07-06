@@ -7,6 +7,7 @@ import {
   getPlaybookById,
   type MarketingPlaybook,
 } from '@/lib/marketing-playbooks';
+import { sellerToolkitLifecycleCopy } from '@/lib/seller-buyer-toolkit-campaign';
 
 const DEFAULT_MAX_PER_RULE = 100;
 
@@ -85,6 +86,14 @@ export const AUTOMATED_LIFECYCLE_RULES: LifecycleRule[] = [
     maxPerRule: 100,
     buildWhere: () => {
       const playbook = getPlaybookById('sellers-new-no-gig');
+      return playbook ? playbook.buildWhere() : { id: 'impossible' };
+    },
+  },
+  {
+    playbookId: 'sellers-get-buyers-toolkit',
+    maxPerRule: 75,
+    buildWhere: () => {
+      const playbook = getPlaybookById('sellers-get-buyers-toolkit');
       return playbook ? playbook.buildWhere() : { id: 'impossible' };
     },
   },
@@ -168,6 +177,7 @@ Publicar toma menos de 5 minutos:
 
 — El equipo de OigaGIG`,
   },
+  'sellers-get-buyers-toolkit': sellerToolkitLifecycleCopy(),
 };
 
 export function isLifecycleNudgesEnabled(): boolean {

@@ -233,9 +233,11 @@ Tono de gratitud, no exigente.`,
     category: 'seller',
     roleFilter: 'seller',
     segment: 'playbook:sellers-get-buyers-toolkit',
+    automatable: true,
     buildWhere: () => ({
       ...BASE_REACHABLE,
       role: 'seller',
+      createdAt: { lte: subDays(new Date(), 7) },
     }),
     aiGoal: 'Enseñar a vendedores cómo conseguir compradores usando todas las herramientas de OigaGIG',
     aiContext: `Audiencia: todos los vendedores registrados en OigaGIG.
