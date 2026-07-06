@@ -165,6 +165,8 @@ export default function AdminMarketingPage() {
   const [generatingPlaybookId, setGeneratingPlaybookId] = useState<string | null>(null);
   const [lifecycleDryRun, setLifecycleDryRun] = useState<Record<string, unknown> | null>(null);
   const [lifecycleLoading, setLifecycleLoading] = useState(false);
+  const [sellerBlastLoading, setSellerBlastLoading] = useState(false);
+  const [sellerBlastResult, setSellerBlastResult] = useState<Record<string, unknown> | null>(null);
   const [aiTargetCity, setAiTargetCity] = useState('');
   const [aiTargetScope, setAiTargetScope] = useState<'national' | 'city'>('national');
   const [aiBuyerFocus, setAiBuyerFocus] = useState<'acquisition' | 'retention' | 'both'>('both');
@@ -343,6 +345,29 @@ export default function AdminMarketingPage() {
     setSelectedUser(null);
     document.getElementById('broadcast-composer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     toast.success(`Playbook: ${playbook.label} (${playbook.reachable} alcanzables)`);
+  };
+
+  const runSellerToolkitBlast = async (dryRun = false) => {
+    if (!dryRun && !confirm('¿Enviar la guía de compradores a TODOS los vendedores que aún no la recibieron?')) {
+      return;
+    }
+    setSellerBlastLoading(true);
+    try {
+      const res = await fetch(`/api/admin/marketing/seller-toolkit-blast?dryRun=${dryRun}`, {
+        method: 'POST',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setSellerBlastResult(data);
+        toast.success(data.message || (dryRun ? 'Vista previa lista' : 'Campaña enviada'));
+      } else {
+        toast.error(data.error || 'No se pudo ejecutar el envío');
+      }
+    } catch {
+      toast.error('Error al conectar con el envío masivo');
+    } finally {
+      setSellerBlastLoading(false);
+    }
   };
 
   const runLifecycleDryRun = async () => {
@@ -1272,6 +1297,20 @@ export default function AdminMarketingPage() {
         )}
       </div>
 
+      {sellerBlastResult && (
+        <div className="rounded-xl border border-orange-300/50 bg-orange-50/30 dark:bg-orange-950/20 px-4 py-3 text-sm">
+          <div className="font-medium mb-1">Último envío masivo vendedores</div>
+          <div className="text-muted-foreground">
+            Elegibles: <strong>{String(sellerBlastResult.eligible ?? sellerBlastResult.recipientCount ?? '—')}</strong>
+            {' · '}
+            Enviados: <strong>{String(sellerBlastResult.sent ?? '—')}</strong>
+            {sellerBlastResult.alreadySentBefore != null && (
+              <> · Ya habían recibido: <strong>{String(sellerBlastResult.alreadySentBefore)}</strong></>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ========== MANUAL BROADCAST + AUDIENCE (existing power, now enhanced) ========== */}
       <div id="broadcast-composer" className="bg-card border border-border rounded-2xl p-4 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-4">
@@ -1282,6 +1321,24 @@ export default function AdminMarketingPage() {
           <div className="flex flex-wrap gap-2 shrink-0">
             <Button variant="outline" size="sm" onClick={() => loadSellerToolkitCampaign('broadcast')}>Guía vendedores (email)</Button>
             <Button variant="outline" size="sm" onClick={() => loadSellerToolkitCampaign('social')}>IG + WhatsApp</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={sellerBlastLoading}
+              onClick={() => runSellerToolkitBlast(true)}
+            >
+              {sellerBlastLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Vista previa envío masivo
+            </Button>
+            <Button
+              size="sm"
+              className="bg-orange-600 hover:bg-orange-700"
+              disabled={sellerBlastLoading}
+              onClick={() => runSellerToolkitBlast(false)}
+            >
+              {sellerBlastLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
+              Enviar a todos los vendedores hoy
+            </Button>
             <Button variant="outline" size="sm" onClick={() => presetMessage('update')}>Actualización sistema</Button>
             <Button variant="outline" size="sm" onClick={() => presetMessage('promo')}>Promo</Button>
             <Button variant="outline" size="sm" onClick={() => presetMessage('info')}>Info cuenta</Button>
