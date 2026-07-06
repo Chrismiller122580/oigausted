@@ -1,35 +1,34 @@
-const KNOWN_CITIES = [
-  'bucaramanga',
-  'floridablanca',
-  'girón',
-  'giron',
-  'piedecuesta',
-  'bogotá',
-  'bogota',
-  'medellín',
-  'medellin',
-  'cali',
-  'barranquilla',
-  'cartagena',
-];
+import { matchCityInText } from '@/lib/colombia-geo';
+import { MARKETING_PLAYBOOKS } from '@/lib/marketing-playbooks';
 
-const CITY_DISPLAY: Record<string, string> = {
-  bucaramanga: 'Bucaramanga',
-  floridablanca: 'Floridablanca',
-  girón: 'Girón',
-  giron: 'Girón',
-  piedecuesta: 'Piedecuesta',
-  bogotá: 'Bogotá',
-  bogota: 'Bogotá',
-  medellín: 'Medellín',
-  medellin: 'Medellín',
-  cali: 'Cali',
-  barranquilla: 'Barranquilla',
-  cartagena: 'Cartagena',
-};
+const PLAYBOOK_SEGMENT_MAP = new Map(
+  MARKETING_PLAYBOOKS.map((p) => [p.id.toLowerCase(), p.segment]),
+);
+
+const PLAYBOOK_LABEL_MAP = new Map(
+  MARKETING_PLAYBOOKS.map((p) => [p.label.toLowerCase(), p.segment]),
+);
 
 export function mapRecommendedSegment(text: string): { segment: string; city?: string } {
-  const lower = text.toLowerCase();
+  const lower = text.toLowerCase().trim();
+
+  if (lower.startsWith('playbook:')) {
+    return { segment: lower };
+  }
+
+  for (const [id, segment] of PLAYBOOK_SEGMENT_MAP) {
+    if (lower.includes(id) || lower.includes(segment)) {
+      const city = matchCityInText(text);
+      return { segment, city: city?.slug };
+    }
+  }
+
+  for (const [label, segment] of PLAYBOOK_LABEL_MAP) {
+    if (lower.includes(label)) {
+      const city = matchCityInText(text);
+      return { segment, city: city?.slug };
+    }
+  }
 
   let segment = 'all';
   if (/\b(inactiv|dormant|churn)\w*/.test(lower)) segment = 'inactive';
@@ -38,13 +37,6 @@ export function mapRecommendedSegment(text: string): { segment: string; city?: s
   else if (/\b(admin)\w*/.test(lower)) segment = 'admins';
   else if (/\b(activ|recient|engag)\w*/.test(lower)) segment = 'active';
 
-  let city: string | undefined;
-  for (const c of KNOWN_CITIES) {
-    if (lower.includes(c)) {
-      city = CITY_DISPLAY[c] ?? c.charAt(0).toUpperCase() + c.slice(1);
-      break;
-    }
-  }
-
-  return { segment, city };
+  const cityMatch = matchCityInText(text);
+  return { segment, city: cityMatch?.slug };
 }

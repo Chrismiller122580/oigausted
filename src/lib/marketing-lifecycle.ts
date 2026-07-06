@@ -36,44 +36,73 @@ export type LifecycleRunResult = {
 type LifecycleRule = {
   playbookId: string;
   buildWhere: () => Prisma.UserWhereInput;
+  maxPerRule?: number;
+  filterRecipients?: (
+    recipients: Awaited<ReturnType<typeof resolveMarketingRecipients>>,
+  ) => Awaited<ReturnType<typeof resolveMarketingRecipients>>;
 };
 
-/** Automated daily nudges — seller day 3+, buyer day 7+. */
+/** Automated daily buyer + seller nudges. */
 export const AUTOMATED_LIFECYCLE_RULES: LifecycleRule[] = [
   {
-    playbookId: 'sellers-new-no-gig',
+    playbookId: 'buyers-new-signup',
+    maxPerRule: 100,
     buildWhere: () => {
-      const playbook = getPlaybookById('sellers-new-no-gig');
+      const playbook = getPlaybookById('buyers-new-signup');
       return playbook ? playbook.buildWhere() : { id: 'impossible' };
     },
   },
   {
     playbookId: 'buyers-no-orders',
+    maxPerRule: 100,
     buildWhere: () => ({
       email: { not: null },
       isActive: true,
+      countryCode: 'co',
       role: 'buyer',
       ordersAsBuyer: { none: {} },
       createdAt: { lte: subDays(new Date(), 7) },
     }),
   },
+  {
+    playbookId: 'buyers-abandoned-checkout',
+    maxPerRule: 50,
+    buildWhere: () => {
+      const playbook = getPlaybookById('buyers-abandoned-checkout');
+      return playbook ? playbook.buildWhere() : { id: 'impossible' };
+    },
+  },
+  {
+    playbookId: 'buyers-one-order-lapsed',
+    maxPerRule: 75,
+    buildWhere: () => {
+      const playbook = getPlaybookById('buyers-one-order-lapsed');
+      return playbook ? playbook.buildWhere() : { id: 'impossible' };
+    },
+  },
+  {
+    playbookId: 'sellers-new-no-gig',
+    maxPerRule: 100,
+    buildWhere: () => {
+      const playbook = getPlaybookById('sellers-new-no-gig');
+      return playbook ? playbook.buildWhere() : { id: 'impossible' };
+    },
+  },
 ];
 
 const LIFECYCLE_EMAIL_COPY: Record<string, { subject: string; message: string }> = {
-  'sellers-new-no-gig': {
-    subject: '¿Listo para recibir clientes? Publica tu primer gig',
+  'buyers-new-signup': {
+    subject: 'Bienvenido a OigaGIG — encuentra servicios en {{city}}',
     message: `Hola {{name}},
 
-Llevas más de 3 días como vendedor en OigaGIG y notamos que aún no publicaste ningún servicio. Sin un gig, los compradores no pueden encontrarte ni contratarte.
+¡Bienvenido a OigaGIG! Notamos que te registraste recientemente y queremos ayudarte a encontrar el servicio que necesitas en {{city}}.
 
-Publicar toma menos de 5 minutos:
-1. Entra a Crear gig y elige tu categoría (plomería, belleza, electricidad…)
-2. Agrega un título claro, tu precio y una foto de tu trabajo
-3. Publica — aparecerás en búsquedas de {{city}}
+Así puedes empezar:
+1. Explora servicios por categoría en oigagig.com/gigs
+2. Filtra por tu ciudad y lee reseñas reales
+3. Contacta al vendedor y paga seguro con Wompi
 
-👉 Crear mi primer servicio: {{ctaUrl}}
-
-¿Tienes dudas? Escríbenos a support@oigagig.com.
+👉 Explorar servicios cerca: {{ctaUrl}}
 
 — El equipo de OigaGIG`,
   },
@@ -89,6 +118,53 @@ Así puedes hacer tu primer pedido:
 3. Pide y paga de forma segura con Wompi
 
 👉 Explorar servicios: {{ctaUrl}}
+
+— El equipo de OigaGIG`,
+  },
+  'buyers-abandoned-checkout': {
+    subject: 'Tu pedido en OigaGIG te está esperando',
+    message: `Hola {{name}},
+
+Notamos que iniciaste un pedido pero no completaste el pago. Tu solicitud puede seguir activa en Mis Pedidos.
+
+Retomar es fácil:
+1. Entra a Mis Pedidos en OigaGIG
+2. Revisa el detalle de tu pedido
+3. Completa el pago seguro con Wompi
+
+👉 Completar mi pedido: {{ctaUrl}}
+
+— El equipo de OigaGIG`,
+  },
+  'buyers-one-order-lapsed': {
+    subject: '¿Necesitas otro servicio en {{city}}?',
+    message: `Hola {{name}},
+
+Ya conoces OigaGIG — hace un tiempo completaste un pedido con nosotros. ¿Hay algo más en lo que podamos ayudarte en {{city}}?
+
+Ideas para tu próximo servicio:
+1. Limpieza o mantenimiento del hogar
+2. Belleza o cuidado personal a domicilio
+3. Reparaciones o mudanzas
+
+👉 Buscar otro servicio: {{ctaUrl}}
+
+— El equipo de OigaGIG`,
+  },
+  'sellers-new-no-gig': {
+    subject: '¿Listo para recibir clientes? Publica tu primer gig',
+    message: `Hola {{name}},
+
+Llevas más de 3 días como vendedor en OigaGIG y notamos que aún no publicaste ningún servicio. Sin un gig, los compradores no pueden encontrarte ni contratarte.
+
+Publicar toma menos de 5 minutos:
+1. Entra a Crear gig y elige tu categoría (plomería, belleza, electricidad…)
+2. Agrega un título claro, tu precio y una foto de tu trabajo
+3. Publica — aparecerás en búsquedas de {{city}}
+
+👉 Crear mi primer servicio: {{ctaUrl}}
+
+¿Tienes dudas? Escríbenos a support@oigagig.com.
 
 — El equipo de OigaGIG`,
   },
@@ -144,10 +220,14 @@ async function processRule(
     ? { AND: [baseWhere, { id: { notIn: excludeIds } }] }
     : baseWhere;
 
-  const recipients = await resolveMarketingRecipients({
+  let recipients = await resolveMarketingRecipients({
     where,
     take: opts.maxPerRule,
   });
+
+  if (rule.filterRecipients) {
+    recipients = rule.filterRecipients(recipients);
+  }
 
   const copy = LIFECYCLE_EMAIL_COPY[rule.playbookId];
   const result: LifecycleRuleResult = {
@@ -165,6 +245,11 @@ async function processRule(
       email: r.email,
       name: r.name,
     }));
+    return result;
+  }
+
+  if (!copy) {
+    result.skipped = recipients.length;
     return result;
   }
 
@@ -224,7 +309,8 @@ export async function runLifecycleNudges(opts?: {
   for (const rule of AUTOMATED_LIFECYCLE_RULES) {
     const playbook = getPlaybookById(rule.playbookId);
     if (!playbook) continue;
-    const ruleResult = await processRule(rule, playbook, { dryRun, maxPerRule });
+    const ruleMax = rule.maxPerRule ?? maxPerRule;
+    const ruleResult = await processRule(rule, playbook, { dryRun, maxPerRule: ruleMax });
     rules.push(ruleResult);
   }
 

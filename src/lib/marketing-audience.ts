@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
+import { buildCityWhere, colombiaUserFilter } from '@/lib/colombia-geo';
 import { buildPlaybookWhere, parsePlaybookId } from '@/lib/marketing-playbooks';
 
 export type MarketingRecipient = {
@@ -44,6 +45,18 @@ export function isNotificationPreferenceDrift(err: unknown): boolean {
   );
 }
 
+function applyCityFilter(where: Prisma.UserWhereInput, city?: string): void {
+  if (!city?.trim()) return;
+  const cityWhere = buildCityWhere(city);
+  if (cityWhere) {
+    where.AND = Array.isArray(where.AND)
+      ? [...where.AND, cityWhere]
+      : where.AND
+        ? [where.AND, cityWhere]
+        : [cityWhere];
+  }
+}
+
 export function buildAudienceWhere(
   segment: string,
   city?: string,
@@ -54,10 +67,11 @@ export function buildAudienceWhere(
   if (playbookId) {
     const playbookWhere = buildPlaybookWhere(playbookId);
     if (playbookWhere) {
-      const where: Prisma.UserWhereInput = { ...playbookWhere };
-      if (city) {
-        where.city = { contains: city, mode: 'insensitive' } as Prisma.StringNullableFilter;
-      }
+      const where: Prisma.UserWhereInput = {
+        ...playbookWhere,
+        ...colombiaUserFilter(),
+      };
+      applyCityFilter(where, city);
       if (search) {
         where.OR = [
           { name: { contains: search, mode: 'insensitive' } as Prisma.StringNullableFilter },
@@ -72,6 +86,7 @@ export function buildAudienceWhere(
   const where: Prisma.UserWhereInput = {
     email: { not: null },
     isActive: true,
+    ...colombiaUserFilter(),
   };
   if (seg === 'buyers') where.role = 'buyer';
   if (seg === 'sellers') where.role = 'seller';
@@ -81,9 +96,7 @@ export function buildAudienceWhere(
     where.lastLoginAt = { gte: subDays(new Date(), ACTIVE_LOGIN_DAYS) };
   }
 
-  if (city) {
-    where.city = { contains: city, mode: 'insensitive' } as Prisma.StringNullableFilter;
-  }
+  applyCityFilter(where, city);
 
   if (search) {
     where.OR = [
@@ -96,13 +109,24 @@ export function buildAudienceWhere(
   return where;
 }
 
+type PrefRow = { emailEnabled?: boolean; marketingEmails?: boolean };
+
 export function isUserEmailReachable(
   user: { email: string | null },
-  pref?: { emailEnabled: boolean } | null,
+  pref?: PrefRow | null,
 ): boolean {
   if (!user.email) return false;
   if (!pref) return true;
-  return pref.emailEnabled !== false;
+  if (pref.emailEnabled === false) return false;
+  if (pref.marketingEmails === false) return false;
+  return true;
+}
+
+function isMarketingReachable(pref?: PrefRow | null): boolean {
+  if (!pref) return true;
+  if (pref.emailEnabled === false) return false;
+  if (pref.marketingEmails === false) return false;
+  return true;
 }
 
 /** Resolve marketing recipients with preference filters applied. */
@@ -121,6 +145,7 @@ export async function resolveMarketingRecipients(opts: {
         id: { in: userIds },
         email: { not: null },
         isActive: true,
+        ...colombiaUserFilter(),
       },
       select: { id: true, email: true, name: true, businessName: true, city: true },
     });
@@ -143,15 +168,13 @@ export async function resolveMarketingRecipients(opts: {
       where: { userId: { in: ids } },
       select: { userId: true, emailEnabled: true },
     });
-    const prefMap = new Map<string, { userId: string; emailEnabled: boolean }>(
+    const prefMap = new Map<string, PrefRow>(
       prefs.map((p: { userId: string; emailEnabled: boolean }) => [p.userId, p]),
     );
 
     return baseUsers.filter((u) => {
       if (!u.email) return false;
-      const p = prefMap.get(u.id);
-      if (!p) return true;
-      return p.emailEnabled !== false;
+      return isMarketingReachable(prefMap.get(u.id));
     });
   } catch (err) {
     if (isNotificationPreferenceDrift(err)) {
@@ -180,7 +203,7 @@ export function formatBroadcastSegment(opts: {
   return city ? `${segment}+city:${city}` : segment;
 }
 
-/** Users matching filters minus those who explicitly disabled email notifications. */
+/** Users matching filters minus those who opted out of marketing emails. */
 export async function countReachableAudience(where: Prisma.UserWhereInput): Promise<number> {
   const total = await prisma.user.count({ where });
 
@@ -193,7 +216,20 @@ export async function countReachableAudience(where: Prisma.UserWhereInput): Prom
         },
       },
     });
-    return Math.max(0, total - emailDisabled);
+    let marketingDisabled = 0;
+    try {
+      marketingDisabled = await prisma.user.count({
+        where: {
+          ...where,
+          notificationPreferences: {
+            is: { marketingEmails: false },
+          },
+        },
+      });
+    } catch {
+      // marketingEmails column may not exist in all environments
+    }
+    return Math.max(0, total - Math.max(emailDisabled, marketingDisabled));
   } catch (err) {
     if (isNotificationPreferenceDrift(err)) {
       console.warn('NotificationPreference unavailable; defaulting reachable count to total.');
@@ -201,4 +237,47 @@ export async function countReachableAudience(where: Prisma.UserWhereInput): Prom
     }
     throw err;
   }
+}
+
+/** Buyer funnel stats for marketing dashboard. */
+export async function getBuyerFunnelStats(city?: string): Promise<{
+  totalBuyers: number;
+  noOrders: number;
+  onePlusOrders: number;
+  repeatBuyers: number;
+}> {
+  const base: Prisma.UserWhereInput = {
+    role: 'buyer',
+    isActive: true,
+    ...colombiaUserFilter(),
+  };
+  applyCityFilter(base, city);
+
+  const [totalBuyers, noOrders, onePlusOrders, repeatBuyers] = await Promise.all([
+    prisma.user.count({ where: base }),
+    prisma.user.count({
+      where: { ...base, ordersAsBuyer: { none: {} } },
+    }),
+    prisma.user.count({
+      where: {
+        ...base,
+        ordersAsBuyer: { some: { status: 'Completed' } },
+      },
+    }),
+    prisma.user
+      .findMany({
+        where: {
+          ...base,
+          ordersAsBuyer: { some: { status: 'Completed' } },
+        },
+        select: {
+          _count: { select: { ordersAsBuyer: { where: { status: 'Completed' } } } },
+        },
+      })
+      .then((buyers: Array<{ _count: { ordersAsBuyer: number } }>) =>
+        buyers.filter((b) => b._count.ordersAsBuyer >= 2).length,
+      ),
+  ]);
+
+  return { totalBuyers, noOrders, onePlusOrders, repeatBuyers };
 }

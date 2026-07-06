@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminPanelSession } from '@/lib/admin-auth';
-import { authOptions } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
+import { COLOMBIA_NATIONAL_SCOPE } from '@/lib/colombia-geo';
 import { normalizeGeneratedCampaign } from '@/lib/marketing-campaign-types';
 import { getPlaybookById } from '@/lib/marketing-playbooks';
 
 interface GenerateRequest {
-  goal: string;                    // e.g. "Adquirir más compradores en Bucaramanga", "Promocionar nueva categoría plomería"
-  prompt?: string;                 // free-form additional instructions
-  channels: string[];              // ["email", "instagram", "facebook", "x", "whatsapp", "tiktok"]
-  segmentHint?: string;            // optional current segment
-  playbookId?: string;             // behavioral playbook for educational copy
-  tone?: string;                   // "profesional", "cercano", "urgente", "amigable", "confiable"
+  goal: string;
+  prompt?: string;
+  channels: string[];
+  segmentHint?: string;
+  playbookId?: string;
+  tone?: string;
   language?: 'es' | 'en';
-  variations?: number;             // how many ad variants
+  variations?: number;
+  targetCity?: string;
+  targetScope?: 'national' | 'city';
+  buyerFocus?: 'acquisition' | 'retention' | 'both';
 }
 
 const GROK_MODEL = "grok-3-mini"; // fast + smart enough for creative marketing
@@ -30,6 +33,9 @@ export async function POST(req: NextRequest) {
   let tone = "cercano y confiable";
   let isSpanish = true;
   let variations = 4;
+  let targetCity = '';
+  let targetScope: 'national' | 'city' = 'national';
+  let buyerFocus: 'acquisition' | 'retention' | 'both' = 'both';
 
   try {
     const body: GenerateRequest = await req.json();
@@ -42,14 +48,39 @@ export async function POST(req: NextRequest) {
       tone: reqTone = "cercano y confiable",
       language = "es",
       variations: reqVariations = 4,
+      targetCity: reqTargetCity = '',
+      targetScope: reqTargetScope = 'national',
+      buyerFocus: reqBuyerFocus = 'both',
     } = body;
 
     channels = reqChannels;
     tone = reqTone;
     variations = reqVariations;
     isSpanish = language === "es";
+    targetCity = reqTargetCity;
+    targetScope = reqTargetScope;
+    buyerFocus = reqBuyerFocus;
     playbook = playbookId ? getPlaybookById(playbookId) : undefined;
     effectiveGoal = playbook?.aiGoal || goal;
+
+    const geoLabel = targetScope === 'city' && targetCity
+      ? targetCity
+      : COLOMBIA_NATIONAL_SCOPE;
+
+    const buyerFocusBlock =
+      buyerFocus === 'acquisition'
+        ? `ENFOQUE COMPRADORES — ADQUISICIÓN:
+- Objetivo: convertir compradores registrados que AÚN NO han pedido.
+- recommendedSegment debe mencionar "compradores sin pedidos" o playbook:buyers-no-orders.
+- Mensaje educativo: cómo buscar, comparar reseñas, pagar con Wompi.
+- CTA principal: explorar /gigs`
+        : buyerFocus === 'retention'
+          ? `ENFOQUE COMPRADORES — RETENCIÓN:
+- Objetivo: compradores que YA compraron — impulsar segunda compra o re-contratación.
+- recommendedSegment debe mencionar compradores activos o playbook:buyers-one-order-lapsed.
+- Mensaje: servicios recurrentes, confianza, reseñas.
+- CTA: buscar nuevo servicio en su ciudad`
+          : '';
     const playbookBlock = playbook
       ? `
 MODO PLAYBOOK EDUCATIVO (prioridad máxima):
@@ -76,7 +107,10 @@ MODO PLAYBOOK EDUCATIVO (prioridad máxima):
 
     const systemPrompt = `Eres el director creativo de marketing más inteligente y efectivo de Colombia para OigaGIG (oigagig.com).
 
-OigaGIG es la plataforma colombiana #1 de gigs y servicios locales: conecta personas que necesitan servicios (compradores) con freelancers y negocios locales confiables (vendedores), con foco inicial en Bucaramanga y área metropolitana.
+OigaGIG es la plataforma colombiana de gigs y servicios locales a nivel nacional: conecta compradores con freelancers y negocios locales confiables en todo Colombia (Bogotá, Medellín, Cali, Bucaramanga, Barranquilla, Cartagena y decenas de ciudades más).
+
+Alcance geográfico de esta campaña: ${geoLabel}.
+${targetScope === 'city' && targetCity ? `Personaliza el copy para ${targetCity} (menciona la ciudad, servicios locales, confianza regional).` : 'Escribe para alcance nacional en Colombia — no limites el mensaje a una sola ciudad.'}
 
 Tus fortalezas:
 - Escribes copy publicitario de alto rendimiento en español natural colombiano (profesional pero cercano, usa "vos", "parce", evita anglicismos innecesarios).
@@ -125,6 +159,9 @@ Contexto del pedido actual:
 - Segmento sugerido por el admin: ${playbook?.segment || segmentHint || 'ninguno'}
 - Tono deseado: ${tone}
 - Idioma: ${isSpanish ? 'Español colombiano natural' : 'English'}
+- Alcance: ${geoLabel}
+- Enfoque compradores: ${buyerFocus}
+${buyerFocusBlock}
 ${playbookBlock}
 
 Genera contenido de clase mundial, específico para servicios locales en Colombia. Sé creativo pero medible.`;
@@ -166,7 +203,7 @@ Genera contenido de clase mundial, específico para servicios locales en Colombi
     } catch (e) {
       devLog("Failed to parse Grok JSON, raw content:", content);
       // Fallback: create a minimal useful structure
-      parsed = createFallbackCampaign(effectiveGoal, channels, tone, isSpanish, playbook);
+      parsed = createFallbackCampaign(effectiveGoal, channels, tone, isSpanish, playbook, targetCity || undefined, targetScope);
     }
 
     // Ensure minimum structure
@@ -192,6 +229,8 @@ Genera contenido de clase mundial, específico para servicios locales en Colombi
       "cercano y confiable",
       true,
       playbook,
+      targetCity || undefined,
+      targetScope,
     );
     return NextResponse.json({ 
       success: true, 
@@ -208,7 +247,10 @@ function createFallbackCampaign(
   tone: string,
   isSpanish: boolean,
   playbook?: ReturnType<typeof getPlaybookById>,
+  targetCity?: string,
+  targetScope: 'national' | 'city' = 'national',
 ) {
+  const geo = targetScope === 'city' && targetCity ? targetCity : 'Colombia';
   const subject = playbook
     ? (isSpanish ? `${playbook.label} — te ayudamos con el siguiente paso` : `${playbook.label} — next steps`)
     : isSpanish
@@ -220,8 +262,8 @@ function createFallbackCampaign(
         ? `Hola {{name}},\n\n${playbook.description}.\n\nSabemos que a veces no está claro cuál es el siguiente paso. Aquí te guiamos:\n\n1. Revisa tu cuenta en OigaGIG\n2. Sigue las instrucciones del panel\n3. Completa la acción pendiente\n\n👉 ${playbook.defaultCta}: {{ctaUrl}}\n\nSi necesitas ayuda, escríbenos a support@oigagig.com.\n\n— El equipo de OigaGIG`
         : `Hello {{name}},\n\n${playbook.description}.\n\n👉 ${playbook.defaultCta}: {{ctaUrl}}\n\n— OigaGIG`)
     : isSpanish
-      ? `Hola,\n\nEn OigaGIG conectamos a personas con los mejores profesionales locales de Bucaramanga y el área metropolitana.\n\n¿Necesitas un plomero, electricista, estilista o servicio de limpieza? Encuentra opciones confiables con reseñas reales en segundos.\n\nExplora ahora: https://oigagig.com/gigs\n\n— El equipo de OigaGIG`
-      : `Hello,\n\nOigaGIG connects you with trusted local professionals in Bucaramanga.\n\nFind plumbers, electricians, cleaners and more with real reviews.\n\nBrowse now: https://oigagig.com/gigs`;
+      ? `Hola,\n\nEn OigaGIG conectamos a personas con los mejores profesionales locales en ${geo}.\n\n¿Necesitas un plomero, electricista, estilista o servicio de limpieza? Encuentra opciones confiables con reseñas reales en segundos.\n\nExplora ahora: https://oigagig.com/gigs\n\n— El equipo de OigaGIG`
+      : `Hello,\n\nOigaGIG connects you with trusted local professionals in ${geo}.\n\nFind plumbers, electricians, cleaners and more with real reviews.\n\nBrowse now: https://oigagig.com/gigs`;
 
   return {
     campaignName: "Campaña OigaGIG - " + goal.slice(0, 40),
@@ -230,26 +272,26 @@ function createFallbackCampaign(
     segmentReason: playbook?.description || "Mayor probabilidad de conversión y engagement.",
     email: {
       subject,
-      previewText: playbook?.description || "Servicios locales de confianza en Bucaramanga y más.",
+      previewText: playbook?.description || `Servicios locales de confianza en ${geo}.`,
       body,
       cta: playbook?.defaultCta || "Explorar servicios",
     },
     social: {
-      instagram: "🔧 ¿Buscas un servicio de confianza en Bucaramanga? En OigaGIG encuentras profesionales verificados con reseñas reales. ¡Publica tu necesidad o ofrece tus servicios hoy! #OigaGIG #Bucaramanga #ServiciosLocales",
-      facebook: "OigaGIG: la forma más fácil de encontrar servicios locales confiables en Bucaramanga. Plomería, electricidad, belleza, mudanzas y mucho más. Con reseñas reales y contacto directo. ¡Únete gratis!",
-      x: "En Bucaramanga y necesitas un servicio confiable? OigaGIG te conecta con los mejores locales en minutos. Prueba gratis → oigagig.com",
-      whatsapp: "Hola! En OigaGIG encuentras servicios locales de confianza en Bucaramanga. ¿Qué necesitas hoy? Visita oigagig.com",
+      instagram: `🔧 ¿Buscas un servicio de confianza en ${geo}? En OigaGIG encuentras profesionales verificados con reseñas reales. #OigaGIG #ServiciosLocales #Colombia`,
+      facebook: `OigaGIG: la forma más fácil de encontrar servicios locales confiables en ${geo}. Plomería, electricidad, belleza, mudanzas y más. ¡Únete gratis!`,
+      x: `¿Necesitas un servicio confiable en ${geo}? OigaGIG te conecta con los mejores locales en minutos. → oigagig.com`,
+      whatsapp: `Hola! En OigaGIG encuentras servicios locales de confianza en ${geo}. ¿Qué necesitas hoy? Visita oigagig.com`,
       general: "OigaGIG — Servicios locales de confianza en Colombia. Conecta con profesionales verificados."
     },
     adCopies: [
-      { headline: "Servicios locales que sí cumplen", body: "Profesionales con reseñas reales en Bucaramanga. Rápido y confiable.", cta: "Buscar ahora" },
-      { headline: "Tu próximo plomero de confianza", body: "Elige entre los mejores evaluados de la zona.", cta: "Ver opciones" },
+      { headline: "Servicios locales que sí cumplen", body: `Profesionales con reseñas reales en ${geo}. Rápido y confiable.`, cta: "Buscar ahora" },
+      { headline: "Tu próximo servicio de confianza", body: "Elige entre los mejores evaluados de tu zona.", cta: "Ver opciones" },
     ],
     visualPrompts: [
-      "Photorealistic photo of a friendly Colombian handyman smiling in a Bucaramanga neighborhood home, natural daylight, warm colors, modern Colombian home interior, trustworthy vibe",
-      "Vibrant Colombian market scene with diverse people using a mobile app, modern lifestyle, Bucaramanga architecture in background, friendly and professional atmosphere"
+      `Photorealistic photo of a friendly Colombian service professional in ${geo}, natural daylight, warm colors, trustworthy vibe`,
+      "Vibrant Colombian city scene with diverse people using a mobile app, modern lifestyle, friendly and professional atmosphere"
     ],
-    hashtags: ["#OigaGIG", "#ServiciosLocales", "#Bucaramanga", "#EmprendedoresColombia", "#Confianza"],
+    hashtags: ["#OigaGIG", "#ServiciosLocales", "#Colombia", "#EmprendedoresColombia", "#Confianza"],
     bestTimes: "Martes a jueves entre 9am-11am y 6pm-8pm (hora Colombia). Alto engagement en redes y mejor apertura de email.",
     strategyNotes: "• Enfócate en el dolor del usuario (necesidad urgente de un servicio).\n• Usa testimonios y números de gigs activos.\n• Mide clics al /gigs y registros nuevos.",
     complianceTips: "Incluye opción clara de baja. No uses lenguaje engañoso. Sé transparente con los beneficios."

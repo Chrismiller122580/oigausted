@@ -14,6 +14,11 @@ import {
 import type { GeneratedCampaign } from '@/lib/marketing-campaign-types';
 import { normalizeGeneratedCampaign } from '@/lib/marketing-campaign-types';
 import { mapRecommendedSegment } from '@/lib/marketing-segment-map';
+import {
+  COLOMBIA_CITIES,
+  COLOMBIA_NATIONAL_SCOPE,
+  citiesByRegion,
+} from '@/lib/colombia-geo';
 
 interface AudienceUser {
   id: string;
@@ -42,34 +47,47 @@ interface PlaybookSummary {
   id: string;
   label: string;
   description: string;
+  category?: 'acquisition' | 'retention' | 'seller';
   roleFilter?: 'seller' | 'buyer';
   segment: string;
   defaultCta: string;
   defaultCtaUrl: string;
+  automatable?: boolean;
   total: number;
   reachable: number;
 }
 
+interface BuyerFunnel {
+  totalBuyers: number;
+  noOrders: number;
+  onePlusOrders: number;
+  repeatBuyers: number;
+}
+
 const PLAYBOOK_ICONS: Record<string, typeof Package> = {
+  'buyers-new-signup': Users,
+  'buyers-no-orders': ShoppingCart,
+  'buyers-abandoned-checkout': CreditCard,
+  'buyers-one-order-lapsed': Clock,
+  'buyers-repeat-active': TrendingUp,
+  'buyers-no-active-orders': Users,
+  'buyers-pending-review': Star,
   'sellers-no-gigs': Package,
   'sellers-new-no-gig': BookOpen,
   'sellers-paused-gigs': AlertCircle,
-  'buyers-no-orders': ShoppingCart,
-  'buyers-no-active-orders': Users,
-  'buyers-abandoned-checkout': CreditCard,
   'sellers-no-payout': CreditCard,
-  'buyers-pending-review': Star,
 };
 
 const QUICK_GOALS = [
-  "Adquirir más compradores activos en Bucaramanga",
-  "Promocionar vendedores nuevos / reactivar sellers",
-  "Lanzar nueva categoría (ej: plomería, belleza, mudanzas)",
-  "Re-enganchar usuarios inactivos últimos 60 días",
-  "Campaña de referidos y crecimiento orgánico",
-  "Anunciar mejoras importantes de la plataforma",
-  "Promoción estacional o de temporada (vacaciones, fin de año)",
+  { goal: 'Adquirir compradores nuevos registrados sin primer pedido', focus: 'acquisition' as const },
+  { goal: 'Convertir compradores registrados a su primer pedido', focus: 'acquisition' as const },
+  { goal: 'Reactivar compradores con 1 pedido que no vuelven a comprar', focus: 'retention' as const },
+  { goal: 'Impulsar segunda compra en compradores activos', focus: 'retention' as const },
+  { goal: 'Campaña nacional: confianza y reseñas en todo Colombia', focus: 'both' as const },
+  { goal: 'Recuperar checkouts abandonados en los últimos 7 días', focus: 'acquisition' as const },
 ];
+
+const CITY_REGIONS = citiesByRegion();
 
 const CHANNEL_OPTIONS = [
   { key: 'email', label: 'Email + In-app', icon: Send },
@@ -139,8 +157,20 @@ export default function AdminMarketingPage() {
   const [generatingPlaybookId, setGeneratingPlaybookId] = useState<string | null>(null);
   const [lifecycleDryRun, setLifecycleDryRun] = useState<Record<string, unknown> | null>(null);
   const [lifecycleLoading, setLifecycleLoading] = useState(false);
+  const [aiTargetCity, setAiTargetCity] = useState('');
+  const [aiTargetScope, setAiTargetScope] = useState<'national' | 'city'>('national');
+  const [aiBuyerFocus, setAiBuyerFocus] = useState<'acquisition' | 'retention' | 'both'>('both');
+  const [playbookCityFilter, setPlaybookCityFilter] = useState('');
+  const [buyerFunnel, setBuyerFunnel] = useState<BuyerFunnel | null>(null);
+  const [estimatedAudience, setEstimatedAudience] = useState<number | null>(null);
 
-  const AUTOMATED_PLAYBOOK_IDS = new Set(['sellers-new-no-gig', 'buyers-no-orders']);
+  const AUTOMATED_PLAYBOOK_IDS = new Set([
+    'buyers-new-signup',
+    'buyers-no-orders',
+    'buyers-abandoned-checkout',
+    'buyers-one-order-lapsed',
+    'sellers-new-no-gig',
+  ]);
 
   // ========== AI GENERATION ==========
   const generateWithAI = async (extraPrompt?: string) => {
@@ -155,6 +185,9 @@ export default function AdminMarketingPage() {
         tone: aiTone,
         language: 'es',
         variations: 4,
+        targetCity: aiTargetScope === 'city' ? aiTargetCity : undefined,
+        targetScope: aiTargetScope,
+        buyerFocus: aiBuyerFocus,
       };
 
       const res = await fetch('/api/admin/marketing/ai-generate', {
@@ -176,6 +209,7 @@ export default function AdminMarketingPage() {
           setGeneratedCampaign(normalized);
           setActiveAiTab('email');
         });
+        void fetchEstimatedAudience(normalized.recommendedSegment);
         window.setTimeout(() => {
           toast.success(data.fallback ? 'Campaña de respaldo generada' : 'Campaña generada con IA');
         }, 0);
@@ -189,10 +223,31 @@ export default function AdminMarketingPage() {
     }
   };
 
-  const quickGenerate = (goal: string) => {
+  const quickGenerate = (goal: string, focus: 'acquisition' | 'retention' | 'both' = 'both') => {
     setAiGoal(goal);
     setAiCustomPrompt('');
+    setAiBuyerFocus(focus);
     void generateWithAI();
+  };
+
+  const fetchEstimatedAudience = async (recommendedSegment?: string) => {
+    if (!recommendedSegment) {
+      setEstimatedAudience(null);
+      return;
+    }
+    try {
+      const mapped = mapRecommendedSegment(recommendedSegment);
+      const params = new URLSearchParams();
+      params.set('segment', mapped.segment);
+      const city = mapped.city || (aiTargetScope === 'city' ? aiTargetCity : '');
+      if (city) params.set('city', city);
+      params.set('limit', '1');
+      const res = await fetch(`/api/admin/marketing/audience?${params.toString()}`);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) setEstimatedAudience(data.reachable ?? null);
+    } catch {
+      setEstimatedAudience(null);
+    }
   };
 
   const applyAiSegment = (recommendedSegment?: string, silent = false) => {
@@ -207,9 +262,10 @@ export default function AdminMarketingPage() {
     const mapped = mapRecommendedSegment(text);
     setSegment(mapped.segment);
     setSelectedPlaybookId(null);
-    if (mapped.city) setCityFilter(mapped.city);
+    const cityToApply = mapped.city || (aiTargetScope === 'city' ? aiTargetCity : '');
+    if (cityToApply) setCityFilter(cityToApply);
     if (!silent) {
-      toast.success(`Segmento aplicado: ${mapped.segment}${mapped.city ? ` · ${mapped.city}` : ''}`);
+      toast.success(`Segmento aplicado: ${mapped.segment}${cityToApply ? ` · ${cityToApply}` : ''}`);
     }
   };
 
@@ -253,10 +309,14 @@ export default function AdminMarketingPage() {
   const fetchPlaybooks = async () => {
     setPlaybooksLoading(true);
     try {
-      const res = await fetch('/api/admin/marketing/playbooks');
+      const params = new URLSearchParams();
+      if (playbookCityFilter) params.set('city', playbookCityFilter);
+      const qs = params.toString();
+      const res = await fetch(`/api/admin/marketing/playbooks${qs ? `?${qs}` : ''}`);
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setPlaybooks(data.playbooks || []);
+        setBuyerFunnel(data.buyerFunnel || null);
       }
     } catch (e) {
       console.error(e);
@@ -486,8 +546,11 @@ export default function AdminMarketingPage() {
 
   useEffect(() => {
     fetchHistory();
-    fetchPlaybooks();
   }, []);
+
+  useEffect(() => {
+    fetchPlaybooks();
+  }, [playbookCityFilter]);
 
   const runDryRun = async () => {
     if (!subject.trim() || !message.trim()) {
@@ -675,20 +738,69 @@ export default function AdminMarketingPage() {
           </div>
         </div>
 
-        {/* Quick Goals */}
+        {/* Quick Goals — buyer-focused */}
         <div className="mb-5">
-          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 font-medium">Objetivos rápidos</div>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 font-medium">Objetivos rápidos — compradores</div>
           <div className="flex flex-wrap gap-2">
             {QUICK_GOALS.map((g, i) => (
               <button
                 key={i}
-                onClick={() => quickGenerate(g)}
+                onClick={() => quickGenerate(g.goal, g.focus)}
                 disabled={isGenerating}
                 className="text-sm px-3 py-1.5 rounded-full border border-border hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition active:scale-[0.985]"
               >
-                {g}
+                {g.goal}
               </button>
             ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
+          <div className="lg:col-span-4">
+            <label className="text-sm font-medium">Alcance geográfico</label>
+            <select
+              value={aiTargetScope}
+              onChange={(e) => {
+                const scope = e.target.value as 'national' | 'city';
+                setAiTargetScope(scope);
+                if (scope === 'national') setAiTargetCity('');
+              }}
+              className="w-full border border-border bg-background rounded-lg px-3 py-2 text-sm mt-1"
+            >
+              <option value="national">{COLOMBIA_NATIONAL_SCOPE}</option>
+              <option value="city">Ciudad específica</option>
+            </select>
+          </div>
+          {aiTargetScope === 'city' && (
+            <div className="lg:col-span-4">
+              <label className="text-sm font-medium">Ciudad</label>
+              <select
+                value={aiTargetCity}
+                onChange={(e) => setAiTargetCity(e.target.value)}
+                className="w-full border border-border bg-background rounded-lg px-3 py-2 text-sm mt-1"
+              >
+                <option value="">Seleccionar ciudad...</option>
+                {Object.entries(CITY_REGIONS).map(([region, cities]) => (
+                  <optgroup key={region} label={region}>
+                    {cities.map((c) => (
+                      <option key={c.id} value={c.slug}>{c.label}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="lg:col-span-4">
+            <label className="text-sm font-medium">Enfoque compradores</label>
+            <select
+              value={aiBuyerFocus}
+              onChange={(e) => setAiBuyerFocus(e.target.value as 'acquisition' | 'retention' | 'both')}
+              className="w-full border border-border bg-background rounded-lg px-3 py-2 text-sm mt-1"
+            >
+              <option value="both">Adquisición + retención</option>
+              <option value="acquisition">Nuevos compradores (sin pedido)</option>
+              <option value="retention">Compradores activos (re-compra)</option>
+            </select>
           </div>
         </div>
 
@@ -787,9 +899,19 @@ export default function AdminMarketingPage() {
                 <h3 className="text-xl sm:text-2xl font-semibold break-words">{generatedCampaign.campaignName}</h3>
                 <p className="text-sm text-muted-foreground">{generatedCampaign.objective}</p>
               </div>
-              <div className="text-left sm:text-right text-xs shrink-0">
-                <div className="font-medium">Segmento recomendado</div>
-                <div className="text-orange-600 font-semibold">{generatedCampaign.recommendedSegment}</div>
+              <div className="text-left sm:text-right text-xs shrink-0 space-y-1">
+                <div>
+                  <div className="font-medium">Segmento recomendado</div>
+                  <div className="text-orange-600 font-semibold">{generatedCampaign.recommendedSegment}</div>
+                </div>
+                {estimatedAudience != null && (
+                  <div className="text-muted-foreground">
+                    ~<strong className="text-foreground">{estimatedAudience}</strong> alcanzables
+                  </div>
+                )}
+                <Button size="sm" variant="outline" className="mt-1" onClick={() => applyAiSegment()}>
+                  Aplicar segmento + ciudad
+                </Button>
               </div>
             </div>
 
@@ -934,11 +1056,11 @@ export default function AdminMarketingPage() {
               <span className="text-xs px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 font-normal">Nuevo</span>
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Audiencias por problema real — vendedor sin gigs, comprador sin pedidos, checkout abandonado, y más. Un clic genera copy educativo.
+              Audiencias por comportamiento real — adquisición de compradores nuevos y retención de quienes ya compraron. Un clic genera copy educativo.
             </p>
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5 shrink-0" />
-              Cron diario (9:00 AM Colombia): vendedor sin gig a los 3 días · comprador sin pedido a los 7 días
+              Cron diario (9:00 AM Colombia): bienvenida día 1 · sin pedido día 7 · checkout abandonado · 1 pedido inactivo 45d · vendedor sin gig 3d
             </p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
@@ -950,6 +1072,41 @@ export default function AdminMarketingPage() {
               <RefreshCw className={`h-4 w-4 mr-2 ${playbooksLoading ? 'animate-spin' : ''}`} />
               Actualizar conteos
             </Button>
+          </div>
+        </div>
+
+        {buyerFunnel && (
+          <div className="mb-4 rounded-xl border border-border bg-muted/20 px-4 py-3">
+            <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 font-medium">
+              Embudo compradores {playbookCityFilter ? `· ${playbookCityFilter}` : '· Colombia'}
+            </div>
+            <div className="flex flex-wrap gap-4 text-sm">
+              <span><strong>{buyerFunnel.totalBuyers}</strong> registrados</span>
+              <span className="text-muted-foreground">→</span>
+              <span><strong className="text-orange-600">{buyerFunnel.noOrders}</strong> sin pedido</span>
+              <span className="text-muted-foreground">→</span>
+              <span><strong>{buyerFunnel.onePlusOrders}</strong> con 1+ pedido</span>
+              <span className="text-muted-foreground">→</span>
+              <span><strong className="text-green-600">{buyerFunnel.repeatBuyers}</strong> repetidores</span>
+            </div>
+          </div>
+        )}
+
+        <div className="mb-4 flex flex-wrap items-end gap-3">
+          <div className="min-w-[200px] flex-1 max-w-xs">
+            <label className="text-xs font-medium text-muted-foreground">Filtrar playbooks por ciudad</label>
+            <Input
+              value={playbookCityFilter}
+              onChange={(e) => setPlaybookCityFilter(e.target.value)}
+              placeholder="Todo Colombia o nombre de ciudad..."
+              list="marketing-colombia-cities"
+              className="mt-1"
+            />
+            <datalist id="marketing-colombia-cities">
+              {COLOMBIA_CITIES.map((c) => (
+                <option key={c.id} value={c.slug} />
+              ))}
+            </datalist>
           </div>
         </div>
 
@@ -975,62 +1132,75 @@ export default function AdminMarketingPage() {
             Cargando playbooks...
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-            {playbooks.map((pb) => {
-              const Icon = PLAYBOOK_ICONS[pb.id] || Lightbulb;
-              const isSelected = selectedPlaybookId === pb.id;
-              const isGenerating = generatingPlaybookId === pb.id;
+          <div className="space-y-6">
+            {([
+              { title: 'Compradores — Adquisición', filter: (pb: PlaybookSummary) => pb.category === 'acquisition' },
+              { title: 'Compradores — Retención', filter: (pb: PlaybookSummary) => pb.category === 'retention' },
+              { title: 'Vendedores', filter: (pb: PlaybookSummary) => pb.category === 'seller' },
+            ] as const).map(({ title, filter }) => {
+              const sectionPlaybooks = playbooks.filter(filter);
+              if (sectionPlaybooks.length === 0) return null;
               return (
-                <div
-                  key={pb.id}
-                  className={`rounded-xl border p-4 transition ${isSelected ? 'border-orange-500 bg-orange-50/50 dark:bg-orange-950/20' : 'border-border hover:border-orange-300'}`}
-                >
-                  <div className="flex items-start gap-2 mb-2">
-                    <div className={`p-1.5 rounded-lg shrink-0 ${pb.roleFilter === 'seller' ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-600' : 'bg-green-100 dark:bg-green-950/40 text-green-600'}`}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-sm leading-tight flex flex-wrap items-center gap-1">
-                        {pb.label}
-                        {AUTOMATED_PLAYBOOK_IDS.has(pb.id) && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 font-normal">
-                            Auto diario
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{pb.description}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted">
-                      {pb.reachable} alcanzables
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {pb.total} total
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Button
-                      size="sm"
-                      className="w-full bg-orange-600 hover:bg-orange-700"
-                      disabled={isGenerating || pb.reachable === 0}
-                      onClick={() => generatePlaybookCopy(pb)}
-                    >
-                      {isGenerating ? (
-                        <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Generando...</>
-                      ) : (
-                        <><Sparkles className="h-3 w-3 mr-1" /> Generar copy</>
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full"
-                      disabled={pb.reachable === 0}
-                      onClick={() => selectPlaybook(pb)}
-                    >
-                      Cargar audiencia
-                    </Button>
+                <div key={title}>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3">{title}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                    {sectionPlaybooks.map((pb) => {
+                      const Icon = PLAYBOOK_ICONS[pb.id] || Lightbulb;
+                      const isSelected = selectedPlaybookId === pb.id;
+                      const isGeneratingPb = generatingPlaybookId === pb.id;
+                      return (
+                        <div
+                          key={pb.id}
+                          className={`rounded-xl border p-4 transition ${isSelected ? 'border-orange-500 bg-orange-50/50 dark:bg-orange-950/20' : 'border-border hover:border-orange-300'}`}
+                        >
+                          <div className="flex items-start gap-2 mb-2">
+                            <div className={`p-1.5 rounded-lg shrink-0 ${pb.roleFilter === 'seller' ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-600' : 'bg-green-100 dark:bg-green-950/40 text-green-600'}`}>
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-medium text-sm leading-tight flex flex-wrap items-center gap-1">
+                                {pb.label}
+                                {AUTOMATED_PLAYBOOK_IDS.has(pb.id) && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 font-normal">
+                                    Auto diario
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{pb.description}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted">
+                              {pb.reachable} alcanzables
+                            </span>
+                            <span className="text-xs text-muted-foreground">{pb.total} total</span>
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <Button
+                              size="sm"
+                              className="w-full bg-orange-600 hover:bg-orange-700"
+                              disabled={isGeneratingPb || pb.reachable === 0}
+                              onClick={() => generatePlaybookCopy(pb)}
+                            >
+                              {isGeneratingPb ? (
+                                <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Generando...</>
+                              ) : (
+                                <><Sparkles className="h-3 w-3 mr-1" /> Generar copy</>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full"
+                              disabled={pb.reachable === 0}
+                              onClick={() => selectPlaybook(pb)}
+                            >
+                              Cargar audiencia
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -1113,8 +1283,18 @@ export default function AdminMarketingPage() {
                   )}
                 </select>
                 <div>
-                  <label className="text-sm font-medium">Filtro por ciudad (opcional)</label>
-                  <Input value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} placeholder="Bucaramanga, Floridablanca..." />
+                  <label className="text-sm font-medium">Ciudad (opcional)</label>
+                  <Input
+                    value={cityFilter}
+                    onChange={(e) => setCityFilter(e.target.value)}
+                    placeholder={COLOMBIA_NATIONAL_SCOPE}
+                    list="broadcast-colombia-cities"
+                  />
+                  <datalist id="broadcast-colombia-cities">
+                    {COLOMBIA_CITIES.map((c) => (
+                      <option key={c.id} value={c.slug} />
+                    ))}
+                  </datalist>
                 </div>
               </>
             ) : (
