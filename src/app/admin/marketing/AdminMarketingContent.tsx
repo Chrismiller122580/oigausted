@@ -1336,35 +1336,73 @@ export default function AdminMarketingContent() {
 
       {/* ========== MANUAL BROADCAST + AUDIENCE (existing power, now enhanced) ========== */}
       <div id="broadcast-composer" className="bg-card border border-border rounded-2xl p-4 sm:p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-4">
+        <div className="mb-6 space-y-4">
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-semibold flex flex-wrap items-center gap-2">Envío Manual + Audiencia <span className="text-xs px-2 py-0.5 rounded bg-muted font-normal">Clásico</span></h2>
-            <p className="text-sm text-muted-foreground">Control total. También puedes cargar contenido desde el generador de IA de arriba.</p>
+            <h2 className="text-xl sm:text-2xl font-semibold flex flex-wrap items-center gap-2">
+              Envío Manual + Audiencia
+              <span className="text-xs px-2 py-0.5 rounded bg-muted font-normal">Clásico</span>
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Control total. También puedes cargar contenido desde el generador de IA de arriba.
+            </p>
           </div>
-          <div className="flex flex-wrap gap-2 shrink-0">
-            <Button variant="outline" size="sm" onClick={() => loadSellerToolkitCampaign('broadcast')}>Guía vendedores (email)</Button>
-            <Button variant="outline" size="sm" onClick={() => loadSellerToolkitCampaign('social')}>IG + WhatsApp</Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={sellerBlastLoading}
-              onClick={() => runSellerToolkitBlast(true)}
-            >
-              {sellerBlastLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Vista previa envío masivo
-            </Button>
-            <Button
-              size="sm"
-              className="bg-orange-600 hover:bg-orange-700"
-              disabled={sellerBlastLoading}
-              onClick={() => runSellerToolkitBlast(false)}
-            >
-              {sellerBlastLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
-              Enviar a todos los vendedores hoy
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => presetMessage('update')}>Actualización sistema</Button>
-            <Button variant="outline" size="sm" onClick={() => presetMessage('promo')}>Promo</Button>
-            <Button variant="outline" size="sm" onClick={() => presetMessage('info')}>Info cuenta</Button>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-xl border border-border bg-muted/20 p-3 sm:p-4">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-2">
+                Plantillas de contenido
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => loadSellerToolkitCampaign('broadcast')}>
+                  Guía vendedores (email)
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => loadSellerToolkitCampaign('social')}>
+                  IG + WhatsApp
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => presetMessage('update')}>
+                  Actualización sistema
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => presetMessage('promo')}>
+                  Promo
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => presetMessage('info')}>
+                  Info cuenta
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-orange-200/60 bg-orange-50/30 dark:bg-orange-950/20 p-3 sm:p-4">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-2">
+                Envío masivo vendedores
+              </p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Guía &quot;conseguir compradores&quot; a todos los vendedores que aún no la recibieron.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={sellerBlastLoading}
+                  onClick={() => runSellerToolkitBlast(true)}
+                >
+                  {sellerBlastLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Vista previa
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-orange-600 hover:bg-orange-700"
+                  disabled={sellerBlastLoading}
+                  onClick={() => runSellerToolkitBlast(false)}
+                >
+                  {sellerBlastLoading ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-1" />
+                  )}
+                  Enviar a todos hoy
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
