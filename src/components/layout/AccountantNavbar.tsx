@@ -11,6 +11,7 @@ import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import Logo from '@/components/common/Logo';
 import { ACCOUNTANT_NAV_ITEMS } from '@/lib/accountant-nav';
+import { MarketplaceRoleLink } from '@/components/layout/MarketplaceRoleLink';
 
 export default function AccountantNavbar({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
@@ -49,7 +50,8 @@ export default function AccountantNavbar({ children }: { children: React.ReactNo
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <MarketplaceRoleLink />
             <div className="hidden md:flex items-center gap-3 text-sm">
               <div className="text-right">
                 <p className="font-medium text-foreground">{session?.user?.name || 'Accountant'}</p>

@@ -35,6 +35,18 @@ export function getStaffPortalPath(staffRole: StaffRole): string {
   return staffRole === 'accountant' ? '/accountant' : '/admin-assistant'
 }
 
+export function getMarketplaceDashboardPath(role: string | undefined | null): string | null {
+  if (role === 'seller') return '/seller'
+  if (role === 'buyer') return '/buyer'
+  return null
+}
+
+export function getMarketplaceRoleLabel(role: string | undefined | null): string | null {
+  if (role === 'seller') return 'Vendedor'
+  if (role === 'buyer') return 'Comprador'
+  return null
+}
+
 export function isSessionExpired(session: Session | null | undefined): boolean {
   return !!(session as Session & { expired?: boolean })?.expired
 }

@@ -91,68 +91,80 @@ export default function SellerDashboard() {
     <div className="bg-background py-8">
       <MapsPollutionNuke />
       <div className="max-w-7xl mx-auto px-6">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8 md:mb-10">
-          <div>
-            <h1 className="text-5xl font-bold text-foreground">Mi Dashboard</h1>
-            <p className="text-xl text-muted-foreground mt-2">Hola, {session?.user?.name?.split(" ")[0] || 'Vendedor'}</p>
-            <Link href="/seller/profile" className="text-sm text-orange-600 hover:underline inline-block mt-1">
-              Editar Mi Negocio →
-            </Link>
+        <div className="mb-8 md:mb-10 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+              <h1 className="text-5xl font-bold text-foreground">Mi Dashboard</h1>
+              <p className="text-xl text-muted-foreground mt-2">Hola, {session?.user?.name?.split(" ")[0] || 'Vendedor'}</p>
+              <Link href="/seller/profile" className="text-sm text-orange-600 hover:underline inline-block mt-1">
+                Editar Mi Negocio →
+              </Link>
+            </div>
+            <div className="flex justify-center sm:justify-end shrink-0">
+              <Button id="tutorial-create-gig" asChild className="bg-orange-600 hover:bg-orange-700 text-lg px-8 py-6 rounded-2xl gap-3">
+                <Link href="/create-gig">
+                  <Plus size={24} /> Crear Nuevo Gig
+                </Link>
+              </Button>
+            </div>
           </div>
 
-          {/* Prominent public profile card on main dashboard */}
-          <Card id="tutorial-public-profile" className="bg-gradient-to-br from-orange-50 to-white dark:from-orange-950/40 border-orange-200 dark:border-orange-900/60">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-orange-600 font-semibold mb-2">
-                <Link2 size={18} /> Tu perfil público directo
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                Comparte este enlace para que los clientes te encuentren sin intermediarios.
-              </p>
-              <Link href="/seller/profile">
-                <Button size="sm" variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-100">
-                  Ver y compartir mi enlace público
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Prominent public profile card on main dashboard */}
+            <Card id="tutorial-public-profile" className="flex h-full bg-gradient-to-br from-orange-50 to-white dark:from-orange-950/40 border-orange-200 dark:border-orange-900/60">
+              <CardContent className="flex flex-1 flex-col pt-6">
+                <div className="flex items-center gap-2 text-orange-600 font-semibold mb-2">
+                  <Link2 size={18} className="shrink-0" /> Tu perfil público directo
+                </div>
+                <p className="text-sm text-muted-foreground mb-4 flex-1">
+                  Comparte este enlace para que los clientes te encuentren sin intermediarios.
+                </p>
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="mt-auto w-full h-auto min-h-8 whitespace-normal text-center leading-snug border-orange-300 text-orange-700 hover:bg-orange-100"
+                >
+                  <Link href="/seller/profile">Ver y compartir mi enlace público</Link>
                 </Button>
-              </Link>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-rose-50 to-white dark:from-rose-950/30 border-rose-200 dark:border-rose-900/50">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300 font-semibold mb-2">
-                <Sparkles size={18} /> Marketing IA
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                Genera posts para Instagram y WhatsApp con tu tienda OigaGIG y descargas con marca.
-              </p>
-              <Link href="/seller/marketing">
-                <Button size="sm" variant="outline" className="border-rose-300 text-rose-700 hover:bg-rose-100 dark:hover:bg-rose-950/50">
-                  Abrir Estudio de Marketing
+              </CardContent>
+            </Card>
+            <Card className="flex h-full bg-gradient-to-br from-rose-50 to-white dark:from-rose-950/30 border-rose-200 dark:border-rose-900/50">
+              <CardContent className="flex flex-1 flex-col pt-6">
+                <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300 font-semibold mb-2">
+                  <Sparkles size={18} className="shrink-0" /> Marketing IA
+                </div>
+                <p className="text-sm text-muted-foreground mb-4 flex-1">
+                  Genera posts para Instagram y WhatsApp con tu tienda OigaGIG y descargas con marca.
+                </p>
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="mt-auto w-full h-auto min-h-8 whitespace-normal text-center leading-snug border-rose-300 text-rose-700 hover:bg-rose-100 dark:hover:bg-rose-950/50"
+                >
+                  <Link href="/seller/marketing">Abrir Estudio de Marketing</Link>
                 </Button>
-              </Link>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 border-blue-200 dark:border-blue-900/50">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-semibold mb-2">
-                <Users size={18} /> Red de Vendedores
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                Busca socios para proyectos grandes. Combina servicios y contacta otros vendedores.
-              </p>
-              <Link href="/seller/network">
-                <Button size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-950/50">
-                  Explorar red de vendedores
+              </CardContent>
+            </Card>
+            <Card className="flex h-full bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 border-blue-200 dark:border-blue-900/50 sm:col-span-2 lg:col-span-1">
+              <CardContent className="flex flex-1 flex-col pt-6">
+                <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-semibold mb-2">
+                  <Users size={18} className="shrink-0" /> Red de Vendedores
+                </div>
+                <p className="text-sm text-muted-foreground mb-4 flex-1">
+                  Busca socios para proyectos grandes. Combina servicios y contacta otros vendedores.
+                </p>
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="mt-auto w-full h-auto min-h-8 whitespace-normal text-center leading-snug border-blue-300 text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-950/50"
+                >
+                  <Link href="/seller/network">Explorar red de vendedores</Link>
                 </Button>
-              </Link>
-            </CardContent>
-          </Card>
-          {/* Center the CTA on mobile so it aligns with the stacked stat tiles */}
-          <div className="flex justify-center md:justify-end">
-            <Link href="/create-gig">
-              <Button id="tutorial-create-gig" className="bg-orange-600 hover:bg-orange-700 text-lg px-8 py-6 rounded-2xl flex items-center gap-3">
-                <Plus size={24} /> Crear Nuevo Gig
-              </Button>
-            </Link>
+              </CardContent>
+            </Card>
           </div>
         </div>
 

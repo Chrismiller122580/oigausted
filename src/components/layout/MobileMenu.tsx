@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { getStaffPortalPath, isStaffRole } from '@/lib/session';
 import { ADMIN_ASSISTANT_NAV_ITEMS } from '@/lib/admin-assistant-nav';
 import { ACCOUNTANT_NAV_ITEMS } from '@/lib/accountant-nav';
+import { MarketplaceRoleLink } from '@/components/layout/MarketplaceRoleLink';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -164,6 +165,7 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
 
         {role === 'accountant' && (
           <>
+            <MarketplaceRoleLink variant="menu" onNavigate={onClose} />
             {ACCOUNTANT_NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               return (
@@ -191,6 +193,7 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
 
         {role === 'admin-assistant' && (
           <>
+            <MarketplaceRoleLink variant="menu" onNavigate={onClose} />
             {ADMIN_ASSISTANT_NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               return (
