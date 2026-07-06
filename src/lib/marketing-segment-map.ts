@@ -9,6 +9,7 @@ const PLAYBOOK_SEGMENTS: Array<{ id: string; label: string; segment: string }> =
   { id: 'buyers-repeat-active', label: 'comprador repetidor activo', segment: 'playbook:buyers-repeat-active' },
   { id: 'buyers-no-active-orders', label: 'comprador sin pedidos activos', segment: 'playbook:buyers-no-active-orders' },
   { id: 'buyers-pending-review', label: 'reseña pendiente', segment: 'playbook:buyers-pending-review' },
+  { id: 'sellers-get-buyers-toolkit', label: 'guía conseguir compradores', segment: 'playbook:sellers-get-buyers-toolkit' },
   { id: 'sellers-no-gigs', label: 'vendedor sin gigs', segment: 'playbook:sellers-no-gigs' },
   { id: 'sellers-new-no-gig', label: 'vendedor nuevo sin gig', segment: 'playbook:sellers-new-no-gig' },
   { id: 'sellers-paused-gigs', label: 'gigs pausados', segment: 'playbook:sellers-paused-gigs' },

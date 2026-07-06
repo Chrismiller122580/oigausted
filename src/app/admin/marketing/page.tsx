@@ -19,6 +19,7 @@ import {
   COLOMBIA_NATIONAL_SCOPE,
   citiesByRegion,
 } from '@/lib/colombia-cities';
+import { SELLER_BUYER_TOOLKIT_CAMPAIGN } from '@/lib/seller-buyer-toolkit-campaign';
 
 interface AudienceUser {
   id: string;
@@ -72,6 +73,7 @@ const PLAYBOOK_ICONS: Record<string, typeof Package> = {
   'buyers-repeat-active': TrendingUp,
   'buyers-no-active-orders': Users,
   'buyers-pending-review': Star,
+  'sellers-get-buyers-toolkit': Lightbulb,
   'sellers-no-gigs': Package,
   'sellers-new-no-gig': BookOpen,
   'sellers-paused-gigs': AlertCircle,
@@ -687,7 +689,23 @@ export default function AdminMarketingPage() {
     toast.success('Muestra CSV exportada');
   };
 
+  const loadSellerToolkitCampaign = () => {
+    const c = SELLER_BUYER_TOOLKIT_CAMPAIGN;
+    setSubject(c.subject);
+    setMessage(c.body);
+    setSegment('playbook:sellers-get-buyers-toolkit');
+    setSelectedPlaybookId('sellers-get-buyers-toolkit');
+    setRecipientMode('segment');
+    setSelectedUser(null);
+    document.getElementById('broadcast-composer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    toast.success('Campaña vendedores cargada — segmento: Solo vendedores');
+  };
+
   const presetMessage = (type: string) => {
+    if (type === 'seller-toolkit') {
+      loadSellerToolkitCampaign();
+      return;
+    }
     if (type === 'update') {
       setSubject('Actualización importante en OigaGIG');
       setMessage('Hola,\n\nEstamos realizando mejoras en la plataforma para ofrecerte una mejor experiencia.\n\nLos principales cambios incluyen:\n• Mejor rendimiento en búsqueda y carga de gigs\n• Nueva sección de notificaciones\n• Correcciones en el flujo de pagos\n\nGracias por ser parte de OigaGIG. Si tienes preguntas, responde a este correo o visita nuestro centro de soporte.\n\n— El equipo de OigaGIG');
@@ -1225,6 +1243,7 @@ export default function AdminMarketingPage() {
             <p className="text-sm text-muted-foreground">Control total. También puedes cargar contenido desde el generador de IA de arriba.</p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => presetMessage('seller-toolkit')}>Guía vendedores</Button>
             <Button variant="outline" size="sm" onClick={() => presetMessage('update')}>Actualización sistema</Button>
             <Button variant="outline" size="sm" onClick={() => presetMessage('promo')}>Promo</Button>
             <Button variant="outline" size="sm" onClick={() => presetMessage('info')}>Info cuenta</Button>

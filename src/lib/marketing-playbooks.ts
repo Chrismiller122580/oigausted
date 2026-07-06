@@ -227,6 +227,32 @@ Tono de gratitud, no exigente.`,
     defaultCtaUrl: `${APP_URL}/buyer`,
   },
   {
+    id: 'sellers-get-buyers-toolkit',
+    label: 'Guía: conseguir compradores',
+    description: 'Vendedores activos — kit completo de herramientas para atraer compradores',
+    category: 'seller',
+    roleFilter: 'seller',
+    segment: 'playbook:sellers-get-buyers-toolkit',
+    buildWhere: () => ({
+      ...BASE_REACHABLE,
+      role: 'seller',
+    }),
+    aiGoal: 'Enseñar a vendedores cómo conseguir compradores usando todas las herramientas de OigaGIG',
+    aiContext: `Audiencia: todos los vendedores registrados en OigaGIG.
+El email debe ser una GUÍA EDUCATIVA (no agresiva) que explique cómo usar:
+1. Crear/activar gigs (/create-gig, /seller/gigs)
+2. Perfil público + link + QR (/seller/profile, /sellers/slug)
+3. Estudio Marketing IA (/seller/marketing) para Instagram/WhatsApp
+4. Visibilidad local — ciudad, radio, mapa (/mapa)
+5. Chat con compradores (/messages) antes y después del pedido
+6. Reseñas para confianza
+7. Red de vendedores (/seller/network) y referidos (/referrals)
+Incluir checklist corto de acciones esta semana. Usar {{name}} y {{city}}.
+NO inventar descuentos ni promociones falsas.`,
+    defaultCta: 'Ir a mi panel de vendedor',
+    defaultCtaUrl: `${APP_URL}/seller`,
+  },
+  {
     id: 'sellers-no-gigs',
     label: 'Vendedor sin gigs',
     description: 'Vendedores registrados que nunca publicaron un servicio',
