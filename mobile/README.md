@@ -73,7 +73,7 @@ npm run mobile:sync
 
 ### 4. Admin home-screen widget (Android)
 
-Admins can add the **OigaGIG Admin Stats** widget to their Android home screen. Metrics sync when the admin opens the app (live stats bar in the admin header pushes data to the widget). Tap the widget to open `/admin`.
+Admins can add the **OigaGIG Admin Stats** widget to their Android home screen. Metrics sync when the admin opens the app and visits `/admin` (dashboard data is pushed to the widget in the background). Tap the widget to open `/admin`.
 
 ### 5. Push notifications (optional v2)
 
