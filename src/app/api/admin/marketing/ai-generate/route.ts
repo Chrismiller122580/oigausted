@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminPanelSession } from '@/lib/admin-auth';
 import { devLog } from '@/lib/utils';
-import { COLOMBIA_NATIONAL_SCOPE } from '@/lib/colombia-geo';
+import { COLOMBIA_NATIONAL_SCOPE } from '@/lib/colombia-cities';
 import { normalizeGeneratedCampaign } from '@/lib/marketing-campaign-types';
 import { getPlaybookById } from '@/lib/marketing-playbooks';
 

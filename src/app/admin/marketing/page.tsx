@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition, useRef } from 'react';
+import { useState, useEffect, useTransition, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,7 +18,7 @@ import {
   COLOMBIA_CITIES,
   COLOMBIA_NATIONAL_SCOPE,
   citiesByRegion,
-} from '@/lib/colombia-geo';
+} from '@/lib/colombia-cities';
 
 interface AudienceUser {
   id: string;
@@ -86,8 +86,6 @@ const QUICK_GOALS = [
   { goal: 'Campaña nacional: confianza y reseñas en todo Colombia', focus: 'both' as const },
   { goal: 'Recuperar checkouts abandonados en los últimos 7 días', focus: 'acquisition' as const },
 ];
-
-const CITY_REGIONS = citiesByRegion();
 
 const CHANNEL_OPTIONS = [
   { key: 'email', label: 'Email + In-app', icon: Send },
@@ -163,6 +161,8 @@ export default function AdminMarketingPage() {
   const [playbookCityFilter, setPlaybookCityFilter] = useState('');
   const [buyerFunnel, setBuyerFunnel] = useState<BuyerFunnel | null>(null);
   const [estimatedAudience, setEstimatedAudience] = useState<number | null>(null);
+
+  const cityRegions = useMemo(() => citiesByRegion(), []);
 
   const AUTOMATED_PLAYBOOK_IDS = new Set([
     'buyers-new-signup',
@@ -780,7 +780,7 @@ export default function AdminMarketingPage() {
                 className="w-full border border-border bg-background rounded-lg px-3 py-2 text-sm mt-1"
               >
                 <option value="">Seleccionar ciudad...</option>
-                {Object.entries(CITY_REGIONS).map(([region, cities]) => (
+                {Object.entries(cityRegions).map(([region, cities]) => (
                   <optgroup key={region} label={region}>
                     {cities.map((c) => (
                       <option key={c.id} value={c.slug}>{c.label}</option>

@@ -123,17 +123,23 @@ NO presionar con urgencia falsa ni amenazas.`,
     buildWhere: () => ({
       ...BASE_REACHABLE,
       role: 'buyer',
-      ordersAsBuyer: {
-        some: { status: 'Completed' },
-        none: { status: { in: ['Paid', 'In_Progress', 'Pending'] } },
-      },
+      ordersAsBuyer: { some: { status: 'Completed' } },
       NOT: {
-        ordersAsBuyer: {
-          some: {
-            status: 'Completed',
-            updatedAt: { gte: subDays(new Date(), 45) },
+        OR: [
+          {
+            ordersAsBuyer: {
+              some: { status: { in: ['Paid', 'In_Progress', 'Pending'] } },
+            },
           },
-        },
+          {
+            ordersAsBuyer: {
+              some: {
+                status: 'Completed',
+                updatedAt: { gte: subDays(new Date(), 45) },
+              },
+            },
+          },
+        ],
       },
     }),
     aiGoal: 'Motivar a compradores con un pedido previo a hacer su segunda compra',

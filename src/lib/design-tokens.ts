@@ -2,7 +2,7 @@
  * OigaGIG v2 design tokens — single source for homepage brand colors & constants.
  */
 
-import { colombianCitiesLegacy } from '@/lib/colombia-geo';
+import { colombianCitiesLegacy } from '@/lib/colombia-cities';
 
 /** WCAG AA–safe orange (≥4.5:1 with white text). */
 export const brand = {

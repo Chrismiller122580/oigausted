@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminPanelSession } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
-import { buildCityWhere } from '@/lib/colombia-geo';
+import { buildCityWhere, isCountryCodeSchemaDrift, withoutCountryCode } from '@/lib/colombia-geo';
 import {
   countReachableAudience,
   getBuyerFunnelStats,
@@ -20,6 +20,26 @@ function applyCityToWhere(where: Prisma.UserWhereInput, city?: string): Prisma.U
   };
 }
 
+async function safePlaybookCounts(where: Prisma.UserWhereInput) {
+  try {
+    const [total, reachable] = await Promise.all([
+      prisma.user.count({ where }),
+      countReachableAudience(where),
+    ]);
+    return { total, reachable };
+  } catch (err) {
+    if (isCountryCodeSchemaDrift(err)) {
+      const fallbackWhere = withoutCountryCode(where);
+      const [total, reachable] = await Promise.all([
+        prisma.user.count({ where: fallbackWhere }),
+        countReachableAudience(fallbackWhere),
+      ]);
+      return { total, reachable };
+    }
+    throw err;
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await requireAdminPanelSession();
@@ -29,73 +49,100 @@ export async function GET(req: NextRequest) {
 
     const city = new URL(req.url).searchParams.get('city') || '';
 
-    const [buyerFunnel, playbooks] = await Promise.all([
-      getBuyerFunnelStats(city || undefined),
-      Promise.all(
-        MARKETING_PLAYBOOKS.map(async (playbook) => {
-          const where = applyCityToWhere(playbook.buildWhere(), city);
-          const [total, reachable, sample] = await Promise.all([
-            prisma.user.count({ where }),
-            countReachableAudience(where),
-            prisma.user.findMany({
-              where,
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-                businessName: true,
-                city: true,
-                createdAt: true,
-              },
-              orderBy: { createdAt: 'desc' },
-              take: 3,
-            }),
-          ]);
+    let buyerFunnel = { totalBuyers: 0, noOrders: 0, onePlusOrders: 0, repeatBuyers: 0 };
+    try {
+      buyerFunnel = await getBuyerFunnelStats(city || undefined);
+    } catch (err) {
+      console.error('Buyer funnel stats failed:', err);
+    }
 
-          type SampleUser = (typeof sample)[number];
-          const sampleIds = sample.map((u: SampleUser) => u.id);
-          let prefMap = new Map<string, { emailEnabled: boolean }>();
+    const playbooks = await Promise.all(
+      MARKETING_PLAYBOOKS.map(async (playbook) => {
+        const where = applyCityToWhere(playbook.buildWhere(), city);
 
-          if (sampleIds.length > 0) {
-            try {
-              const prefs = await prisma.notificationPreference.findMany({
-                where: { userId: { in: sampleIds } },
-                select: { userId: true, emailEnabled: true },
-              });
-              prefMap = new Map(
-                prefs.map((p: { userId: string; emailEnabled: boolean }) => [p.userId, p]),
-              );
-            } catch (err) {
-              if (!isNotificationPreferenceDrift(err)) throw err;
-            }
+        let total = 0;
+        let reachable = 0;
+        let sample: Array<{
+          id: string;
+          name: string | null;
+          email: string | null;
+          role: string;
+          businessName: string | null;
+          city: string | null;
+          createdAt: Date;
+        }> = [];
+
+        try {
+          const counts = await safePlaybookCounts(where);
+          total = counts.total;
+          reachable = counts.reachable;
+          sample = await prisma.user.findMany({
+            where,
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+              businessName: true,
+              city: true,
+              createdAt: true,
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 3,
+          });
+        } catch (err) {
+          if (isCountryCodeSchemaDrift(err)) {
+            const fallbackWhere = withoutCountryCode(where);
+            const counts = await safePlaybookCounts(fallbackWhere);
+            total = counts.total;
+            reachable = counts.reachable;
+          } else {
+            console.error(`Playbook count failed (${playbook.id}):`, err);
           }
+        }
 
-          return {
-            id: playbook.id,
-            label: playbook.label,
-            description: playbook.description,
-            category: playbook.category,
-            roleFilter: playbook.roleFilter,
-            segment: playbook.segment,
-            defaultCta: playbook.defaultCta,
-            defaultCtaUrl: playbook.defaultCtaUrl,
-            automatable: playbook.automatable ?? false,
-            total,
-            reachable,
-            sample: sample.map((u: SampleUser) => ({
-              id: u.id,
-              name: u.name,
-              email: u.email,
-              role: u.role,
-              businessName: u.businessName,
-              city: u.city,
-              emailReachable: isUserEmailReachable(u, prefMap.get(u.id)),
-            })),
-          };
-        }),
-      ),
-    ]);
+        type SampleUser = (typeof sample)[number];
+        const sampleIds = sample.map((u: SampleUser) => u.id);
+        let prefMap = new Map<string, { emailEnabled: boolean }>();
+
+        if (sampleIds.length > 0) {
+          try {
+            const prefs = await prisma.notificationPreference.findMany({
+              where: { userId: { in: sampleIds } },
+              select: { userId: true, emailEnabled: true },
+            });
+            prefMap = new Map(
+              prefs.map((p: { userId: string; emailEnabled: boolean }) => [p.userId, p]),
+            );
+          } catch (err) {
+            if (!isNotificationPreferenceDrift(err)) throw err;
+          }
+        }
+
+        return {
+          id: playbook.id,
+          label: playbook.label,
+          description: playbook.description,
+          category: playbook.category,
+          roleFilter: playbook.roleFilter,
+          segment: playbook.segment,
+          defaultCta: playbook.defaultCta,
+          defaultCtaUrl: playbook.defaultCtaUrl,
+          automatable: playbook.automatable ?? false,
+          total,
+          reachable,
+          sample: sample.map((u: SampleUser) => ({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            role: u.role,
+            businessName: u.businessName,
+            city: u.city,
+            emailReachable: isUserEmailReachable(u, prefMap.get(u.id)),
+          })),
+        };
+      }),
+    );
 
     return NextResponse.json({ playbooks, buyerFunnel, cityFilter: city || null });
   } catch (error) {

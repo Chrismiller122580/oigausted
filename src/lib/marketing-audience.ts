@@ -1,6 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
-import { buildCityWhere, colombiaUserFilter } from '@/lib/colombia-geo';
+import {
+  buildCityWhere,
+  colombiaUserFilter,
+  isCountryCodeSchemaDrift,
+  withoutCountryCode,
+} from '@/lib/colombia-geo';
 import { buildPlaybookWhere, parsePlaybookId } from '@/lib/marketing-playbooks';
 
 export type MarketingRecipient = {
@@ -203,9 +208,20 @@ export function formatBroadcastSegment(opts: {
   return city ? `${segment}+city:${city}` : segment;
 }
 
+async function countUsersSafe(where: Prisma.UserWhereInput): Promise<number> {
+  try {
+    return await prisma.user.count({ where });
+  } catch (err) {
+    if (isCountryCodeSchemaDrift(err)) {
+      return prisma.user.count({ where: withoutCountryCode(where) });
+    }
+    throw err;
+  }
+}
+
 /** Users matching filters minus those who opted out of marketing emails. */
 export async function countReachableAudience(where: Prisma.UserWhereInput): Promise<number> {
-  const total = await prisma.user.count({ where });
+  const total = await countUsersSafe(where);
 
   try {
     const emailDisabled = await prisma.user.count({
@@ -254,29 +270,41 @@ export async function getBuyerFunnelStats(city?: string): Promise<{
   applyCityFilter(base, city);
 
   const [totalBuyers, noOrders, onePlusOrders, repeatBuyers] = await Promise.all([
-    prisma.user.count({ where: base }),
-    prisma.user.count({
-      where: { ...base, ordersAsBuyer: { none: {} } },
+    countUsersSafe(base),
+    countUsersSafe({ ...base, ordersAsBuyer: { none: {} } }),
+    countUsersSafe({
+      ...base,
+      ordersAsBuyer: { some: { status: 'Completed' } },
     }),
-    prisma.user.count({
-      where: {
-        ...base,
-        ordersAsBuyer: { some: { status: 'Completed' } },
-      },
-    }),
-    prisma.user
-      .findMany({
-        where: {
-          ...base,
-          ordersAsBuyer: { some: { status: 'Completed' } },
-        },
-        select: {
-          _count: { select: { ordersAsBuyer: { where: { status: 'Completed' } } } },
-        },
-      })
-      .then((buyers: Array<{ _count: { ordersAsBuyer: number } }>) =>
-        buyers.filter((b) => b._count.ordersAsBuyer >= 2).length,
-      ),
+    (async () => {
+      try {
+        const buyers = await prisma.user.findMany({
+          where: {
+            ...base,
+            ordersAsBuyer: { some: { status: 'Completed' } },
+          },
+          select: {
+            _count: { select: { ordersAsBuyer: { where: { status: 'Completed' } } } },
+          },
+        });
+        return buyers.filter((b: { _count: { ordersAsBuyer: number } }) => b._count.ordersAsBuyer >= 2).length;
+      } catch (err) {
+        if (isCountryCodeSchemaDrift(err)) {
+          const fallbackBase = withoutCountryCode(base);
+          const buyers = await prisma.user.findMany({
+            where: {
+              ...fallbackBase,
+              ordersAsBuyer: { some: { status: 'Completed' } },
+            },
+            select: {
+              _count: { select: { ordersAsBuyer: { where: { status: 'Completed' } } } },
+            },
+          });
+          return buyers.filter((b: { _count: { ordersAsBuyer: number } }) => b._count.ordersAsBuyer >= 2).length;
+        }
+        throw err;
+      }
+    })(),
   ]);
 
   return { totalBuyers, noOrders, onePlusOrders, repeatBuyers };
