@@ -12,12 +12,13 @@ import { Button } from '@/components/ui/button';
 import { getStaffPortalPath, isStaffRole } from '@/lib/session';
 import { ADMIN_ASSISTANT_NAV_ITEMS } from '@/lib/admin-assistant-nav';
 import { ACCOUNTANT_NAV_ITEMS } from '@/lib/accountant-nav';
+import { ANALYTICS_NAV_ITEMS } from '@/lib/analytics-nav';
 import { MarketplaceRoleLink } from '@/components/layout/MarketplaceRoleLink';
 
 interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  role?: 'buyer' | 'seller' | 'admin' | 'public' | 'accountant' | 'admin-assistant';
+  role?: 'buyer' | 'seller' | 'admin' | 'public' | 'accountant' | 'admin-assistant' | 'analytics';
 }
 
 export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileMenuProps) {
@@ -34,7 +35,12 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
 
   const staffRole = session?.user?.staffRole;
   const staffPortalHref = isStaffRole(staffRole) ? getStaffPortalPath(staffRole) : null;
-  const staffPortalLabel = staffRole === 'accountant' ? 'Portal Finanzas' : 'Portal Staff';
+  const staffPortalLabel =
+    staffRole === 'accountant'
+      ? 'Portal Finanzas'
+      : staffRole === 'analytics'
+        ? 'Portal Analytics'
+        : 'Portal Staff';
 
   return (
     <div className="md:hidden fixed inset-0 z-[100] bg-background">
@@ -195,6 +201,34 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
           <>
             <MarketplaceRoleLink variant="menu" onNavigate={onClose} />
             {ADMIN_ASSISTANT_NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onClose}
+                  className="flex items-center gap-3 py-4 border-b border-border"
+                >
+                  <Icon size={22} /> {item.label}
+                </Link>
+              );
+            })}
+            <div className="pt-6">
+              <Button
+                onClick={handleSignOut}
+                variant="outline"
+                className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200"
+              >
+                <LogOut size={20} /> Cerrar Sesión
+              </Button>
+            </div>
+          </>
+        )}
+
+        {role === 'analytics' && (
+          <>
+            <MarketplaceRoleLink variant="menu" onNavigate={onClose} />
+            {ANALYTICS_NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               return (
                 <Link

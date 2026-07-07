@@ -70,7 +70,11 @@ export function UserListCard({ user, selected, onSelect }: UserListCardProps) {
           {user.staffRole && (
             <span
               className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${
-                user.staffRole === 'accountant' ? 'bg-emerald-600 text-white' : 'bg-indigo-600 text-white'
+                user.staffRole === 'accountant'
+                  ? 'bg-emerald-600 text-white'
+                  : user.staffRole === 'analytics'
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-indigo-600 text-white'
               }`}
             >
               {user.staffRole.replace('_', ' ')}

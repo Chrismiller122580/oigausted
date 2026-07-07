@@ -16,7 +16,12 @@ export function StaffPortalLink({ className = '', compact = false }: StaffPortal
   if (!isStaffRole(staffRole)) return null
 
   const href = getStaffPortalPath(staffRole)
-  const label = staffRole === 'accountant' ? 'Portal Finanzas' : 'Portal Staff'
+  const label =
+    staffRole === 'accountant'
+      ? 'Portal Finanzas'
+      : staffRole === 'analytics'
+        ? 'Portal Analytics'
+        : 'Portal Staff'
 
   return (
     <Link

@@ -23,6 +23,7 @@ import {
   SELLER_BUYER_TOOLKIT_CAMPAIGN,
   sellerToolkitAsGeneratedCampaign,
 } from '@/lib/seller-buyer-toolkit-campaign';
+import { useAnalyticsViewOnly } from '@/hooks/useAnalyticsViewOnly';
 
 interface AudienceUser {
   id: string;
@@ -116,6 +117,7 @@ const SEGMENTS = [
 ];
 
 export default function AdminMarketingContent() {
+  const analyticsViewOnly = useAnalyticsViewOnly();
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [segment, setSegment] = useState('all');
@@ -804,14 +806,22 @@ export default function AdminMarketingContent() {
               <Sparkles className="h-6 w-6 sm:h-7 sm:w-7" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight">AI Marketing Studio</h1>
-              <p className="text-sm sm:text-lg text-muted-foreground">El centro de comando más inteligente para promocionar OigaGIG</p>
+              <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight">
+                {analyticsViewOnly ? 'Marketing Insights' : 'AI Marketing Studio'}
+              </h1>
+              <p className="text-sm sm:text-lg text-muted-foreground">
+                {analyticsViewOnly
+                  ? 'Embudo de compradores, audiencias y historial de campañas (solo lectura)'
+                  : 'El centro de comando más inteligente para promocionar OigaGIG'}
+              </p>
             </div>
           </div>
         </div>
-        <div className="text-sm text-muted-foreground max-w-xs">
-          Genera contenido publicitario de alto rendimiento • Email + Social Ads • Envíos inteligentes • Todo en un solo lugar
-        </div>
+        {!analyticsViewOnly && (
+          <div className="text-sm text-muted-foreground max-w-xs">
+            Genera contenido publicitario de alto rendimiento • Email + Social Ads • Envíos inteligentes • Todo en un solo lugar
+          </div>
+        )}
       </div>
 
       {apiWarning && (
@@ -821,6 +831,7 @@ export default function AdminMarketingContent() {
       )}
 
       {/* ========== AI CAMPAIGN GENERATOR - THE STAR OF THE SHOW ========== */}
+      {!analyticsViewOnly && (
       <div className="bg-card border-2 border-orange-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-sm">
         <div className="flex items-start sm:items-center gap-3 mb-6">
           <Sparkles className="h-6 w-6 text-orange-500 shrink-0" />
@@ -1148,6 +1159,7 @@ export default function AdminMarketingContent() {
           </div>
         )}
       </div>
+      )}
 
       {/* ========== SMART PLAYBOOKS ========== */}
       <div className="bg-card border-2 border-orange-500/20 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-sm">
@@ -1167,10 +1179,12 @@ export default function AdminMarketingContent() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
-            <Button variant="outline" size="sm" onClick={runLifecycleDryRun} disabled={lifecycleLoading}>
-              {lifecycleLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Clock className="h-4 w-4 mr-2" />}
-              Vista previa cron
-            </Button>
+            {!analyticsViewOnly && (
+              <Button variant="outline" size="sm" onClick={runLifecycleDryRun} disabled={lifecycleLoading}>
+                {lifecycleLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Clock className="h-4 w-4 mr-2" />}
+                Vista previa cron
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={fetchPlaybooks} disabled={playbooksLoading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${playbooksLoading ? 'animate-spin' : ''}`} />
               Actualizar conteos
@@ -1278,29 +1292,31 @@ export default function AdminMarketingContent() {
                             </span>
                             <span className="text-xs text-muted-foreground">{pb.total} total</span>
                           </div>
-                          <div className="flex flex-col gap-1.5">
-                            <Button
-                              size="sm"
-                              className="w-full bg-orange-600 hover:bg-orange-700"
-                              disabled={isGeneratingPb || pb.reachable === 0}
-                              onClick={() => generatePlaybookCopy(pb)}
-                            >
-                              {isGeneratingPb ? (
-                                <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Generando...</>
-                              ) : (
-                                <><Sparkles className="h-3 w-3 mr-1" /> Generar copy</>
-                              )}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-full"
-                              disabled={pb.reachable === 0}
-                              onClick={() => selectPlaybook(pb)}
-                            >
-                              Cargar audiencia
-                            </Button>
-                          </div>
+                          {!analyticsViewOnly && (
+                            <div className="flex flex-col gap-1.5">
+                              <Button
+                                size="sm"
+                                className="w-full bg-orange-600 hover:bg-orange-700"
+                                disabled={isGeneratingPb || pb.reachable === 0}
+                                onClick={() => generatePlaybookCopy(pb)}
+                              >
+                                {isGeneratingPb ? (
+                                  <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Generando...</>
+                                ) : (
+                                  <><Sparkles className="h-3 w-3 mr-1" /> Generar copy</>
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full"
+                                disabled={pb.reachable === 0}
+                                onClick={() => selectPlaybook(pb)}
+                              >
+                                Cargar audiencia
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1320,7 +1336,7 @@ export default function AdminMarketingContent() {
         )}
       </div>
 
-      {sellerBlastResult && (
+      {!analyticsViewOnly && sellerBlastResult && (
         <div className="rounded-xl border border-orange-300/50 bg-orange-50/30 dark:bg-orange-950/20 px-4 py-3 text-sm">
           <div className="font-medium mb-1">Último envío masivo vendedores</div>
           <div className="text-muted-foreground">
@@ -1335,6 +1351,7 @@ export default function AdminMarketingContent() {
       )}
 
       {/* ========== MANUAL BROADCAST + AUDIENCE (existing power, now enhanced) ========== */}
+      {!analyticsViewOnly && (
       <div id="broadcast-composer" className="bg-card border border-border rounded-2xl p-4 sm:p-6">
         <div className="mb-6 space-y-4">
           <div className="min-w-0">
@@ -1604,6 +1621,7 @@ export default function AdminMarketingContent() {
           </div>
         </div>
       </div>
+      )}
 
       {/* MAILING LIST */}
       <div>
@@ -1630,11 +1648,17 @@ export default function AdminMarketingContent() {
                 <th className="p-3 text-left font-medium">Rol / Ciudad</th>
                 <th className="p-3 text-left font-medium">Estado</th>
                 <th className="p-3 text-left font-medium">Registrado</th>
-                <th className="p-3 text-left font-medium">Acciones</th>
+                {!analyticsViewOnly && <th className="p-3 text-left font-medium">Acciones</th>}
               </tr>
             </thead>
             <tbody>
-              {audience.length === 0 && !audienceLoading && <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No hay usuarios que coincidan.</td></tr>}
+              {audience.length === 0 && !audienceLoading && (
+                <tr>
+                  <td colSpan={analyticsViewOnly ? 5 : 6} className="p-8 text-center text-muted-foreground">
+                    No hay usuarios que coincidan.
+                  </td>
+                </tr>
+              )}
               {audience.map(u => (
                 <tr
                   key={u.id}
@@ -1653,11 +1677,13 @@ export default function AdminMarketingContent() {
                     )}
                   </td>
                   <td className="p-3 text-xs text-muted-foreground">{new Date(u.createdAt).toLocaleDateString('es-CO')}</td>
-                  <td className="p-3">
-                    <Button size="sm" variant="outline" onClick={() => selectUserForSend(u)}>
-                      Seleccionar
-                    </Button>
-                  </td>
+                  {!analyticsViewOnly && (
+                    <td className="p-3">
+                      <Button size="sm" variant="outline" onClick={() => selectUserForSend(u)}>
+                        Seleccionar
+                      </Button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

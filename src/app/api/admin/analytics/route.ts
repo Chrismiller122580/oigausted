@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { requireFinancePanelSession } from '@/lib/admin-auth'
+import { requireAnalyticsPanelSession } from '@/lib/admin-auth'
 import { buildAdminAnalyticsPayload } from '@/lib/admin-analytics'
 
 export async function GET() {
   try {
-    const session = await requireFinancePanelSession()
+    const session = await requireAnalyticsPanelSession()
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }

@@ -363,6 +363,7 @@ export function UserDetailPanel({
                 <option value="">No staff role</option>
                 <option value="accountant">Accountant</option>
                 <option value="admin_assistant">Admin Assistant</option>
+                <option value="analytics">Analytics</option>
               </select>
             </div>
           </div>

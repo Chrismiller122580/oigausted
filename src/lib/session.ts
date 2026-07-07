@@ -5,7 +5,7 @@ export const USER_ROLES = ['buyer', 'seller', 'admin'] as const
 export type UserRole = (typeof USER_ROLES)[number]
 
 /** Optional additive staff tools */
-export const STAFF_ROLES = ['accountant', 'admin_assistant'] as const
+export const STAFF_ROLES = ['accountant', 'admin_assistant', 'analytics'] as const
 export type StaffRole = (typeof STAFF_ROLES)[number]
 
 export function isUserRole(role: string | undefined | null): role is UserRole {
@@ -32,7 +32,9 @@ export function getStaffRole(session: Session | null | undefined): StaffRole | n
 }
 
 export function getStaffPortalPath(staffRole: StaffRole): string {
-  return staffRole === 'accountant' ? '/accountant' : '/admin-assistant'
+  if (staffRole === 'accountant') return '/accountant'
+  if (staffRole === 'analytics') return '/analytics'
+  return '/admin-assistant'
 }
 
 export function getMarketplaceDashboardPath(role: string | undefined | null): string | null {

@@ -6,7 +6,7 @@ declare module "next-auth" {
     user: {
       id: string
       role?: "buyer" | "seller" | "admin"
-      staffRole?: "accountant" | "admin_assistant" | null
+      staffRole?: "accountant" | "admin_assistant" | "analytics" | null
       tagline?: string | null
       bio?: string | null
       businessName?: string | null
@@ -35,7 +35,7 @@ declare module "next-auth" {
   interface User {
     id: string
     role?: "buyer" | "seller" | "admin"
-    staffRole?: "accountant" | "admin_assistant" | null
+    staffRole?: "accountant" | "admin_assistant" | "analytics" | null
     businessName?: string | null
     profilePicture?: string | null
     rating?: number
@@ -52,7 +52,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string
     role?: "buyer" | "seller" | "admin"
-    staffRole?: "accountant" | "admin_assistant"
+    staffRole?: "accountant" | "admin_assistant" | "analytics"
     name?: string | null
     email?: string | null
     profilePicture?: string | null

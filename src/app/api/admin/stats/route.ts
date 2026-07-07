@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireFinancePanelSession } from '@/lib/admin-auth';
+import { requireAnalyticsPanelSession } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { devLog } from '@/lib/utils';
@@ -52,7 +52,7 @@ async function fetchCompletedOrdersForPayoutStats(): Promise<PayoutStatsOrderRow
 
 export async function GET() {
   try {
-    const session = await requireFinancePanelSession();
+    const session = await requireAnalyticsPanelSession();
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }

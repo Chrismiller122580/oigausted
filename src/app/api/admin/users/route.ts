@@ -118,7 +118,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const VALID_ROLES = ['buyer', 'seller', 'admin'] as const;
-    const VALID_STAFF_ROLES = ['accountant', 'admin_assistant'] as const;
+    const VALID_STAFF_ROLES = ['accountant', 'admin_assistant', 'analytics'] as const;
     if (role && !VALID_ROLES.includes(role)) {
       return NextResponse.json({ error: 'Rol de marketplace no válido' }, { status: 400 });
     }

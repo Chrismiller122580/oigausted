@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { requireAdminPanelSession } from '@/lib/admin-auth';
+import { requireAnalyticsPanelSession } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { getAnalyticsIntegrations } from '@/lib/admin-analytics';
 
 export async function GET() {
   try {
-    const session = await requireAdminPanelSession();
+    const session = await requireAnalyticsPanelSession();
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminPanelSession } from '@/lib/admin-auth';
+import { requireAdminPanelSession, requireAnalyticsPanelSession } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { isMissingMarketingCampaignTable } from '@/lib/marketing-audience';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await requireAdminPanelSession();
+    const session =
+      (await requireAnalyticsPanelSession()) ?? (await requireAdminPanelSession());
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }

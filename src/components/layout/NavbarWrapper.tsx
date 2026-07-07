@@ -13,6 +13,7 @@ import Logo from '@/components/common/Logo';
 import AdminNavbar from './AdminNavbar';
 import AdminAssistantNavbar from './AdminAssistantNavbar';
 import AccountantNavbar from './AccountantNavbar';
+import AnalyticsNavbar from './AnalyticsNavbar';
 import BuyerNavbar from './BuyerNavbar';
 import SellerNavbar from './SellerNavbar';
 import ImpersonationBanner from './ImpersonationBanner';
@@ -74,6 +75,15 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
       <>
         {banner}
         <AdminAssistantNavbar>{children}</AdminAssistantNavbar>
+      </>
+    );
+  }
+
+  if (pathname.startsWith('/analytics') && staffRole === 'analytics') {
+    return (
+      <>
+        {banner}
+        <AnalyticsNavbar>{children}</AnalyticsNavbar>
       </>
     );
   }

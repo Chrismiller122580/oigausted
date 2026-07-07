@@ -44,6 +44,19 @@ export async function verifyAdminAssistantFromDb(userId: string): Promise<boolea
   }
 }
 
+/** Verify active analytics staff (DB-verified). */
+export async function verifyAnalyticsFromDb(userId: string): Promise<boolean> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { staffRole: true, isActive: true },
+    })
+    return user?.staffRole === 'analytics' && user.isActive !== false
+  } catch {
+    return false
+  }
+}
+
 export type AdminPanelAccess = {
   session: Session
   isFullAdmin: boolean
@@ -134,6 +147,46 @@ export async function requireFinancePanelFromDb(): Promise<FinancePanelAccess | 
 /** Session for admin or accountant finance panel (DB-verified). */
 export async function requireFinancePanelSession(): Promise<Session | null> {
   const access = await requireFinancePanelFromDb()
+  return access?.session ?? null
+}
+
+export type AnalyticsPanelAccess = {
+  session: Session
+  isFullAdmin: boolean
+}
+
+/** Admin or analytics staff with DB verification (read-only site insights). */
+export async function verifyAnalyticsPanelAccess(
+  userId: string,
+  session: Session
+): Promise<boolean> {
+  if (session.user?.role === 'admin') {
+    return verifyAdminFromDb(userId)
+  }
+  if (session.user?.staffRole === 'analytics') {
+    return verifyAnalyticsFromDb(userId)
+  }
+  return false
+}
+
+/** Returns session for admin or analytics panel access (DB-verified). */
+export async function requireAnalyticsPanelFromDb(): Promise<AnalyticsPanelAccess | null> {
+  const session = await getServerSession(authOptions)
+  const userId = session?.user?.id
+  if (!userId || !session) return null
+
+  if (session.user?.role === 'admin' && (await verifyAdminFromDb(userId))) {
+    return { session, isFullAdmin: true }
+  }
+  if (session.user?.staffRole === 'analytics' && (await verifyAnalyticsFromDb(userId))) {
+    return { session, isFullAdmin: false }
+  }
+  return null
+}
+
+/** Session for admin or analytics panel (DB-verified). */
+export async function requireAnalyticsPanelSession(): Promise<Session | null> {
+  const access = await requireAnalyticsPanelFromDb()
   return access?.session ?? null
 }
 
