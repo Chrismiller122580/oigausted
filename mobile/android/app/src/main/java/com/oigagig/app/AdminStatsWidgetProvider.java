@@ -66,7 +66,7 @@ public class AdminStatsWidgetProvider extends AppWidgetProvider {
             views.setTextViewText(R.id.widget_updated, "Abre OigaGIG Admin para sincronizar");
         }
 
-        Intent launch = new Intent(Intent.ACTION_VIEW, Uri.parse("https://oigagig.com/admin"));
+        Intent launch = new Intent(Intent.ACTION_VIEW, Uri.parse("oigagig://app/admin-assistant"));
         launch.setPackage(context.getPackageName());
         PendingIntent pending = PendingIntent.getActivity(
             context,

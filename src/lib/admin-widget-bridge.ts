@@ -44,9 +44,14 @@ export async function syncAdminStatsToNativeWidget(stats: AdminStatsSnapshot): P
   if (!isCapacitorNative() || Capacitor.getPlatform() !== 'android') return;
   if (!isValidStats(stats)) return;
 
+  const payload = buildAdminWidgetPayload(stats);
+
   try {
-    await AdminWidget.updateStats(buildAdminWidgetPayload(stats));
+    await AdminWidget.updateStats(payload);
+    if (process.env.NODE_ENV === 'development') {
+      console.info('[AdminWidget] synced', payload);
+    }
   } catch (err) {
-    console.warn('[AdminWidget] native updateStats failed:', err);
+    console.warn('[AdminWidget] native updateStats failed:', err, payload);
   }
 }

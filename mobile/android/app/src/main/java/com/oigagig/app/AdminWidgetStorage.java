@@ -11,13 +11,15 @@ public final class AdminWidgetStorage {
 
     private AdminWidgetStorage() {}
 
-    public static void save(Context context, JSONObject payload) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        prefs.edit().putString(KEY_PAYLOAD, payload.toString()).apply();
+    public static boolean save(Context context, JSONObject payload) {
+        SharedPreferences prefs = context.getApplicationContext()
+            .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        return prefs.edit().putString(KEY_PAYLOAD, payload.toString()).commit();
     }
 
     public static JSONObject load(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        SharedPreferences prefs = context.getApplicationContext()
+            .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String raw = prefs.getString(KEY_PAYLOAD, null);
         if (raw == null || raw.isEmpty()) {
             return null;

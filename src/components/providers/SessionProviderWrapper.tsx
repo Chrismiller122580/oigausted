@@ -9,6 +9,7 @@ import RecordLogin from "@/components/auth/RecordLogin";
 import PresenceHeartbeat from "@/components/auth/PresenceHeartbeat";
 import CapacitorShellInit from "@/components/native/CapacitorShellInit";
 import NativePushInit from "@/components/native/NativePushInit";
+import AdminWidgetSync from "@/components/admin/AdminWidgetSync";
 
 
 export default function SessionProviderWrapper({
@@ -26,6 +27,7 @@ export default function SessionProviderWrapper({
           <PresenceHeartbeat />
           <CapacitorShellInit />
           <NativePushInit />
+          <AdminWidgetSync />
 
           <SessionExpiryHandler>
             {children}

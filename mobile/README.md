@@ -273,7 +273,7 @@ Checks: URL scheme `oigagig://`, bundle ID, deployment target iOS 15+, 1024×102
 |------|----------------|
 | Bundle ID | `com.oigagig.app` |
 | Min iOS | 15.0 |
-| Version | 1.3 (build 4) |
+| Version | 1.4 (build 5) |
 | Deep link | `oigagig://app/...` |
 | WebView URL | `https://oigagig.com` |
 | Signing team | Not set in repo (configure in Xcode) |
