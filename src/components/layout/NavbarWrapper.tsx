@@ -24,7 +24,13 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password' || pathname?.startsWith('/login/') || false;
+  const isAuthPage =
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password' ||
+    pathname?.startsWith('/login/') ||
+    false;
   const banner = <ImpersonationBanner />;
 
   const rawRole = String(session?.user?.role || '').toLowerCase().trim();

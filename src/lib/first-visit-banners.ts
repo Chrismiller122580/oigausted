@@ -22,7 +22,7 @@ export function markHomepageWelcomeSeen(): void {
   window.dispatchEvent(new Event(HOMEPAGE_WELCOME_DISMISSED_EVENT))
 }
 
-const AUTH_PATH_PREFIXES = ['/login', '/signup', '/forgot-password', '/auth/'] as const
+const AUTH_PATH_PREFIXES = ['/login', '/signup', '/forgot-password', '/reset-password', '/auth/'] as const
 
 function isAuthPath(pathname: string): boolean {
   return AUTH_PATH_PREFIXES.some(

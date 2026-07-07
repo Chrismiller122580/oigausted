@@ -37,6 +37,20 @@ export function getStaffPortalPath(staffRole: StaffRole): string {
   return '/admin-assistant'
 }
 
+/** Default landing path after login (staff portal takes priority over marketplace role). */
+export function getPostLoginRedirectPath(session: Session | null | undefined): string {
+  if (!session?.user) return '/login'
+
+  const staffRole = getStaffRole(session)
+  if (staffRole) return getStaffPortalPath(staffRole)
+
+  const role = getUserRole(session)
+  if (role === 'seller') return '/seller'
+  if (role === 'buyer') return '/buyer'
+  if (role === 'admin') return '/admin'
+  return '/gigs'
+}
+
 export function getMarketplaceDashboardPath(role: string | undefined | null): string | null {
   if (role === 'seller') return '/seller'
   if (role === 'buyer') return '/buyer'

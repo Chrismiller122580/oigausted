@@ -2,6 +2,7 @@
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { getPostLoginRedirectPath } from "@/lib/session"
 
 export default function DashboardRedirect() {
   const { data: session, status } = useSession()
@@ -14,18 +15,7 @@ export default function DashboardRedirect() {
       return
     }
 
-    // Safe type cast for role
-    const role = session.user.role || "buyer"
-
-    if (role === "seller") {
-      router.replace("/seller")
-    } else if (role === "buyer") {
-      router.replace("/buyer")
-    } else if (role === "admin") {
-      router.replace("/admin")
-    } else {
-      router.replace("/login")
-    }
+    router.replace(getPostLoginRedirectPath(session))
   }, [session, status, router])
 
   return (

@@ -64,6 +64,8 @@ node -e '
     /status\s+OrderStatus @default\(Pending\)/,
     "status          String   @default(\"Pending\")"
   );
+  // SQLite connector does not support lists of primitive types
+  s = s.replace(/violationTypes\s+String\[\]/, "violationTypes  String   // JSON array (local sqlite)");
   fs.writeFileSync(process.argv[1], s);
   console.log("  (schema patched to sqlite for this dev session)");
 ' "$SCHEMA"

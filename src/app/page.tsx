@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { getPostLoginRedirectPath } from '@/lib/session';
 import MarketingHomePageServer from './(marketing)/MarketingHomePageServer';
 import { marketingHomeMetadata } from './(marketing)/metadata';
 
@@ -15,16 +16,5 @@ export default async function RootPage() {
     return <MarketingHomePageServer />;
   }
 
-  // Logged-in users are sent to their role-specific dashboard
-  const role = session.user.role?.toLowerCase() || "buyer";
-
-  if (role === "seller") {
-    redirect("/seller");
-  } else if (role === "buyer") {
-    redirect("/buyer");
-  } else if (role === "admin") {
-    redirect("/admin");
-  } else {
-    redirect("/gigs");
-  }
+  redirect(getPostLoginRedirectPath(session));
 }

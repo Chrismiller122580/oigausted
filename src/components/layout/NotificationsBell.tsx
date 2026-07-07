@@ -306,13 +306,20 @@ export function NotificationsBell() {
             )}
           </div>
 
-          <div className="p-2 border-t text-center">
+          <div className="p-2 border-t text-center space-y-1">
             <Link 
               href="/notifications" 
-              className="text-sm text-orange-600 hover:underline"
+              className="block text-sm text-orange-600 hover:underline"
               onClick={() => setIsOpen(false)}
             >
               Ver todas las notificaciones →
+            </Link>
+            <Link
+              href="/settings/notifications"
+              className="block text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setIsOpen(false)}
+            >
+              Preferencias de notificaciones
             </Link>
           </div>
           </div>

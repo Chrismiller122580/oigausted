@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Package, Plus, DollarSign, Users, Tag, MessageCircle, BarChart3 } from 'lucide-react';
+import { Home, Package, Plus, List, Tag, MessageCircle, Users } from 'lucide-react';
 
 interface MobileBottomNavProps {
   role: 'buyer' | 'seller' | 'admin';
@@ -19,17 +19,17 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
         <div className="flex items-center justify-around h-16 px-1 text-[11px]">
           <Link 
             href="/seller" 
-            className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/seller') && !isActive('/seller/gigs') && !isActive('/seller/profile') && !isActive('/seller/earnings') ? 'text-orange-600' : 'text-muted-foreground'}`}
+            className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/seller') && !isActive('/seller/gigs') && !isActive('/seller/orders') && !isActive('/seller/profile') && !isActive('/seller/earnings') ? 'text-orange-600' : 'text-muted-foreground'}`}
           >
             <Home size={22} />
             <span className="mt-0.5">Inicio</span>
           </Link>
           <Link 
-            href="/seller/gigs" 
-            className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/seller/gigs') ? 'text-orange-600' : 'text-muted-foreground'}`}
+            href="/seller/orders" 
+            className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/seller/orders') ? 'text-orange-600' : 'text-muted-foreground'}`}
           >
-            <Package size={22} />
-            <span className="mt-0.5">Mis Gigs</span>
+            <List size={22} />
+            <span className="mt-0.5">Pedidos</span>
           </Link>
           <Link 
             href="/create-gig" 
@@ -41,18 +41,18 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
             <span className="mt-0.5 -mb-1">Crear</span>
           </Link>
           <Link 
-            href="/seller/earnings" 
-            className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/seller/earnings') ? 'text-orange-600' : 'text-muted-foreground'}`}
+            href="/messages" 
+            className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/messages') ? 'text-orange-600' : 'text-muted-foreground'}`}
           >
-            <DollarSign size={22} />
-            <span className="mt-0.5">Ganancias</span>
+            <MessageCircle size={22} />
+            <span className="mt-0.5">Mensajes</span>
           </Link>
           <Link 
-            href="/referrals" 
-            className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/referrals') ? 'text-orange-600' : 'text-muted-foreground'}`}
+            href="/seller/gigs" 
+            className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/seller/gigs') ? 'text-orange-600' : 'text-muted-foreground'}`}
           >
-            <Users size={22} />
-            <span className="mt-0.5">Referidos</span>
+            <Package size={22} />
+            <span className="mt-0.5">Gigs</span>
           </Link>
         </div>
       </nav>

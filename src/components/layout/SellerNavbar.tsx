@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Home,
   Briefcase,
+  List,
   Users,
   Store,
   UserPlus,
@@ -40,6 +41,7 @@ interface NavItem {
 const SELLER_NAV_ITEMS: NavItem[] = [
   { href: '/seller', label: 'Dashboard', icon: Home },
   { href: '/seller/gigs', label: 'Mis Gigs', icon: Briefcase },
+  { href: '/seller/orders', label: 'Pedidos', icon: List },
   { href: '/messages', label: 'Mensajes', icon: MessageCircle },
   { href: '/seller/earnings', label: 'Ganancias', icon: DollarSign },
   { href: '/seller/network', label: 'Red', icon: Users, minBreakpoint: 'lg' },

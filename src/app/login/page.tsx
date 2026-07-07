@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
+import { getPostLoginRedirectPath } from '@/lib/session';
 import TurnstileWidget from '@/components/security/TurnstileWidget';
 import Logo from '@/components/common/Logo';
 
@@ -71,7 +72,7 @@ export default function LoginPage() {
     const checkSession = async () => {
       const session = await getSession();
       if (session?.user) {
-        router.replace('/');
+        router.replace(getPostLoginRedirectPath(session));
       }
     };
     checkSession();
@@ -83,7 +84,6 @@ export default function LoginPage() {
     setError('');
 
     const fromQuery = new URLSearchParams(window.location.search).get('callbackUrl');
-    const callbackUrl = fromQuery || getAuthCallbackUrl('/');
 
     if (turnstileEnabled && !turnstileToken) {
       setError('Completa la verificación anti-bot antes de continuar.');
@@ -109,7 +109,7 @@ export default function LoginPage() {
     const result = await signIn('credentials', {
       email: email.trim().toLowerCase(),
       password,
-      callbackUrl,
+      callbackUrl: fromQuery || getAuthCallbackUrl('/'),
       redirect: false,
     });
 
@@ -126,13 +126,18 @@ export default function LoginPage() {
 
     if (result?.ok) {
       await fetch('/api/auth/record-login', { method: 'POST' }).catch(() => {})
-      window.location.assign(callbackUrl);
+      let destination = fromQuery || getAuthCallbackUrl('/');
+      if (!fromQuery) {
+        const session = await getSession();
+        destination = getAuthCallbackUrl(getPostLoginRedirectPath(session));
+      }
+      window.location.assign(destination);
     }
   };
 
   const handleGoogleSignIn = async () => {
     const fromQuery = new URLSearchParams(window.location.search).get('callbackUrl');
-    const callbackUrl = fromQuery || getAuthCallbackUrl('/');
+    const callbackUrl = fromQuery || getAuthCallbackUrl(getPostLoginRedirectPath(await getSession()));
 
     try {
       const { signInWithGoogle } = await import('@/lib/capacitor-native');

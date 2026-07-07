@@ -24,7 +24,13 @@ interface MobileMenuProps {
 export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileMenuProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
-  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password' || pathname?.startsWith('/login/') || false;
+  const isAuthPage =
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password' ||
+    pathname?.startsWith('/login/') ||
+    false;
 
   if (!isOpen) return null;
 
@@ -83,6 +89,9 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             <Link href="/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Bell size={22} /> Notificaciones
             </Link>
+            <Link href="/settings/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Settings size={22} /> Preferencias de notificaciones
+            </Link>
             <Link id="tutorial-explore-gigs" href="/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Home size={22} /> Explorar Gigs
             </Link>
@@ -123,11 +132,17 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             <Link href="/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Bell size={22} /> Notificaciones
             </Link>
+            <Link href="/settings/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Settings size={22} /> Preferencias de notificaciones
+            </Link>
             <Link href="/seller" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Home size={22} /> Dashboard
             </Link>
             <Link href="/seller/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Package size={22} /> Mis Gigs
+            </Link>
+            <Link href="/seller/orders" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <List size={22} /> Pedidos
             </Link>
             <Link href="/messages" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <MessageCircle size={22} /> Mensajes

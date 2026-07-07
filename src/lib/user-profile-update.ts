@@ -66,7 +66,7 @@ async function resolveSlug(
   const trimmed = businessName.trim()
   if (!trimmed) return { slug: null, slugSafe: false }
 
-  let slug = slugify(trimmed)
+  const slug = slugify(trimmed)
   if (!slug) return { slug: null, slugSafe: false }
 
   let candidate = slug

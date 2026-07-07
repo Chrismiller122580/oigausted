@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink, Eye, EyeOff, Lock, MessageCircle, Instagram } from "lucide-react";
+import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink, Eye, EyeOff, Lock, MessageCircle, Instagram, Bell } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { toast } from 'sonner';
 import MapsPollutionNuke from "@/components/maps/MapsPollutionNuke";
@@ -667,6 +667,27 @@ export default function ProfilePage() {
                 )}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="mt-8 border border-border/60">
+          <CardContent className="p-8">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-950 flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold">Notificaciones</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Email, push, horario silencioso y resúmenes
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/settings/notifications">Configurar</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
