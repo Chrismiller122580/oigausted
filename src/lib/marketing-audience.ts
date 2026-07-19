@@ -4,6 +4,7 @@ import {
   buildCityWhere,
   colombiaUserFilter,
   isCountryCodeSchemaDrift,
+  stringContains,
   withoutCountryCode,
 } from '@/lib/colombia-geo';
 import { buildPlaybookWhere, parsePlaybookId } from '@/lib/marketing-playbooks';
@@ -62,6 +63,24 @@ function applyCityFilter(where: Prisma.UserWhereInput, city?: string): void {
   }
 }
 
+/** Search must be AND-ed so it never overwrites playbook OR clauses (e.g. sellers-no-payout). */
+function applySearchFilter(where: Prisma.UserWhereInput, search?: string): void {
+  if (!search?.trim()) return;
+  const q = search.trim();
+  const searchWhere: Prisma.UserWhereInput = {
+    OR: [
+      { name: stringContains(q) },
+      { email: stringContains(q) },
+      { businessName: stringContains(q) },
+    ],
+  };
+  where.AND = Array.isArray(where.AND)
+    ? [...where.AND, searchWhere]
+    : where.AND
+      ? [where.AND, searchWhere]
+      : [searchWhere];
+}
+
 export function buildAudienceWhere(
   segment: string,
   city?: string,
@@ -77,13 +96,7 @@ export function buildAudienceWhere(
         ...colombiaUserFilter(),
       };
       applyCityFilter(where, city);
-      if (search) {
-        where.OR = [
-          { name: { contains: search, mode: 'insensitive' } as Prisma.StringNullableFilter },
-          { email: { contains: search, mode: 'insensitive' } as Prisma.StringNullableFilter },
-          { businessName: { contains: search, mode: 'insensitive' } as Prisma.StringNullableFilter },
-        ];
-      }
+      applySearchFilter(where, search);
       return where;
     }
   }
@@ -102,14 +115,7 @@ export function buildAudienceWhere(
   }
 
   applyCityFilter(where, city);
-
-  if (search) {
-    where.OR = [
-      { name: { contains: search, mode: 'insensitive' } as Prisma.StringNullableFilter },
-      { email: { contains: search, mode: 'insensitive' } as Prisma.StringNullableFilter },
-      { businessName: { contains: search, mode: 'insensitive' } as Prisma.StringNullableFilter },
-    ];
-  }
+  applySearchFilter(where, search);
 
   return where;
 }
@@ -145,18 +151,20 @@ export async function resolveMarketingRecipients(opts: {
   let baseUsers: MarketingRecipient[];
 
   if (userIds && userIds.length > 0) {
+    const idWhere = await resolveAudienceWhere({
+      id: { in: userIds },
+      email: { not: null },
+      isActive: true,
+      ...colombiaUserFilter(),
+    });
     baseUsers = await prisma.user.findMany({
-      where: {
-        id: { in: userIds },
-        email: { not: null },
-        isActive: true,
-        ...colombiaUserFilter(),
-      },
+      where: idWhere,
       select: { id: true, email: true, name: true, businessName: true, city: true },
     });
   } else if (where) {
+    const effectiveWhere = await resolveAudienceWhere(where);
     baseUsers = await prisma.user.findMany({
-      where,
+      where: effectiveWhere,
       select: { id: true, email: true, name: true, businessName: true, city: true },
       orderBy: { createdAt: 'desc' },
       take,
@@ -219,14 +227,33 @@ async function countUsersSafe(where: Prisma.UserWhereInput): Promise<number> {
   }
 }
 
+/**
+ * Resolve a where clause that works against the live schema.
+ * Strips countryCode when that column is missing in production.
+ */
+export async function resolveAudienceWhere(
+  where: Prisma.UserWhereInput,
+): Promise<Prisma.UserWhereInput> {
+  try {
+    await prisma.user.count({ where });
+    return where;
+  } catch (err) {
+    if (isCountryCodeSchemaDrift(err)) {
+      return withoutCountryCode(where);
+    }
+    throw err;
+  }
+}
+
 /** Users matching filters minus those who opted out of marketing emails. */
 export async function countReachableAudience(where: Prisma.UserWhereInput): Promise<number> {
-  const total = await countUsersSafe(where);
+  const effectiveWhere = await resolveAudienceWhere(where);
+  const total = await prisma.user.count({ where: effectiveWhere });
 
   try {
     const emailDisabled = await prisma.user.count({
       where: {
-        ...where,
+        ...effectiveWhere,
         notificationPreferences: {
           is: { emailEnabled: false },
         },
@@ -236,7 +263,7 @@ export async function countReachableAudience(where: Prisma.UserWhereInput): Prom
     try {
       marketingDisabled = await prisma.user.count({
         where: {
-          ...where,
+          ...effectiveWhere,
           notificationPreferences: {
             is: { marketingEmails: false },
           },

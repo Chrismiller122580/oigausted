@@ -5,6 +5,9 @@ import { COLOMBIA_NATIONAL_SCOPE } from '@/lib/colombia-cities';
 import { normalizeGeneratedCampaign } from '@/lib/marketing-campaign-types';
 import { getPlaybookById } from '@/lib/marketing-playbooks';
 
+/** Grok generation can exceed default serverless limits on cold starts. */
+export const maxDuration = 60;
+
 interface GenerateRequest {
   goal: string;
   prompt?: string;
@@ -102,7 +105,22 @@ MODO PLAYBOOK EDUCATIVO (prioridad máxima):
 
     const apiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: "Grok API key not configured" }, { status: 500 });
+      // Prefer usable fallback over a hard 500 so the admin UI never dead-ends.
+      const fallback = createFallbackCampaign(
+        effectiveGoal,
+        channels,
+        tone,
+        isSpanish,
+        playbook,
+        targetCity || undefined,
+        targetScope,
+      );
+      return NextResponse.json({
+        success: true,
+        campaign: normalizeGeneratedCampaign(fallback as unknown as Record<string, unknown>, effectiveGoal, variations),
+        fallback: true,
+        message: 'Usando contenido de respaldo (GROK_API_KEY / XAI_API_KEY no configurada)',
+      });
     }
 
     const systemPrompt = `Eres el director creativo de marketing más inteligente y efectivo de Colombia para OigaGIG (oigagig.com).

@@ -16,6 +16,15 @@
     },
     "src/app/api/admin/marketing/seller-toolkit-blast/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/admin/marketing/broadcast/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/admin/marketing/ai-generate/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/admin/marketing/playbooks/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [

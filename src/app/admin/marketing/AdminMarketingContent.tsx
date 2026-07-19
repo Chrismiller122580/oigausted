@@ -217,7 +217,7 @@ export default function AdminMarketingContent() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({} as Record<string, unknown>));
 
       if (requestId !== generateRequestId.current) return;
 
@@ -231,11 +231,21 @@ export default function AdminMarketingContent() {
           setActiveAiTab('email');
         });
         void fetchEstimatedAudience(normalized.recommendedSegment);
+        if (data.fallback) {
+          setApiWarning(
+            typeof data.message === 'string'
+              ? data.message
+              : 'Campaña de respaldo (IA no disponible). Revisa GROK_API_KEY / XAI_API_KEY.',
+          );
+        }
         window.setTimeout(() => {
           toast.success(data.fallback ? 'Campaña de respaldo generada' : 'Campaña generada con IA');
         }, 0);
       } else {
-        toast.error('No se pudo generar la campaña');
+        toast.error(
+          (typeof data.error === 'string' && data.error) ||
+            (res.status === 403 ? 'Sin permiso de admin' : 'No se pudo generar la campaña'),
+        );
       }
     } catch (e) {
       toast.error('Error conectando con el generador de IA');

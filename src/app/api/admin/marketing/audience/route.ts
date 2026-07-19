@@ -6,6 +6,7 @@ import {
   countReachableAudience,
   isNotificationPreferenceDrift,
   isUserEmailReachable,
+  resolveAudienceWhere,
 } from '@/lib/marketing-audience';
 
 export async function GET(req: NextRequest) {
@@ -22,7 +23,8 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || '';
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
 
-    const where = buildAudienceWhere(segment, city, search);
+    const rawWhere = buildAudienceWhere(segment, city, search);
+    const where = await resolveAudienceWhere(rawWhere);
 
     const [total, reachable, sample] = await Promise.all([
       prisma.user.count({ where }),

@@ -7,9 +7,13 @@ import {
   buildAudienceWhere,
   formatBroadcastSegment,
   isMissingMarketingCampaignTable,
+  resolveAudienceWhere,
   resolveMarketingRecipients,
 } from '@/lib/marketing-audience';
 import { applyMergeFields, getPlaybookById, parsePlaybookId } from '@/lib/marketing-playbooks';
+
+/** Large segment sends can take several minutes. */
+export const maxDuration = 300;
 
 interface BroadcastBody {
   subject: string;
@@ -83,7 +87,7 @@ export async function POST(req: NextRequest) {
     } else if (userIds && userIds.length > 0) {
       recipients = await resolveMarketingRecipients({ userIds });
     } else {
-      const where = parseSegment(segment, city);
+      const where = await resolveAudienceWhere(parseSegment(segment, city));
       recipients = await resolveMarketingRecipients({ where });
     }
 

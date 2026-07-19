@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminPanelSession, requireAnalyticsPanelSession } from '@/lib/admin-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { isMissingMarketingCampaignTable } from '@/lib/marketing-audience';
 
