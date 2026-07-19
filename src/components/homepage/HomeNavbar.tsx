@@ -14,45 +14,45 @@ export function HomeNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/90">
+    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-md safe-area-inset-top dark:border-slate-800 dark:bg-slate-900/90">
       <nav
-        className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 sm:px-6"
+        className="mx-auto flex h-14 max-w-7xl items-center gap-2 sm:gap-3 px-3 sm:px-6 min-w-0"
         aria-label="Navegación principal"
       >
         <Logo
-          size={40}
+          size={36}
           variant="compact"
-          linkClassName="shrink-0 text-foreground hover:text-foreground"
+          linkClassName="shrink-0 text-foreground hover:text-foreground h-9 w-auto"
         />
 
-        <div className="hidden lg:flex flex-1 max-w-md mx-2">
+        <div className="hidden lg:flex flex-1 max-w-md mx-2 min-w-0">
           <MegaSearchBar variant="compact" />
         </div>
 
-        <div className="hidden md:flex items-center gap-1">
-          <Button variant="ghost" asChild size="sm" className="text-sm">
+        <div className="hidden md:flex items-center gap-1 shrink-0">
+          <Button variant="ghost" asChild size="sm" className="text-sm h-9 px-2.5">
             <Link href="/gigs">Explorar</Link>
           </Button>
-          <Button variant="ghost" asChild size="sm" className="text-sm">
+          <Button variant="ghost" asChild size="sm" className="text-sm h-9 px-2.5">
             <Link href="/para-compradores">Para compradores</Link>
           </Button>
-          <Button variant="ghost" asChild size="sm" className="text-sm">
+          <Button variant="ghost" asChild size="sm" className="text-sm h-9 px-2.5">
             <Link href="/para-profesionales">Para profesionales</Link>
           </Button>
         </div>
 
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-1 sm:gap-1.5 shrink-0">
           <ModeToggle />
-          <Button variant="ghost" asChild size="sm" className="hidden sm:inline-flex">
+          <Button variant="ghost" asChild size="sm" className="hidden sm:inline-flex h-9">
             <Link href="/login">Ingresar</Link>
           </Button>
-          <Button asChild size="sm" className={cn(brandButtonClass, 'font-medium')}>
+          <Button asChild size="sm" className={cn(brandButtonClass, 'font-medium h-9 px-3')}>
             <Link href="/signup">Registrarme</Link>
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="md:hidden h-9 w-9"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-expanded={mobileOpen}
             aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}

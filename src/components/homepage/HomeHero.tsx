@@ -18,7 +18,7 @@ const heroBackgroundImages = heroCollageImages.slice(0, 4);
 export function HomeHero() {
   return (
     <section
-      className="relative overflow-hidden text-white"
+      className="relative overflow-hidden text-white max-w-[100vw]"
       aria-labelledby="hero-heading"
     >
       {/* Colombian photo collage background — 4 images max for faster LCP */}
@@ -50,11 +50,11 @@ export function HomeHero() {
         aria-hidden
       />
 
-      <div className="relative z-10 mx-auto max-w-5xl px-4 py-16 sm:py-20 md:py-24 text-center">
+      <div className="relative z-10 mx-auto max-w-5xl px-4 py-12 sm:py-16 md:py-24 text-center">
         <div>
           <h1
             id="hero-heading"
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] font-bold leading-tight tracking-tight mb-4"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] font-bold leading-tight tracking-tight mb-4 text-balance"
           >
             El profesional que necesitas,
             <br />
@@ -75,13 +75,13 @@ export function HomeHero() {
           <MegaSearchBar variant="hero" />
         </div>
 
-        <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 mb-8">
+        <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 mb-8 w-full max-w-2xl mx-auto">
           <Button
             asChild
             size="lg"
             className={cn(
               brandButtonClass,
-              'font-semibold h-12 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all',
+              'font-semibold h-12 w-full sm:w-auto px-6 sm:px-8 rounded-xl shadow-lg hover:shadow-xl transition-all',
             )}
           >
             <Link href="/gigs">Buscar servicios</Link>
@@ -90,10 +90,10 @@ export function HomeHero() {
             asChild
             variant="outline"
             size="lg"
-            className="h-12 px-8 rounded-xl border-2 border-white/70 bg-transparent text-white hover:bg-white/10 font-semibold gap-2"
+            className="h-12 w-full sm:w-auto px-6 sm:px-8 rounded-xl border-2 border-white/70 bg-transparent text-white hover:bg-white/10 font-semibold gap-2"
           >
             <Link href="/mapa">
-              <MapPin className="h-4 w-4" aria-hidden />
+              <MapPin className="h-4 w-4 shrink-0" aria-hidden />
               Ver mapa
             </Link>
           </Button>
@@ -101,7 +101,7 @@ export function HomeHero() {
             asChild
             variant="outline"
             size="lg"
-            className="h-12 px-8 rounded-xl border-2 border-white/70 bg-transparent text-white hover:bg-white/10 font-semibold"
+            className="h-12 w-full sm:w-auto px-6 sm:px-8 rounded-xl border-2 border-white/70 bg-transparent text-white hover:bg-white/10 font-semibold text-sm sm:text-base"
           >
             <Link href="/para-compradores">Necesito un servicio • Registro gratis</Link>
           </Button>
@@ -109,7 +109,7 @@ export function HomeHero() {
             asChild
             variant="outline"
             size="lg"
-            className="h-12 px-8 rounded-xl border-2 border-white/70 bg-transparent text-white hover:bg-white/10 font-semibold"
+            className="h-12 w-full sm:w-auto px-6 sm:px-8 rounded-xl border-2 border-white/70 bg-transparent text-white hover:bg-white/10 font-semibold text-sm sm:text-base"
           >
             <Link href="/para-profesionales">Soy profesional • Publica gratis</Link>
           </Button>

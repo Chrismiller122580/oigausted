@@ -45,8 +45,8 @@ export function WorldwideHeader({ activeCountry }: WorldwideHeaderProps) {
   }, [pathname, router]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white shadow-sm safe-area-inset-top dark:border-slate-800 dark:bg-slate-900">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 sm:gap-3 px-3 py-3 sm:px-6 sm:py-4 min-w-0">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Logo size={36} variant="compact" linkClassName="shrink-0" />
           <div className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">

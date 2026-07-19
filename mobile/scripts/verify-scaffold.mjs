@@ -50,7 +50,20 @@ assert(plist.includes('<string>arm64</string>'), 'iOS should require arm64 (not 
 const pbxproj = read('ios/App/App.xcodeproj/project.pbxproj')
 assert(pbxproj.includes('PRODUCT_BUNDLE_IDENTIFIER = com.oigagig.app'), 'iOS bundle ID missing')
 assert(pbxproj.includes('IPHONEOS_DEPLOYMENT_TARGET = 15.0'), 'iOS deployment target missing')
-assert(pbxproj.includes('MARKETING_VERSION = 1.1'), 'iOS marketing version missing')
+// Keep flexible — Android and iOS versions bump independently at release time
+assert(
+  /MARKETING_VERSION = \d+\.\d+/.test(pbxproj),
+  'iOS marketing version missing (MARKETING_VERSION = x.y)',
+)
+assert(
+  /CURRENT_PROJECT_VERSION = \d+/.test(pbxproj),
+  'iOS build number missing (CURRENT_PROJECT_VERSION)',
+)
+
+const androidGradle = read('android/app/build.gradle')
+assert(androidGradle.includes('applicationId "com.oigagig.app"'), 'Android applicationId missing')
+assert(/versionName\s+"[\d.]+"/.test(androidGradle), 'Android versionName missing')
+assert(/versionCode\s+\d+/.test(androidGradle), 'Android versionCode missing')
 
 const iosCapConfigPath = join(root, 'ios', 'App', 'App', 'capacitor.config.json')
 if (existsSync(iosCapConfigPath)) {

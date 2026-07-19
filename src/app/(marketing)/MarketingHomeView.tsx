@@ -41,10 +41,10 @@ export function MarketingHomeView({
   sellerCounts,
 }: MarketingHomeViewProps) {
   return (
-    <>
+    <div className="min-w-0 max-w-[100vw] overflow-x-clip">
       <MarketingHomeWelcome />
       <HomeNavbar />
-      <main>
+      <main className="min-w-0">
         <HomeHero />
         <CategoriesSection categories={categories} />
         <StatsAndPopular stats={stats} popularGigs={popularGigs} />
@@ -52,6 +52,6 @@ export function MarketingHomeView({
         <CountryMapSection sellerCounts={sellerCounts} />
       </main>
       <HomeFooter />
-    </>
+    </div>
   );
 }

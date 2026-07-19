@@ -220,16 +220,60 @@ html.native-app [data-sonner-toaster][data-y-position='bottom'] {
   top: -9999px !important;
 }
 
-/* Improve mobile tap targets */
-button, a, [role="button"] {
+/*
+ * Tap targets: keep 44/48px in page content, but NOT inside dense toolbars.
+ * Global min-height on every <a>/<button> was blowing up HomeNavbar / role
+ * navs on Android WebViews (h-14 bars wrapping / misaligned).
+ */
+main button,
+main a,
+main [role="button"],
+[data-slot="dialog-content"] button,
+[data-slot="dialog-content"] a,
+[role="dialog"] button,
+[role="dialog"] a {
   min-height: 44px;
   min-width: 44px;
 }
 
 @media (max-width: 768px) {
-  button, a, [role="button"] {
+  main button,
+  main a,
+  main [role="button"],
+  [data-slot="dialog-content"] button,
+  [data-slot="dialog-content"] a,
+  [role="dialog"] button,
+  [role="dialog"] a {
     min-height: 48px;
   }
+}
+
+/* Compact chrome: let headers/navs size themselves */
+header a,
+header button,
+header [role="button"],
+nav a,
+nav button,
+nav [role="button"] {
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Capacitor shell: status bar + home gesture insets on sticky chrome */
+html.native-app header.sticky,
+html.native-app nav.sticky {
+  padding-top: max(env(safe-area-inset-top, 0px), var(--native-status-bar-inset, 0px));
+}
+
+html.native-app {
+  /* Prevent horizontal rubber-band / misaligned full-bleed sections on Android */
+  overflow-x: clip;
+}
+
+html.native-app body {
+  overflow-x: clip;
+  /* Avoid 100vh jump under Android system UI */
+  min-height: 100dvh;
 }
 
 /* Oiga GiG 1.0 Facelift - Premium landing visuals */
