@@ -133,6 +133,31 @@ NEXT_PUBLIC_PLAY_STORE_URL=https://play.google.com/store/apps/details?id=com.oig
 
 Redeploy. Footer Google Play badge then links to the store.
 
+## Digital Asset Links (App Links)
+
+Play Console may show a JSON snippet for **Android App Links**. You do **not** paste that into Play Console.
+
+Host it on the website (already in the repo):
+
+- File: `public/.well-known/assetlinks.json`
+- Live URL after deploy: `https://oigagig.com/.well-known/assetlinks.json`
+
+Fingerprints included:
+
+1. **Play App Signing** cert (from Play Console) — installs from Google Play  
+2. **Upload keystore** cert — local/sideload signed builds  
+
+After deploy, verify:
+
+```bash
+curl -sI https://oigagig.com/.well-known/assetlinks.json
+curl -s https://oigagig.com/.well-known/assetlinks.json
+```
+
+Google’s tester: https://developers.google.com/digital-asset-links/tools/generator
+
+Note: true HTTPS App Links also need `https` intent-filters with `android:autoVerify="true"` in the Android manifest. Today the shell mainly uses the custom scheme `oigagig://app/...`. Hosting `assetlinks.json` still satisfies Play’s association step.
+
 ## Optional (not blocking first upload)
 
 | Item | Why | Status |
