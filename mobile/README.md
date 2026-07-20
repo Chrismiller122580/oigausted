@@ -112,6 +112,9 @@ On first launch after install, accept the notification permission prompt while s
 
 ## Google Play release
 
+**First-time Play Console walkthrough (Cortland Blackstone account):** see [`store/play/PLAY_CONSOLE_SETUP.md`](./store/play/PLAY_CONSOLE_SETUP.md).  
+Store graphics live in [`store/play/`](./store/play/) (`icon-512.png`, `feature-graphic-1024x500.png`).
+
 The Play Store requires a **signed Android App Bundle (`.aab`)**, not an APK. Package name: **`com.oigagig.app`**.
 
 ### Step 1 — Play Console account
