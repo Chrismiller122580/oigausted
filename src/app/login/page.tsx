@@ -43,7 +43,7 @@ export default function LoginPage() {
         urlError === 'OAuthSignin'
           ? 'Google sign-in failed. This is common in temporary dev environments (changing URLs). Try the email/password form instead.'
           : urlError === 'CredentialsSignin'
-            ? 'Invalid email or password. For local dev use admin@local.dev / AdminLocal123!'
+            ? 'Invalid email or password.'
             : 'There was a problem signing in. Please try again.';
 
       setError(friendlyMessage);
@@ -118,7 +118,7 @@ export default function LoginPage() {
     if (result?.error) {
       setError(
         result.error === 'CredentialsSignin'
-          ? 'Invalid email or password. For local dev use admin@local.dev / AdminLocal123!'
+          ? 'Invalid email or password.'
           : 'There was a problem signing in. Please try again.',
       );
       return;
@@ -163,11 +163,6 @@ export default function LoginPage() {
         <CardContent>
           <div className="mb-4">
             <p className="text-sm font-medium text-foreground mb-3">Sign in with your account</p>
-            {process.env.NODE_ENV === 'development' && (
-              <div className="rounded-xl border border-orange-200 bg-orange-50 dark:bg-orange-950/30 dark:border-orange-800 px-3 py-2 text-xs text-orange-900 dark:text-orange-200">
-                <strong>Local dev:</strong> admin@local.dev / AdminLocal123!
-              </div>
-            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
