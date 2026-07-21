@@ -119,7 +119,7 @@ export const JOIN_FAQS: JoinFaqItem[] = [
     category: 'account',
     question: '¿Puedo eliminar o desactivar mi cuenta?',
     answer:
-      'Sí. Si tienes pedidos o actividad activa, tu cuenta puede desactivarse en lugar de eliminarse para proteger el historial de compradores y vendedores. Escríbenos a soporte si necesitas ayuda con tu cuenta.',
+      'Sí. En Mi Perfil encontrarás la opción «Eliminar cuenta». Puedes cerrar solo el acceso o, opcionalmente, eliminar también tus datos personales (perfil, fotos, notificaciones, etc.). Si tienes pedidos en curso, complétalos o cancélalos primero. El historial de transacciones puede conservarse de forma anónima por obligaciones legales. Escríbenos a soporte si necesitas ayuda.',
   },
 ];
 

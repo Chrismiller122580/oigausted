@@ -18,7 +18,7 @@ export const metadata = buildPublicPageMetadata({
   ],
 });
 
-const LAST_UPDATED = '15 de junio de 2026';
+const LAST_UPDATED = '21 de julio de 2026';
 
 export default async function PrivacyPage() {
   const site = await getPublicSiteInfo();
@@ -101,12 +101,21 @@ export default async function PrivacyPage() {
         <section>
           <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">5. Tus derechos</h2>
           <p>
-            Puedes solicitar acceso, corrección o eliminación de tus datos escribiendo a{' '}
+            Puedes solicitar acceso o corrección de tus datos escribiendo a{' '}
             <a href={`mailto:${site.supportEmail}`} className="text-orange-600 hover:underline">
               {site.supportEmail}
             </a>
-            . Si tienes pedidos activos, podemos desactivar tu cuenta en lugar de borrarla para
-            mantener registros de transacciones exigidos por ley o por seguridad de la comunidad.
+            .
+          </p>
+          <p className="mt-3">
+            <strong>Eliminación de cuenta y datos:</strong> desde tu perfil en la app o en el sitio
+            web (<Link href="/profile" className="text-orange-600 hover:underline">Mi Perfil</Link>
+            ) puedes eliminar tu cuenta en cualquier momento. Opcionalmente puedes marcar{' '}
+            <em>También eliminar mis datos personales</em> para borrar o anonimizar perfil, fotos,
+            notificaciones, preferencias y otra información personal. Si tienes pedidos en curso,
+            debes completarlos o cancelarlos antes. El historial de transacciones puede conservarse
+            de forma anónima cuando la ley o la seguridad de la comunidad lo exijan (por ejemplo,
+            pedidos con la otra parte). También puedes escribir a soporte si necesitas ayuda.
           </p>
         </section>
 

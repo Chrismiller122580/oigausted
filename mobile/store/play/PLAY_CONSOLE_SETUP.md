@@ -80,7 +80,7 @@ Complete every required section until the dashboard shows green checkmarks.
 | **Target audience** | **18 and over** recommended (gig marketplace + payments) |
 | **News app** | No |
 | **COVID-19 contact tracing / status** | No |
-| **Data safety** | Yes you collect data. Align with privacy policy: account info (email, name), photos (optional profile/gig images), approximate/precise location if maps used, payment-related data via Wompi, app activity. Encryption in transit: Yes. Account deletion: document if offered in-app or via support. |
+| **Data safety** | Yes you collect data. Align with privacy policy: account info (email, name), photos (optional profile/gig images), approximate/precise location if maps used, payment-related data via Wompi, app activity. Encryption in transit: Yes. **Account deletion: Yes — in-app** at `/profile` (“Eliminar cuenta”), with optional full personal-data wipe. Also described at https://oigagig.com/privacy |
 | **Government apps** | No |
 | **Financial features** | Only if you process payments in-app — declare marketplace payments as applicable |
 | **Health** | No |

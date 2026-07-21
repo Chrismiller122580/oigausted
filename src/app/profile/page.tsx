@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink, Eye, EyeOff, Lock, MessageCircle, Instagram, Bell } from "lucide-react";
+import { Camera, Sparkles, Share2, MapPin, Phone, Award, Star, ExternalLink, Eye, EyeOff, Lock, MessageCircle, Instagram, Bell, Trash2, AlertTriangle } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { toast } from 'sonner';
 import MapsPollutionNuke from "@/components/maps/MapsPollutionNuke";
@@ -35,6 +35,12 @@ export default function ProfilePage() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  // Account deletion state
+  const [showDeleteForm, setShowDeleteForm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteAllData, setDeleteAllData] = useState(true);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -351,6 +357,45 @@ export default function ProfilePage() {
       toast.error('Error al cambiar la contraseña');
     } finally {
       setPasswordLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (deleteConfirmText.trim().toUpperCase() !== 'ELIMINAR') {
+      toast.error('Escribe ELIMINAR para confirmar');
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      const res = await fetch('/api/user/account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          confirm: deleteConfirmText.trim(),
+          deleteAllData,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        toast.error(data.error || 'No se pudo eliminar la cuenta');
+        return;
+      }
+
+      trackEvent('account_deleted', { delete_all_data: deleteAllData });
+      toast.success(
+        deleteAllData
+          ? 'Cuenta y datos personales eliminados'
+          : 'Cuenta eliminada. Ya no podrás iniciar sesión.'
+      );
+      await signOut({ callbackUrl: '/' });
+    } catch {
+      toast.error('Error de conexión al eliminar la cuenta');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -781,6 +826,116 @@ export default function ProfilePage() {
                 </Button>
                 <p className="text-xs text-muted-foreground">
                   Si iniciaste sesión con Google y no tienes contraseña, puedes establecer una aquí.
+                </p>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Danger zone — account deletion (Play Store / privacy requirement) */}
+        <Card className="mt-8 border border-red-200 dark:border-red-900/50 bg-red-50/40 dark:bg-red-950/20">
+          <CardContent className="p-8">
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-950 flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-red-800 dark:text-red-200">
+                    Eliminar cuenta
+                  </h3>
+                  <p className="text-sm text-red-700/80 dark:text-red-300/80">
+                    Cierra tu cuenta de forma permanente. Esta acción no se puede deshacer.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-red-300 text-red-700 hover:bg-red-100 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
+                onClick={() => {
+                  setShowDeleteForm(!showDeleteForm);
+                  setDeleteConfirmText('');
+                }}
+              >
+                {showDeleteForm ? 'Cancelar' : 'Eliminar'}
+              </Button>
+            </div>
+
+            {showDeleteForm && (
+              <form onSubmit={handleDeleteAccount} className="mt-6 space-y-5 max-w-lg">
+                <div className="flex gap-3 rounded-2xl border border-red-200 dark:border-red-900 bg-card p-4 text-sm">
+                  <AlertTriangle className="h-5 w-5 shrink-0 text-red-600 mt-0.5" />
+                  <div className="space-y-2 text-muted-foreground">
+                    <p>
+                      Al eliminar tu cuenta se cerrará tu sesión y no podrás volver a entrar con
+                      este acceso. Tus gigs se despublicarán.
+                    </p>
+                    <p>
+                      Si tienes pedidos en curso (pendientes, pagados o en progreso), debes
+                      completarlos o cancelarlos antes de continuar.
+                    </p>
+                    <p>
+                      El historial de transacciones puede conservarse de forma anónima por
+                      obligaciones legales y para la otra parte del pedido.
+                    </p>
+                  </div>
+                </div>
+
+                <label className="flex items-start gap-3 cursor-pointer rounded-2xl border border-border bg-card p-4 hover:bg-muted/40 transition">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-border text-red-600 focus:ring-red-500"
+                    checked={deleteAllData}
+                    onChange={(e) => setDeleteAllData(e.target.checked)}
+                  />
+                  <span>
+                    <span className="block font-medium text-foreground">
+                      También eliminar mis datos personales
+                    </span>
+                    <span className="block text-sm text-muted-foreground mt-0.5">
+                      Borra o anonimiza perfil, fotos, notificaciones, preferencias, tickets de
+                      soporte, datos de pago y otra información personal asociada a tu cuenta.
+                      Recomendado para cumplir con tu derecho a la eliminación de datos.
+                    </span>
+                  </span>
+                </label>
+
+                <div>
+                  <label className="text-sm font-medium">
+                    Escribe <span className="font-mono text-red-700 dark:text-red-300">ELIMINAR</span> para confirmar
+                  </label>
+                  <Input
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    placeholder="ELIMINAR"
+                    className="mt-1.5 border-red-200 focus-visible:ring-red-500"
+                    autoComplete="off"
+                    disabled={deleteLoading}
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  variant="destructive"
+                  disabled={
+                    deleteLoading || deleteConfirmText.trim().toUpperCase() !== 'ELIMINAR'
+                  }
+                  className="w-full bg-red-600 hover:bg-red-700"
+                >
+                  {deleteLoading
+                    ? 'Eliminando…'
+                    : deleteAllData
+                      ? 'Eliminar cuenta y mis datos'
+                      : 'Eliminar solo la cuenta'}
+                </Button>
+
+                <p className="text-xs text-muted-foreground text-center">
+                  Más información en nuestra{' '}
+                  <Link href="/privacy" className="text-orange-600 hover:underline">
+                    Política de privacidad
+                  </Link>
+                  .
                 </p>
               </form>
             )}
