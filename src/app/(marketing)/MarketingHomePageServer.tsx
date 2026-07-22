@@ -108,7 +108,11 @@ const loadMarketingHomeData = unstable_cache(
 
   try {
     popularGigs = await prisma.gig.findMany({
-      where: publicWhere,
+      where: {
+        ...publicWhere,
+        // Only show gigs with a real cover image in "Populares cerca de ti"
+        AND: [{ imageUrl: { not: null } }, { imageUrl: { not: '' } }],
+      },
       orderBy: { createdAt: 'desc' },
       take: 12,
       select: {
