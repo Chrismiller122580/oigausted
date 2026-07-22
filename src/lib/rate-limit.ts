@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { isSqliteDatabase } from '@/lib/utils'
 
 export type RateLimitAction =
   | 'SIGNUP_ATTEMPT'
@@ -33,12 +34,10 @@ export async function checkRateLimit(
   const since = new Date(Date.now() - windowMs)
   const actions = Array.isArray(opts.action) ? opts.action : [opts.action]
 
-  const where: {
-    action: { in: string[] }
-    createdAt: { gte: Date }
-    ipAddress?: string
-    details?: { path: string[]; equals: string }
-  } = {
+  // Postgres: JSON path filter on details.email.
+  // SQLite (local dev): details is stored as a string — use string contains instead.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: Record<string, any> = {
     action: { in: actions },
     createdAt: { gte: since },
   }
@@ -48,14 +47,26 @@ export async function checkRateLimit(
   }
 
   if (opts.email) {
-    where.details = { path: ['email'], equals: opts.email.toLowerCase() }
+    const email = opts.email.toLowerCase()
+    if (isSqliteDatabase()) {
+      // details is a JSON string in local sqlite shim
+      where.details = { contains: `"email":"${email}"` }
+    } else {
+      where.details = { path: ['email'], equals: email }
+    }
   }
 
-  const count = await prisma.auditLog.count({ where })
-  if (count >= opts.maxAttempts) {
-    return { allowed: false, retryAfter: Math.ceil(windowMs / 1000) }
+  try {
+    const count = await prisma.auditLog.count({ where })
+    if (count >= opts.maxAttempts) {
+      return { allowed: false, retryAfter: Math.ceil(windowMs / 1000) }
+    }
+    return { allowed: true }
+  } catch (err) {
+    // Never block login if rate-limit storage is misconfigured (e.g. schema drift).
+    console.warn('[rate-limit] check failed; allowing request:', err)
+    return { allowed: true }
   }
-  return { allowed: true }
 }
 
 export const RATE_LIMITS = {

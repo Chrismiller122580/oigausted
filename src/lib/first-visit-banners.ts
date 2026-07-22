@@ -24,9 +24,24 @@ export function markHomepageWelcomeSeen(): void {
 
 const AUTH_PATH_PREFIXES = ['/login', '/signup', '/forgot-password', '/reset-password', '/auth/'] as const
 
+/** Staff / internal panels — no cookie marketing banner on tool UIs. */
+const STAFF_PATH_PREFIXES = [
+  '/admin',
+  '/admin-assistant',
+  '/analytics',
+  '/accountant',
+  '/seller',
+] as const
+
 function isAuthPath(pathname: string): boolean {
   return AUTH_PATH_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(prefix),
+  )
+}
+
+function isStaffPath(pathname: string): boolean {
+  return STAFF_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   )
 }
 
@@ -35,6 +50,7 @@ export function canShowCookieConsent(pathname: string): boolean {
   if (typeof window !== 'undefined' && isCapacitorNative()) return false
   if (getAnalyticsConsent() !== null) return false
   if (isAuthPath(pathname)) return false
+  if (isStaffPath(pathname)) return false
   if (pathname === '/' && !hasSeenHomepageWelcome()) return false
   return true
 }

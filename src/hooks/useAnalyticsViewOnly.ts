@@ -8,7 +8,7 @@ export function useAnalyticsViewOnly(): boolean {
   const pathname = usePathname();
   const { data: session } = useSession();
   return (
-    pathname.startsWith('/analytics') ||
+    (pathname?.startsWith('/analytics') ?? false) ||
     session?.user?.staffRole === 'analytics'
   );
 }
