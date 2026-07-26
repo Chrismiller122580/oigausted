@@ -9,14 +9,26 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { parseJsonArrayField, devLog } from '@/lib/utils';
 import { getAuthCallbackUrl } from '@/lib/getAuthCallbackUrl';
-import type { CheckoutFormData, CheckoutGig, DynamicFieldDef, DynamicFieldOption } from '@/types/gig-fields';
+import type {
+  CheckoutFormData,
+  CheckoutGig,
+  DynamicFieldDef,
+  DynamicFieldOption,
+  GigAddonOption,
+} from '@/types/gig-fields';
+import {
+  SALE_DOCS_CHECKOUT_KEY,
+  SALE_DOCS_CITY_KEY,
+} from '@/types/gig-fields';
 import type { OrderDetail } from '@/types/order';
 import type { WompiClientDebugState, WompiPrepareResponse, WompiWidgetResult } from '@/types/wompi';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 import { trackEvent } from '@/lib/analytics';
 import { buildWompiWidgetConfig } from '@/lib/wompi-widget';
-import { MapPin, AlertTriangle, CheckCircle } from 'lucide-react';
+import { MapPin, AlertTriangle, CheckCircle, FileText } from 'lucide-react';
 import BuyGigConfirmDialog from '@/components/gigs/BuyGigConfirmDialog';
+import { isSaleDocsAddon } from '@/lib/vehicle-sale-docs';
+import { COLOMBIA_CITIES } from '@/lib/colombia-cities';
 
 export default function CheckoutPage() {
   const params = useParams();
@@ -543,6 +555,9 @@ export default function CheckoutPage() {
   // Dev simulate button below remains for local testing.)
 
   const fields = parseJsonArrayField(gig?.fields);
+  const gigAddons = parseJsonArrayField(gig?.addons) as GigAddonOption[];
+  const saleDocsAddon = gigAddons.find((a) => isSaleDocsAddon(a)) || null;
+  const otherAddons = gigAddons.filter((a) => a.name?.trim() && !isSaleDocsAddon(a));
 
   // Calculate extra cost from selections
   // Coerce to finite numbers defensively (bad JSON data in fields can produce NaN -> bad amountInCents -> signature/amount errors at Wompi)
@@ -565,6 +580,15 @@ export default function CheckoutPage() {
         if (chosen && typeof chosen === 'object' && chosen.extraPrice != null) {
           extra += toNum(chosen.extraPrice);
         }
+      }
+    });
+    if (saleDocsAddon && selectedOptions[SALE_DOCS_CHECKOUT_KEY] === true) {
+      extra += toNum(saleDocsAddon.extraPrice);
+    }
+    otherAddons.forEach((addon, idx) => {
+      const key = `addon_${idx}`;
+      if (selectedOptions[key] === true) {
+        extra += toNum(addon.extraPrice);
       }
     });
     return extra;
@@ -738,6 +762,90 @@ export default function CheckoutPage() {
 
           {/* Dynamic fields configuration */}
           {renderDynamicFields()}
+
+          {/* Gig addons including OigaGIG sale documents pack */}
+          {(saleDocsAddon || otherAddons.length > 0) && (
+            <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/50 p-6 rounded-2xl space-y-4">
+              <p className="font-semibold text-foreground flex items-center gap-2">
+                <FileText className="h-5 w-5 text-orange-600" />
+                Opciones del vendedor
+              </p>
+
+              {saleDocsAddon && (
+                <div className="space-y-3">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedOptions[SALE_DOCS_CHECKOUT_KEY] === true}
+                      onChange={(e) => {
+                        handleFieldChange(SALE_DOCS_CHECKOUT_KEY, e.target.checked);
+                        if (e.target.checked && !selectedOptions[SALE_DOCS_CITY_KEY]) {
+                          const defaultCity =
+                            saleDocsAddon.meta?.cityId ||
+                            saleDocsAddon.meta?.cityLabel ||
+                            'bucaramanga';
+                          handleFieldChange(SALE_DOCS_CITY_KEY, String(defaultCity));
+                        }
+                      }}
+                      className="mt-1 w-5 h-5 accent-orange-600"
+                    />
+                    <span>
+                      <span className="font-medium">
+                        {saleDocsAddon.name || 'Paquete documentos OigaGIG'}
+                      </span>
+                      <span className="text-orange-600 ml-1">
+                        (+${toNum(saleDocsAddon.extraPrice).toLocaleString('es-CO')})
+                      </span>
+                      <span className="block text-sm text-muted-foreground mt-0.5">
+                        Contrato de compraventa + checklist de papeles (SOAT, tecnomecánica, impuestos, traspaso) según la ciudad.
+                      </span>
+                    </span>
+                  </label>
+
+                  {selectedOptions[SALE_DOCS_CHECKOUT_KEY] === true && (
+                    <div className="pl-8">
+                      <label className="block text-sm font-medium mb-1.5">
+                        Ciudad del traspaso / documentos
+                      </label>
+                      <select
+                        value={String(selectedOptions[SALE_DOCS_CITY_KEY] || saleDocsAddon.meta?.cityId || 'bucaramanga')}
+                        onChange={(e) => handleFieldChange(SALE_DOCS_CITY_KEY, e.target.value)}
+                        className="w-full border rounded-xl px-4 py-3 text-base bg-card"
+                      >
+                        {COLOMBIA_CITIES.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.label} ({c.region})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {otherAddons.map((addon, idx) => {
+                const key = `addon_${idx}`;
+                return (
+                  <label key={key} className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedOptions[key] === true}
+                      onChange={(e) => handleFieldChange(key, e.target.checked)}
+                      className="mt-1 w-5 h-5 accent-orange-600"
+                    />
+                    <span>
+                      <span className="font-medium">{addon.name}</span>
+                      {toNum(addon.extraPrice) > 0 && (
+                        <span className="text-orange-600 ml-1">
+                          (+${toNum(addon.extraPrice).toLocaleString('es-CO')})
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
 
           {/* Service Location (only for non-remote gigs) */}
           {!gig?.isRemote && (

@@ -236,6 +236,27 @@ export const gigCategories = [
       { key: "equipment", label: "Equipo y maquinaria incluidos", type: "checkbox", extraPrice: 70000 },
       { key: "permits", label: "Gestión de permisos/licencias incluida", type: "checkbox", extraPrice: 50000 }
     ]
+  },
+  {
+    name: "Venta de Autos y Vehículos",
+    icon: "🚗",
+    fields: [
+      { key: "vehicleType", label: "Tipo de vehículo", type: "select", options: [
+        { label: "Auto / carro", extraPrice: 0 },
+        { label: "Moto", extraPrice: 0 },
+        { label: "Camioneta / SUV", extraPrice: 25000 },
+        { label: "Camión / utilitario", extraPrice: 50000 },
+        { label: "Otro", extraPrice: 0 }
+      ] },
+      { key: "condition", label: "Condición", type: "select", options: [
+        { label: "Usado", extraPrice: 0 },
+        { label: "Nuevo", extraPrice: 40000 }
+      ] },
+      { key: "year", label: "Año del modelo", type: "number", extraPrice: 5000 },
+      { key: "inspection", label: "Inspección / peritaje incluido", type: "checkbox", extraPrice: 80000 },
+      { key: "testDrive", label: "Prueba de manejo incluida", type: "checkbox", extraPrice: 25000 },
+      { key: "delivery", label: "Entrega o traslado del vehículo", type: "checkbox", extraPrice: 120000 }
+    ]
   }
 ];
 

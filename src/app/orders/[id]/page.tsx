@@ -23,6 +23,8 @@ import {
   CreditCard,
   Paperclip,
   Camera,
+  FileText,
+  Download,
 } from 'lucide-react';
 import { IconTabs } from '@/components/ui/icon-tabs';
 import { CategoryIcon } from '@/lib/icon-registry';
@@ -37,6 +39,7 @@ import { buildWompiWidgetConfig } from '@/lib/wompi-widget';
 import { getOrderProgressSteps } from '@/lib/order-progress';
 import { getOrderStatusDisplayEs } from '@/lib/order-status';
 import { copyToClipboard } from '@/lib/share';
+import { orderIncludesSaleDocsBundle } from '@/lib/vehicle-sale-docs';
 
 function OrderDetailClient() {
   const params = useParams();
@@ -583,6 +586,46 @@ function OrderDetailClient() {
                 ))}
               </CardContent>
             </Card>
+
+            {orderIncludesSaleDocsBundle(order.customFields) && (
+              <Card className="mt-8 border-orange-200 dark:border-orange-900/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-orange-900 dark:text-orange-100">
+                    <FileText className="h-5 w-5 text-orange-600" />
+                    Documentos de la venta
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Paquete OigaGIG: contrato de compraventa y checklist de papeles adaptados a la ciudad del traspaso.
+                    Tras el pago puedes descargarlos e imprimirlos o guardar como PDF.
+                  </p>
+                  {['Paid', 'In Progress', 'In_Progress', 'Completed'].includes(String(order.status)) ? (
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button asChild variant="outline" className="gap-2">
+                        <a href={`/api/orders/${order.id}/sale-docs?doc=contract`} download>
+                          <Download className="h-4 w-4" />
+                          Contrato de compraventa
+                        </a>
+                      </Button>
+                      <Button asChild variant="outline" className="gap-2">
+                        <a href={`/api/orders/${order.id}/sale-docs?doc=checklist`} download>
+                          <Download className="h-4 w-4" />
+                          Checklist de papeles
+                        </a>
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                      Los documentos se habilitan cuando el pago del pedido esté confirmado.
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Plantillas de apoyo — no son asesoría legal. El traspaso formal se hace ante tránsito / RUNT.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Service Location Map */}
             {(order.serviceLatitude && order.serviceLongitude) && (

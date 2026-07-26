@@ -41,6 +41,7 @@ export const categoryIconKeys: Record<string, string> = {
   "Diseño de Interiores y Arquitectura": "diseno-de-interiores-y-arquitectura",
   "Clases de Idiomas y Tutorías Online": "clases-de-idiomas-y-tutorias-online",
   "Gestión de Eventos y Organización de Fiestas": "gestion-de-eventos-y-organizacion-de-fiestas",
+  "Venta de Autos y Vehículos": "venta-de-autos-y-vehiculos",
 };
 
 export function getCategoryIconKey(name: string): string | null {

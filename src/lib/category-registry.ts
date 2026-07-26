@@ -42,6 +42,13 @@ function getBuyerFields(categoryName: string) {
         { key: 'urgency', label: '¿Es urgente?', type: 'checkbox' },
         { key: 'notes', label: 'Detalles del proyecto o terreno', type: 'text' },
       ];
+    case 'Venta de Autos y Vehículos':
+      return [
+        { key: 'preferredDate', label: 'Fecha preferida para visita o entrega', type: 'date' },
+        { key: 'city', label: 'Ciudad donde está el vehículo', type: 'text' },
+        { key: 'financingInterest', label: '¿Te interesa financiación?', type: 'checkbox' },
+        { key: 'notes', label: 'Notas (SOAT, tecnomecánica, papeles, etc.)', type: 'text' },
+      ];
     default:
       // For newly created admin categories (or any not explicitly configured),
       // provide a sensible generic set of buyer fields.
@@ -64,7 +71,7 @@ function getTools(categoryName: string) {
   if (name.includes('delivery') || name.includes('mensajer')) {
     return ['maps', 'liveLocation'];
   }
-  if (name.includes('transporte') || name.includes('mudanza') || name.includes('turismo')) {
+  if (name.includes('transporte') || name.includes('mudanza') || name.includes('turismo') || name.includes('autos') || name.includes('vehículo') || name.includes('vehiculo')) {
     return ['maps'];
   }
   if (name.includes('plomer') || name.includes('fontaner') || name.includes('electric') || name.includes('repar')) {
@@ -123,6 +130,14 @@ function getUpgrades(categoryName: string) {
     return [
       { name: 'Informe técnico incluido', price: 45000, description: 'Documentación profesional del trabajo' },
       { name: 'Seguro de operación', price: 40000, description: 'Cobertura durante la ejecución' },
+      ...base,
+    ];
+  }
+  if (name.includes('autos') || name.includes('vehículo') || name.includes('vehiculo') || name.includes('automotriz')) {
+    return [
+      { name: 'Entrega prioritaria', price: 80000, description: 'Traslado del vehículo en menos tiempo' },
+      { name: 'Documentación incluida', price: 50000, description: 'Apoyo con papeles y trámite de traspaso' },
+      { name: 'Peritaje completo', price: 90000, description: 'Inspección técnica profesional' },
       ...base,
     ];
   }

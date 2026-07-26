@@ -7,6 +7,7 @@ import { createReferralEarningIfApplicable } from '@/lib/server/referral-earning
 import { notifyAdminsPaymentReceived } from '@/lib/admin-notifications';
 import { OrderStatusLabel, labelToPrismaStatus, prismaStatusToLabel } from '@/lib/order-status';
 import { Prisma } from '@prisma/client';
+import { orderIncludesSaleDocsBundle } from '@/lib/vehicle-sale-docs';
 
 /**
  * Confirm a Wompi payment for an order.
@@ -38,6 +39,7 @@ export async function confirmWompiPayment(
         buyerId: true,
         sellerId: true,
         gigId: true,
+        customFields: true,
         buyer: { select: { id: true, name: true } },
         gig: { select: { title: true } },
         seller: { select: { id: true, referredById: true } },
@@ -221,6 +223,27 @@ export async function confirmWompiPayment(
         await createReferralEarningIfApplicable(updated);
       } catch (rErr) {
         devLog('[Wompi confirm] referral helper error (non-fatal):', rErr);
+      }
+    }
+
+    // Vehicle sale document pack: notify both parties that city-aware docs are ready
+    if (orderIncludesSaleDocsBundle(order.customFields)) {
+      const docsMsg =
+        'El paquete de documentos OigaGIG está listo: descarga el contrato de compraventa y el checklist de papeles (según la ciudad del traspaso) en el pedido.'
+      const recipients = [updated.buyerId, updated.sellerId].filter(Boolean) as string[]
+      for (const uid of recipients) {
+        try {
+          await notifications.sendInApp(
+            uid,
+            'order',
+            'Documentos de venta disponibles',
+            docsMsg,
+            `/orders/${orderId}`,
+            { orderId, saleDocs: true },
+          )
+        } catch (dErr) {
+          devLog('[Wompi confirm] sale-docs notif error (non-fatal):', dErr)
+        }
       }
     }
 

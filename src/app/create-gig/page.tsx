@@ -16,9 +16,18 @@ import { trackEvent } from '@/lib/analytics';
 import { MapPin, Camera, Sparkles, X } from 'lucide-react';
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 import type { CheckoutFormData, DynamicFieldDef, DynamicFieldOption, GigAddonOption } from '@/types/gig-fields';
+import {
+  SALE_DOCS_ADDON_KIND,
+  SALE_DOCS_ADDON_NAME,
+  SALE_DOCS_DEFAULT_PRICE,
+} from '@/types/gig-fields';
 import type { ChangeEvent, FormEvent } from 'react';
 import { normalizeGigCategoryFields, normalizeFieldOptions, parseJsonArrayField } from '@/lib/utils';
 import { getGigImages, MAX_GIG_IMAGES } from '@/lib/gig-images';
+import { COLOMBIA_CITIES } from '@/lib/colombia-cities';
+import { findSaleDocsAddon, isSaleDocsAddon } from '@/lib/vehicle-sale-docs';
+
+const AUTOMOTIVE_CATEGORY = 'Venta de Autos y Vehículos';
 
 function CreateGigClient() {
   const { data: session, status } = useSession();
@@ -51,6 +60,11 @@ function CreateGigClient() {
   const [gigLongitude, setGigLongitude] = useState<number | null>(null);
   const [isRemote, setIsRemote] = useState(false);
   const [loadingGig, setLoadingGig] = useState(false);
+
+  // OigaGIG sale documents bundle (automotive only)
+  const [saleDocsEnabled, setSaleDocsEnabled] = useState(false);
+  const [saleDocsPrice, setSaleDocsPrice] = useState(SALE_DOCS_DEFAULT_PRICE);
+  const [saleDocsCityId, setSaleDocsCityId] = useState('bucaramanga');
 
   const searchParams = useSearchParams();
   const { categories: gigCategories, loading: categoriesLoading } = useGigCategories();
@@ -144,7 +158,17 @@ function CreateGigClient() {
       setBasePrice(gig.price || 0);
       setCategory(gig.category || '');
       setImages(getGigImages(gig));
-      setCustomOptions(parseJsonArrayField<GigAddonOption>(gig.addons));
+      const loadedAddons = parseJsonArrayField<GigAddonOption>(gig.addons);
+      const saleAddon = findSaleDocsAddon(loadedAddons);
+      setCustomOptions(loadedAddons.filter((a) => !isSaleDocsAddon(a)));
+      if (saleAddon) {
+        setSaleDocsEnabled(true);
+        setSaleDocsPrice(Number(saleAddon.extraPrice) || SALE_DOCS_DEFAULT_PRICE);
+        if (saleAddon.meta?.cityId) setSaleDocsCityId(String(saleAddon.meta.cityId));
+      } else {
+        setSaleDocsEnabled(false);
+        setSaleDocsPrice(SALE_DOCS_DEFAULT_PRICE);
+      }
       setSavedFields(parseJsonArrayField<DynamicFieldDef>(gig.fields));
       setCompletionTime(gig.completionTime || '2-5 días');
 
@@ -261,6 +285,27 @@ function CreateGigClient() {
 
     setSubmitting(true);
 
+    const manualAddons = customOptions
+      .filter((o) => o.name?.trim() && !isSaleDocsAddon(o))
+      .map((o) => ({
+        name: o.name.trim(),
+        extraPrice: Number(o.extraPrice) || 0,
+      }));
+
+    const cityMeta = COLOMBIA_CITIES.find((c) => c.id === saleDocsCityId);
+    const saleDocsAddon: GigAddonOption | null =
+      category === AUTOMOTIVE_CATEGORY && saleDocsEnabled
+        ? {
+            name: SALE_DOCS_ADDON_NAME,
+            extraPrice: Math.max(0, Math.round(Number(saleDocsPrice) || SALE_DOCS_DEFAULT_PRICE)),
+            kind: SALE_DOCS_ADDON_KIND,
+            meta: {
+              cityId: saleDocsCityId,
+              cityLabel: cityMeta?.label || saleDocsCityId,
+            },
+          }
+        : null;
+
     const payload = {
       title: title.trim(),
       description: description.trim(),
@@ -271,10 +316,10 @@ function CreateGigClient() {
       fields: categoryFields.length
         ? categoryFields
         : (isEditing ? savedFields : []),
-      addons: customOptions.filter(o => o.name?.trim()),
+      addons: saleDocsAddon ? [...manualAddons, saleDocsAddon] : manualAddons,
       completionTime,
       // Geolocation
-      city: gigLocation || undefined,
+      city: gigLocation || cityMeta?.label || undefined,
       latitude: gigLatitude,
       longitude: gigLongitude,
       isRemote,
@@ -431,6 +476,75 @@ function CreateGigClient() {
                   )}
                 </div>
               ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* OigaGIG vehicle sale documents bundle — automotive only */}
+        {category === AUTOMOTIVE_CATEGORY && (
+          <Card className="border-orange-200 dark:border-orange-900/50 bg-orange-50/40 dark:bg-orange-950/20">
+            <CardHeader>
+              <CardTitle className="text-orange-900 dark:text-orange-100">
+                Paquete de documentos OigaGIG
+              </CardTitle>
+              <p className="text-sm text-muted-foreground font-normal">
+                Ofrece a tus compradores un contrato de compraventa y un checklist de papeles
+                (SOAT, tecnomecánica, impuestos, traspaso) adaptados a la ciudad del trámite.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={saleDocsEnabled}
+                  onChange={(e) => setSaleDocsEnabled(e.target.checked)}
+                  className="mt-1 w-5 h-5 accent-orange-600"
+                />
+                <span>
+                  <span className="font-medium text-foreground">
+                    Ofrecer paquete de documentos OigaGIG
+                  </span>
+                  <span className="block text-sm text-muted-foreground mt-0.5">
+                    El comprador puede añadirlo en el checkout. Tras el pago podrá descargar los documentos.
+                  </span>
+                </span>
+              </label>
+
+              {saleDocsEnabled && (
+                <div className="grid sm:grid-cols-2 gap-4 pt-1">
+                  <div>
+                    <Label>Precio del paquete (COP)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={1000}
+                      value={saleDocsPrice}
+                      onChange={(e) => setSaleDocsPrice(Number(e.target.value) || 0)}
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Sugerido: ${SALE_DOCS_DEFAULT_PRICE.toLocaleString('es-CO')} COP
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Ciudad del traspaso / documentos</Label>
+                    <select
+                      value={saleDocsCityId}
+                      onChange={(e) => setSaleDocsCityId(e.target.value)}
+                      className="mt-1 w-full border rounded-md p-3 text-base bg-background"
+                    >
+                      {COLOMBIA_CITIES.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.label} ({c.region})
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      El checklist nombra la autoridad de tránsito e impuestos de esta ciudad.
+                    </p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
