@@ -6,11 +6,13 @@ import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { DollarSign, Package, Star, Plus, TrendingUp, Users, Link2, Sparkles } from 'lucide-react';
+import { DollarSign, Package, Star, Plus, TrendingUp, Users, Link2, Sparkles, Car, X } from 'lucide-react';
 import OnboardingTutorial from '@/components/common/OnboardingTutorial';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 import { markTutorialDismissed, shouldAutoShowTutorial } from '@/lib/tutorial';
 import { getOrderStatusDisplayEs, OrderStatusLabel } from '@/lib/order-status';
+
+const AUTO_DOCS_PROMO_KEY = 'dismissedSellerAutoDocsPromo';
 
 export default function SellerDashboard() {
   const { data: session } = useSession();
@@ -19,6 +21,7 @@ export default function SellerDashboard() {
   const [orders, setOrders] = useState<import('@/types/order').OrderDetail[]>([]);
   const [reviews, setReviews] = useState<import('@/types/order').OrderReview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAutoDocsPromo, setShowAutoDocsPromo] = useState(false);
 
   // Tutorial state: auto appears for new sellers and when buyer->seller role unlock (full training on new features)
   const [showTutorial, setShowTutorial] = useState(false);
@@ -64,6 +67,27 @@ export default function SellerDashboard() {
       }
     }
   }, [session, loading, platformConfig?.tutorialsEnabled]);
+
+  // One-time promo: automotive category + city-aware document pack
+  useEffect(() => {
+    if (!session?.user?.id || loading) return;
+    try {
+      if (!localStorage.getItem(AUTO_DOCS_PROMO_KEY)) {
+        setShowAutoDocsPromo(true);
+      }
+    } catch {
+      setShowAutoDocsPromo(true);
+    }
+  }, [session?.user?.id, loading]);
+
+  const dismissAutoDocsPromo = () => {
+    try {
+      localStorage.setItem(AUTO_DOCS_PROMO_KEY, 'true');
+    } catch {
+      /* ignore */
+    }
+    setShowAutoDocsPromo(false);
+  };
 
   const paidAwaitingStart = orders.filter((o) => o.status === OrderStatusLabel.Paid);
   const activeSellerStatuses = new Set<string>([
@@ -167,6 +191,55 @@ export default function SellerDashboard() {
             </Card>
           </div>
         </div>
+
+        {showAutoDocsPromo && (
+          <div className="mb-8 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-orange-600 via-red-600 to-rose-600 text-white p-5 sm:p-6 shadow-lg relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(#ffffff18_1px,transparent_1px)] [background-size:18px_18px] pointer-events-none" />
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur">
+                <Car className="h-7 w-7" aria-hidden />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <p className="font-semibold text-lg sm:text-xl">Nuevo: Venta de Autos y Vehículos</p>
+                  <span className="text-[10px] font-mono uppercase tracking-wide bg-white/20 px-2 py-0.5 rounded-full">
+                    Nuevo
+                  </span>
+                </div>
+                <p className="text-white/90 text-sm sm:text-base leading-relaxed">
+                  Publica carros, motos y camionetas en OigaGIG. Al crear el gig puedes ofrecer el{' '}
+                  <strong>paquete de documentos OigaGIG</strong>: contrato de compraventa + checklist de papeles
+                  (SOAT, tecnomecánica, impuestos, traspaso) adaptado a la <strong>ciudad</strong> del trámite.
+                  El comprador lo elige en el checkout y, tras pagar, ambos descargan los documentos en el pedido.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 shrink-0 w-full lg:w-auto">
+                <Button
+                  asChild
+                  className="bg-white text-orange-700 hover:bg-white/90 font-semibold w-full sm:w-auto"
+                >
+                  <Link href="/create-gig">Publicar un vehículo</Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-white/70 text-white hover:bg-white/10 w-full sm:w-auto"
+                  onClick={dismissAutoDocsPromo}
+                >
+                  Entendido
+                </Button>
+              </div>
+              <button
+                type="button"
+                onClick={dismissAutoDocsPromo}
+                className="absolute top-3 right-3 p-1.5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white lg:static lg:self-start"
+                aria-label="Cerrar anuncio"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {paidAwaitingStart.length > 0 && (
           <Card className="mb-8 border-2 border-blue-300 bg-blue-50 dark:bg-blue-950/40 dark:border-blue-800">

@@ -429,6 +429,18 @@ function CreateGigClient() {
                 </option>
               ))}
             </select>
+            {!category && (
+              <p className="text-xs text-muted-foreground mt-1.5">
+                ¿Vendes carros o motos? Elige <strong>Venta de Autos y Vehículos</strong> y activa el
+                paquete de documentos OigaGIG (contrato + checklist por ciudad).
+              </p>
+            )}
+            {category === AUTOMOTIVE_CATEGORY && (
+              <p className="text-xs text-orange-700 dark:text-orange-300 mt-1.5">
+                Más abajo puedes ofrecer el <strong>paquete de documentos OigaGIG</strong> con precio y
+                ciudad del traspaso.
+              </p>
+            )}
           </div>
         </div>
 

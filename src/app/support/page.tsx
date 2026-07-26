@@ -338,6 +338,18 @@ export default function SupportPage() {
                       <p className="text-sm text-muted-foreground">Ve a tu Perfil → "Convertirme en Vendedor", completa el nombre del negocio y confirma. Luego ve al Dashboard de Vendedor para crear tu primer gig y configurar tu perfil público.</p>
                     </CardContent>
                   </Card>
+                  <Card className="bg-card border-border">
+                    <CardContent className="p-5">
+                      <p className="font-semibold mb-1">¿Puedo vender autos o motos en OigaGIG?</p>
+                      <p className="text-sm text-muted-foreground">
+                        Sí. Usa la categoría <strong>Venta de Autos y Vehículos</strong> al crear un gig.
+                        Puedes ofrecer el <strong>paquete de documentos OigaGIG</strong> (contrato de compraventa +
+                        checklist de papeles: SOAT, tecnomecánica, impuestos y traspaso) con precio y ciudad del trámite.
+                        El comprador lo elige en el checkout; tras el pago ambos lo descargan en el pedido.
+                        Son plantillas de apoyo — el traspaso formal se hace ante tránsito / RUNT.
+                      </p>
+                    </CardContent>
+                  </Card>
                 </>
               )}
             </div>
@@ -391,8 +403,8 @@ export default function SupportPage() {
                   </div>
                   <ol className="list-decimal ml-5 space-y-2 text-sm">
                     <li><strong>Configura tu negocio:</strong> En Perfil completa nombre del negocio, ubicación y foto de portada. Tu URL pública (slug) se genera automáticamente. Los compradores te escriben por Mensajes en la app.</li>
-                    <li><strong>Crea gigs:</strong> Publica servicios con precio base + campos dinámicos (horas, habitaciones, etc.). Sube fotos atractivas.</li>
-                    <li><strong>Recibe y gestiona pedidos:</strong> Te notificamos. Acepta, chatea con el cliente y actualiza estado a "En Progreso" → "Completado".</li>
+                    <li><strong>Crea gigs:</strong> Publica servicios con precio base + campos dinámicos (horas, habitaciones, etc.). Sube fotos atractivas. Para vehículos usa <strong>Venta de Autos y Vehículos</strong> y opcionalmente el paquete de documentos OigaGIG (contrato + checklist por ciudad).</li>
+                    <li><strong>Recibe y gestiona pedidos:</strong> Te notificamos. Acepta, chatea con el cliente y actualiza estado a "En Progreso" → "Completado". Si el comprador pidió documentos, descárgalos en el pedido tras el pago.</li>
                     <li><strong>Cobra:</strong> Al completar liberamos el pago a tu cuenta (Nequi configurado). Revisa ganancias y referidos.</li>
                     <li><strong>Construye reputación:</strong> Comparte tu enlace público /sellers/tu-slug. Responde rápido y recolecta reseñas excelentes.</li>
                   </ol>
