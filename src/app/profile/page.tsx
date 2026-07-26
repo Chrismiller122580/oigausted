@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import MapsPollutionNuke from "@/components/maps/MapsPollutionNuke";
 import { getAuthCallbackUrl } from "@/lib/getAuthCallbackUrl";
 import { trackEvent } from '@/lib/analytics';
+import { copyToClipboard } from '@/lib/share';
 
 export default function ProfilePage() {
   const { data: session, update } = useSession();
@@ -225,14 +226,15 @@ export default function ProfilePage() {
     }
   };
 
-  const copyProfileLink = () => {
+  const copyProfileLink = async () => {
     const user = session?.user;
     const link = user?.role === 'seller' 
       ? `${window.location.origin}/sellers/${user.slug || user.id}`
       : `${window.location.origin}/profile`;
     
-    navigator.clipboard.writeText(link);
-    toast.success("Enlace del perfil copiado");
+    const ok = await copyToClipboard(link);
+    if (ok) toast.success("Enlace del perfil copiado");
+    else toast.error("No se pudo copiar el enlace. Selecciónalo y cópialo manualmente.");
   };
 
   const saveProfile = async () => {

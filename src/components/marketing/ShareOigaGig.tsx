@@ -3,7 +3,8 @@
 import { MessageCircle, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { buildWhatsAppShareUrl, getDefaultShareUrl } from '@/lib/pwa-install'
+import { getDefaultShareUrl } from '@/lib/pwa-install'
+import { shareOrCopy, whatsAppShareHref } from '@/lib/share'
 
 import { BRAND_NAME } from '@/lib/brand';
 
@@ -22,24 +23,20 @@ export function ShareOigaGig({
   const shareUrl = getDefaultShareUrl()
 
   const handleNativeShare = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: siteName,
-          text: shareText,
-          url: shareUrl,
-        })
-        return
-      }
-      await navigator.clipboard.writeText(`${shareText} ${shareUrl}`)
+    const result = await shareOrCopy({
+      title: siteName,
+      text: shareText,
+      url: shareUrl,
+    })
+    if (result === 'shared' || result === 'cancelled') return
+    if (result === 'copied') {
       toast.success('Enlace copiado — compártelo donde quieras')
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return
-      toast.error('No se pudo compartir el enlace')
+      return
     }
+    toast.error('No se pudo compartir el enlace')
   }
 
-  const whatsappHref = buildWhatsAppShareUrl(shareText, shareUrl)
+  const whatsappHref = whatsAppShareHref(shareText, shareUrl)
 
   if (variant === 'inline') {
     return (

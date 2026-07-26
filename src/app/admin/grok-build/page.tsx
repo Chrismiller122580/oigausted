@@ -844,10 +844,15 @@ export default function GrokBuildPage() {
 
                   <div className="flex gap-2">
                     <Button 
-                      onClick={() => {
-                        navigator.clipboard.writeText(pendingCodeChange.diff);
-                        alert(`Diff copied!\n\nFile: ${pendingCodeChange.file}\n\nApply this in your editor and push to production.`);
-                        setPendingCodeChange(null);
+                      onClick={async () => {
+                        const { copyToClipboard } = await import('@/lib/share');
+                        const ok = await copyToClipboard(pendingCodeChange.diff);
+                        if (ok) {
+                          alert(`Diff copied!\n\nFile: ${pendingCodeChange.file}\n\nApply this in your editor and push to production.`);
+                          setPendingCodeChange(null);
+                        } else {
+                          alert('Could not copy diff. Select the text above and copy manually.');
+                        }
                       }}
                       className="bg-orange-600 hover:bg-orange-700"
                     >

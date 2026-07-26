@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Copy, Users, DollarSign, TrendingUp, Share2 } from 'lucide-react';
+import { copyToClipboard } from '@/lib/share';
 
 interface ReferralData {
   referralCode: string;
@@ -105,14 +106,14 @@ export default function ReferralsPage() {
 
   const handleCopyLink = async () => {
     if (!referralLink) return;
-    try {
-      await navigator.clipboard.writeText(referralLink);
-      setCopied(true);
-      toast.success('Link copiado al portapapeles');
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      toast.error('No se pudo copiar el link');
+    const ok = await copyToClipboard(referralLink);
+    if (!ok) {
+      toast.error('No se pudo copiar el link. Selecciónalo y cópialo manualmente.');
+      return;
     }
+    setCopied(true);
+    toast.success('Link copiado al portapapeles');
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShareWhatsApp = () => {

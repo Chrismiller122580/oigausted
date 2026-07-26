@@ -235,11 +235,13 @@ export default function AdminAuditPage() {
                                 <pre 
                                   className="text-[10px] bg-muted p-2 rounded max-w-xs max-h-48 overflow-auto cursor-pointer hover:bg-muted/80 border border-muted-foreground/20"
                                   title="Click to copy full JSON"
-                                  onClick={(e) => {
+                                  onClick={async (e) => {
                                     e.stopPropagation();
                                     const text = typeof log.details === 'string' ? log.details : JSON.stringify(log.details, null, 2);
-                                    navigator.clipboard.writeText(text);
-                                    toast.success('Full details copied to clipboard');
+                                    const { copyToClipboard } = await import('@/lib/share');
+                                    const ok = await copyToClipboard(text);
+                                    if (ok) toast.success('Full details copied to clipboard');
+                                    else toast.error('Could not copy details');
                                   }}
                                 >
                                   {typeof log.details === 'string' 

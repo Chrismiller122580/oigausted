@@ -24,6 +24,7 @@ import {
   sellerToolkitAsGeneratedCampaign,
 } from '@/lib/seller-buyer-toolkit-campaign';
 import { useAnalyticsViewOnly } from '@/hooks/useAnalyticsViewOnly';
+import { copyToClipboard } from '@/lib/share';
 
 interface AudienceUser {
   id: string;
@@ -448,10 +449,10 @@ export default function AdminMarketingContent() {
     }
   };
 
-  const copyText = (text: string, label = 'Texto') => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast.success(`${label} copiado al portapapeles`);
-    });
+  const copyText = async (text: string, label = 'Texto') => {
+    const ok = await copyToClipboard(text);
+    if (ok) toast.success(`${label} copiado al portapapeles`);
+    else toast.error('No se pudo copiar. Selecciona el texto y cópialo manualmente.');
   };
 
   const applyAdCopy = (copy: { headline: string; body: string; cta: string }) => {

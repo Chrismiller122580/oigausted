@@ -14,6 +14,7 @@ import {
   sellerPublicPath,
   type ProjectBundleItem,
 } from '@/lib/seller-network'
+import { copyToClipboard } from '@/lib/share'
 
 type Props = {
   items: ProjectBundleItem[]
@@ -35,12 +36,9 @@ export default function ProjectBuilder({
 
   const handleCopyQuote = async () => {
     const text = formatProjectQuote(items)
-    try {
-      await navigator.clipboard.writeText(text)
-      toast.success('Resumen copiado al portapapeles')
-    } catch {
-      toast.error('No se pudo copiar el resumen')
-    }
+    const ok = await copyToClipboard(text)
+    if (ok) toast.success('Resumen copiado al portapapeles')
+    else toast.error('No se pudo copiar el resumen. Selecciónalo y cópialo manualmente.')
   }
 
   const content = (

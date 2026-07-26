@@ -1048,7 +1048,7 @@ export default function CheckoutPage() {
                   size="sm" 
                   variant="ghost" 
                   className="text-xs h-7"
-                  onClick={() => {
+                  onClick={async () => {
                     const debugInfo = {
                       orderId: order.id,
                       reference: `order_${order.id}`,
@@ -1059,8 +1059,10 @@ export default function CheckoutPage() {
                       serviceLongitude,
                       lastWompiPrepare,
                     };
-                    navigator.clipboard?.writeText(JSON.stringify(debugInfo, null, 2));
-                    toast.success('Debug info copied to clipboard');
+                    const { copyToClipboard } = await import('@/lib/share');
+                    const ok = await copyToClipboard(JSON.stringify(debugInfo, null, 2));
+                    if (ok) toast.success('Debug info copied to clipboard');
+                    else toast.error('Could not copy debug info');
                   }}
                 >
                   Copy Debug Info

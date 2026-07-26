@@ -132,19 +132,18 @@ function SignUpClient() {
           role: formData.role,
           has_referral: Boolean(refCode),
         })
-        // Route based on chosen role (use helper for dev resilience)
+        // Keep loading true until navigation so the form doesn't flash back
         if (formData.role === "seller") {
           router.push(getAuthCallbackUrl("/seller"))
         } else {
           router.push(getAuthCallbackUrl("/"))
         }
-      } else {
-        // Fallback: send them to login page
-        router.push(getAuthCallbackUrl("/login"))
+        return
       }
+      // Fallback: send them to login page
+      router.push(getAuthCallbackUrl("/login"))
     } catch (err) {
       setError("Error de conexión. Inténtalo de nuevo.")
-    } finally {
       setLoading(false)
     }
   }

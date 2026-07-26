@@ -45,7 +45,11 @@ export default function MobileAuthCallbackClient() {
         })
 
         if (result?.ok) {
-          await fetch('/api/auth/record-login', { method: 'POST' }).catch(() => {})
+          // Don't block deep-link handoff on IP geolocation enrichment
+          void fetch('/api/auth/record-login', {
+            method: 'POST',
+            keepalive: true,
+          }).catch(() => {})
           window.location.replace(next)
           return
         }

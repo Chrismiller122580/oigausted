@@ -28,6 +28,7 @@ import { getGigImages } from '@/lib/gig-images';
 import { buildWompiWidgetConfig } from '@/lib/wompi-widget';
 import type { WompiPrepareResponse, WompiWidgetResult } from '@/types/wompi';
 import type { SellerGeneratedContent } from '@/lib/seller-marketing-types';
+import { copyToClipboard } from '@/lib/share';
 import MarketingPreviewPanel, { type PreviewMode } from './MarketingPreviewPanel';
 
 type GigOption = { id: string; title: string; isActive?: boolean; photos: string[] };
@@ -131,9 +132,10 @@ function SellerMarketingPageClient() {
     }
   }, [searchParams, fetchSubscription]);
 
-  const copyText = (text: string, label?: string) => {
-    void navigator.clipboard.writeText(text);
-    toast.success(label ? `${label} copiado` : 'Copiado');
+  const copyText = async (text: string, label?: string) => {
+    const ok = await copyToClipboard(text);
+    if (ok) toast.success(label ? `${label} copiado` : 'Copiado');
+    else toast.error('No se pudo copiar. Selecciona el texto y cópialo manualmente.');
   };
 
   const getFormErrors = (goalValue: string, gigId: string): string[] => {

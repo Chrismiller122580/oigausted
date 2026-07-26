@@ -36,6 +36,7 @@ import { trackEvent } from '@/lib/analytics';
 import { buildWompiWidgetConfig } from '@/lib/wompi-widget';
 import { getOrderProgressSteps } from '@/lib/order-progress';
 import { getOrderStatusDisplayEs } from '@/lib/order-status';
+import { copyToClipboard } from '@/lib/share';
 
 function OrderDetailClient() {
   const params = useParams();
@@ -985,10 +986,11 @@ function OrderDetailClient() {
                         size="sm" 
                         variant="ghost" 
                         className="text-xs h-7"
-                        onClick={() => {
+                        onClick={async () => {
                           const ref = `order_${order.id}`;
-                          navigator.clipboard?.writeText(ref);
-                          toast.success('Referencia copiada: ' + ref);
+                          const ok = await copyToClipboard(ref);
+                          if (ok) toast.success('Referencia copiada: ' + ref);
+                          else toast.error('No se pudo copiar la referencia');
                         }}
                       >
                         Copiar referencia
