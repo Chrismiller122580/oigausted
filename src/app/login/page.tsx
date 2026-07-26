@@ -113,9 +113,8 @@ export default function LoginPage() {
       redirect: false,
     });
 
-    setIsLoading(false);
-
     if (result?.error) {
+      setIsLoading(false);
       setError(
         result.error === 'CredentialsSignin'
           ? 'Invalid email or password.'
@@ -125,14 +124,23 @@ export default function LoginPage() {
     }
 
     if (result?.ok) {
-      await fetch('/api/auth/record-login', { method: 'POST' }).catch(() => {})
+      // Fire-and-forget: record-login does IP geolocation (up to 3s). Never block redirect.
+      void fetch('/api/auth/record-login', {
+        method: 'POST',
+        keepalive: true,
+      }).catch(() => {})
+
       let destination = fromQuery || getAuthCallbackUrl('/');
       if (!fromQuery) {
         const session = await getSession();
         destination = getAuthCallbackUrl(getPostLoginRedirectPath(session));
       }
+      // Keep isLoading true until navigation so the form doesn't flash back.
       window.location.assign(destination);
+      return;
     }
+
+    setIsLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
