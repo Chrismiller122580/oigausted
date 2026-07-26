@@ -5,12 +5,18 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save, Users, PartyPopper, Link2, Store } from "lucide-react";
+import { ArrowLeft, Edit3, Star, MapPin, Phone, TrendingUp, Save, Users, PartyPopper, Link2, Store, Share2, MessageCircle } from "lucide-react";
 // import GrokAssistant from "@/components/common/GrokAssistant"; // AI tool hidden per request (floating button disabled)
 import { toast } from 'sonner';
 import { slugify } from '@/lib/utils';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 import ShowcaseGigPicker from '@/components/seller/ShowcaseGigPicker';
+import {
+  buildSellerPublicUrl,
+  copyToClipboard,
+  shareOrCopy,
+  whatsAppShareHref,
+} from '@/lib/share';
 
 function slugifyForPreview(name?: string) {
   return slugify(name || '');
@@ -297,44 +303,107 @@ export default function MiNegocioPage() {
               </p>
 
               {(() => {
-                const linkSlug = publicSlug || slugifyForPreview(formData.businessName) || session?.user?.id;
-                const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://oigagig.com'}/sellers/${linkSlug}`;
+                const linkSlug =
+                  publicSlug ||
+                  slugifyForPreview(formData.businessName) ||
+                  session?.user?.id ||
+                  '';
+                const publicUrl = buildSellerPublicUrl(linkSlug);
+                const shareText = `Mira los servicios de ${formData.businessName || 'mi negocio'} en OigaGIG`;
+                const whatsappHref = whatsAppShareHref(shareText, publicUrl);
                 const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(publicUrl)}&color=ea580c&bgcolor=ffffff&margin=10`;
 
                 return (
                   <div className="space-y-4">
                     <div className="bg-white dark:bg-zinc-900 border border-orange-200 dark:border-orange-800/60 rounded-2xl p-3 sm:p-4">
                       <div className="font-mono text-xs sm:text-sm text-orange-700 dark:text-orange-300 break-all select-all mb-3">
-                        {publicUrl}
+                        {publicUrl || 'Guarda tu negocio para generar el enlace'}
                       </div>
                       <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            navigator.clipboard.writeText(publicUrl);
-                            toast.success('Enlace copiado al portapapeles');
+                          disabled={!linkSlug}
+                          onClick={async () => {
+                            if (!publicUrl) {
+                              toast.error('Guarda el nombre de tu negocio para generar el enlace.');
+                              return;
+                            }
+                            const ok = await copyToClipboard(publicUrl);
+                            if (ok) toast.success('Enlace copiado al portapapeles');
+                            else toast.error('No se pudo copiar. Selecciona el enlace y cópialo manualmente.');
                           }}
                           className="gap-1.5 w-full sm:w-auto"
                         >
+                          <Link2 className="h-4 w-4" />
                           Copiar enlace
                         </Button>
-                        <Link href={`/sellers/${linkSlug}`} target="_blank" className="w-full sm:w-auto">
-                          <Button size="sm" className="bg-orange-600 hover:bg-orange-700 gap-1.5 w-full sm:w-auto">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!linkSlug}
+                          onClick={async () => {
+                            if (!publicUrl) {
+                              toast.error('Guarda el nombre de tu negocio para generar el enlace.');
+                              return;
+                            }
+                            const result = await shareOrCopy({
+                              title: formData.businessName || 'Mi negocio en OigaGIG',
+                              text: shareText,
+                              url: publicUrl,
+                            });
+                            if (result === 'shared') return;
+                            if (result === 'copied') {
+                              toast.success('Enlace copiado — pégalo donde quieras compartir');
+                              return;
+                            }
+                            if (result === 'cancelled') return;
+                            toast.error('No se pudo compartir. Prueba WhatsApp o copia el enlace.');
+                          }}
+                          className="gap-1.5 w-full sm:w-auto"
+                        >
+                          <Share2 className="h-4 w-4" />
+                          Compartir
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!linkSlug}
+                          asChild={!!linkSlug}
+                          className="gap-1.5 w-full sm:w-auto"
+                        >
+                          {linkSlug ? (
+                            <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
+                              <MessageCircle className="h-4 w-4 text-emerald-600" />
+                              WhatsApp
+                            </a>
+                          ) : (
+                            <>
+                              <MessageCircle className="h-4 w-4" />
+                              WhatsApp
+                            </>
+                          )}
+                        </Button>
+                        <Link href={linkSlug ? `/sellers/${linkSlug}` : '#'} target="_blank" className="w-full sm:w-auto">
+                          <Button size="sm" disabled={!linkSlug} className="bg-orange-600 hover:bg-orange-700 gap-1.5 w-full sm:w-auto">
                             Ver perfil público →
                           </Button>
                         </Link>
                         <Button
                           variant="outline"
                           size="sm"
+                          disabled={!linkSlug}
                           onClick={() => {
+                            if (!linkSlug) return;
                             const link = document.createElement('a');
                             link.href = qrUrl;
                             link.download = `qr-${linkSlug || 'perfil'}.png`;
+                            link.target = '_blank';
+                            link.rel = 'noopener noreferrer';
                             document.body.appendChild(link);
                             link.click();
                             document.body.removeChild(link);
-                            toast.success('QR descargado');
+                            toast.success('Descarga del QR iniciada');
                           }}
                           className="gap-1.5 w-full sm:w-auto"
                         >

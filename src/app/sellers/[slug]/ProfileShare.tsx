@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Share2 } from 'lucide-react';
+import { Share2, MessageCircle, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { copyToClipboard, shareOrCopy, whatsAppShareHref } from '@/lib/share';
 
 interface ProfileShareProps {
   url: string;
@@ -11,35 +12,46 @@ interface ProfileShareProps {
 
 export default function ProfileShare({ url, displayName }: ProfileShareProps) {
   const [copied, setCopied] = useState(false);
+  const shareText = `Mira los servicios de ${displayName} en OigaGIG`;
+  const whatsappHref = whatsAppShareHref(shareText, url);
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      toast.success('Enlace copiado al portapapeles');
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error('No se pudo copiar el enlace');
+    const ok = await copyToClipboard(url);
+    if (!ok) {
+      toast.error('No se pudo copiar el enlace. Selecciónalo y cópialo manualmente.');
+      return;
     }
+    setCopied(true);
+    toast.success('Enlace copiado al portapapeles');
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShare = async () => {
-    const shareText = `Mira los servicios de ${displayName} en OigaGIG`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: displayName, text: shareText, url });
-        return;
-      }
-      await navigator.clipboard.writeText(`${shareText}: ${url}`);
+    const result = await shareOrCopy({
+      title: displayName,
+      text: shareText,
+      url,
+    });
+    if (result === 'shared') return;
+    if (result === 'copied') {
       toast.success('Enlace copiado — pégalo donde quieras compartir');
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
-      toast.error('No se pudo compartir el enlace');
+      return;
     }
+    if (result === 'cancelled') return;
+    toast.error('No se pudo compartir. Prueba WhatsApp o copia el enlace.');
   };
 
   return (
-    <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 w-full max-w-md mx-auto">
+    <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 w-full max-w-lg mx-auto">
+      <a
+        href={whatsappHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 rounded-2xl border bg-background text-sm font-medium hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition !min-w-0"
+      >
+        <MessageCircle size={16} className="text-emerald-600" />
+        WhatsApp
+      </a>
       <button
         type="button"
         onClick={handleShare}
@@ -53,7 +65,8 @@ export default function ProfileShare({ url, displayName }: ProfileShareProps) {
         onClick={handleCopy}
         className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 rounded-2xl border bg-background text-sm font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 transition !min-w-0"
       >
-        {copied ? '✓ Copiado' : 'Copiar enlace del perfil'}
+        <Link2 size={16} />
+        {copied ? '✓ Copiado' : 'Copiar enlace'}
       </button>
     </div>
   );

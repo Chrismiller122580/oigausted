@@ -69,11 +69,19 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
   const displayName = seller.businessName || seller.name || 'Vendedor Local';
   const sellerSlugOrId = seller.slug || seller.id;
 
-  // Build the canonical public URL on the server (for the share client component)
+  // Canonical public URL for sharing (prefer NEXT_PUBLIC_APP_URL over request host)
   const headersList = await headers();
-  const host = headersList.get('host') || 'oigagig.com';
-  const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
-  const publicUrl = `${protocol}://${host}/sellers/${sellerSlugOrId}`;
+  const host =
+    headersList.get('x-forwarded-host') ||
+    headersList.get('host') ||
+    'oigagig.com';
+  const proto =
+    headersList.get('x-forwarded-proto') ||
+    (process.env.NODE_ENV === 'development' ? 'http' : 'https');
+  const appBase =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ||
+    `${proto}://${host}`;
+  const publicUrl = `${appBase}/sellers/${sellerSlugOrId}`;
 
   return (
     <div className="min-h-screen bg-background pb-32 md:pb-0 overflow-x-hidden">
