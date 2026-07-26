@@ -200,75 +200,87 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
   const showSpotlight = !!targetRect && !!step.target;
   const StepIcon = step.icon;
 
+  // Explicit light/dark colors so tutorial text stays readable even if theme tokens conflict.
   const stepCardBody = (
     <>
-      <div className={`border-b border-border flex items-center justify-between ${useCompactLayout ? 'p-4' : 'p-5'}`}>
+      <div className={`border-b border-border dark:border-zinc-700 flex items-center justify-between ${useCompactLayout ? 'p-4' : 'p-5'}`}>
         <div className="flex items-center gap-3 min-w-0">
           {StepIcon && (
-            <div className={`rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center flex-shrink-0 ${useCompactLayout ? 'w-9 h-9' : 'w-10 h-10'}`}>
+            <div className={`rounded-xl bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300 flex items-center justify-center flex-shrink-0 ${useCompactLayout ? 'w-9 h-9' : 'w-10 h-10'}`}>
               <StepIcon size={useCompactLayout ? 18 : 20} />
             </div>
           )}
           <div className="min-w-0">
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-zinc-600 dark:text-zinc-300">
               {mode === 'buyer' ? 'Capacitación para Compradores' : 'Capacitación para Vendedores'} • Paso {currentStep + 1} de {steps.length}
             </div>
-            <h2 className={`font-bold text-foreground truncate ${useCompactLayout ? 'text-lg' : 'text-xl'}`}>{step.title}</h2>
+            <h2 className={`font-bold text-zinc-900 dark:text-zinc-50 truncate ${useCompactLayout ? 'text-lg' : 'text-xl'}`}>{step.title}</h2>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar tutorial">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          aria-label="Cerrar tutorial"
+          className="text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        >
           <X size={18} />
         </Button>
       </div>
 
-      <CardContent className={`space-y-4 text-sm ${useCompactLayout ? 'p-4' : 'p-5'}`}>
-        <p className="text-muted-foreground leading-relaxed">{step.description}</p>
+      <CardContent className={`space-y-4 text-sm text-zinc-900 dark:text-zinc-100 ${useCompactLayout ? 'p-4' : 'p-5'}`}>
+        <p className="text-zinc-700 dark:text-zinc-200 leading-relaxed">{step.description}</p>
 
-        <div className="bg-muted/50 rounded-xl p-4">
-          <p className="font-semibold text-xs mb-2 text-orange-600">Consejos clave:</p>
-          <ul className="space-y-1.5 text-xs">
+        <div className="bg-zinc-100 dark:bg-zinc-800/90 rounded-xl p-4 border border-zinc-200/80 dark:border-zinc-700">
+          <p className="font-semibold text-xs mb-2 text-orange-700 dark:text-orange-300">Consejos clave:</p>
+          <ul className="space-y-1.5 text-xs text-zinc-800 dark:text-zinc-100">
             {step.tips.map((tip, index) => (
               <li key={index} className="flex items-start gap-2">
-                <span className="text-orange-600 mt-0.5">•</span>
-                <span>{tip}</span>
+                <span className="text-orange-600 dark:text-orange-400 mt-0.5 shrink-0">•</span>
+                <span className="text-zinc-800 dark:text-zinc-100">{tip}</span>
               </li>
             ))}
           </ul>
         </div>
 
         {showSpotlight && useCompactLayout ? (
-          <p className="text-[10px] text-muted-foreground text-center">
+          <p className="text-[10px] text-zinc-600 dark:text-zinc-300 text-center">
             Mira el área resaltada en naranja en la pantalla.
           </p>
         ) : null}
 
-        <div className="w-full bg-muted rounded-full h-1.5">
+        <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-1.5">
           <div
-            className="bg-orange-600 h-1.5 rounded-full transition-all duration-300"
+            className="bg-orange-600 dark:bg-orange-500 h-1.5 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
       </CardContent>
 
-      <div className={`border-t border-border flex items-center justify-between gap-2 ${useCompactLayout ? 'p-3' : 'p-4'}`}>
+      <div className={`border-t border-border dark:border-zinc-700 flex items-center justify-between gap-2 ${useCompactLayout ? 'p-3' : 'p-4'}`}>
         <Button
           variant="outline"
           size="sm"
           onClick={handlePrev}
           disabled={currentStep === 0}
-          className="gap-1 text-xs"
+          className="gap-1 text-xs border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800"
         >
           <ArrowLeft size={14} /> Anterior
         </Button>
 
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={onClose} className="text-xs">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="text-xs text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
             Saltar
           </Button>
           <Button
             size="sm"
             onClick={handleNext}
-            className="gap-1 bg-orange-600 hover:bg-orange-700 text-xs"
+            className="gap-1 bg-orange-600 hover:bg-orange-700 text-white text-xs"
           >
             {currentStep === steps.length - 1 ? (
               <>Finalizar <Check size={14} /></>
@@ -347,7 +359,10 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
             }}
           />
 
-          <Card className="bg-card border-border shadow-2xl w-full" style={getCardStyle()}>
+          <Card
+            className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 shadow-2xl w-full"
+            style={getCardStyle()}
+          >
             <div style={getArrowStyle()} />
             {stepCardBody}
           </Card>
@@ -367,13 +382,13 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
             }}
           />
 
-          <Card className="fixed inset-x-0 bottom-0 z-[263] rounded-t-2xl rounded-b-none border-border shadow-2xl max-h-[78vh] overflow-y-auto safe-area-inset-bottom">
+          <Card className="fixed inset-x-0 bottom-0 z-[263] rounded-t-2xl rounded-b-none border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-2xl max-h-[78vh] overflow-y-auto safe-area-inset-bottom">
             {stepCardBody}
           </Card>
         </>
       ) : (
         <div className={`fixed inset-0 flex bg-black/60 ${useCompactLayout ? 'items-end p-0' : 'items-center p-4'}`}>
-          <Card className={`w-full bg-card border-border shadow-2xl ${useCompactLayout ? 'rounded-t-2xl rounded-b-none max-h-[85vh] overflow-y-auto safe-area-inset-bottom' : 'max-w-2xl'}`}>
+          <Card className={`w-full bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 shadow-2xl ${useCompactLayout ? 'rounded-t-2xl rounded-b-none max-h-[85vh] overflow-y-auto safe-area-inset-bottom' : 'max-w-2xl'}`}>
             {stepCardBody}
           </Card>
         </div>
