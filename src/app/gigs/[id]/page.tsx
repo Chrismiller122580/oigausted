@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { ArrowLeft, Clock, MapPin } from 'lucide-react'
 import { GigImageGallery } from '@/components/common/GigImageGallery'
 import GigDetailActions from '@/components/gigs/GigDetailActions'
+import GigViewTracker from '@/components/gigs/GigViewTracker'
 import { StarRating } from '@/components/ui/star-rating'
 import { UserAvatar } from '@/components/ui/user-avatar'
 import {
@@ -59,6 +60,7 @@ export default async function GigDetailPage({ params }: PageProps) {
 
   return (
     <div className="bg-background py-8">
+      <GigViewTracker gigId={gig.id} sellerId={gig.sellerId} />
       <div className="max-w-7xl mx-auto px-6">
         <Link
           href="/gigs"

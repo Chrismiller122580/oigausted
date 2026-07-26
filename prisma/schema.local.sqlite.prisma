@@ -107,6 +107,9 @@ model User {
   payoutDocumentNumber  String?
   payoutPhone           String?
   payoutEmail           String?
+
+  // Multi-visit gig interest tracking (buyer reminders)
+  gigViews              GigView[]
 }
 
 model PasswordResetToken {
@@ -260,12 +263,32 @@ model Gig {
   sellerId        String
   seller          User     @relation(fields: [sellerId], references: [id])
   orders          Order[]
+  views           GigView[]
 
   // Geolocation
   city            String?
   latitude        Float?
   longitude       Float?
   isRemote        Boolean? @default(false)  // Service can be done remotely/online
+}
+
+/// Tracks how many times a logged-in buyer opened a gig (for multi-visit reminders).
+model GigView {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gigId          String
+  gig            Gig       @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  viewCount      Int       @default(1)
+  firstViewedAt  DateTime  @default(now())
+  lastViewedAt   DateTime  @default(now())
+  /// Set when we send the multi-visit reminder (once per user+gig).
+  reminderSentAt DateTime?
+
+  @@unique([userId, gigId])
+  @@index([userId])
+  @@index([gigId])
+  @@index([viewCount, reminderSentAt])
 }
 
 model Category {

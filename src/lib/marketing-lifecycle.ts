@@ -8,6 +8,7 @@ import {
   type MarketingPlaybook,
 } from '@/lib/marketing-playbooks';
 import { sellerToolkitLifecycleCopy } from '@/lib/seller-buyer-toolkit-campaign';
+import { processPendingMultiVisitReminders } from '@/lib/gig-view-reminder';
 
 const DEFAULT_MAX_PER_RULE = 100;
 
@@ -322,6 +323,24 @@ export async function runLifecycleNudges(opts?: {
     const ruleMax = rule.maxPerRule ?? maxPerRule;
     const ruleResult = await processRule(rule, playbook, { dryRun, maxPerRule: ruleMax });
     rules.push(ruleResult);
+  }
+
+  // Multi-visit gig reminders (buyers who opened the same gig 2+ times without ordering)
+  try {
+    const multiVisit = await processPendingMultiVisitReminders({
+      dryRun,
+      limit: 50,
+    });
+    rules.push({
+      playbookId: 'buyers-multi-visit-gig',
+      label: 'Multi-visita a un gig',
+      eligible: multiVisit.eligible,
+      sent: multiVisit.sent,
+      skipped: Math.max(0, multiVisit.eligible - multiVisit.sent - multiVisit.failed),
+      failed: multiVisit.failed,
+    });
+  } catch (err) {
+    console.warn('[Lifecycle] multi-visit gig reminders failed', err);
   }
 
   const totalSent = rules.reduce((sum, r) => sum + r.sent, 0);
