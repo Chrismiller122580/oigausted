@@ -5,12 +5,14 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
+import { MapPin } from "lucide-react"
 import StartInquiryButton from '@/components/common/StartInquiryButton'
 import BuyGigConfirmDialog from '@/components/gigs/BuyGigConfirmDialog'
 import { useBuyGigConfirm } from '@/hooks/useBuyGigConfirm'
 import { CategoryIcon } from "@/lib/icon-registry"
 import { StarRating } from "@/components/ui/star-rating"
 import { UserAvatar } from "@/components/ui/user-avatar"
+import { formatGigLocation } from "@/lib/gig-location"
 
 interface Gig {
   id: string
@@ -21,6 +23,8 @@ interface Gig {
   completionTime?: string | null
   imageUrl?: string | null
   isActive?: boolean
+  city?: string | null
+  isRemote?: boolean | null
   seller?: {
     id: string
     name?: string | null
@@ -64,6 +68,8 @@ export default function GigCard({
     gig.seller?.name ||
     gig.seller?.businessName ||
     "Vendedor"
+
+  const locationLabel = formatGigLocation(gig)
 
   const userId = session?.user?.id
   const isOwnGig = userId && gig.seller?.id === userId
@@ -130,6 +136,13 @@ export default function GigCard({
             </div>
           )}
         </div>
+
+        {locationLabel && (
+          <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5 shrink-0 text-orange-600" aria-hidden />
+            <span className="truncate">{locationLabel}</span>
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground line-clamp-3 mb-4">{gig.description}</p>

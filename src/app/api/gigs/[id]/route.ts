@@ -40,6 +40,8 @@ export async function GET(
           profilePicture: true,
           rating: true,
           reviewCount: true,
+          city: true,
+          slug: true,
         }
       }
     } as const

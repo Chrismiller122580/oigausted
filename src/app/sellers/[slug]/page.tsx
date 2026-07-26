@@ -101,7 +101,9 @@ export default async function PublicSellerProfile({ params }: { params: Promise<
               </div>
 
               <p className="text-white/90 mt-3 text-sm sm:text-lg md:text-xl">
-                Profesional local en Colombia • {gigs.length} servicios activos
+                {seller.city
+                  ? `${seller.city} • ${gigs.length} servicios activos`
+                  : `Profesional local en Colombia • ${gigs.length} servicios activos`}
               </p>
 
               {seller.bio && (

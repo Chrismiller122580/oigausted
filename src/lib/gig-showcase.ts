@@ -12,6 +12,7 @@ const publicGigInclude = {
       businessName: true,
       slug: true,
       profilePicture: true,
+      city: true,
     },
   },
 } as const

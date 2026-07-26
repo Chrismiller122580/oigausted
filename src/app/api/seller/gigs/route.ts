@@ -33,6 +33,7 @@ export async function GET() {
               profilePicture: true,
               rating: true,
               reviewCount: true,
+              city: true,
             }
           }
         },
@@ -69,6 +70,7 @@ export async function GET() {
               profilePicture: true,
               rating: true,
               reviewCount: true,
+              city: true,
             }
           }
         },

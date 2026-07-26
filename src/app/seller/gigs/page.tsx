@@ -7,8 +7,9 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus, Pause, Play, Edit2, Trash2, Eye, Search, Link2, Wrench, PackageOpen } from 'lucide-react';
+import { Plus, Pause, Play, Edit2, Trash2, Eye, Search, Link2, Wrench, PackageOpen, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatGigLocation } from '@/lib/gig-location';
 
 interface GigWithStats {
   id: string;
@@ -17,6 +18,8 @@ interface GigWithStats {
   category: string;
   imageUrl?: string | null;
   isActive: boolean;
+  city?: string | null;
+  isRemote?: boolean | null;
   stats?: {
     orderCount: number;
     completedCount: number;
@@ -274,6 +277,15 @@ export default function SellerGigsManagement() {
                       <div>
                         <h3 className="text-2xl font-semibold leading-tight">{gig.title}</h3>
                         <p className="text-sm text-muted-foreground mt-1">{gig.category}</p>
+                        {(() => {
+                          const locationLabel = formatGigLocation(gig)
+                          return locationLabel ? (
+                            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+                              <MapPin className="h-3.5 w-3.5 text-orange-600 shrink-0" aria-hidden />
+                              {locationLabel}
+                            </p>
+                          ) : null
+                        })()}
                       </div>
                       <div className="text-right">
                         <p className="text-3xl font-bold text-orange-600">

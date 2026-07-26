@@ -16,10 +16,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Debes iniciar sesión' }, { status: 401 })
     }
 
-    const { userId, businessName, nit, bio } = await request.json()
+    const { userId, businessName, nit, bio, city } = await request.json()
 
     if (!userId || !businessName) {
       return NextResponse.json({ error: "User ID and business name are required" }, { status: 400 })
+    }
+
+    const trimmedCity = typeof city === 'string' ? city.trim() : ''
+    if (!trimmedCity) {
+      return NextResponse.json({ error: "La ubicación es obligatoria" }, { status: 400 })
     }
 
     // Only self or admin can promote
@@ -93,6 +98,7 @@ export async function POST(request: NextRequest) {
       businessName: trimmedBusinessName,
       nit: nit ? nit.trim() : null,
       bio: bio ? bio.trim() : null,
+      city: trimmedCity,
       updatedAt: new Date()
     };
     if (slugSafe) {
@@ -124,9 +130,10 @@ export async function POST(request: NextRequest) {
             "businessName" = $1,
             nit = $2,
             bio = $3,
+            city = $4,
             "updatedAt" = NOW()
-          WHERE id = $4
-        `, trimmedBusinessName, nit ? nit.trim() : null, bio ? bio.trim() : null, userId);
+          WHERE id = $5
+        `, trimmedBusinessName, nit ? nit.trim() : null, bio ? bio.trim() : null, trimmedCity, userId);
 
         // Re-fetch with a very safe minimal select (avoid any columns that might be missing on this DB)
         updatedUser = await prisma.user.findUnique({
@@ -151,7 +158,7 @@ export async function POST(request: NextRequest) {
       action: 'USER_BECAME_SELLER',
       targetType: 'User',
       targetId: userId,
-      details: { previousRole: 'buyer', businessName, byAdmin: isAdmin },
+      details: { previousRole: 'buyer', businessName, city: trimmedCity, byAdmin: isAdmin },
     });
 
     notifyAdminsBecomeSeller({
@@ -169,7 +176,8 @@ export async function POST(request: NextRequest) {
         name: updatedUser.name,
         email: updatedUser.email,
         role: updatedUser.role,
-        businessName: updatedUser.businessName
+        businessName: updatedUser.businessName,
+        city: trimmedCity,
       }
     })
 

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { ArrowLeft, Clock } from 'lucide-react'
+import { ArrowLeft, Clock, MapPin } from 'lucide-react'
 import { GigImageGallery } from '@/components/common/GigImageGallery'
 import GigDetailActions from '@/components/gigs/GigDetailActions'
 import { StarRating } from '@/components/ui/star-rating'
@@ -11,6 +11,7 @@ import {
   getSellerReviewsForGigPage,
   type GigPageReview,
 } from '@/lib/gig-queries'
+import { formatGigLocation } from '@/lib/gig-location'
 import type { DynamicFieldDef } from '@/types/gig-fields'
 
 export const revalidate = 60
@@ -54,6 +55,7 @@ export default async function GigDetailPage({ params }: PageProps) {
     : null
 
   const gigFields = gig.fields as DynamicFieldDef[]
+  const locationLabel = formatGigLocation(gig)
 
   return (
     <div className="bg-background py-8">
@@ -84,6 +86,12 @@ export default async function GigDetailPage({ params }: PageProps) {
                   <span className="font-medium bg-emerald-100 text-emerald-700 px-4 py-1 rounded-full">
                     {gig.category}
                   </span>
+                )}
+                {locationLabel && (
+                  <div className="flex items-center gap-1.5 bg-card px-4 py-1 rounded-full border">
+                    <MapPin className="w-5 h-5 text-emerald-600" />
+                    <span className="font-medium">{locationLabel}</span>
+                  </div>
                 )}
                 {gig.completionTime && (
                   <div className="flex items-center gap-1.5 bg-card px-4 py-1 rounded-full border">

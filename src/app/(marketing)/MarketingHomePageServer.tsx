@@ -98,11 +98,13 @@ const loadMarketingHomeData = unstable_cache(
     category: string | null;
     imageUrl: string | null;
     city: string | null;
+    isRemote: boolean | null;
     seller: {
       name: string | null;
       businessName: string | null;
       rating: number | null;
       reviewCount: number | null;
+      city: string | null;
     } | null;
   }[] = [];
 
@@ -122,12 +124,14 @@ const loadMarketingHomeData = unstable_cache(
         category: true,
         imageUrl: true,
         city: true,
+        isRemote: true,
         seller: {
           select: {
             name: true,
             businessName: true,
             rating: true,
             reviewCount: true,
+            city: true,
           },
         },
       },

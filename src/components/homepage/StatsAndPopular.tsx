@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { StarRating } from '@/components/ui/star-rating';
 import { useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { formatGigLocation } from '@/lib/gig-location';
 
 export interface HomepageStats {
   gigs: number;
@@ -23,11 +24,13 @@ export interface PopularGig {
   category?: string | null;
   imageUrl?: string | null;
   city?: string | null;
+  isRemote?: boolean | null;
   seller?: {
     name?: string | null;
     businessName?: string | null;
     rating?: number | null;
     reviewCount?: number | null;
+    city?: string | null;
   } | null;
 }
 
@@ -145,7 +148,9 @@ export function StatsAndPopular({ stats, popularGigs }: StatsAndPopularProps) {
           aria-label="Servicios populares"
         >
           {popularGigs.length > 0 ? (
-            popularGigs.map((gig, index) => (
+            popularGigs.map((gig, index) => {
+              const locationLabel = formatGigLocation(gig)
+              return (
               <motion.li
                 key={gig.id}
                 initial={{ opacity: 0, x: 20 }}
@@ -183,7 +188,7 @@ export function StatsAndPopular({ stats, popularGigs }: StatsAndPopularProps) {
                       </h3>
                       <p className="text-xs text-muted-foreground mt-1">
                         {gig.seller?.businessName || gig.seller?.name || 'Profesional'}
-                        {gig.city ? ` • ${gig.city}` : ''}
+                        {locationLabel ? ` • ${locationLabel}` : ''}
                       </p>
                       {gig.seller?.rating ? (
                         <div className="mt-2">
@@ -205,7 +210,8 @@ export function StatsAndPopular({ stats, popularGigs }: StatsAndPopularProps) {
                   </article>
                 </Link>
               </motion.li>
-            ))
+              )
+            })
           ) : (
             <li className="w-full py-12 text-center text-muted-foreground text-sm">
               Pronto habrá servicios populares en tu zona.{' '}

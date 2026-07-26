@@ -112,7 +112,7 @@ export default function MiNegocioPage() {
       bio: user.bio || "Ofrecemos servicios profesionales con excelente atención.",
       phone: user.phone || "",
       whatsapp: user.whatsapp || "",
-      location: user.city || "Bucaramanga, Santander",
+      location: user.city || "",
       instagram: user.instagram || "",
       profilePicture: user.profilePicture || "",
       latitude: user.latitude ?? null,
@@ -161,6 +161,15 @@ export default function MiNegocioPage() {
   };
 
   const handleSave = async () => {
+    if (!formData.businessName.trim()) {
+      toast.error("El nombre del negocio es obligatorio");
+      return;
+    }
+    if (!formData.location.trim()) {
+      toast.error("La ubicación es obligatoria");
+      return;
+    }
+
     setSaving(true);
     try {
       const res = await fetch('/api/user/profile', {
@@ -172,7 +181,7 @@ export default function MiNegocioPage() {
           bio: formData.bio,
           phone: formData.phone,
           whatsapp: formData.whatsapp,
-          city: formData.location,
+          city: formData.location.trim(),
           instagram: formData.instagram,
           imageUrl: formData.profilePicture,
           latitude: formData.latitude,
@@ -445,14 +454,17 @@ export default function MiNegocioPage() {
                     <p className="text-xs text-muted-foreground mt-1">No se muestra a compradores. Ellos te contactan por el chat de OigaGIG.</p>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-2">Ubicación principal</label>
+                    <label className="block text-sm font-medium mb-2">
+                      Ubicación principal <span className="text-red-500">*</span>
+                    </label>
                     <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                       <input
                         type="text"
                         value={formData.location}
                         onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                         disabled={!isEditing}
-                        placeholder="Ciudad o dirección principal de tu negocio"
+                        required
+                        placeholder="Ej: Bucaramanga, Santander"
                         className="flex-1 min-w-0 px-4 py-3 sm:px-6 sm:py-5 bg-background border border-border text-foreground rounded-xl sm:rounded-2xl focus:border-orange-500 disabled:opacity-60"
                       />
                       <button

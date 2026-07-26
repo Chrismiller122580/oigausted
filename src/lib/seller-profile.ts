@@ -10,6 +10,7 @@ export const publicSellerSelect = {
   bio: true,
   profilePicture: true,
   slug: true,
+  city: true,
 } as const
 
 export const sellerByIdSelect = publicSellerSelect
@@ -25,6 +26,7 @@ export type SellerProfile = {
   bio: string | null
   profilePicture: string | null
   slug?: string | null
+  city?: string | null
 }
 
 type SellerBySlugRow = Prisma.UserGetPayload<{ select: typeof sellerBySlugSelect }>

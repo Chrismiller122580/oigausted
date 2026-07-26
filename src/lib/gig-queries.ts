@@ -35,6 +35,7 @@ const publicGigSelect = {
       rating: true,
       reviewCount: true,
       slug: true,
+      city: true,
     },
   },
 } as const
@@ -66,6 +67,8 @@ export type PublicGigDetail = {
   addons: ReturnType<typeof parseJsonArrayField>
   isActive: boolean
   sellerId: string
+  city: string | null
+  isRemote: boolean | null
   seller: {
     id: string
     name: string | null
@@ -74,6 +77,7 @@ export type PublicGigDetail = {
     rating: number | null
     reviewCount: number
     slug: string | null
+    city: string | null
   } | null
 }
 
@@ -120,6 +124,8 @@ function formatGigDetail(
     addons: unknown
     isActive: boolean
     sellerId: string
+    city?: string | null
+    isRemote?: boolean | null
     seller: PublicGigDetail['seller']
   }
 ): PublicGigDetail {
@@ -137,6 +143,8 @@ function formatGigDetail(
     addons: parseJsonArrayField(gig.addons),
     isActive: gig.isActive,
     sellerId: gig.sellerId,
+    city: gig.city ?? null,
+    isRemote: gig.isRemote ?? null,
     seller: gig.seller,
   }
 }

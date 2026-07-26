@@ -259,11 +259,15 @@ export default function ProfilePage() {
     businessName: '',
     nit: '',
     bio: '',
+    city: '',
   });
 
   const handleBecomeSeller = async () => {
     if (!sellerForm.businessName.trim()) {
       return toast.error("El nombre del negocio es obligatorio");
+    }
+    if (!sellerForm.city.trim()) {
+      return toast.error("La ubicación es obligatoria");
     }
     if (!user?.id) {
       return toast.error("Debes iniciar sesión");
@@ -279,6 +283,7 @@ export default function ProfilePage() {
           businessName: sellerForm.businessName,
           nit: sellerForm.nit,
           bio: sellerForm.bio || formData.bio,
+          city: sellerForm.city.trim(),
         }),
       });
 
@@ -291,6 +296,7 @@ export default function ProfilePage() {
           role: 'seller',
           businessName: sellerForm.businessName,
           bio: sellerForm.bio || formData.bio,
+          city: sellerForm.city.trim(),
         });
 
         setCurrentRole('seller');
@@ -530,6 +536,21 @@ export default function ProfilePage() {
                     />
                     <p className="text-xs text-muted-foreground mt-1">Este nombre se mostrará a tus clientes.</p>
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">
+                      Ubicación <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={sellerForm.city}
+                      onChange={(e) => setSellerForm({ ...sellerForm, city: e.target.value })}
+                      placeholder="Ej: Bucaramanga, Santander"
+                      className="text-lg"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Ciudad o zona donde ofreces tus servicios. Se mostrará en tus gigs.
+                    </p>
+                  </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -554,7 +575,7 @@ export default function ProfilePage() {
                 <div className="flex flex-col sm:flex-row gap-3 mt-8">
                   <Button 
                     onClick={handleBecomeSeller} 
-                    disabled={becomingSeller || !sellerForm.businessName.trim()}
+                    disabled={becomingSeller || !sellerForm.businessName.trim() || !sellerForm.city.trim()}
                     className="flex-1 py-6 text-lg bg-orange-600 hover:bg-orange-700"
                   >
                     {becomingSeller ? "Procesando..." : "Confirmar y Convertirme en Vendedor"}
