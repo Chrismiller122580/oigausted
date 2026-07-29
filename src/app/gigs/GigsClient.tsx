@@ -490,7 +490,8 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
               storageKey="gigs-view"
               value={viewMode}
               onChange={setViewMode}
-              className="ml-auto sm:ml-0 border-white/30 bg-white/10 text-white [&_button]:text-orange-50 [&_button:hover]:bg-white/20"
+              variant="onDark"
+              className="ml-auto sm:ml-0"
             />
 
             {hasActiveFilters && (
@@ -575,26 +576,34 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
                   onClick={() => setSelectedCategory("Todas")}
                   className={cn(
                     "snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl border transition-all duration-200 active:scale-[0.985]",
-                    // Neutral solid tiles (no red/orange color fades)
+                    // Idle: neutral white. Active: soft emerald accent (not red/orange).
                     selectedCategory === "Todas"
-                      ? "border-white bg-white text-slate-900 shadow-md ring-2 ring-white/80 dark:border-slate-200 dark:bg-slate-100 dark:text-slate-900 dark:ring-white/40"
+                      ? "border-emerald-400 bg-emerald-50 text-emerald-950 shadow-md ring-2 ring-emerald-300/70"
                       : "border-white/40 bg-white/95 text-slate-800 shadow-sm hover:bg-white hover:shadow-md hover:-translate-y-0.5 dark:border-white/20 dark:bg-white/90 dark:text-slate-900",
                   )}
                 >
                   <div
                     className={cn(
-                      "mb-1.5 flex h-12 w-12 items-center justify-center rounded-xl ring-1 shadow-sm bg-slate-50 ring-slate-200/80",
+                      "mb-1.5 flex h-12 w-12 items-center justify-center rounded-xl ring-1 shadow-sm",
+                      selectedCategory === "Todas"
+                        ? "bg-white ring-emerald-200"
+                        : "bg-slate-50 ring-slate-200/80",
                     )}
                   >
                     <LayoutGrid
                       className={cn(
                         "h-8 w-8",
-                        selectedCategory === "Todas" ? "text-slate-700" : "text-slate-500",
+                        selectedCategory === "Todas" ? "text-emerald-700" : "text-slate-500",
                       )}
                     />
                   </div>
                   <div className="text-xs font-medium text-center leading-tight">Todas</div>
-                  <div className="text-[11px] mt-0.5 text-slate-500">
+                  <div
+                    className={cn(
+                      "text-[11px] mt-0.5",
+                      selectedCategory === "Todas" ? "text-emerald-700/80" : "text-slate-500",
+                    )}
+                  >
                     {gigs.length}
                   </div>
                 </button>
@@ -610,7 +619,7 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
                       className={cn(
                         "snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl border transition-all duration-200 active:scale-[0.985]",
                         isActive
-                          ? "border-white bg-white text-slate-900 shadow-md ring-2 ring-white/80 dark:border-slate-200 dark:bg-slate-100 dark:text-slate-900 dark:ring-white/40"
+                          ? "border-emerald-400 bg-emerald-50 text-emerald-950 shadow-md ring-2 ring-emerald-300/70"
                           : "border-white/40 bg-white/95 text-slate-800 shadow-sm hover:bg-white hover:shadow-md hover:-translate-y-0.5 dark:border-white/20 dark:bg-white/90 dark:text-slate-900",
                       )}
                       title={cat}
@@ -621,7 +630,12 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
                       <div className="text-[11px] font-medium text-center leading-tight line-clamp-2">
                         {cat}
                       </div>
-                      <div className="text-[11px] mt-0.5 text-slate-500">
+                      <div
+                        className={cn(
+                          "text-[11px] mt-0.5",
+                          isActive ? "text-emerald-700/80" : "text-slate-500",
+                        )}
+                      >
                         {count}
                       </div>
                     </button>
