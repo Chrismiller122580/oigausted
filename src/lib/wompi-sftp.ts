@@ -161,7 +161,14 @@ export async function downloadWompiSftpFile(remoteFilePath: string): Promise<Buf
 }
 
 // Basic sync: download latest settlement-like files and log/process
-export async function syncWompiSftpReports(): Promise<{ success: boolean; message: string; downloaded?: string[] }> {
+export async function syncWompiSftpReports(): Promise<{
+  success: boolean
+  message: string
+  downloaded?: string[]
+  /** download_only until CSV reconciliation is implemented */
+  mode?: 'download_only'
+  parsed?: boolean
+}> {
   const sftpConfig = await getWompiSftpConfig();
   if (!sftpConfig.enabled) {
     return { success: false, message: 'SFTP disabled in config' };
