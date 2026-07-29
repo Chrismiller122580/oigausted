@@ -576,17 +576,17 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
                   onClick={() => setSelectedCategory("Todas")}
                   className={cn(
                     "snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl border transition-all duration-200 active:scale-[0.985]",
-                    // Idle: neutral white. Active: soft emerald accent (not red/orange).
+                    // Idle: neutral white. Active: soft emerald + strong outline.
                     selectedCategory === "Todas"
-                      ? "border-emerald-400 bg-emerald-50 text-emerald-950 shadow-md ring-2 ring-emerald-300/70"
-                      : "border-white/40 bg-white/95 text-slate-800 shadow-sm hover:bg-white hover:shadow-md hover:-translate-y-0.5 dark:border-white/20 dark:bg-white/90 dark:text-slate-900",
+                      ? "border-2 border-emerald-500 bg-emerald-50 text-emerald-950 shadow-lg shadow-emerald-900/20 ring-2 ring-emerald-300 ring-offset-2 ring-offset-orange-800"
+                      : "border-2 border-white/40 bg-white/95 text-slate-800 shadow-sm hover:bg-white hover:shadow-md hover:-translate-y-0.5 dark:border-white/20 dark:bg-white/90 dark:text-slate-900",
                   )}
                 >
                   <div
                     className={cn(
                       "mb-1.5 flex h-12 w-12 items-center justify-center rounded-xl ring-1 shadow-sm",
                       selectedCategory === "Todas"
-                        ? "bg-white ring-emerald-200"
+                        ? "bg-white ring-emerald-300"
                         : "bg-slate-50 ring-slate-200/80",
                     )}
                   >
@@ -619,8 +619,8 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
                       className={cn(
                         "snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl border transition-all duration-200 active:scale-[0.985]",
                         isActive
-                          ? "border-emerald-400 bg-emerald-50 text-emerald-950 shadow-md ring-2 ring-emerald-300/70"
-                          : "border-white/40 bg-white/95 text-slate-800 shadow-sm hover:bg-white hover:shadow-md hover:-translate-y-0.5 dark:border-white/20 dark:bg-white/90 dark:text-slate-900",
+                          ? "border-2 border-emerald-500 bg-emerald-50 text-emerald-950 shadow-lg shadow-emerald-900/20 ring-2 ring-emerald-300 ring-offset-2 ring-offset-orange-800"
+                          : "border-2 border-white/40 bg-white/95 text-slate-800 shadow-sm hover:bg-white hover:shadow-md hover:-translate-y-0.5 dark:border-white/20 dark:bg-white/90 dark:text-slate-900",
                       )}
                       title={cat}
                     >
