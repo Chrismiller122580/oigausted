@@ -331,10 +331,11 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
 
   const chipBase =
     "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ring-1";
+  // Chips sit on the dark orange filter tray — light surfaces for contrast
   const chipSoft =
-    `${chipBase} border-0 bg-white/70 text-foreground ring-black/[0.06] hover:bg-white dark:bg-white/10 dark:ring-white/10 dark:hover:bg-white/15`;
+    `${chipBase} border-0 bg-white/20 text-orange-50 ring-white/25 hover:bg-white/30`;
   const chipAccent =
-    `${chipBase} border-0 bg-orange-50/90 text-orange-900 ring-orange-200/70 hover:bg-orange-100/90 dark:bg-orange-950/50 dark:text-orange-100 dark:ring-orange-800/50`;
+    `${chipBase} border-0 bg-white/95 text-orange-900 ring-white/40 hover:bg-white`;
 
   return (
     <div className="relative min-h-screen">
@@ -367,14 +368,16 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
           </div>
         </div>
 
-        {/* Frosted filter panel */}
+        {/* Dark orange search & filter tray */}
         <div
           className={cn(
             "mb-8 space-y-5 rounded-3xl p-4 sm:p-5",
-            "bg-card/75 backdrop-blur-md",
-            "border border-white/60 dark:border-white/10",
-            "shadow-sm shadow-orange-900/[0.04]",
-            "ring-1 ring-black/[0.03] dark:ring-white/5",
+            "bg-gradient-to-br from-orange-800 via-orange-700 to-amber-800",
+            "dark:from-orange-950 dark:via-orange-900 dark:to-amber-950",
+            "backdrop-blur-md",
+            "border border-orange-900/50 dark:border-orange-800/60",
+            "shadow-md shadow-orange-950/25",
+            "ring-1 ring-orange-950/20 dark:ring-orange-800/30",
           )}
         >
           {/* Search + City + Sort */}
@@ -385,7 +388,7 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
                 placeholder="Buscar servicios, categorías o vendedores..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-12 text-base bg-white/80 dark:bg-background/80 border-border/70 shadow-inner shadow-black/[0.02]"
+                className="h-12 text-base bg-white/95 text-foreground border-white/40 shadow-inner shadow-black/5 placeholder:text-muted-foreground"
                 aria-label="Buscar servicios"
               />
             </div>
@@ -408,7 +411,7 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
                     setSelectedCity(v);
                   }
                 }}
-                className="h-12 text-base pl-9 bg-white/80 dark:bg-background/80 border-border/70"
+                className="h-12 text-base pl-9 bg-white/95 text-foreground border-white/40 placeholder:text-muted-foreground"
                 aria-label="Filtrar por ciudad"
               />
               <datalist id="gigs-cities">
@@ -421,7 +424,7 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="border border-border/70 rounded-2xl px-5 h-12 text-base w-full sm:w-56 bg-white/80 dark:bg-background/80"
+              className="border border-white/40 rounded-2xl px-5 h-12 text-base w-full sm:w-56 bg-white/95 text-foreground"
               aria-label="Ordenar resultados"
             >
               <option value="relevance">Relevancia</option>
@@ -439,7 +442,12 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
               disabled={locationLoading}
               variant={showOnlyNearMe ? "default" : "outline"}
               size="sm"
-              className="gap-1.5"
+              className={cn(
+                "gap-1.5",
+                showOnlyNearMe
+                  ? "bg-white text-orange-900 hover:bg-orange-50 border-white"
+                  : "border-white/50 bg-white/10 text-white hover:bg-white/20 hover:text-white",
+              )}
             >
               <MapPin className="h-5 w-5 shrink-0" />
               {locationLoading ? "Ubicando..." : "Cerca de mí"}
@@ -453,6 +461,11 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
                 }}
                 variant={showOnlyNearMe ? "default" : "outline"}
                 size="sm"
+                className={cn(
+                  showOnlyNearMe
+                    ? "bg-white text-orange-900 hover:bg-orange-50 border-white"
+                    : "border-white/50 bg-white/10 text-white hover:bg-white/20 hover:text-white",
+                )}
               >
                 {showOnlyNearMe ? "Ver todos" : "Solo cerca"}
               </Button>
@@ -462,7 +475,12 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
               onClick={() => setShowOnlyRemote(!showOnlyRemote)}
               variant={showOnlyRemote ? "default" : "outline"}
               size="sm"
-              className="gap-1.5"
+              className={cn(
+                "gap-1.5",
+                showOnlyRemote
+                  ? "bg-white text-orange-900 hover:bg-orange-50 border-white"
+                  : "border-white/50 bg-white/10 text-white hover:bg-white/20 hover:text-white",
+              )}
             >
               <Wifi className="h-5 w-5 shrink-0" />
               {showOnlyRemote ? "Todos" : "Solo remotos"}
@@ -472,7 +490,7 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
               storageKey="gigs-view"
               value={viewMode}
               onChange={setViewMode}
-              className="ml-auto sm:ml-0"
+              className="ml-auto sm:ml-0 border-white/30 bg-white/10 text-white [&_button]:text-orange-50 [&_button:hover]:bg-white/20"
             />
 
             {hasActiveFilters && (
@@ -480,7 +498,7 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
                 onClick={clearAllFilters}
                 variant="outline"
                 size="sm"
-                className="text-orange-700 border-orange-200/80 bg-orange-50/50 hover:bg-orange-50 gap-1 ml-auto sm:ml-0 dark:text-orange-300 dark:border-orange-800/50 dark:bg-orange-950/30"
+                className="text-white border-white/50 bg-white/10 hover:bg-white/20 hover:text-white gap-1 ml-auto sm:ml-0"
               >
                 <X className="h-4 w-4 shrink-0" /> Limpiar filtros
               </Button>
@@ -529,11 +547,11 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
           {/* Category tiles */}
           <div>
             <div className="flex items-center justify-between mb-2 px-1">
-              <div className="text-sm font-semibold text-foreground">Explora por categoría</div>
+              <div className="text-sm font-semibold text-orange-50">Explora por categoría</div>
               {selectedCategory !== "Todas" && (
                 <button
                   onClick={() => setSelectedCategory("Todas")}
-                  className="text-xs text-orange-700 hover:underline dark:text-orange-400"
+                  className="text-xs text-orange-100 hover:underline hover:text-white"
                 >
                   Ver todas
                 </button>
@@ -644,7 +662,7 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
               </button>
             </div>
 
-            <p className="text-[10px] text-muted-foreground mt-1 px-1 md:hidden">
+            <p className="text-[10px] text-orange-100/75 mt-1 px-1 md:hidden">
               Desliza horizontalmente para ver más categorías
             </p>
           </div>
