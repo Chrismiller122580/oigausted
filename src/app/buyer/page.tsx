@@ -90,12 +90,16 @@ export default function BuyerDashboard() {
   }
 
   return (
-    <div className="bg-background py-8">
+    <div className="relative min-h-screen bg-background py-8">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-orange-50/80 via-background to-slate-50 dark:from-orange-950/25 dark:via-background dark:to-slate-950"
+      />
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex justify-between items-center mb-12">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Hola, {userName}</h1>
-            <p className="text-muted-foreground mt-2">¿Qué servicio necesitas hoy en Bucaramanga?</p>
+            <p className="text-muted-foreground mt-2">¿Qué servicio necesitas hoy en Colombia?</p>
           </div>
         </div>
 

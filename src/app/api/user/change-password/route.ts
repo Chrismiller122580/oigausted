@@ -4,16 +4,20 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { logAuditEvent } from '@/lib/audit';
+import { verifyAdminFromDb } from '@/lib/admin-auth';
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     const currentUserId = session?.user?.id;
-    const isAdmin = session?.user?.role === 'admin';
 
     if (!currentUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // JWT role alone is not trusted for admin password resets (demoted admins)
+    const isAdmin =
+      session?.user?.role === 'admin' && (await verifyAdminFromDb(currentUserId));
 
     const body = await req.json();
     const { currentPassword, newPassword, confirmPassword, userId, isAdminReset } = body;
@@ -26,7 +30,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'New passwords do not match' }, { status: 400 });
     }
 
-    // Admin can reset any user's password
+    // Admin can reset any user's password (DB-verified only)
     const targetUserId = isAdmin && (userId || isAdminReset) ? userId : currentUserId;
 
     if (!targetUserId) {

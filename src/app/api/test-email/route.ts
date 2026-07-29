@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { notifications, resend as rawResend } from '@/lib/notifications';
 import { logAuditEvent } from '@/lib/audit';
+import { verifyAdminFromDb } from '@/lib/admin-auth';
 
 // Simple protected test endpoint to send a test email
 // Usage: POST /api/test-email with { "emailType": "welcome" | "order" | "review" | "password-reset", "to?": "someone@example.com" }
@@ -20,7 +21,8 @@ export async function POST(req: NextRequest) {
 
     const { emailType = 'welcome', to } = await req.json();
 
-    const isAdmin = session.user?.role === 'admin';
+    const isAdmin =
+      session.user?.role === 'admin' && (await verifyAdminFromDb(userId));
 
     // Direct send when admin provides a "to" address (bypasses user lookup)
     // Hardened: only admins, audited, and in prod consider extra gates (e.g. feature flag).

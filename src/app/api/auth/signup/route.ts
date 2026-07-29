@@ -62,18 +62,26 @@ export async function POST(request: NextRequest) {
       ipAddress: ip,
     }).catch(() => {})
 
-    // Gate new signups via admin settings (public config)
+    // Gate new signups via PlatformConfig (in-process; fail closed on DB error)
     try {
-      const cfgRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/admin/config`);
-      if (cfgRes.ok) {
-        const cfg = await cfgRes.json();
-        if (cfg.allowNewSignups === false) {
-          return NextResponse.json({ error: "Los registros nuevos están deshabilitados temporalmente. Intenta más tarde o contacta soporte." }, { status: 403 });
-        }
+      const { prisma: db } = await import('@/lib/prisma')
+      const cfg = await db.platformConfig.findUnique({
+        where: { id: 'singleton' },
+        select: { allowNewSignups: true },
+      })
+      // Missing row → treat as allowed (first boot); explicit false → blocked
+      if (cfg && cfg.allowNewSignups === false) {
+        return NextResponse.json(
+          { error: 'Los registros nuevos están deshabilitados temporalmente. Intenta más tarde o contacta soporte.' },
+          { status: 403 },
+        )
       }
     } catch (e) {
-      // If config fetch fails we allow (fail open for UX) but log
-      console.warn('Could not check allowNewSignups gate');
+      console.error('Signup gate: could not load platform config', e)
+      return NextResponse.json(
+        { error: 'No se pudo verificar el estado de registros. Intenta de nuevo en un momento.' },
+        { status: 503 },
+      )
     }
 
     const safeRole = requestedRole === 'seller' ? 'seller' : 'buyer'

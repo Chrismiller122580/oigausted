@@ -16,19 +16,21 @@ self.addEventListener('push', function(event) {
     data: {
       url: data.url || data.link || '/',
       notificationId: data.notificationId,
+      trackToken: data.trackToken,
       ...data.data
     },
     vibrate: [100, 50, 100],
     actions: data.actions || []
   };
 
-  // Report that push was delivered (for tracking)
-  if (data.notificationId) {
+  // Report that push was delivered (HMAC trackToken required server-side)
+  if (data.notificationId && data.trackToken) {
     fetch('/api/notifications/push/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         notificationId: data.notificationId,
+        trackToken: data.trackToken,
         event: 'delivered',
       }),
     }).catch(() => {});
@@ -44,14 +46,16 @@ self.addEventListener('notificationclick', function(event) {
 
   const urlToOpen = event.notification.data?.url || '/';
   const notificationId = event.notification.data?.notificationId;
+  const trackToken = event.notification.data?.trackToken;
 
-  // Report click for delivery tracking
-  if (notificationId) {
+  // Report click for delivery tracking (HMAC trackToken required)
+  if (notificationId && trackToken) {
     fetch('/api/notifications/push/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         notificationId,
+        trackToken,
         event: 'clicked',
       }),
     }).catch(() => {});

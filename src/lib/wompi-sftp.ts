@@ -181,21 +181,20 @@ export async function syncWompiSftpReports(): Promise<{ success: boolean; messag
       const fullPath = (sftpConfig.remotePath || '/') + (sftpConfig.remotePath?.endsWith('/') ? '' : '/') + file.name;
       const buffer = await downloadWompiSftpFile(fullPath);
       
-      // TODO: parse CSV based on actual Wompi format
-      // For now, log content preview and store reference
+      // CSV settlement parse not implemented — download + preview only (do not claim payouts reconciled)
       const contentPreview = buffer.toString('utf8').slice(0, 500);
       devLog(`[Wompi SFTP] Downloaded ${file.name} (${buffer.length} bytes). Preview:\n${contentPreview}`);
-
-      // Example: if it contains order references, we could update orders here
-      // e.g. look for "order_xxx" and set sellerPayoutAt or status
 
       downloaded.push(file.name);
     }
 
     return {
       success: true,
-      message: `Synced ${downloaded.length} report files.`,
+      // Honest ops messaging: files pulled, not order payouts updated
+      message: `Descargados ${downloaded.length} archivo(s) de reporte (solo descarga; reconciliación de pagos no implementada).`,
       downloaded,
+      mode: 'download_only' as const,
+      parsed: false,
     };
   } catch (error: unknown) {
     devLog('[Wompi SFTP] Sync error:', error);

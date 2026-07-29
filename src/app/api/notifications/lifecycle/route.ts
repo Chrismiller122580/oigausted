@@ -21,8 +21,9 @@ export async function POST(req: NextRequest) {
   const isCronAuth = !!cronSecret && authHeader === `Bearer ${cronSecret}`;
 
   if (!isCronAuth) {
-    const session = await getServerSession(authOptions);
-    if (session?.user?.role !== 'admin') {
+    const { requireAdminFromDb } = await import('@/lib/admin-auth');
+    const session = await requireAdminFromDb();
+    if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
   }

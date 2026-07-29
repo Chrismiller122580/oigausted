@@ -1,9 +1,8 @@
 import { NextRequest } from "next/server";
- import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
+import { requireAdminFromDb } from '@/lib/admin-auth';
 
 interface GrokChatMessage {
   role: string
@@ -12,9 +11,8 @@ interface GrokChatMessage {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    const role = session?.user?.role;
-    if (role !== 'admin') {
+    const session = await requireAdminFromDb();
+    if (!session) {
       return Response.json({ error: 'Unauthorized - admin access required for Grok Build tools' }, { status: 403 });
     }
 

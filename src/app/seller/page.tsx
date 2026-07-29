@@ -112,7 +112,11 @@ export default function SellerDashboard() {
   }
 
   return (
-    <div className="bg-background py-8">
+    <div className="relative min-h-screen bg-background py-8">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-emerald-50/50 via-background to-orange-50/30 dark:from-emerald-950/20 dark:via-background dark:to-orange-950/15"
+      />
       <MapsPollutionNuke />
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-8 md:mb-10 space-y-6">

@@ -496,7 +496,7 @@ export async function sendNotification(payload: NotificationPayload) {
   if ((type === 'push' || effectiveShouldSendPush) && effectiveShouldSendPush) {
     // Real Web Push will be attempted
     try {
-      await sendDevicePushIfEnabled(userId, title, message, link, data);
+      await sendDevicePushIfEnabled(userId, title, message, link, data, inAppNotifId);
     } catch (e) {
       devLog('Web Push error:', e);
     }
@@ -576,7 +576,8 @@ async function sendDevicePushIfEnabled(
   title: string,
   message: string,
   link?: string,
-  data?: JsonObject
+  data?: JsonObject,
+  notificationId?: string | null,
 ) {
   const subscriptions = await prisma.pushSubscription.findMany({
     where: { userId },
@@ -595,11 +596,17 @@ async function sendDevicePushIfEnabled(
     if (webpush && publicKey && privateKey) {
       webpush.setVapidDetails('mailto:support@oigagig.com', publicKey, privateKey);
 
+      const { createPushTrackToken } = await import('@/lib/push-track-token');
+      const trackToken =
+        notificationId ? createPushTrackToken(notificationId) : null;
+
       const payload = JSON.stringify({
         title,
         body: message,
         icon: '/brand/oiga-gig-marketing.png',
         url: link || '/',
+        notificationId: notificationId || undefined,
+        trackToken: trackToken || undefined,
         data: data || {},
       });
 

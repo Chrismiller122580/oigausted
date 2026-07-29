@@ -1,14 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
+import { verifyPushTrackToken } from '@/lib/push-track-token';
 
-// Endpoint called by Service Worker to report push delivery/clicks
+// Service Worker reports push delivery/clicks with an HMAC track token
+// (issued when the push is sent). Unauthenticated writes without token are rejected.
 export async function POST(req: NextRequest) {
   try {
-    const { notificationId, event } = await req.json();
+    const body = await req.json();
+    const { notificationId, event, trackToken } = body as {
+      notificationId?: string;
+      event?: string;
+      trackToken?: string;
+    };
 
     if (!notificationId || !event) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+    }
+
+    if (!verifyPushTrackToken(notificationId, trackToken)) {
+      return NextResponse.json({ error: 'Invalid track token' }, { status: 401 });
     }
 
     const updateData: Prisma.NotificationUpdateInput = {};
@@ -19,6 +30,8 @@ export async function POST(req: NextRequest) {
     } else if (event === 'clicked') {
       updateData.pushStatus = 'clicked';
       updateData.pushClickedAt = new Date();
+    } else {
+      return NextResponse.json({ error: 'Unknown event' }, { status: 400 });
     }
 
     await prisma.notification.updateMany({

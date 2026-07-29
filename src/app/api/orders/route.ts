@@ -25,8 +25,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Solo compradores pueden crear pedidos' }, { status: 403 });
     }
 
-    // LEGACY: This creation path is deprecated in favor of /api/checkout (Wompi flow).
-    // Kept for backward compat but now has full isActive + role guards.
+    // LEGACY path: prefer /api/checkout (Wompi). Disabled in production unless explicitly allowed.
+    const allowLegacy =
+      process.env.NODE_ENV === 'development' ||
+      process.env.ALLOW_LEGACY_ORDER_CREATE === '1' ||
+      process.env.ALLOW_LEGACY_ORDER_CREATE === 'true'
+    if (!allowLegacy) {
+      return NextResponse.json(
+        {
+          error: 'Usa el checkout con pago (/api/checkout). La creación directa de pedidos está deshabilitada.',
+          code: 'LEGACY_ORDER_CREATE_DISABLED',
+        },
+        { status: 410 },
+      )
+    }
 
     const body = await request.json();
     const { gigId, price, customFields = {} } = body;

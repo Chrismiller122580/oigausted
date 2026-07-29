@@ -199,15 +199,57 @@ const listGigSelect = {
 
 type ListedGig = Prisma.GigGetPayload<{ select: typeof listGigSelect }>
 
+export type ListPublicGigsFilters = {
+  page?: number
+  limit?: number
+  /** Free-text query (title / description / category) */
+  q?: string | null
+  category?: string | null
+  city?: string | null
+  /** When true, only remote gigs */
+  remoteOnly?: boolean
+}
+
+function buildPublicGigFilters(filters: ListPublicGigsFilters = {}): Prisma.GigWhereInput {
+  const and: Prisma.GigWhereInput[] = []
+  const q = (filters.q || '').trim()
+  if (q) {
+    and.push({
+      OR: [
+        { title: { contains: q } },
+        { description: { contains: q } },
+        { category: { contains: q } },
+        { city: { contains: q } },
+      ],
+    })
+  }
+  const category = (filters.category || '').trim()
+  if (category && category !== 'Todas') {
+    and.push({ category })
+  }
+  const city = (filters.city || '').trim()
+  if (city && !/cerca/i.test(city)) {
+    and.push({
+      OR: [{ city: { contains: city } }],
+    })
+  }
+  if (filters.remoteOnly) {
+    and.push({ isRemote: true })
+  }
+  return and.length ? { AND: and } : {}
+}
+
 export async function listPublicGigs({
   page = 1,
   limit = 100,
-}: {
-  page?: number
-  limit?: number
-} = {}): Promise<{ gigs: PublicGigListItem[]; total: number }> {
+  q,
+  category,
+  city,
+  remoteOnly,
+}: ListPublicGigsFilters = {}): Promise<{ gigs: PublicGigListItem[]; total: number }> {
   const skip = (page - 1) * limit
-  let where = publicGigWhere()
+  const filterWhere = buildPublicGigFilters({ q, category, city, remoteOnly })
+  let where: Prisma.GigWhereInput = { ...publicGigWhere(), ...filterWhere }
   let gigs: ListedGig[] = []
   let total = 0
 
@@ -222,7 +264,7 @@ export async function listPublicGigs({
     })
   } catch (dbErr: unknown) {
     if (isMissingDeletedAtColumn(dbErr)) {
-      where = publicGigWhereFallback()
+      where = { ...publicGigWhereFallback(), ...filterWhere }
       total = await prisma.gig.count({ where })
       gigs = await prisma.gig.findMany({
         where,

@@ -106,8 +106,23 @@ export async function POST(
         'Nueva consulta sobre un servicio',
         `${senderRole} te escribió sobre "${gigTitle}".`,
         `/messages/${threadId}`,
-        { threadId, gigId: thread.gigId }
+        {
+          threadId,
+          gigId: thread.gigId,
+          gigTitle,
+          orderId: threadId,
+        }
       )
+      // Email via message category template (respects messageAlerts + email prefs)
+      await notifications.sendNotification({
+        userId: recipientId,
+        category: 'message',
+        type: 'email',
+        title: `Nueva consulta: ${gigTitle}`,
+        message: `${senderRole} te escribió sobre "${gigTitle}".`,
+        link: `/messages/${threadId}`,
+        data: { gigTitle, threadId },
+      })
     } catch (notifErr) {
       console.error('Failed to send inquiry message notification', notifErr)
     }

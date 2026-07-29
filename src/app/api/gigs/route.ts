@@ -13,6 +13,41 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url)
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1)
     const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '50', 10) || 50))
+    const q = url.searchParams.get('q')
+    const category = url.searchParams.get('categoria') || url.searchParams.get('category')
+    const city = url.searchParams.get('ciudad') || url.searchParams.get('city')
+    const remoteOnly = url.searchParams.get('remote') === '1' || url.searchParams.get('remote') === 'true'
+
+    // Prefer shared public listing helper (filters + soft-delete + seller attach)
+    const { listPublicGigs } = await import('@/lib/gig-queries')
+    try {
+      const { gigs: listed, total: listedTotal } = await listPublicGigs({
+        page,
+        limit,
+        q,
+        category,
+        city,
+        remoteOnly,
+      })
+      return NextResponse.json(
+        {
+          gigs: listed || [],
+          count: listed.length,
+          total: listedTotal,
+          page,
+          limit,
+          hasMore: page * limit < listedTotal,
+        },
+        {
+          headers: {
+            'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+          },
+        }
+      )
+    } catch (listErr) {
+      devLog('[Public Gigs] listPublicGigs failed, falling back to raw query', listErr)
+    }
+
     const skip = (page - 1) * limit
 
     const activeWhere = { isActive: true, deletedAt: null as null }

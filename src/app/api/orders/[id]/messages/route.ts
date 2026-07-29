@@ -155,19 +155,19 @@ export async function POST(
         const recipientId = isFromBuyer ? order.sellerId : order.buyerId;
         const senderRole = isFromBuyer ? 'comprador' : 'vendedor';
 
-        // In-app notification (category 'message' or 'order' — both work)
+        // Category 'message' so messageAlerts prefs apply (not only orderUpdates)
         await notifications.sendInApp(
           recipientId,
-          'order',  // so it respects orderUpdates preference
+          'message',
           `Nuevo mensaje en el pedido`,
           `${senderRole} te ha enviado un mensaje sobre "${order.gig.title}".`,
-          `/orders/${orderId}`
+          `/orders/${orderId}`,
+          { orderId, gigTitle: order.gig.title }
         );
 
-        // Email notification (using direct for proper 'order' category)
         await notifications.sendNotification({
           userId: recipientId,
-          category: 'order',
+          category: 'message',
           type: 'email',
           title: `Nuevo mensaje sobre "${order.gig.title}"`,
           message: `${senderRole} te ha enviado un mensaje: "${content?.substring(0, 100) || 'Ver mensaje completo'}..."`,
