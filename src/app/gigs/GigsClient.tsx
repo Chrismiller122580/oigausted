@@ -14,7 +14,7 @@ import { MapPin, Wifi, X, ChevronLeft, ChevronRight, LayoutGrid } from "lucide-r
 import { CategoryIcon } from "@/lib/icon-registry";
 import { recordMeaningfulPwaAction } from "@/lib/pwa-install";
 import { ShareOigaGig } from "@/components/marketing/ShareOigaGig";
-import { colombianCities, categoryTilePastels } from "@/lib/design-tokens";
+import { colombianCities } from "@/lib/design-tokens";
 import {
   cityMatchesFilter,
   compareByRelevance,
@@ -575,45 +575,33 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
                   onClick={() => setSelectedCategory("Todas")}
                   className={cn(
                     "snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl border transition-all duration-200 active:scale-[0.985]",
+                    // Neutral solid tiles (no red/orange color fades)
                     selectedCategory === "Todas"
-                      ? "border-orange-300 bg-orange-50 text-orange-950 shadow-sm ring-2 ring-orange-200/60 dark:border-orange-700 dark:bg-orange-950/50 dark:text-orange-50 dark:ring-orange-800/50"
-                      : "border-orange-100/80 bg-gradient-to-b from-white to-orange-50/60 shadow-sm hover:border-orange-200 hover:shadow-md hover:-translate-y-0.5 dark:border-white/10 dark:from-card dark:to-orange-950/20",
+                      ? "border-white bg-white text-slate-900 shadow-md ring-2 ring-white/80 dark:border-slate-200 dark:bg-slate-100 dark:text-slate-900 dark:ring-white/40"
+                      : "border-white/40 bg-white/95 text-slate-800 shadow-sm hover:bg-white hover:shadow-md hover:-translate-y-0.5 dark:border-white/20 dark:bg-white/90 dark:text-slate-900",
                   )}
                 >
                   <div
                     className={cn(
-                      "mb-1.5 flex h-12 w-12 items-center justify-center rounded-xl ring-1 shadow-sm",
-                      selectedCategory === "Todas"
-                        ? "bg-white ring-orange-200/70 dark:bg-white/95 dark:ring-orange-700/40"
-                        : "bg-white/95 ring-black/5 dark:bg-white/90 dark:ring-white/15",
+                      "mb-1.5 flex h-12 w-12 items-center justify-center rounded-xl ring-1 shadow-sm bg-slate-50 ring-slate-200/80",
                     )}
                   >
                     <LayoutGrid
                       className={cn(
                         "h-8 w-8",
-                        selectedCategory === "Todas"
-                          ? "text-orange-600"
-                          : "text-orange-500 dark:text-orange-400",
+                        selectedCategory === "Todas" ? "text-slate-700" : "text-slate-500",
                       )}
                     />
                   </div>
                   <div className="text-xs font-medium text-center leading-tight">Todas</div>
-                  <div
-                    className={cn(
-                      "text-[11px] mt-0.5",
-                      selectedCategory === "Todas"
-                        ? "text-orange-700/80 dark:text-orange-300/80"
-                        : "text-muted-foreground",
-                    )}
-                  >
+                  <div className="text-[11px] mt-0.5 text-slate-500">
                     {gigs.length}
                   </div>
                 </button>
 
-                {(catLoading ? [] : categoryList).map((cat, index) => {
+                {(catLoading ? [] : categoryList).map((cat) => {
                   const count = categoryCounts[cat] || 0;
                   const isActive = selectedCategory === cat;
-                  const pastel = categoryTilePastels[index % categoryTilePastels.length];
 
                   return (
                     <button
@@ -622,13 +610,8 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
                       className={cn(
                         "snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl border transition-all duration-200 active:scale-[0.985]",
                         isActive
-                          ? "border-orange-300 bg-orange-50 text-orange-950 shadow-sm ring-2 ring-orange-200/60 dark:border-orange-700 dark:bg-orange-950/50 dark:text-orange-50 dark:ring-orange-800/50"
-                          : cn(
-                              "border-black/[0.04] bg-gradient-to-b shadow-sm",
-                              "hover:border-orange-200/80 hover:shadow-md hover:-translate-y-0.5",
-                              "dark:border-white/10 dark:hover:border-orange-800/40",
-                              pastel,
-                            ),
+                          ? "border-white bg-white text-slate-900 shadow-md ring-2 ring-white/80 dark:border-slate-200 dark:bg-slate-100 dark:text-slate-900 dark:ring-white/40"
+                          : "border-white/40 bg-white/95 text-slate-800 shadow-sm hover:bg-white hover:shadow-md hover:-translate-y-0.5 dark:border-white/20 dark:bg-white/90 dark:text-slate-900",
                       )}
                       title={cat}
                     >
@@ -638,14 +621,7 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
                       <div className="text-[11px] font-medium text-center leading-tight line-clamp-2">
                         {cat}
                       </div>
-                      <div
-                        className={cn(
-                          "text-[11px] mt-0.5",
-                          isActive
-                            ? "text-orange-700/80 dark:text-orange-300/80"
-                            : "text-muted-foreground",
-                        )}
-                      >
+                      <div className="text-[11px] mt-0.5 text-slate-500">
                         {count}
                       </div>
                     </button>
