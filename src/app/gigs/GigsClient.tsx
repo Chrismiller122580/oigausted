@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, Suspense, useRef, type ComponentProps } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback, type ComponentProps } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -14,6 +14,13 @@ import { MapPin, Wifi, X, ChevronLeft, ChevronRight, LayoutGrid } from "lucide-r
 import { CategoryIcon } from "@/lib/icon-registry";
 import { recordMeaningfulPwaAction } from "@/lib/pwa-install";
 import { ShareOigaGig } from "@/components/marketing/ShareOigaGig";
+import { colombianCities } from "@/lib/design-tokens";
+import {
+  cityMatchesFilter,
+  compareByRelevance,
+  gigMatchesSearch,
+  isNearMeLocation,
+} from "@/lib/search-text";
 
 import type { PublicGigListItem } from '@/lib/gig-queries'
 import { buildGigMapPins, groupGigsByCity } from '@/lib/gig-map';
@@ -34,25 +41,41 @@ type GigsClientProps = {
   initialGigs: PublicGigListItem[]
 }
 
+function readNearMeFromParams(ciudad: string | null, cerca: string | null): boolean {
+  if (cerca === '1' || cerca === 'true') return true
+  return isNearMeLocation(ciudad)
+}
+
 export default function GigsClient({ initialGigs }: GigsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const initialCategory = searchParams.get("categoria") || "Todas";
+  const initialQ = searchParams.get("q") || "";
+  const initialCiudad = searchParams.get("ciudad") || "";
+  const initialCerca = searchParams.get("cerca");
+  const wantNearMeOnLoad = readNearMeFromParams(
+    initialCiudad || null,
+    initialCerca,
+  );
 
   const { categories: loadedCategories, loading: catLoading } = useGigCategories();
 
   const categoryList = loadedCategories.map((c) => c.name);
 
   const [gigs, setGigs] = useState<GigListItem[]>(initialGigs);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(initialQ);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  const [selectedCity, setSelectedCity] = useState(
+    wantNearMeOnLoad ? "" : initialCiudad,
+  );
   const [sortBy, setSortBy] = useState("relevance");
   const [loading, setLoading] = useState(initialGigs.length === 0);
 
-  // Geo features (ported + improved from previous GigsContent)
+  // Geo features
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [showOnlyNearMe, setShowOnlyNearMe] = useState(false);
+  const [showOnlyNearMe, setShowOnlyNearMe] = useState(wantNearMeOnLoad);
   const [showOnlyRemote, setShowOnlyRemote] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
@@ -62,18 +85,48 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
     recordMeaningfulPwaAction();
   }, []);
 
-  // Update URL when category changes (for shareability)
+  // Keep local filter state in sync when URL changes (back/forward, external links)
   useEffect(() => {
-    if (selectedCategory !== "Todas") {
-      const url = new URL(window.location.href);
-      url.searchParams.set("categoria", selectedCategory);
-      window.history.replaceState({}, "", url.toString());
+    const q = searchParams.get("q") || "";
+    const categoria = searchParams.get("categoria") || "Todas";
+    const ciudad = searchParams.get("ciudad") || "";
+    const cerca = searchParams.get("cerca");
+    const nearMe = readNearMeFromParams(ciudad || null, cerca);
+
+    setSearchTerm(q);
+    setSelectedCategory(categoria);
+    if (nearMe) {
+      setSelectedCity("");
+      setShowOnlyNearMe(true);
     } else {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("categoria");
-      window.history.replaceState({}, "", url.toString());
+      setSelectedCity(ciudad);
     }
-  }, [selectedCategory]);
+  }, [searchParams]);
+
+  // Sync filters → URL for shareability
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (searchTerm.trim()) url.searchParams.set("q", searchTerm.trim());
+    else url.searchParams.delete("q");
+
+    if (selectedCategory !== "Todas") url.searchParams.set("categoria", selectedCategory);
+    else url.searchParams.delete("categoria");
+
+    if (showOnlyNearMe) {
+      url.searchParams.set("cerca", "1");
+      url.searchParams.delete("ciudad");
+    } else {
+      url.searchParams.delete("cerca");
+      if (selectedCity.trim()) url.searchParams.set("ciudad", selectedCity.trim());
+      else url.searchParams.delete("ciudad");
+    }
+
+    const next = url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : "");
+    const current = window.location.pathname + window.location.search;
+    if (next !== current) {
+      window.history.replaceState({}, "", next);
+    }
+  }, [searchTerm, selectedCategory, selectedCity, showOnlyNearMe]);
 
   useEffect(() => {
     if (initialGigs.length === 0) {
@@ -92,9 +145,25 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
     }
   }, []);
 
+  // If user arrived with cerca=1 but no coords yet, prompt for location once
+  useEffect(() => {
+    if (!showOnlyNearMe || userLocation || locationLoading) return;
+    const saved = localStorage.getItem('userLocation');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.lat && parsed.lng) {
+          setUserLocation(parsed);
+          return;
+        }
+      } catch {}
+    }
+    setShowPermissionPrompt(true);
+  }, [showOnlyNearMe, userLocation, locationLoading]);
+
   const fetchGigs = async () => {
     try {
-      const res = await fetch("/api/gigs");
+      const res = await fetch("/api/gigs?limit=100");
       const data = await res.json();
       const gigList = Array.isArray(data) ? data : data.gigs || [];
       setGigs(gigList);
@@ -114,6 +183,7 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
       const location = await getCurrentLocation();
       setUserLocation(location);
       setShowOnlyNearMe(true);
+      setSelectedCity("");
       localStorage.setItem('userLocation', JSON.stringify(location));
     } catch (error: unknown) {
       const geoError = error as { code?: number };
@@ -124,6 +194,7 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
 
       setLocationError(message);
       setShowPermissionPrompt(true);
+      setShowOnlyNearMe(false);
     } finally {
       setLocationLoading(false);
     }
@@ -134,7 +205,15 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
     setLocationError(null);
   };
 
-  // Memoized derived data to avoid re-render loops from unstable deps (was causing category filters etc to not work stably)
+  const clearAllFilters = useCallback(() => {
+    setSearchTerm("");
+    setSelectedCategory("Todas");
+    setSelectedCity("");
+    setSortBy("relevance");
+    setShowOnlyNearMe(false);
+    setShowOnlyRemote(false);
+  }, []);
+
   const gigsWithDistance = useMemo(() => {
     return gigs.map(gig => {
       if (userLocation && gig.latitude && gig.longitude) {
@@ -150,7 +229,6 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
     });
   }, [gigs, userLocation]);
 
-  // Category counts for visual tiles
   const categoryCounts = useMemo(() => {
     const map: Record<string, number> = {};
     gigs.forEach((gig) => {
@@ -160,23 +238,14 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
     return map;
   }, [gigs]);
 
-  // Ref for category carousel scrolling
   const categoryCarouselRef = useRef<HTMLDivElement>(null);
-
-  // Ref for mobile gig tiles carousel
-  const gigCarouselRef = useRef<HTMLDivElement>(null);
 
   const filteredGigs = useMemo(() => {
     let result = [...gigsWithDistance];
 
-    // Search filter
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(gig =>
-        gig.title?.toLowerCase().includes(term) ||
-        gig.description?.toLowerCase().includes(term) ||
-        gig.seller?.businessName?.toLowerCase().includes(term)
-      );
+    // Text search (title, description, category, city, seller…)
+    if (searchTerm.trim()) {
+      result = result.filter((gig) => gigMatchesSearch(gig, searchTerm));
     }
 
     // Category filter
@@ -184,31 +253,48 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
       result = result.filter(gig => gig.category === selectedCategory);
     }
 
-    // Geo filters
+    // City filter (when not using near-me)
+    if (!showOnlyNearMe && selectedCity.trim()) {
+      result = result.filter((gig) => cityMatchesFilter(gig, selectedCity));
+    }
+
+    // Geo: near me — prefer gigs with distance; keep remotes at end when coords missing
     if (showOnlyNearMe && userLocation) {
-      result = result.filter(gig => gig.distanceKm !== undefined);
-      result.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+      result = result.filter(
+        (gig) => gig.distanceKm !== undefined || gig.isRemote === true,
+      );
+      result.sort((a, b) => {
+        const da = a.distanceKm ?? (a.isRemote ? 500 : Infinity);
+        const db = b.distanceKm ?? (b.isRemote ? 500 : Infinity);
+        return da - db;
+      });
     }
 
     if (showOnlyRemote) {
       result = result.filter(gig => gig.isRemote === true);
     }
 
-    // Sorting (only apply if not using near-me sort)
-    if (!showOnlyNearMe) {
-      if (sortBy === "rating") {
-        result.sort((a, b) => (b.seller?.rating || 0) - (a.seller?.rating || 0));
-      } else if (sortBy === "price-low") {
-        result.sort((a, b) => (a.price || 0) - (b.price || 0));
-      } else if (sortBy === "price-high") {
-        result.sort((a, b) => (b.price || 0) - (a.price || 0));
-      } else if (sortBy === "newest") {
-        result.sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
-      }
+    // Sorting (skip override when near-me already sorted by distance, unless relevance+query)
+    const hasQuery = Boolean(searchTerm.trim());
+    if (showOnlyNearMe && !hasQuery) {
+      // distance order already applied
+    } else if (sortBy === "relevance" && hasQuery) {
+      result.sort((a, b) => compareByRelevance(a, b, searchTerm));
+    } else if (sortBy === "rating") {
+      result.sort((a, b) => (b.seller?.rating || 0) - (a.seller?.rating || 0));
+    } else if (sortBy === "price-low") {
+      result.sort((a, b) => (a.price || 0) - (b.price || 0));
+    } else if (sortBy === "price-high") {
+      result.sort((a, b) => (b.price || 0) - (a.price || 0));
+    } else if (sortBy === "newest") {
+      result.sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
+    } else if (!showOnlyNearMe && sortBy === "relevance") {
+      // Default browse: newest first
+      result.sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
     }
 
     return result;
-  }, [gigsWithDistance, searchTerm, selectedCategory, sortBy, showOnlyNearMe, showOnlyRemote, userLocation]);
+  }, [gigsWithDistance, searchTerm, selectedCategory, selectedCity, sortBy, showOnlyNearMe, showOnlyRemote, userLocation]);
 
   const mapPins = useMemo(() => buildGigMapPins(filteredGigs), [filteredGigs]);
   const mapClusters = useMemo(() => groupGigsByCity(mapPins), [mapPins]);
@@ -218,6 +304,14 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
     }
     return undefined;
   }, [userLocation, showOnlyNearMe]);
+
+  const hasActiveFilters =
+    Boolean(searchTerm.trim()) ||
+    selectedCategory !== "Todas" ||
+    Boolean(selectedCity.trim()) ||
+    sortBy !== "relevance" ||
+    showOnlyNearMe ||
+    showOnlyRemote;
 
   if (loading) {
     return (
@@ -236,31 +330,68 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
         <h1 className="text-5xl font-bold tracking-tight">Encuentra Servicios Locales</h1>
         <div className="flex flex-col gap-3 mt-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xl text-muted-foreground">
-            {filteredGigs.length} servicios disponibles
+            {filteredGigs.length} servicio{filteredGigs.length === 1 ? "" : "s"} disponible{filteredGigs.length === 1 ? "" : "s"}
             {selectedCategory !== "Todas" && ` en ${selectedCategory}`}
+            {selectedCity.trim() && !showOnlyNearMe && ` · ${selectedCity.trim()}`}
+            {showOnlyNearMe && " · cerca de ti"}
+            {searchTerm.trim() && (
+              <span className="block sm:inline sm:before:content-['·_'] text-base">
+                “{searchTerm.trim()}”
+              </span>
+            )}
           </p>
           <ShareOigaGig variant="inline" className="md:hidden" />
         </div>
       </div>
 
-      {/* Filters - Cleaned up */}
+      {/* Filters */}
       <div className="mb-8 space-y-5">
-        {/* Search + Sort */}
+        {/* Search + City + Sort */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <Input
-              type="text"
-              placeholder="Buscar servicios o vendedores..."
+              type="search"
+              placeholder="Buscar servicios, categorías o vendedores..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="h-12 text-base"
+              aria-label="Buscar servicios"
             />
+          </div>
+
+          <div className="relative sm:w-48">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              list="gigs-cities"
+              type="text"
+              placeholder="Ciudad"
+              value={showOnlyNearMe ? "Cerca de mí" : selectedCity}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (isNearMeLocation(v)) {
+                  setShowOnlyNearMe(true);
+                  setSelectedCity("");
+                  if (!userLocation) setShowPermissionPrompt(true);
+                } else {
+                  setShowOnlyNearMe(false);
+                  setSelectedCity(v);
+                }
+              }}
+              className="h-12 text-base pl-9"
+              aria-label="Filtrar por ciudad"
+            />
+            <datalist id="gigs-cities">
+              {colombianCities.map((c) => (
+                <option key={c.id} value={c.label} />
+              ))}
+            </datalist>
           </div>
 
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
             className="border rounded-2xl px-5 h-12 text-base w-full sm:w-56 bg-background"
+            aria-label="Ordenar resultados"
           >
             <option value="relevance">Relevancia</option>
             <option value="rating">Mejor valorados</option>
@@ -270,7 +401,7 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
           </select>
         </div>
 
-        {/* Geo filters - cleaned, fewer emojis, consistent icons */}
+        {/* Geo filters */}
         <div className="flex flex-wrap items-center gap-2">
           <Button
             onClick={handleUseMyLocation}
@@ -285,7 +416,10 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
 
           {userLocation && (
             <Button
-              onClick={() => setShowOnlyNearMe(!showOnlyNearMe)}
+              onClick={() => {
+                setShowOnlyNearMe(!showOnlyNearMe);
+                if (!showOnlyNearMe) setSelectedCity("");
+              }}
               variant={showOnlyNearMe ? "default" : "outline"}
               size="sm"
             >
@@ -310,16 +444,9 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
             className="ml-auto sm:ml-0"
           />
 
-          {/* Clear all filters chip - prominent */}
-          {(searchTerm || selectedCategory !== "Todas" || sortBy !== "relevance" || showOnlyNearMe || showOnlyRemote) && (
+          {hasActiveFilters && (
             <Button
-              onClick={() => {
-                setSearchTerm("");
-                setSelectedCategory("Todas");
-                setSortBy("relevance");
-                setShowOnlyNearMe(false);
-                setShowOnlyRemote(false);
-              }}
+              onClick={clearAllFilters}
               variant="outline"
               size="sm"
               className="text-orange-600 border-orange-200 hover:bg-orange-50 gap-1 ml-auto sm:ml-0"
@@ -329,7 +456,66 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
           )}
         </div>
 
-        {/* Category Tiles Carousel - Clean horizontal carousel for mobile + desktop */}
+        {/* Active filter chips */}
+        {hasActiveFilters && (
+          <div className="flex flex-wrap gap-2" aria-label="Filtros activos">
+            {searchTerm.trim() && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-medium text-orange-800 hover:bg-orange-100"
+              >
+                “{searchTerm.trim()}”
+                <X className="h-3 w-3" />
+              </button>
+            )}
+            {selectedCategory !== "Todas" && (
+              <button
+                type="button"
+                onClick={() => setSelectedCategory("Todas")}
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium hover:bg-muted/80"
+              >
+                {selectedCategory}
+                <X className="h-3 w-3" />
+              </button>
+            )}
+            {selectedCity.trim() && !showOnlyNearMe && (
+              <button
+                type="button"
+                onClick={() => setSelectedCity("")}
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium hover:bg-muted/80"
+              >
+                <MapPin className="h-3 w-3" />
+                {selectedCity.trim()}
+                <X className="h-3 w-3" />
+              </button>
+            )}
+            {showOnlyNearMe && (
+              <button
+                type="button"
+                onClick={() => setShowOnlyNearMe(false)}
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium hover:bg-muted/80"
+              >
+                <MapPin className="h-3 w-3" />
+                Cerca de mí
+                <X className="h-3 w-3" />
+              </button>
+            )}
+            {showOnlyRemote && (
+              <button
+                type="button"
+                onClick={() => setShowOnlyRemote(false)}
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium hover:bg-muted/80"
+              >
+                <Wifi className="h-3 w-3" />
+                Remotos
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Category tiles */}
         <div>
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="text-sm font-semibold text-foreground">Explora por categoría</div>
@@ -343,9 +529,7 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
             )}
           </div>
 
-          {/* Carousel container with snap scrolling - perfect for mobile tiles */}
           <div className="relative">
-            {/* Optional scroll arrows (desktop friendly) */}
             <button
               onClick={() => categoryCarouselRef.current?.scrollBy({ left: -260, behavior: "smooth" })}
               className="hidden md:flex absolute -left-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 items-center justify-center rounded-full bg-background/90 border shadow-sm hover:bg-muted"
@@ -358,7 +542,6 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
               ref={categoryCarouselRef}
               className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-3 -mx-1 px-1 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
-              {/* Todas tile */}
               <button
                 onClick={() => setSelectedCategory("Todas")}
                 className={`snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl border transition-all active:scale-[0.985] ${
@@ -429,7 +612,6 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
           </p>
         </div>
 
-        {/* Location permission prompt */}
         {showPermissionPrompt && (
           <div className="mt-1">
             <LocationPermissionPrompt
@@ -462,92 +644,56 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
         </div>
       ) : null}
 
-      {/* Gigs Results - Enhanced for mobile with carousel for tiles */}
+      {/* Full results grid — mobile + desktop (all matches, not capped) */}
       {filteredGigs.length > 0 && viewMode === 'list' ? (
-        <>
-          {/* Mobile-only horizontal carousel for gig tiles (swipeable discovery) */}
-          <div className="md:hidden mb-8">
-            <div className="flex items-center justify-between mb-3 px-1">
-              <span className="text-sm font-semibold">Desliza para explorar</span>
-              <span className="text-xs text-muted-foreground">{filteredGigs.length} resultados</span>
-            </div>
-
-            <div className="relative">
-              {/* Scroll arrows for the gig carousel */}
-              <button
-                onClick={() => gigCarouselRef.current?.scrollBy({ left: -280, behavior: "smooth" })}
-                className="hidden sm:flex absolute -left-1 top-1/2 -translate-y-1/2 z-10 h-7 w-7 items-center justify-center rounded-full bg-background/95 border shadow hover:bg-muted"
-                aria-label="Anterior"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </button>
-
-              <div
-                ref={gigCarouselRef}
-                className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4 -mx-6 px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              >
-                {filteredGigs.slice(0, 12).map((gig) => (
-                  <div key={gig.id} className="snap-start w-[85%] max-w-[310px] flex-shrink-0">
-                    <GigCard 
-                      gig={gig as ComponentProps<typeof GigCard>['gig']} 
-                      distanceKm={gig.distanceKm} 
-                      compact={true} 
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={() => gigCarouselRef.current?.scrollBy({ left: 280, behavior: "smooth" })}
-                className="hidden sm:flex absolute -right-1 top-1/2 -translate-y-1/2 z-10 h-7 w-7 items-center justify-center rounded-full bg-background/95 border shadow hover:bg-muted"
-                aria-label="Siguiente"
-              >
-                <ChevronRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <p className="text-[10px] text-center text-muted-foreground -mt-1">Desliza horizontalmente para ver más servicios</p>
-          </div>
-
-          {/* Main grid - shown on tablet/desktop. On mobile the carousel above is the primary tile browsing experience */}
-          <div className="hidden md:block grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-            {filteredGigs.map((gig) => (
-              <GigCard 
-                key={gig.id} 
-                gig={gig as ComponentProps<typeof GigCard>['gig']} 
-                distanceKm={gig.distanceKm} 
-              />
-            ))}
-          </div>
-
-          {/* On mobile, show a note + link to encourage using filters if needed */}
-          <div className="md:hidden mt-2 text-center">
-            <p className="text-xs text-muted-foreground">
-              Desliza en el carrusel de arriba. Usa los filtros para refinar.
-            </p>
-          </div>
-        </>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+          {filteredGigs.map((gig) => (
+            <GigCard
+              key={gig.id}
+              gig={gig as ComponentProps<typeof GigCard>['gig']}
+              distanceKm={gig.distanceKm}
+            />
+          ))}
+        </div>
       ) : null}
 
       {filteredGigs.length === 0 ? (
-        <div className="text-center py-16 border rounded-3xl bg-card">
+        <div className="text-center py-16 border rounded-3xl bg-card px-4">
           <p className="text-2xl text-gray-400 mb-2">No se encontraron servicios</p>
-          <p className="text-muted-foreground mb-6">Prueba con otra búsqueda o categoría</p>
-          <button
-            onClick={() => {
-              setSearchTerm("");
-              setSelectedCategory("Todas");
-              setSortBy("relevance");
-              setShowOnlyNearMe(false);
-              setShowOnlyRemote(false);
-            }}
-            className="text-orange-600 hover:underline font-medium"
-          >
-            Ver todos los servicios
-          </button>
+          <p className="text-muted-foreground mb-6">
+            {searchTerm.trim()
+              ? `No hay resultados para “${searchTerm.trim()}”. Prueba otra palabra, quita la ciudad o elige otra categoría.`
+              : "Prueba con otra búsqueda, ciudad o categoría"}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <button
+              onClick={clearAllFilters}
+              className="text-orange-600 hover:underline font-medium"
+            >
+              Ver todos los servicios
+            </button>
+            {selectedCategory !== "Todas" && (
+              <button
+                onClick={() => setSelectedCategory("Todas")}
+                className="text-sm text-muted-foreground hover:underline"
+              >
+                Quitar categoría
+              </button>
+            )}
+            {(selectedCity.trim() || showOnlyNearMe) && (
+              <button
+                onClick={() => {
+                  setSelectedCity("");
+                  setShowOnlyNearMe(false);
+                }}
+                className="text-sm text-muted-foreground hover:underline"
+              >
+                Quitar ubicación
+              </button>
+            )}
+          </div>
         </div>
       ) : null}
     </div>
   );
 }
-
-

@@ -9,6 +9,7 @@ import { useEffect, useState } from "react"
 import OnboardingTutorial from "@/components/common/OnboardingTutorial"
 import { usePlatformConfig } from "@/components/providers/PlatformConfigProvider"
 import { markTutorialDismissed, shouldAutoShowTutorial } from "@/lib/tutorial"
+import { MegaSearchBar } from "@/components/homepage/MegaSearchBar"
 
 export default function BuyerDashboard() {
   const { data: session } = useSession()
@@ -106,16 +107,19 @@ export default function BuyerDashboard() {
           <StatCard icon={Star} iconColor="text-amber-400" label="Reseñas pendientes" value={stats.pendingReviews} highlight={stats.pendingReviews > 0} />
         </div>
 
-        {/* Main CTA */}
+        {/* Main CTA + search */}
         <Card className="mb-10 bg-gradient-to-br from-orange-600 to-orange-700 text-white overflow-hidden">
           <CardContent className="p-8 sm:p-12 text-center">
             <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-white/15">
               <ShoppingBag className="h-8 w-8" />
             </div>
             <h2 className="text-2xl font-bold mb-3">Encuentra el servicio perfecto</h2>
-            <p className="text-base mb-8 max-w-2xl mx-auto text-white/90">
-              Miles de gigs locales en Colombia. Encuentra freelancers confiables para tu proyecto.
+            <p className="text-base mb-6 max-w-2xl mx-auto text-white/90">
+              Miles de gigs locales en Colombia. Busca por servicio o ciudad y encuentra freelancers confiables.
             </p>
+            <div className="max-w-2xl mx-auto mb-6 text-left">
+              <MegaSearchBar variant="hero" defaultCity="" className="[&_input]:border-white/20" />
+            </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="lg" id="tutorial-browse-all-gigs" className="bg-card text-brand hover:bg-muted text-base px-8 py-3 rounded-xl font-semibold shadow-lg">
                 <Link href="/gigs">Ver Todos los Gigs</Link>

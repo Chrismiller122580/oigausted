@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getCurrentLocation } from '@/lib/distance';
 import { brandButtonClass, colombianCities } from '@/lib/design-tokens';
+import { isNearMeLocation } from '@/lib/search-text';
 
 interface MegaSearchBarProps {
   variant?: 'hero' | 'compact';
@@ -28,7 +29,15 @@ export function MegaSearchBar({
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (service.trim()) params.set('q', service.trim());
-    if (location.trim()) params.set('ciudad', location.trim());
+    const loc = location.trim();
+    // GigsClient reads q, ciudad, and cerca=1 for near-me handoff
+    if (loc) {
+      if (isNearMeLocation(loc)) {
+        params.set('cerca', '1');
+      } else {
+        params.set('ciudad', loc);
+      }
+    }
     const qs = params.toString();
     router.push(qs ? `/gigs?${qs}` : '/gigs');
   };
