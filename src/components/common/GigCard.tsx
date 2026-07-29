@@ -13,6 +13,7 @@ import { CategoryIcon } from "@/lib/icon-registry"
 import { StarRating } from "@/components/ui/star-rating"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { formatGigLocation } from "@/lib/gig-location"
+import { cn } from "@/lib/utils"
 
 interface Gig {
   id: string
@@ -85,20 +86,53 @@ export default function GigCard({
   }
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      {gig.imageUrl && (
-        <div className={`relative w-full ${compact ? 'h-32' : 'h-48'} bg-muted overflow-hidden`}>
-          <Image
-            src={gig.imageUrl}
-            alt={gig.title}
-            fill
-            sizes="(max-width: 768px) 100vw, 33vw"
-            className="object-contain"
-          />
-        </div>
+    <Card
+      className={cn(
+        "overflow-hidden rounded-2xl border-0 py-0 gap-0",
+        "bg-gradient-to-b from-card via-card to-orange-50/40",
+        "dark:to-orange-950/25",
+        "ring-1 ring-black/[0.04] dark:ring-white/10",
+        "shadow-sm shadow-orange-900/[0.04]",
+        "transition-all duration-200 ease-out",
+        "hover:shadow-md hover:shadow-orange-900/10 hover:ring-orange-200/60",
+        "dark:hover:ring-orange-800/40 hover:-translate-y-0.5",
       )}
-      <CardHeader>
-        <CardTitle className="line-clamp-2">{gig.title}</CardTitle>
+    >
+      <div
+        className={cn(
+          "relative w-full overflow-hidden",
+          compact ? "h-32" : "h-48",
+          "bg-gradient-to-br from-orange-50 via-amber-50/80 to-slate-100",
+          "dark:from-orange-950/50 dark:via-slate-900 dark:to-slate-950",
+        )}
+      >
+        {gig.imageUrl ? (
+          <>
+            <Image
+              src={gig.imageUrl}
+              alt={gig.title}
+              fill
+              sizes="(max-width: 768px) 100vw, 33vw"
+              className="object-cover"
+            />
+            {/* Soft fade into card body */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card via-card/50 to-transparent dark:from-card"
+            />
+          </>
+        ) : (
+          <div
+            aria-hidden
+            className="absolute inset-0 flex items-center justify-center opacity-40"
+          >
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-orange-200/60 to-amber-100/40 dark:from-orange-800/40 dark:to-amber-900/20" />
+          </div>
+        )}
+      </div>
+
+      <CardHeader className="pt-4">
+        <CardTitle className="line-clamp-2 text-foreground">{gig.title}</CardTitle>
         
         {/* Seller info: avatar + name + rating */}
         <div className="mt-1 flex items-center justify-between gap-2 text-sm">
@@ -115,7 +149,7 @@ export default function GigCard({
             ) : (
               <Link 
                 href={`/sellers/${gig.seller?.slug || gig.seller?.id}`} 
-                className="truncate text-xs text-muted-foreground hover:text-orange-600 hover:underline"
+                className="truncate text-xs text-muted-foreground hover:text-orange-700 hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
                 {sellerName}
@@ -125,13 +159,18 @@ export default function GigCard({
 
           {/* Rating badge */}
           {gig.seller?.rating && gig.seller.rating > 0 && (
-            <div className={`flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 flex-shrink-0 ${compact ? 'px-1.5' : ''}`}>
+            <div
+              className={cn(
+                "flex items-center gap-1 rounded-full bg-amber-50/90 px-2 py-0.5 flex-shrink-0",
+                "ring-1 ring-amber-100/80 dark:bg-amber-950/40 dark:ring-amber-900/40",
+                compact && "px-1.5",
+              )}
+            >
               <StarRating
                 rating={gig.seller.rating}
                 size="sm"
                 showValue
                 reviewCount={gig.seller.reviewCount ?? undefined}
-
               />
             </div>
           )}
@@ -139,26 +178,26 @@ export default function GigCard({
 
         {locationLabel && (
           <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5 shrink-0 text-orange-600" aria-hidden />
+            <MapPin className="h-3.5 w-3.5 shrink-0 text-orange-500/90" aria-hidden />
             <span className="truncate">{locationLabel}</span>
           </div>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="pb-3">
         <p className="text-muted-foreground line-clamp-3 mb-4">{gig.description}</p>
-        <div className="flex justify-between items-center">
-          <span className="text-3xl font-bold text-orange-600">
+        <div className="flex justify-between items-center gap-2 flex-wrap">
+          <span className="text-2xl sm:text-3xl font-bold text-orange-700 dark:text-orange-400 tabular-nums">
             ${gig.price.toLocaleString("es-CO")}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             {distanceKm !== undefined && (
               <div className="flex items-center gap-1.5">
-                <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-medium">
+                <span className="text-xs bg-sky-50/90 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200 px-2.5 py-1 rounded-full font-medium ring-1 ring-sky-100/80 dark:ring-sky-900/40">
                   {distanceKm.toFixed(1)} km
                 </span>
                 {gig.seller?.serviceRadiusKm && distanceKm > gig.seller.serviceRadiusKm && (
                   <span 
-                    className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium" 
+                    className="text-[10px] bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200 px-2 py-0.5 rounded-full font-medium ring-1 ring-rose-100/80" 
                     title={`Este vendedor suele atender hasta ${gig.seller.serviceRadiusKm} km`}
                   >
                     +{Math.round(distanceKm - gig.seller.serviceRadiusKm)}km
@@ -167,17 +206,24 @@ export default function GigCard({
               </div>
             )}
             {gig.category && (
-              <span className="text-xs bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-200 px-3 py-1 rounded-md flex items-center gap-1.5">
-                <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white ring-1 ring-black/5 dark:bg-white/90 dark:ring-white/15">
+              <span className="text-xs bg-orange-50/90 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200 px-2.5 py-1 rounded-full flex items-center gap-1.5 ring-1 ring-orange-100/80 dark:ring-orange-900/40 max-w-[11rem]">
+                <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white/90 ring-1 ring-black/5 dark:bg-white/90 dark:ring-white/15">
                   <CategoryIcon name={gig.category} className="h-4 w-4 object-contain" />
                 </span>
-                {gig.category}
+                <span className="truncate">{gig.category}</span>
               </span>
             )}
           </div>
         </div>
       </CardContent>
-      <CardFooter className={mode === 'network' ? 'flex flex-col gap-2' : undefined}>
+      <CardFooter
+        className={cn(
+          "border-t border-orange-100/60 dark:border-orange-950/40",
+          "bg-gradient-to-t from-orange-50/50 via-muted/30 to-transparent",
+          "dark:from-orange-950/20 dark:via-muted/20",
+          mode === 'network' && 'flex flex-col gap-2',
+        )}
+      >
         {mode === 'network' ? (
           <>
             <Button

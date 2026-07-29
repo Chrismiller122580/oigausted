@@ -14,13 +14,14 @@ import { MapPin, Wifi, X, ChevronLeft, ChevronRight, LayoutGrid } from "lucide-r
 import { CategoryIcon } from "@/lib/icon-registry";
 import { recordMeaningfulPwaAction } from "@/lib/pwa-install";
 import { ShareOigaGig } from "@/components/marketing/ShareOigaGig";
-import { colombianCities } from "@/lib/design-tokens";
+import { colombianCities, categoryTilePastels } from "@/lib/design-tokens";
 import {
   cityMatchesFilter,
   compareByRelevance,
   gigMatchesSearch,
   isNearMeLocation,
 } from "@/lib/search-text";
+import { cn } from "@/lib/utils";
 
 import type { PublicGigListItem } from '@/lib/gig-queries'
 import { buildGigMapPins, groupGigsByCity } from '@/lib/gig-map';
@@ -315,385 +316,432 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="relative min-h-screen flex items-center justify-center">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-orange-50/90 via-amber-50/50 to-slate-50 dark:from-orange-950/40 dark:via-slate-950 dark:to-slate-950"
+        />
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <div className="animate-spin w-8 h-8 border-4 border-orange-400/80 border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-lg text-muted-foreground">Cargando servicios...</p>
         </div>
       </div>
     );
   }
 
+  const chipBase =
+    "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ring-1";
+  const chipSoft =
+    `${chipBase} border-0 bg-white/70 text-foreground ring-black/[0.06] hover:bg-white dark:bg-white/10 dark:ring-white/10 dark:hover:bg-white/15`;
+  const chipAccent =
+    `${chipBase} border-0 bg-orange-50/90 text-orange-900 ring-orange-200/70 hover:bg-orange-100/90 dark:bg-orange-950/50 dark:text-orange-100 dark:ring-orange-800/50`;
+
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
-      <div className="mb-8">
-        <h1 className="text-5xl font-bold tracking-tight">Encuentra Servicios Locales</h1>
-        <div className="flex flex-col gap-3 mt-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xl text-muted-foreground">
-            {filteredGigs.length} servicio{filteredGigs.length === 1 ? "" : "s"} disponible{filteredGigs.length === 1 ? "" : "s"}
-            {selectedCategory !== "Todas" && ` en ${selectedCategory}`}
-            {selectedCity.trim() && !showOnlyNearMe && ` · ${selectedCity.trim()}`}
-            {showOnlyNearMe && " · cerca de ti"}
-            {searchTerm.trim() && (
-              <span className="block sm:inline sm:before:content-['·_'] text-base">
-                “{searchTerm.trim()}”
-              </span>
-            )}
-          </p>
-          <ShareOigaGig variant="inline" className="md:hidden" />
-        </div>
+    <div className="relative min-h-screen">
+      {/* Soft full-bleed wash */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-orange-50/90 via-amber-50/40 to-slate-50 dark:from-orange-950/35 dark:via-slate-950 dark:to-slate-950" />
+        <div className="absolute -top-24 left-1/2 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-orange-200/30 blur-3xl dark:bg-orange-900/20" />
+        <div className="absolute top-40 -right-16 h-56 w-56 rounded-full bg-amber-100/50 blur-3xl dark:bg-amber-900/15" />
+        <div className="absolute bottom-20 -left-10 h-64 w-64 rounded-full bg-sky-100/40 blur-3xl dark:bg-sky-950/20" />
       </div>
 
-      {/* Filters */}
-      <div className="mb-8 space-y-5">
-        {/* Search + City + Sort */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1">
-            <Input
-              type="search"
-              placeholder="Buscar servicios, categorías o vendedores..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-12 text-base"
-              aria-label="Buscar servicios"
-            />
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="mb-8">
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground">
+            Encuentra Servicios Locales
+          </h1>
+          <div className="flex flex-col gap-3 mt-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-lg sm:text-xl text-muted-foreground">
+              {filteredGigs.length} servicio{filteredGigs.length === 1 ? "" : "s"} disponible{filteredGigs.length === 1 ? "" : "s"}
+              {selectedCategory !== "Todas" && ` en ${selectedCategory}`}
+              {selectedCity.trim() && !showOnlyNearMe && ` · ${selectedCity.trim()}`}
+              {showOnlyNearMe && " · cerca de ti"}
+              {searchTerm.trim() && (
+                <span className="block sm:inline sm:before:content-['·_'] text-base">
+                  “{searchTerm.trim()}”
+                </span>
+              )}
+            </p>
+            <ShareOigaGig variant="inline" className="md:hidden" />
           </div>
-
-          <div className="relative sm:w-48">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              list="gigs-cities"
-              type="text"
-              placeholder="Ciudad"
-              value={showOnlyNearMe ? "Cerca de mí" : selectedCity}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (isNearMeLocation(v)) {
-                  setShowOnlyNearMe(true);
-                  setSelectedCity("");
-                  if (!userLocation) setShowPermissionPrompt(true);
-                } else {
-                  setShowOnlyNearMe(false);
-                  setSelectedCity(v);
-                }
-              }}
-              className="h-12 text-base pl-9"
-              aria-label="Filtrar por ciudad"
-            />
-            <datalist id="gigs-cities">
-              {colombianCities.map((c) => (
-                <option key={c.id} value={c.label} />
-              ))}
-            </datalist>
-          </div>
-
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="border rounded-2xl px-5 h-12 text-base w-full sm:w-56 bg-background"
-            aria-label="Ordenar resultados"
-          >
-            <option value="relevance">Relevancia</option>
-            <option value="rating">Mejor valorados</option>
-            <option value="price-low">Precio: menor a mayor</option>
-            <option value="price-high">Precio: mayor a menor</option>
-            <option value="newest">Más recientes</option>
-          </select>
         </div>
 
-        {/* Geo filters */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            onClick={handleUseMyLocation}
-            disabled={locationLoading}
-            variant={showOnlyNearMe ? "default" : "outline"}
-            size="sm"
-            className="gap-1.5"
-          >
-            <MapPin className="h-5 w-5 shrink-0" />
-            {locationLoading ? "Ubicando..." : "Cerca de mí"}
-          </Button>
-
-          {userLocation && (
-            <Button
-              onClick={() => {
-                setShowOnlyNearMe(!showOnlyNearMe);
-                if (!showOnlyNearMe) setSelectedCity("");
-              }}
-              variant={showOnlyNearMe ? "default" : "outline"}
-              size="sm"
-            >
-              {showOnlyNearMe ? "Ver todos" : "Solo cerca"}
-            </Button>
+        {/* Frosted filter panel */}
+        <div
+          className={cn(
+            "mb-8 space-y-5 rounded-3xl p-4 sm:p-5",
+            "bg-card/75 backdrop-blur-md",
+            "border border-white/60 dark:border-white/10",
+            "shadow-sm shadow-orange-900/[0.04]",
+            "ring-1 ring-black/[0.03] dark:ring-white/5",
           )}
-
-          <Button
-            onClick={() => setShowOnlyRemote(!showOnlyRemote)}
-            variant={showOnlyRemote ? "default" : "outline"}
-            size="sm"
-            className="gap-1.5"
-          >
-            <Wifi className="h-5 w-5 shrink-0" />
-            {showOnlyRemote ? "Todos" : "Solo remotos"}
-          </Button>
-
-          <ListMapToggle
-            storageKey="gigs-view"
-            value={viewMode}
-            onChange={setViewMode}
-            className="ml-auto sm:ml-0"
-          />
-
-          {hasActiveFilters && (
-            <Button
-              onClick={clearAllFilters}
-              variant="outline"
-              size="sm"
-              className="text-orange-600 border-orange-200 hover:bg-orange-50 gap-1 ml-auto sm:ml-0"
-            >
-              <X className="h-4 w-4 shrink-0" /> Limpiar filtros
-            </Button>
-          )}
-        </div>
-
-        {/* Active filter chips */}
-        {hasActiveFilters && (
-          <div className="flex flex-wrap gap-2" aria-label="Filtros activos">
-            {searchTerm.trim() && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm("")}
-                className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-medium text-orange-800 hover:bg-orange-100"
-              >
-                “{searchTerm.trim()}”
-                <X className="h-3 w-3" />
-              </button>
-            )}
-            {selectedCategory !== "Todas" && (
-              <button
-                type="button"
-                onClick={() => setSelectedCategory("Todas")}
-                className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium hover:bg-muted/80"
-              >
-                {selectedCategory}
-                <X className="h-3 w-3" />
-              </button>
-            )}
-            {selectedCity.trim() && !showOnlyNearMe && (
-              <button
-                type="button"
-                onClick={() => setSelectedCity("")}
-                className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium hover:bg-muted/80"
-              >
-                <MapPin className="h-3 w-3" />
-                {selectedCity.trim()}
-                <X className="h-3 w-3" />
-              </button>
-            )}
-            {showOnlyNearMe && (
-              <button
-                type="button"
-                onClick={() => setShowOnlyNearMe(false)}
-                className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium hover:bg-muted/80"
-              >
-                <MapPin className="h-3 w-3" />
-                Cerca de mí
-                <X className="h-3 w-3" />
-              </button>
-            )}
-            {showOnlyRemote && (
-              <button
-                type="button"
-                onClick={() => setShowOnlyRemote(false)}
-                className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium hover:bg-muted/80"
-              >
-                <Wifi className="h-3 w-3" />
-                Remotos
-                <X className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Category tiles */}
-        <div>
-          <div className="flex items-center justify-between mb-2 px-1">
-            <div className="text-sm font-semibold text-foreground">Explora por categoría</div>
-            {selectedCategory !== "Todas" && (
-              <button 
-                onClick={() => setSelectedCategory("Todas")}
-                className="text-xs text-orange-600 hover:underline"
-              >
-                Ver todas
-              </button>
-            )}
-          </div>
-
-          <div className="relative">
-            <button
-              onClick={() => categoryCarouselRef.current?.scrollBy({ left: -260, behavior: "smooth" })}
-              className="hidden md:flex absolute -left-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 items-center justify-center rounded-full bg-background/90 border shadow-sm hover:bg-muted"
-              aria-label="Scroll left"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-
-            <div
-              ref={categoryCarouselRef}
-              className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-3 -mx-1 px-1 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            >
-              <button
-                onClick={() => setSelectedCategory("Todas")}
-                className={`snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl border transition-all active:scale-[0.985] ${
-                  selectedCategory === "Todas"
-                    ? "border-orange-600 bg-orange-600 text-white shadow-sm"
-                    : "border-border bg-card hover:border-orange-300 hover:bg-muted"
-                }`}
-              >
-                <div
-                  className={`mb-1.5 flex h-12 w-12 items-center justify-center rounded-xl ring-1 ${
-                    selectedCategory === "Todas"
-                      ? "bg-white/95 ring-white/40 shadow-md"
-                      : "bg-white shadow-sm ring-black/5 dark:bg-white/95 dark:ring-white/20 dark:shadow-md"
-                  }`}
-                >
-                  <LayoutGrid
-                    className={`h-8 w-8 ${
-                      selectedCategory === "Todas" ? "text-orange-600" : "text-orange-500 dark:text-orange-400"
-                    }`}
-                  />
-                </div>
-                <div className="text-xs font-medium text-center leading-tight">Todas</div>
-                <div className={`text-[11px] mt-0.5 ${selectedCategory === "Todas" ? "text-orange-200" : "text-muted-foreground"}`}>
-                  {gigs.length}
-                </div>
-              </button>
-
-              {(catLoading ? [] : categoryList).map((cat) => {
-                const count = categoryCounts[cat] || 0;
-                const isActive = selectedCategory === cat;
-
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl border transition-all active:scale-[0.985] ${
-                      isActive
-                        ? "border-orange-600 bg-orange-600 text-white shadow-sm"
-                        : "border-border bg-card hover:border-orange-300 hover:bg-muted"
-                    }`}
-                    title={cat}
-                  >
-                    <div className="mb-1.5">
-                      <CategoryIcon name={cat} variant="tile" active={isActive} />
-                    </div>
-                    <div className="text-[11px] font-medium text-center leading-tight line-clamp-2">
-                      {cat}
-                    </div>
-                    <div className={`text-[11px] mt-0.5 ${isActive ? "text-orange-200" : "text-muted-foreground"}`}>
-                      {count}
-                    </div>
-                  </button>
-                );
-              })}
+        >
+          {/* Search + City + Sort */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <Input
+                type="search"
+                placeholder="Buscar servicios, categorías o vendedores..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-12 text-base bg-white/80 dark:bg-background/80 border-border/70 shadow-inner shadow-black/[0.02]"
+                aria-label="Buscar servicios"
+              />
             </div>
 
-            <button
-              onClick={() => categoryCarouselRef.current?.scrollBy({ left: 260, behavior: "smooth" })}
-              className="hidden md:flex absolute -right-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 items-center justify-center rounded-full bg-background/90 border shadow-sm hover:bg-muted"
-              aria-label="Scroll right"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          <p className="text-[10px] text-muted-foreground mt-1 px-1 md:hidden">
-            Desliza horizontalmente para ver más categorías
-          </p>
-        </div>
-
-        {showPermissionPrompt && (
-          <div className="mt-1">
-            <LocationPermissionPrompt
-              onAllow={handleUseMyLocation}
-              onDismiss={dismissPermissionPrompt}
-              isLoading={locationLoading}
-              error={locationError || undefined}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Map view */}
-      {viewMode === 'map' && filteredGigs.length > 0 ? (
-        <div className="mb-8 space-y-3">
-          <GigMapExplorer
-            pins={mapPins}
-            clusters={mapClusters}
-            userLocation={userLocation}
-            initialCenter={mapCenter}
-            height="min(50dvh, 420px)"
-            onPinClick={(pin) => router.push(`/gigs/${pin.id}`)}
-          />
-          <p className="text-center text-xs text-muted-foreground">
-            {mapPins.length} en el mapa ·{' '}
-            <Link href="/mapa" className="text-orange-700 hover:underline">
-              Ver mapa completo de Colombia
-            </Link>
-          </p>
-        </div>
-      ) : null}
-
-      {/* Full results grid — mobile + desktop (all matches, not capped) */}
-      {filteredGigs.length > 0 && viewMode === 'list' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-          {filteredGigs.map((gig) => (
-            <GigCard
-              key={gig.id}
-              gig={gig as ComponentProps<typeof GigCard>['gig']}
-              distanceKm={gig.distanceKm}
-            />
-          ))}
-        </div>
-      ) : null}
-
-      {filteredGigs.length === 0 ? (
-        <div className="text-center py-16 border rounded-3xl bg-card px-4">
-          <p className="text-2xl text-gray-400 mb-2">No se encontraron servicios</p>
-          <p className="text-muted-foreground mb-6">
-            {searchTerm.trim()
-              ? `No hay resultados para “${searchTerm.trim()}”. Prueba otra palabra, quita la ciudad o elige otra categoría.`
-              : "Prueba con otra búsqueda, ciudad o categoría"}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-            <button
-              onClick={clearAllFilters}
-              className="text-orange-600 hover:underline font-medium"
-            >
-              Ver todos los servicios
-            </button>
-            {selectedCategory !== "Todas" && (
-              <button
-                onClick={() => setSelectedCategory("Todas")}
-                className="text-sm text-muted-foreground hover:underline"
-              >
-                Quitar categoría
-              </button>
-            )}
-            {(selectedCity.trim() || showOnlyNearMe) && (
-              <button
-                onClick={() => {
-                  setSelectedCity("");
-                  setShowOnlyNearMe(false);
+            <div className="relative sm:w-48">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                list="gigs-cities"
+                type="text"
+                placeholder="Ciudad"
+                value={showOnlyNearMe ? "Cerca de mí" : selectedCity}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (isNearMeLocation(v)) {
+                    setShowOnlyNearMe(true);
+                    setSelectedCity("");
+                    if (!userLocation) setShowPermissionPrompt(true);
+                  } else {
+                    setShowOnlyNearMe(false);
+                    setSelectedCity(v);
+                  }
                 }}
-                className="text-sm text-muted-foreground hover:underline"
+                className="h-12 text-base pl-9 bg-white/80 dark:bg-background/80 border-border/70"
+                aria-label="Filtrar por ciudad"
+              />
+              <datalist id="gigs-cities">
+                {colombianCities.map((c) => (
+                  <option key={c.id} value={c.label} />
+                ))}
+              </datalist>
+            </div>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="border border-border/70 rounded-2xl px-5 h-12 text-base w-full sm:w-56 bg-white/80 dark:bg-background/80"
+              aria-label="Ordenar resultados"
+            >
+              <option value="relevance">Relevancia</option>
+              <option value="rating">Mejor valorados</option>
+              <option value="price-low">Precio: menor a mayor</option>
+              <option value="price-high">Precio: mayor a menor</option>
+              <option value="newest">Más recientes</option>
+            </select>
+          </div>
+
+          {/* Geo filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={handleUseMyLocation}
+              disabled={locationLoading}
+              variant={showOnlyNearMe ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5"
+            >
+              <MapPin className="h-5 w-5 shrink-0" />
+              {locationLoading ? "Ubicando..." : "Cerca de mí"}
+            </Button>
+
+            {userLocation && (
+              <Button
+                onClick={() => {
+                  setShowOnlyNearMe(!showOnlyNearMe);
+                  if (!showOnlyNearMe) setSelectedCity("");
+                }}
+                variant={showOnlyNearMe ? "default" : "outline"}
+                size="sm"
               >
-                Quitar ubicación
-              </button>
+                {showOnlyNearMe ? "Ver todos" : "Solo cerca"}
+              </Button>
+            )}
+
+            <Button
+              onClick={() => setShowOnlyRemote(!showOnlyRemote)}
+              variant={showOnlyRemote ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5"
+            >
+              <Wifi className="h-5 w-5 shrink-0" />
+              {showOnlyRemote ? "Todos" : "Solo remotos"}
+            </Button>
+
+            <ListMapToggle
+              storageKey="gigs-view"
+              value={viewMode}
+              onChange={setViewMode}
+              className="ml-auto sm:ml-0"
+            />
+
+            {hasActiveFilters && (
+              <Button
+                onClick={clearAllFilters}
+                variant="outline"
+                size="sm"
+                className="text-orange-700 border-orange-200/80 bg-orange-50/50 hover:bg-orange-50 gap-1 ml-auto sm:ml-0 dark:text-orange-300 dark:border-orange-800/50 dark:bg-orange-950/30"
+              >
+                <X className="h-4 w-4 shrink-0" /> Limpiar filtros
+              </Button>
             )}
           </div>
+
+          {/* Active filter chips */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap gap-2" aria-label="Filtros activos">
+              {searchTerm.trim() && (
+                <button type="button" onClick={() => setSearchTerm("")} className={chipAccent}>
+                  “{searchTerm.trim()}”
+                  <X className="h-3 w-3 opacity-70" />
+                </button>
+              )}
+              {selectedCategory !== "Todas" && (
+                <button type="button" onClick={() => setSelectedCategory("Todas")} className={chipSoft}>
+                  {selectedCategory}
+                  <X className="h-3 w-3 opacity-70" />
+                </button>
+              )}
+              {selectedCity.trim() && !showOnlyNearMe && (
+                <button type="button" onClick={() => setSelectedCity("")} className={chipSoft}>
+                  <MapPin className="h-3 w-3" />
+                  {selectedCity.trim()}
+                  <X className="h-3 w-3 opacity-70" />
+                </button>
+              )}
+              {showOnlyNearMe && (
+                <button type="button" onClick={() => setShowOnlyNearMe(false)} className={chipSoft}>
+                  <MapPin className="h-3 w-3" />
+                  Cerca de mí
+                  <X className="h-3 w-3 opacity-70" />
+                </button>
+              )}
+              {showOnlyRemote && (
+                <button type="button" onClick={() => setShowOnlyRemote(false)} className={chipSoft}>
+                  <Wifi className="h-3 w-3" />
+                  Remotos
+                  <X className="h-3 w-3 opacity-70" />
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Category tiles */}
+          <div>
+            <div className="flex items-center justify-between mb-2 px-1">
+              <div className="text-sm font-semibold text-foreground">Explora por categoría</div>
+              {selectedCategory !== "Todas" && (
+                <button
+                  onClick={() => setSelectedCategory("Todas")}
+                  className="text-xs text-orange-700 hover:underline dark:text-orange-400"
+                >
+                  Ver todas
+                </button>
+              )}
+            </div>
+
+            <div className="relative">
+              <button
+                onClick={() => categoryCarouselRef.current?.scrollBy({ left: -260, behavior: "smooth" })}
+                className="hidden md:flex absolute -left-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 items-center justify-center rounded-full bg-white/90 dark:bg-background/90 border border-border/60 shadow-sm hover:bg-muted backdrop-blur-sm"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              <div
+                ref={categoryCarouselRef}
+                className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-3 -mx-1 px-1 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              >
+                <button
+                  onClick={() => setSelectedCategory("Todas")}
+                  className={cn(
+                    "snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl border transition-all duration-200 active:scale-[0.985]",
+                    selectedCategory === "Todas"
+                      ? "border-orange-300 bg-orange-50 text-orange-950 shadow-sm ring-2 ring-orange-200/60 dark:border-orange-700 dark:bg-orange-950/50 dark:text-orange-50 dark:ring-orange-800/50"
+                      : "border-orange-100/80 bg-gradient-to-b from-white to-orange-50/60 shadow-sm hover:border-orange-200 hover:shadow-md hover:-translate-y-0.5 dark:border-white/10 dark:from-card dark:to-orange-950/20",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "mb-1.5 flex h-12 w-12 items-center justify-center rounded-xl ring-1 shadow-sm",
+                      selectedCategory === "Todas"
+                        ? "bg-white ring-orange-200/70 dark:bg-white/95 dark:ring-orange-700/40"
+                        : "bg-white/95 ring-black/5 dark:bg-white/90 dark:ring-white/15",
+                    )}
+                  >
+                    <LayoutGrid
+                      className={cn(
+                        "h-8 w-8",
+                        selectedCategory === "Todas"
+                          ? "text-orange-600"
+                          : "text-orange-500 dark:text-orange-400",
+                      )}
+                    />
+                  </div>
+                  <div className="text-xs font-medium text-center leading-tight">Todas</div>
+                  <div
+                    className={cn(
+                      "text-[11px] mt-0.5",
+                      selectedCategory === "Todas"
+                        ? "text-orange-700/80 dark:text-orange-300/80"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {gigs.length}
+                  </div>
+                </button>
+
+                {(catLoading ? [] : categoryList).map((cat, index) => {
+                  const count = categoryCounts[cat] || 0;
+                  const isActive = selectedCategory === cat;
+                  const pastel = categoryTilePastels[index % categoryTilePastels.length];
+
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={cn(
+                        "snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl border transition-all duration-200 active:scale-[0.985]",
+                        isActive
+                          ? "border-orange-300 bg-orange-50 text-orange-950 shadow-sm ring-2 ring-orange-200/60 dark:border-orange-700 dark:bg-orange-950/50 dark:text-orange-50 dark:ring-orange-800/50"
+                          : cn(
+                              "border-black/[0.04] bg-gradient-to-b shadow-sm",
+                              "hover:border-orange-200/80 hover:shadow-md hover:-translate-y-0.5",
+                              "dark:border-white/10 dark:hover:border-orange-800/40",
+                              pastel,
+                            ),
+                      )}
+                      title={cat}
+                    >
+                      <div className="mb-1.5">
+                        <CategoryIcon name={cat} variant="tile" active={isActive} />
+                      </div>
+                      <div className="text-[11px] font-medium text-center leading-tight line-clamp-2">
+                        {cat}
+                      </div>
+                      <div
+                        className={cn(
+                          "text-[11px] mt-0.5",
+                          isActive
+                            ? "text-orange-700/80 dark:text-orange-300/80"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {count}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => categoryCarouselRef.current?.scrollBy({ left: 260, behavior: "smooth" })}
+                className="hidden md:flex absolute -right-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 items-center justify-center rounded-full bg-white/90 dark:bg-background/90 border border-border/60 shadow-sm hover:bg-muted backdrop-blur-sm"
+                aria-label="Scroll right"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="text-[10px] text-muted-foreground mt-1 px-1 md:hidden">
+              Desliza horizontalmente para ver más categorías
+            </p>
+          </div>
+
+          {showPermissionPrompt && (
+            <div className="mt-1">
+              <LocationPermissionPrompt
+                onAllow={handleUseMyLocation}
+                onDismiss={dismissPermissionPrompt}
+                isLoading={locationLoading}
+                error={locationError || undefined}
+              />
+            </div>
+          )}
         </div>
-      ) : null}
+
+        {/* Map view */}
+        {viewMode === 'map' && filteredGigs.length > 0 ? (
+          <div className="mb-8 space-y-3">
+            <div className="rounded-2xl overflow-hidden ring-1 ring-black/[0.04] shadow-sm dark:ring-white/10">
+              <GigMapExplorer
+                pins={mapPins}
+                clusters={mapClusters}
+                userLocation={userLocation}
+                initialCenter={mapCenter}
+                height="min(50dvh, 420px)"
+                onPinClick={(pin) => router.push(`/gigs/${pin.id}`)}
+              />
+            </div>
+            <p className="text-center text-xs text-muted-foreground">
+              {mapPins.length} en el mapa ·{' '}
+              <Link href="/mapa" className="text-orange-700 hover:underline dark:text-orange-400">
+                Ver mapa completo de Colombia
+              </Link>
+            </p>
+          </div>
+        ) : null}
+
+        {/* Full results grid */}
+        {filteredGigs.length > 0 && viewMode === 'list' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+            {filteredGigs.map((gig) => (
+              <GigCard
+                key={gig.id}
+                gig={gig as ComponentProps<typeof GigCard>['gig']}
+                distanceKm={gig.distanceKm}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        {filteredGigs.length === 0 ? (
+          <div
+            className={cn(
+              "text-center py-16 px-4 rounded-3xl",
+              "bg-card/70 backdrop-blur-sm",
+              "border border-orange-100/80 dark:border-orange-950/40",
+              "shadow-sm ring-1 ring-black/[0.03] dark:ring-white/5",
+              "bg-gradient-to-b from-card/90 to-orange-50/40 dark:to-orange-950/20",
+            )}
+          >
+            <p className="text-2xl text-muted-foreground/80 mb-2">No se encontraron servicios</p>
+            <p className="text-muted-foreground mb-6">
+              {searchTerm.trim()
+                ? `No hay resultados para “${searchTerm.trim()}”. Prueba otra palabra, quita la ciudad o elige otra categoría.`
+                : "Prueba con otra búsqueda, ciudad o categoría"}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+              <button
+                onClick={clearAllFilters}
+                className="text-orange-700 hover:underline font-medium dark:text-orange-400"
+              >
+                Ver todos los servicios
+              </button>
+              {selectedCategory !== "Todas" && (
+                <button
+                  onClick={() => setSelectedCategory("Todas")}
+                  className="text-sm text-muted-foreground hover:underline"
+                >
+                  Quitar categoría
+                </button>
+              )}
+              {(selectedCity.trim() || showOnlyNearMe) && (
+                <button
+                  onClick={() => {
+                    setSelectedCity("");
+                    setShowOnlyNearMe(false);
+                  }}
+                  className="text-sm text-muted-foreground hover:underline"
+                >
+                  Quitar ubicación
+                </button>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
