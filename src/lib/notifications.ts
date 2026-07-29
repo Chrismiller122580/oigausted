@@ -224,25 +224,45 @@ export async function sendNotification(payload: NotificationPayload) {
 
       // Use rich templates when we have enough context
       if (category === 'order' && jsonString(data, 'gigTitle')) {
-        const { newOrderEmail, orderStatusUpdatedEmail } = await import('./emails/templates');
+        const {
+          newOrderEmail,
+          buyerOrderCreatedEmail,
+          orderStatusUpdatedEmail,
+        } = await import('./emails/templates');
         const gigTitle = jsonString(data, 'gigTitle');
         const newStatus = jsonString(data, 'newStatus');
+        const orderId = jsonString(data, 'orderId');
+        const otherPartyName =
+          jsonString(data, 'buyerName') || jsonString(data, 'sellerName') || 'Otra parte';
+        const amount = jsonNumber(data, 'amount');
+        const isBuyerConfirmation =
+          jsonString(data, 'recipientRole') === 'buyer' ||
+          jsonBoolean(data, 'buyerOrderConfirmation');
+
         if (newStatus) {
           emailContent = orderStatusUpdatedEmail({
             userName: user.name,
             gigTitle,
-            amount: jsonNumber(data, 'amount'),
-            otherPartyName: jsonString(data, 'buyerName') || jsonString(data, 'sellerName') || 'Otra parte',
-            orderId: jsonString(data, 'orderId'),
+            amount,
+            otherPartyName,
+            orderId,
             newStatus,
+          });
+        } else if (isBuyerConfirmation) {
+          emailContent = buyerOrderCreatedEmail({
+            userName: user.name,
+            gigTitle,
+            amount,
+            otherPartyName,
+            orderId,
           });
         } else {
           emailContent = newOrderEmail({
             userName: user.name,
             gigTitle,
-            amount: jsonNumber(data, 'amount'),
-            otherPartyName: jsonString(data, 'buyerName') || jsonString(data, 'sellerName') || 'Otra parte',
-            orderId: jsonString(data, 'orderId'),
+            amount,
+            otherPartyName,
+            orderId,
           });
         }
       } else if (category === 'review' && jsonString(data, 'gigTitle')) {
@@ -279,13 +299,59 @@ export async function sendNotification(payload: NotificationPayload) {
           gigId: jsonString(data, 'gigId'),
         });
       } else if (category === 'payment' && jsonNumber(data, 'amount') > 0) {
-        // Referral payout request or payment alerts
-        const { referralPayoutRequestEmail } = await import('./emails/templates');
-        emailContent = referralPayoutRequestEmail({
-          userName: user.name,
-          amount: jsonNumber(data, 'amount'),
-          requesterName: jsonString(data, 'requesterName'),
-        });
+        const amount = jsonNumber(data, 'amount');
+        const orderId = jsonString(data, 'orderId');
+        const gigTitle = jsonString(data, 'gigTitle');
+        const isOrderPayment =
+          Boolean(orderId) ||
+          jsonBoolean(data, 'paymentConfirmed') ||
+          jsonString(data, 'kind') === 'payment_confirmed';
+        const isReferralPayoutAdmin =
+          Boolean(jsonString(data, 'requesterName')) ||
+          jsonString(data, 'kind') === 'referral_payout' ||
+          title?.toLowerCase().includes('referido');
+
+        if (isOrderPayment && (gigTitle || orderId)) {
+          const { paymentConfirmedEmail } = await import('./emails/templates');
+          emailContent = paymentConfirmedEmail({
+            userName: user.name,
+            gigTitle: gigTitle || 'tu servicio',
+            amount,
+            orderId: orderId || '',
+          });
+        } else if (isReferralPayoutAdmin) {
+          const { referralPayoutRequestEmail } = await import('./emails/templates');
+          emailContent = referralPayoutRequestEmail({
+            userName: user.name,
+            amount,
+            requesterName: jsonString(data, 'requesterName'),
+          });
+        } else if (gigTitle && orderId) {
+          const { paymentConfirmedEmail } = await import('./emails/templates');
+          emailContent = paymentConfirmedEmail({
+            userName: user.name,
+            gigTitle,
+            amount,
+            orderId,
+          });
+        } else {
+          // Generic payment fallback (e.g. referrer commission notice without order context)
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
+          emailContent = {
+            subject: title,
+            html: `
+              <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
+                <h2 style="color: #111;">${title}</h2>
+                <p>Hola <strong>${user.name || 'Usuario'}</strong>,</p>
+                <p>${message}</p>
+                <a href="${appUrl}${link || '/referrals'}"
+                   style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin-top: 16px;">
+                  Ver detalles
+                </a>
+              </div>
+            `,
+          };
+        }
       } else if (category === 'system' && (jsonString(data, 'ticketId') || title?.toLowerCase().includes('ticket') || title?.toLowerCase().includes('soporte'))) {
         const { supportTicketEmail } = await import('./emails/templates');
         emailContent = supportTicketEmail({

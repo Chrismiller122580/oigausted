@@ -173,17 +173,28 @@ export async function confirmWompiPayment(
       },
     }).catch(() => {});
 
-    // Buyer in-app notification (payment confirmed)
+    // Buyer payment confirmed (high priority so quiet hours still email)
     if (updated.buyer?.id) {
       try {
-        await notifications.sendInApp(
-          updated.buyer.id,
-          'payment',
-          '¡Pago confirmado!',
-          `Tu pago por "${updated.gig?.title || 'el servicio'}" fue exitoso.`,
-          `/orders/${orderId}`,
-          { gigTitle: updated.gig?.title, amount: updated.price, orderId }
-        );
+        await notifications.sendNotification({
+          userId: updated.buyer.id,
+          category: 'payment',
+          type: 'in_app',
+          priority: 'high',
+          title: '¡Pago confirmado!',
+          message: `Tu pago por "${updated.gig?.title || 'el servicio'}" fue exitoso.`,
+          link: `/orders/${orderId}`,
+          data: {
+            gigTitle: updated.gig?.title,
+            amount: updated.price,
+            orderId,
+            kind: 'payment_confirmed',
+            paymentConfirmed: true,
+            recipientRole: 'buyer',
+            newStatus: 'Pagado',
+            actions: [{ label: 'Ver Pedido', action: 'view_order' }],
+          },
+        });
       } catch (nErr) {
         devLog('[Wompi confirm] notif error (non-fatal):', nErr);
       }
@@ -205,7 +216,8 @@ export async function confirmWompiPayment(
             amount: updated.price,
             orderId,
             buyerName: updated.buyer?.name,
-            newStatus: 'Paid',
+            newStatus: 'Pagado',
+            recipientRole: 'seller',
             actions: [
               { label: 'Ver Pedido', action: 'view_order' },
               { label: 'Aceptar e Iniciar', action: 'start_order' },

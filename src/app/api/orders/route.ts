@@ -133,7 +133,7 @@ export async function POST(request: Request) {
       }
     );
 
-    // Also notify the buyer (confirmation) - will trigger email too
+    // Buyer confirmation — buyerOrderCreatedEmail (not seller new-order template)
     await notifications.sendInApp(
       userId,
       'order',
@@ -145,6 +145,8 @@ export async function POST(request: Request) {
         amount: computedPrice,
         sellerName: gig.seller?.name || 'Vendedor',
         orderId: order.id,
+        recipientRole: 'buyer',
+        buyerOrderConfirmation: true,
       }
     );
 

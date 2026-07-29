@@ -19,6 +19,7 @@ import {
   prismaStatusToLabel,
   normalizeOrderStatus,
   OrderStatusLabel,
+  getOrderStatusDisplayEs,
   type OrderStatusLabelValue,
 } from '@/lib/order-status'
 import type { Prisma } from '@prisma/client'
@@ -53,11 +54,6 @@ const safeOrderSelect = {
 } as const satisfies Prisma.OrderSelect
 
 type SafeOrder = Prisma.OrderGetPayload<{ select: typeof safeOrderSelect }>
-
-interface NotificationAction {
-  label: string
-  action: string
-}
 
 export async function GET(
   request: Request,
@@ -420,53 +416,110 @@ export async function PATCH(
     // Core domain (order + referral) is protected in tx. In-app notif creation is best-effort after for now.
     // (Full durable notif-in-tx would require refactoring the notifications lib to support tx context.)
 
-    // Send notifications on important status changes
-    if (status && updatedOrder) {
-      const recipientId = status === 'In Progress' || status === 'Completed' 
-        ? updatedOrder.buyerId 
-        : updatedOrder.sellerId
+    // Notify the other party (or both when admin acts) on status changes
+    if (status && updatedOrder && isOrderStatusLabel(status)) {
+      const statusLabel = status as OrderStatusLabelValue
+      const statusEs = getOrderStatusDisplayEs(statusLabel)
+      const gigTitle = updatedOrder.gig.title
+      const amount = updatedOrder.price
 
-      // Smart contextual actions based on new status
-      let actions: NotificationAction[] = [{ label: 'Ver Pedido', action: 'view_order' }];
+      type NotifRecipient = { userId: string; role: 'buyer' | 'seller' }
+      const recipients: NotifRecipient[] = []
 
-      if (status === 'In Progress') {
-        actions = [
-          { label: 'Ver Pedido', action: 'view_order' },
-          { label: 'Marcar como Enviado', action: 'mark_as_shipped' },
-        ];
-      } else if (status === 'Completed') {
-        actions = [
-          { label: 'Ver Pedido', action: 'view_order' },
-          { label: 'Dejar Reseña', action: 'request_review' },
-        ];
+      if (
+        statusLabel === OrderStatusLabel.InProgress ||
+        statusLabel === OrderStatusLabel.Completed
+      ) {
+        // Seller advanced the order → notify buyer
+        recipients.push({ userId: updatedOrder.buyerId, role: 'buyer' })
+      } else if (statusLabel === OrderStatusLabel.Cancelled) {
+        // Buyer cancel → seller; admin/seller cancel → buyer (+ seller if admin)
+        if (isBuyer) {
+          recipients.push({ userId: updatedOrder.sellerId, role: 'seller' })
+        } else {
+          recipients.push({ userId: updatedOrder.buyerId, role: 'buyer' })
+          if (!isSeller) {
+            recipients.push({ userId: updatedOrder.sellerId, role: 'seller' })
+          }
+        }
+      } else if (statusLabel === OrderStatusLabel.Paid) {
+        // Manual/dev Paid (Wompi path has its own notifs) — inform both
+        recipients.push({ userId: updatedOrder.buyerId, role: 'buyer' })
+        recipients.push({ userId: updatedOrder.sellerId, role: 'seller' })
       }
 
-      await notifications.sendInApp(
-        recipientId,
-        'order',
-        `Pedido actualizado a "${status}"`,
-        `Tu pedido para "${updatedOrder.gig.title}" ha cambiado a estado: ${status}.`,
-        `/orders/${orderId}`,
-        { 
-          gigTitle: updatedOrder.gig.title, 
-          amount: updatedOrder.price, 
-          orderId,
-          newStatus: status,
-          actions: actions as unknown as JsonValue,
+      for (const r of recipients) {
+        let actions: { label: string; action: string }[] = [
+          { label: 'Ver Pedido', action: 'view_order' },
+        ]
+        if (r.role === 'buyer' && statusLabel === OrderStatusLabel.Completed) {
+          actions = [
+            { label: 'Ver Pedido', action: 'view_order' },
+            { label: 'Dejar Reseña', action: 'request_review' },
+          ]
+        } else if (r.role === 'buyer' && statusLabel === OrderStatusLabel.InProgress) {
+          actions = [
+            { label: 'Ver Pedido', action: 'view_order' },
+            { label: 'Enviar mensaje', action: 'view_order' },
+          ]
+        } else if (r.role === 'seller' && statusLabel === OrderStatusLabel.Paid) {
+          actions = [
+            { label: 'Ver Pedido', action: 'view_order' },
+            { label: 'Aceptar e Iniciar', action: 'start_order' },
+          ]
         }
-      )
 
-      // Special nice notification when order is completed → prompt for review
-      // (email for both status update + review prompt now sent automatically via the notification system)
-      if (status === 'Completed') {
-        await notifications.sendInApp(
-          updatedOrder.buyerId,
-          'review',
-          '¡Pedido completado! Déjanos tu reseña',
-          `Tu pedido "${updatedOrder.gig.title}" ha sido completado. ¿Nos dejas una reseña?`,
-          `/orders/${orderId}`,
-          { gigTitle: updatedOrder.gig.title, orderId }
-        );
+        const title =
+          statusLabel === OrderStatusLabel.Cancelled
+            ? r.role === 'seller'
+              ? 'Pedido cancelado por el comprador'
+              : 'Pedido cancelado'
+            : `Pedido actualizado: ${statusEs}`
+
+        const message =
+          statusLabel === OrderStatusLabel.Cancelled
+            ? r.role === 'seller'
+              ? `El comprador canceló el pedido de "${gigTitle}".`
+              : `Tu pedido de "${gigTitle}" fue cancelado.`
+            : r.role === 'buyer'
+              ? `Tu pedido de "${gigTitle}" ahora está: ${statusEs}.`
+              : `El pedido de "${gigTitle}" cambió a: ${statusEs}.`
+
+        try {
+          await notifications.sendInApp(
+            r.userId,
+            'order',
+            title,
+            message,
+            `/orders/${orderId}`,
+            {
+              gigTitle,
+              amount,
+              orderId,
+              newStatus: statusEs,
+              recipientRole: r.role,
+              actions: actions as unknown as JsonValue,
+            }
+          )
+        } catch (nErr) {
+          devLog('[orders PATCH] status notif failed (non-fatal):', nErr)
+        }
+      }
+
+      // Extra review prompt for buyer on complete (status email already sent above)
+      if (statusLabel === OrderStatusLabel.Completed) {
+        try {
+          await notifications.sendInApp(
+            updatedOrder.buyerId,
+            'review',
+            '¡Pedido completado! Déjanos tu reseña',
+            `Tu pedido "${gigTitle}" ha sido completado. ¿Nos dejas una reseña?`,
+            `/orders/${orderId}`,
+            { gigTitle, orderId, recipientRole: 'buyer' }
+          )
+        } catch (nErr) {
+          devLog('[orders PATCH] review notif failed (non-fatal):', nErr)
+        }
       }
     }
 

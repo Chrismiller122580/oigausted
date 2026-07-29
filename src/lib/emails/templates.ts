@@ -79,6 +79,83 @@ export function newOrderEmail({ userName, gigTitle, amount, otherPartyName, orde
   };
 }
 
+/** Buyer confirmation when they place an order (before/after checkout). */
+export function buyerOrderCreatedEmail({
+  userName,
+  gigTitle,
+  amount,
+  otherPartyName,
+  orderId,
+}: OrderEmailProps) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
+  return {
+    subject: `Pedido registrado: ${gigTitle}`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
+        <h2 style="color: #111;">Tu pedido fue registrado</h2>
+        
+        <p>Hola <strong>${userName || 'Usuario'}</strong>,</p>
+        
+        <p>Tu pedido de <strong>"${gigTitle}"</strong> con <strong>${otherPartyName}</strong> quedó registrado en OigaGIG.</p>
+        
+        <div style="background: #f8f8f8; padding: 20px; border-radius: 12px; margin: 24px 0;">
+          <p style="margin: 0 0 8px 0;"><strong>Monto:</strong> $${amount.toLocaleString('es-CO')}</p>
+          <p style="margin: 0;"><strong>Pedido ID:</strong> ${orderId}</p>
+        </div>
+
+        <p style="color: #444; font-size: 15px; line-height: 1.5;">
+          Completa el pago si aún no lo has hecho para que el vendedor pueda iniciar el trabajo.
+        </p>
+
+        <a href="${appUrl}/orders/${orderId}" 
+           style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin-top: 8px;">
+          Ver mi pedido
+        </a>
+
+        <p style="margin-top: 32px; font-size: 12px; color: #888;">OigaGIG • Servicios locales de confianza en Colombia</p>
+      </div>
+    `,
+  };
+}
+
+/** Buyer (or payer) confirmation that Wompi / payment succeeded. */
+export function paymentConfirmedEmail({
+  userName,
+  gigTitle,
+  amount,
+  orderId,
+}: BaseEmailProps & { gigTitle: string; amount: number; orderId: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
+  return {
+    subject: `Pago confirmado: ${gigTitle}`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
+        <h2 style="color: #111;">¡Pago confirmado!</h2>
+        
+        <p>Hola <strong>${userName || 'Usuario'}</strong>,</p>
+        
+        <p>Tu pago por <strong>"${gigTitle}"</strong> fue exitoso.</p>
+        
+        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 20px; border-radius: 12px; margin: 24px 0;">
+          <p style="margin: 0 0 8px 0;"><strong>Monto pagado:</strong> $${amount.toLocaleString('es-CO')}</p>
+          <p style="margin: 0;"><strong>Pedido ID:</strong> ${orderId}</p>
+        </div>
+
+        <p style="color: #444; font-size: 15px; line-height: 1.5;">
+          El vendedor ya puede iniciar el trabajo. Te avisaremos cuando el estado del pedido cambie.
+        </p>
+
+        <a href="${appUrl}/orders/${orderId}" 
+           style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin-top: 8px;">
+          Ver pedido
+        </a>
+
+        <p style="margin-top: 32px; font-size: 12px; color: #888;">OigaGIG • Servicios locales de confianza en Colombia</p>
+      </div>
+    `,
+  };
+}
+
 export function orderStatusUpdatedEmail({ userName, gigTitle, newStatus, orderId }: OrderEmailProps & { newStatus: string }) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
   return {
