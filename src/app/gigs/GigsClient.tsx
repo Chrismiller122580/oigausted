@@ -570,16 +570,16 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
 
               <div
                 ref={categoryCarouselRef}
-                className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-3 -mx-1 px-1 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth py-1 pb-3 -mx-1 px-1 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
                 <button
                   onClick={() => setSelectedCategory("Todas")}
                   className={cn(
                     "snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl border transition-all duration-200 active:scale-[0.985]",
-                    // Idle: neutral white. Active: soft emerald + strong outline.
+                    // Idle: neutral white. Active: thick emerald outline flush on the tile (no offset ring — avoids clip).
                     selectedCategory === "Todas"
-                      ? "border-2 border-emerald-500 bg-emerald-50 text-emerald-950 shadow-lg shadow-emerald-900/20 ring-2 ring-emerald-300 ring-offset-2 ring-offset-orange-800"
-                      : "border-2 border-white/40 bg-white/95 text-slate-800 shadow-sm hover:bg-white hover:shadow-md hover:-translate-y-0.5 dark:border-white/20 dark:bg-white/90 dark:text-slate-900",
+                      ? "border-[3px] border-emerald-500 bg-emerald-50 text-emerald-950 shadow-md outline outline-2 outline-emerald-300/90 outline-offset-0"
+                      : "border-[3px] border-transparent bg-white/95 text-slate-800 shadow-sm ring-1 ring-white/40 hover:bg-white hover:shadow-md hover:-translate-y-0.5 dark:bg-white/90 dark:text-slate-900",
                   )}
                 >
                   <div
@@ -617,10 +617,10 @@ export default function GigsClient({ initialGigs }: GigsClientProps) {
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
                       className={cn(
-                        "snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl border transition-all duration-200 active:scale-[0.985]",
+                        "snap-start flex-shrink-0 w-[92px] md:w-[108px] flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-200 active:scale-[0.985]",
                         isActive
-                          ? "border-2 border-emerald-500 bg-emerald-50 text-emerald-950 shadow-lg shadow-emerald-900/20 ring-2 ring-emerald-300 ring-offset-2 ring-offset-orange-800"
-                          : "border-2 border-white/40 bg-white/95 text-slate-800 shadow-sm hover:bg-white hover:shadow-md hover:-translate-y-0.5 dark:border-white/20 dark:bg-white/90 dark:text-slate-900",
+                          ? "border-[3px] border-emerald-500 bg-emerald-50 text-emerald-950 shadow-md outline outline-2 outline-emerald-300/90 outline-offset-0"
+                          : "border-[3px] border-transparent bg-white/95 text-slate-800 shadow-sm ring-1 ring-white/40 hover:bg-white hover:shadow-md hover:-translate-y-0.5 dark:bg-white/90 dark:text-slate-900",
                       )}
                       title={cat}
                     >
