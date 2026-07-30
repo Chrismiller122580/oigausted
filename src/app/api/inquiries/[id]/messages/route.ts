@@ -23,9 +23,30 @@ export async function GET(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const thread = await getInquiryThreadForParticipant(threadId, userId)
+    const participantThread = await getInquiryThreadForParticipant(threadId, userId)
+    let staffView = false
+    let thread = participantThread
+
     if (!thread) {
-      return NextResponse.json({ error: 'No autorizado para esta consulta' }, { status: 403 })
+      // Admin / CS can read any inquiry thread
+      const { requireAdminPanelSession } = await import('@/lib/admin-auth')
+      const staffSession = await requireAdminPanelSession()
+      if (!staffSession?.user?.id) {
+        return NextResponse.json({ error: 'No autorizado para esta consulta' }, { status: 403 })
+      }
+      staffView = true
+      const staffThread = await prisma.inquiryThread.findUnique({
+        where: { id: threadId },
+        include: {
+          buyer: { select: { id: true, name: true, email: true } },
+          seller: { select: { id: true, name: true, email: true } },
+          gig: { select: { id: true, title: true } },
+        },
+      })
+      if (!staffThread) {
+        return NextResponse.json({ error: 'Consulta no encontrada' }, { status: 404 })
+      }
+      thread = staffThread as typeof participantThread & typeof staffThread
     }
 
     const messages = await prisma.inquiryMessage.findMany({
@@ -40,7 +61,7 @@ export async function GET(
       },
     })
 
-    return NextResponse.json({ messages, thread })
+    return NextResponse.json({ messages, thread, staffView })
   } catch (error) {
     console.error('Inquiry messages GET error:', error)
     return NextResponse.json({ error: 'Error cargando mensajes' }, { status: 500 })

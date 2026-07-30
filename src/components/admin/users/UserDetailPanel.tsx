@@ -9,14 +9,21 @@ import {
   UserCog,
   Sparkles,
   AlertTriangle,
+  Bell,
+  Mail,
 } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { formatRelativeActive, isUserOnline } from '@/lib/presence';
 import type { User } from './types';
+
+type NotifyChannels = 'both' | 'in_app' | 'email';
 
 interface ContactViolationRecord {
   id: string;
@@ -78,6 +85,11 @@ export function UserDetailPanel({
   onToggleActive,
   onSaveRole,
 }: UserDetailPanelProps) {
+  const pathname = usePathname();
+  const notificationsBase = pathname?.startsWith('/admin-assistant')
+    ? '/admin-assistant/notifications'
+    : '/admin/notifications';
+
   const [role, setRole] = useState(user.role);
   const [staffRole, setStaffRole] = useState(user.staffRole || '');
   const [savingRole, setSavingRole] = useState(false);
@@ -90,9 +102,19 @@ export function UserDetailPanel({
   const [violations, setViolations] = useState<ContactViolationRecord[]>([]);
   const [loadingViolations, setLoadingViolations] = useState(false);
 
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifyTitle, setNotifyTitle] = useState('');
+  const [notifyMessage, setNotifyMessage] = useState('');
+  const [notifyChannels, setNotifyChannels] = useState<NotifyChannels>('both');
+  const [notifySending, setNotifySending] = useState(false);
+
   useEffect(() => {
     setRole(user.role);
     setStaffRole(user.staffRole || '');
+    setNotifyOpen(false);
+    setNotifyTitle('');
+    setNotifyMessage('');
+    setNotifyChannels('both');
   }, [user.id, user.role, user.staffRole]);
 
   useEffect(() => {
@@ -458,7 +480,127 @@ export function UserDetailPanel({
           </a>
         </div>
 
+        {notifyOpen && (
+          <div className="mb-5 p-4 rounded-xl border border-orange-200/70 bg-orange-50/40 dark:bg-orange-950/25 dark:border-orange-800/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold flex items-center gap-1.5">
+                <Bell className="h-4 w-4 text-orange-600" />
+                Notify user
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setNotifyOpen(false)}
+              >
+                Close
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Sends to {user.email} as admin / customer service.
+            </p>
+            <div>
+              <Label className="text-xs">Channels</Label>
+              <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+                {(
+                  [
+                    { value: 'both' as const, label: 'Both' },
+                    { value: 'in_app' as const, label: 'In-app' },
+                    { value: 'email' as const, label: 'Email' },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setNotifyChannels(opt.value)}
+                    className={`rounded-md border px-2 py-1.5 text-xs transition ${
+                      notifyChannels === opt.value
+                        ? 'border-orange-600 bg-orange-100 text-orange-900 dark:bg-orange-900/40 dark:text-orange-100'
+                        : 'border-border hover:bg-muted/50'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Title</Label>
+              <Input
+                className="mt-1"
+                value={notifyTitle}
+                onChange={(e) => setNotifyTitle(e.target.value)}
+                placeholder="Subject / title"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Message</Label>
+              <Textarea
+                className="mt-1"
+                rows={4}
+                value={notifyMessage}
+                onChange={(e) => setNotifyMessage(e.target.value)}
+                placeholder="Write your message…"
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                className="flex-1 bg-orange-600 hover:bg-orange-700"
+                disabled={notifySending || !notifyTitle.trim() || !notifyMessage.trim()}
+                onClick={async () => {
+                  setNotifySending(true);
+                  try {
+                    const res = await fetch('/api/admin/send-notification', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        userId: user.id,
+                        title: notifyTitle.trim(),
+                        message: notifyMessage.trim(),
+                        category: 'system',
+                        channels: notifyChannels,
+                      }),
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                      toast.error(data.error || 'Could not send notification');
+                      return;
+                    }
+                    toast.success(data.message || 'Notification sent');
+                    setNotifyTitle('');
+                    setNotifyMessage('');
+                    setNotifyOpen(false);
+                  } catch {
+                    toast.error('Connection error');
+                  } finally {
+                    setNotifySending(false);
+                  }
+                }}
+              >
+                {notifySending ? 'Sending…' : 'Send notification'}
+              </Button>
+              <Link
+                href={`${notificationsBase}?userId=${encodeURIComponent(user.id)}&email=${encodeURIComponent(user.email || '')}`}
+                className="inline-flex"
+              >
+                <Button type="button" variant="outline" className="w-full gap-1.5">
+                  <Mail size={14} />
+                  Open full composer
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-2 pt-4 border-t border-border">
+          <Button
+            className="w-full gap-2 bg-orange-600 hover:bg-orange-700"
+            onClick={() => setNotifyOpen((v) => !v)}
+          >
+            <Bell size={16} />
+            {notifyOpen ? 'Hide notify form' : 'Notify user'}
+          </Button>
+
           <Button
             className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700"
             onClick={() => onEdit(user)}

@@ -23,9 +23,23 @@ export async function GET(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    // Verify caller is part of the order
-    const order = await prisma.order.findUnique({ where: { id: orderId }, select: { buyerId: true, sellerId: true } });
-    if (!order || (order.buyerId !== userId && order.sellerId !== userId)) {
+    // Verify caller is part of the order, or admin / CS panel staff
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { buyerId: true, sellerId: true },
+    });
+    if (!order) {
+      return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
+    }
+
+    const isParticipant = order.buyerId === userId || order.sellerId === userId;
+    let isStaff = false;
+    if (!isParticipant) {
+      const { requireAdminPanelSession } = await import('@/lib/admin-auth');
+      const staffSession = await requireAdminPanelSession();
+      isStaff = Boolean(staffSession?.user?.id);
+    }
+    if (!isParticipant && !isStaff) {
       return NextResponse.json({ error: 'No autorizado para este pedido' }, { status: 403 });
     }
 
@@ -45,7 +59,7 @@ export async function GET(
     });
 
     // Consistent shape expected by frontend
-    return NextResponse.json({ messages });
+    return NextResponse.json({ messages, staffView: isStaff });
   } catch (error) {
     console.error('Messages GET error:', error);
     return NextResponse.json({ error: 'Error cargando mensajes' }, { status: 500 });

@@ -35,6 +35,7 @@ const navItems: NavItem[] = [
   { href: '/admin/userlens', label: 'UserLens', icon: ScanSearch },
   { href: '/admin/referrals', label: 'Referrals', icon: Users },
   { href: '/admin/notifications', label: 'Notifications', icon: Bell },
+  { href: '/admin/messages', label: 'Messages', icon: MessageCircle },
   { href: '/admin/marketing', label: 'Marketing', icon: Megaphone },
   { href: '/admin/support', label: 'Support', icon: MessageCircle },
   { href: '/admin/settings', label: 'Settings', icon: Settings },

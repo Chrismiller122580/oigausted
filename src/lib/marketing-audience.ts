@@ -81,11 +81,34 @@ function applySearchFilter(where: Prisma.UserWhereInput, search?: string): void 
       : [searchWhere];
 }
 
+/** Geographic audience scope for broadcasts. */
+export type AudienceGeoScope = 'colombia' | 'all';
+
+/** Pref filter mode: marketing honors marketingEmails opt-out; ops only needs emailEnabled. */
+export type AudiencePrefMode = 'marketing' | 'ops';
+
+export type BuildAudienceOptions = {
+  city?: string;
+  search?: string;
+  /** Default: colombia. Use "all" for multi-country / full platform. */
+  geoScope?: AudienceGeoScope;
+};
+
 export function buildAudienceWhere(
   segment: string,
-  city?: string,
+  cityOrOpts?: string | BuildAudienceOptions,
   search?: string,
 ): Prisma.UserWhereInput {
+  const opts: BuildAudienceOptions =
+    typeof cityOrOpts === 'string' || cityOrOpts === undefined
+      ? { city: cityOrOpts, search }
+      : cityOrOpts;
+
+  const city = opts.city;
+  const searchTerm = opts.search ?? search;
+  const geoScope: AudienceGeoScope = opts.geoScope === 'all' ? 'all' : 'colombia';
+  const geoFilter = geoScope === 'colombia' ? colombiaUserFilter() : {};
+
   const seg = (segment || 'all').toLowerCase();
   const playbookId = parsePlaybookId(seg);
   if (playbookId) {
@@ -93,10 +116,10 @@ export function buildAudienceWhere(
     if (playbookWhere) {
       const where: Prisma.UserWhereInput = {
         ...playbookWhere,
-        ...colombiaUserFilter(),
+        ...geoFilter,
       };
       applyCityFilter(where, city);
-      applySearchFilter(where, search);
+      applySearchFilter(where, searchTerm);
       return where;
     }
   }
@@ -104,7 +127,7 @@ export function buildAudienceWhere(
   const where: Prisma.UserWhereInput = {
     email: { not: null },
     isActive: true,
-    ...colombiaUserFilter(),
+    ...geoFilter,
   };
   if (seg === 'buyers') where.role = 'buyer';
   if (seg === 'sellers') where.role = 'seller';
@@ -115,7 +138,7 @@ export function buildAudienceWhere(
   }
 
   applyCityFilter(where, city);
-  applySearchFilter(where, search);
+  applySearchFilter(where, searchTerm);
 
   return where;
 }
@@ -125,28 +148,40 @@ type PrefRow = { emailEnabled?: boolean; marketingEmails?: boolean };
 export function isUserEmailReachable(
   user: { email: string | null },
   pref?: PrefRow | null,
+  mode: AudiencePrefMode = 'marketing',
 ): boolean {
   if (!user.email) return false;
   if (!pref) return true;
   if (pref.emailEnabled === false) return false;
-  if (pref.marketingEmails === false) return false;
+  if (mode === 'marketing' && pref.marketingEmails === false) return false;
   return true;
 }
 
-function isMarketingReachable(pref?: PrefRow | null): boolean {
+function isReachableForMode(pref: PrefRow | undefined | null, mode: AudiencePrefMode): boolean {
   if (!pref) return true;
   if (pref.emailEnabled === false) return false;
-  if (pref.marketingEmails === false) return false;
+  if (mode === 'marketing' && pref.marketingEmails === false) return false;
   return true;
 }
 
-/** Resolve marketing recipients with preference filters applied. */
+/** Resolve broadcast recipients with preference filters applied. */
 export async function resolveMarketingRecipients(opts: {
   userIds?: string[];
   where?: Prisma.UserWhereInput;
   take?: number;
+  /** marketing (default) or ops (system announcements; ignore marketingEmails opt-out) */
+  prefMode?: AudiencePrefMode;
+  geoScope?: AudienceGeoScope;
 }): Promise<MarketingRecipient[]> {
-  const { userIds, where, take = BROADCAST_RECIPIENT_CAP } = opts;
+  const {
+    userIds,
+    where,
+    take = BROADCAST_RECIPIENT_CAP,
+    prefMode = 'marketing',
+    geoScope = 'colombia',
+  } = opts;
+
+  const geoFilter = geoScope === 'colombia' ? colombiaUserFilter() : {};
 
   let baseUsers: MarketingRecipient[];
 
@@ -155,7 +190,7 @@ export async function resolveMarketingRecipients(opts: {
       id: { in: userIds },
       email: { not: null },
       isActive: true,
-      ...colombiaUserFilter(),
+      ...geoFilter,
     });
     baseUsers = await prisma.user.findMany({
       where: idWhere,
@@ -177,17 +212,37 @@ export async function resolveMarketingRecipients(opts: {
   if (ids.length === 0) return [];
 
   try {
-    const prefs = await prisma.notificationPreference.findMany({
-      where: { userId: { in: ids } },
-      select: { userId: true, emailEnabled: true },
-    });
+    // Prefer full prefs (email + marketing opt-out). Fall back if marketingEmails column is missing (schema drift).
+    let prefs: Array<{ userId: string; emailEnabled: boolean; marketingEmails?: boolean }>;
+    try {
+      prefs = await prisma.notificationPreference.findMany({
+        where: { userId: { in: ids } },
+        select: { userId: true, emailEnabled: true, marketingEmails: true },
+      });
+    } catch (selectErr) {
+      if (!isNotificationPreferenceDrift(selectErr)) throw selectErr;
+      console.warn(
+        'NotificationPreference.marketingEmails unavailable; filtering on emailEnabled only.',
+      );
+      prefs = await prisma.notificationPreference.findMany({
+        where: { userId: { in: ids } },
+        select: { userId: true, emailEnabled: true },
+      });
+    }
+
     const prefMap = new Map<string, PrefRow>(
-      prefs.map((p: { userId: string; emailEnabled: boolean }) => [p.userId, p]),
+      prefs.map((p) => [
+        p.userId,
+        {
+          emailEnabled: p.emailEnabled,
+          ...(p.marketingEmails !== undefined ? { marketingEmails: p.marketingEmails } : {}),
+        },
+      ]),
     );
 
     return baseUsers.filter((u) => {
       if (!u.email) return false;
-      return isMarketingReachable(prefMap.get(u.id));
+      return isReachableForMode(prefMap.get(u.id), prefMode);
     });
   } catch (err) {
     if (isNotificationPreferenceDrift(err)) {
@@ -204,16 +259,29 @@ export function formatBroadcastSegment(opts: {
   recipients: MarketingRecipient[];
   segment?: string;
   city?: string;
+  mode?: AudiencePrefMode;
+  geoScope?: AudienceGeoScope;
 }): string {
-  const { testOnly, userIds, recipients, segment = 'all', city } = opts;
-  if (testOnly) return 'test-only';
+  const {
+    testOnly,
+    userIds,
+    recipients,
+    segment = 'all',
+    city,
+    mode = 'marketing',
+    geoScope = 'colombia',
+  } = opts;
+  if (testOnly) return mode === 'ops' ? 'ops:test-only' : 'test-only';
   if (userIds && userIds.length === 1 && recipients[0]?.email) {
-    return `user:${recipients[0].email}`;
+    return `${mode === 'ops' ? 'ops:' : ''}user:${recipients[0].email}`;
   }
   if (userIds && userIds.length > 1) {
-    return `users:${userIds.length}`;
+    return `${mode === 'ops' ? 'ops:' : ''}users:${userIds.length}`;
   }
-  return city ? `${segment}+city:${city}` : segment;
+  const base = city ? `${segment}+city:${city}` : segment;
+  const parts = [mode === 'ops' ? `ops:${base}` : base];
+  if (geoScope === 'all') parts.push('geo:all');
+  return parts.join('+');
 }
 
 async function countUsersSafe(where: Prisma.UserWhereInput): Promise<number> {
@@ -245,8 +313,14 @@ export async function resolveAudienceWhere(
   }
 }
 
-/** Users matching filters minus those who opted out of marketing emails. */
-export async function countReachableAudience(where: Prisma.UserWhereInput): Promise<number> {
+/**
+ * Users matching filters minus those who opted out of email (and marketing, when mode=marketing).
+ * Note: uses separate counts (not a perfect set-union) as a fast approximation for the dashboard.
+ */
+export async function countReachableAudience(
+  where: Prisma.UserWhereInput,
+  prefMode: AudiencePrefMode = 'marketing',
+): Promise<number> {
   const effectiveWhere = await resolveAudienceWhere(where);
   const total = await prisma.user.count({ where: effectiveWhere });
 
@@ -260,18 +334,21 @@ export async function countReachableAudience(where: Prisma.UserWhereInput): Prom
       },
     });
     let marketingDisabled = 0;
-    try {
-      marketingDisabled = await prisma.user.count({
-        where: {
-          ...effectiveWhere,
-          notificationPreferences: {
-            is: { marketingEmails: false },
+    if (prefMode === 'marketing') {
+      try {
+        marketingDisabled = await prisma.user.count({
+          where: {
+            ...effectiveWhere,
+            notificationPreferences: {
+              is: { marketingEmails: false },
+            },
           },
-        },
-      });
-    } catch {
-      // marketingEmails column may not exist in all environments
+        });
+      } catch {
+        // marketingEmails column may not exist in all environments
+      }
     }
+    // Approximation: subtract the larger single opt-out bucket (avoids double-count complexity)
     return Math.max(0, total - Math.max(emailDisabled, marketingDisabled));
   } catch (err) {
     if (isNotificationPreferenceDrift(err)) {

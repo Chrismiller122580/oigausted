@@ -263,27 +263,103 @@ export function gigPublishedEmail({ userName = 'Usuario', gigTitle, gigId }: Bas
   };
 }
 
-export function supportTicketEmail({ userName = 'Usuario', subject, isAdmin = false, ticketId }: BaseEmailProps & { subject: string; isAdmin?: boolean; ticketId?: string }) {
+function escapeEmailHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+export type SupportTicketEmailKind = 'received' | 'update' | 'resolved';
+
+/**
+ * Support ticket emails for users and admin alerts.
+ * kind:
+ *  - received: new ticket confirmation / admin alert
+ *  - update: staff replied or changed status
+ *  - resolved: ticket resolved or closed
+ */
+export function supportTicketEmail({
+  userName = 'Usuario',
+  subject,
+  isAdmin = false,
+  ticketId,
+  kind = 'received',
+  adminReply,
+  status,
+}: BaseEmailProps & {
+  subject: string;
+  isAdmin?: boolean;
+  ticketId?: string;
+  kind?: SupportTicketEmailKind;
+  adminReply?: string | null;
+  status?: string | null;
+}) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
-  const link = ticketId ? `${appUrl}/${isAdmin ? 'admin/support' : 'support'}?id=${ticketId}` : `${appUrl}/support`;
-  const title = isAdmin ? 'Nuevo ticket de soporte' : 'Ticket de soporte recibido';
-  const body = isAdmin 
-    ? `Se ha recibido un nuevo ticket de soporte: "${subject}".`
-    : `Tu ticket "${subject}" ha sido recibido. Te responderemos pronto.`;
+  const safeName = escapeEmailHtml(userName || 'Usuario');
+  const safeSubject = escapeEmailHtml(subject || 'Soporte');
+  const safeStatus = status ? escapeEmailHtml(status) : null;
+  const safeReply = adminReply?.trim()
+    ? escapeEmailHtml(adminReply.trim()).replace(/\n/g, '<br>')
+    : null;
+
+  const link = ticketId
+    ? `${appUrl}/${isAdmin ? 'admin/support' : 'support'}?id=${encodeURIComponent(ticketId)}`
+    : `${appUrl}/support`;
+
+  let title: string;
+  let bodyHtml: string;
+  let ctaLabel: string;
+
+  if (isAdmin) {
+    title = 'Nuevo ticket de soporte';
+    bodyHtml = `<p>Se ha recibido un nuevo ticket de soporte: &quot;${safeSubject}&quot;.</p>`;
+    ctaLabel = 'Ver en admin';
+  } else if (kind === 'resolved') {
+    title = 'Tu ticket de soporte ha sido resuelto';
+    bodyHtml = `
+      <p>Hemos actualizado tu ticket <strong>&quot;${safeSubject}&quot;</strong>.</p>
+      <p>Estado: <strong>${safeStatus || 'resolved'}</strong>.</p>
+      ${
+        safeReply
+          ? `<p style="margin-top:16px;"><strong>Respuesta de OigaGIG:</strong></p>
+             <p style="background:#f8f8f8;padding:16px;border-radius:8px;color:#333;line-height:1.6;">${safeReply}</p>`
+          : `<p>Puedes ver los detalles en tu página de soporte.</p>`
+      }`;
+    ctaLabel = 'Ver mi ticket';
+  } else if (kind === 'update') {
+    title = 'Actualización en tu ticket de soporte';
+    bodyHtml = `
+      <p>Hay una actualización en tu ticket <strong>&quot;${safeSubject}&quot;</strong>.</p>
+      ${safeStatus ? `<p>Estado: <strong>${safeStatus}</strong>.</p>` : ''}
+      ${
+        safeReply
+          ? `<p style="margin-top:16px;"><strong>Respuesta de OigaGIG:</strong></p>
+             <p style="background:#f8f8f8;padding:16px;border-radius:8px;color:#333;line-height:1.6;">${safeReply}</p>`
+          : `<p>Revisa el detalle en tu página de soporte.</p>`
+      }`;
+    ctaLabel = 'Ver mi ticket';
+  } else {
+    title = 'Ticket de soporte recibido';
+    bodyHtml = `<p>Tu ticket &quot;${safeSubject}&quot; ha sido recibido. Te responderemos pronto.</p>`;
+    ctaLabel = 'Ver mi ticket';
+  }
+
   return {
     subject: title,
     html: `
       <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
         <h2 style="color: #111;">${title}</h2>
-        <p>Hola <strong>${userName}</strong>,</p>
-        <p>${body}</p>
+        <p>Hola <strong>${safeName}</strong>,</p>
+        ${bodyHtml}
         <a href="${link}" 
            style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin-top: 16px;">
-          ${isAdmin ? 'Ver en admin' : 'Ver mi ticket'}
+          ${ctaLabel}
         </a>
         <p style="margin-top: 32px; font-size: 12px; color: #888;">OigaGIG • Servicios locales de confianza en Colombia</p>
       </div>
-    `
+    `,
   };
 }
 

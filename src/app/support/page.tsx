@@ -14,6 +14,16 @@ import Link from 'next/link';
 import OnboardingTutorial from '@/components/common/OnboardingTutorial';
 import { markTutorialDismissed } from '@/lib/tutorial';
 import { ShoppingBag, Briefcase } from 'lucide-react';
+import { staffMessageDisplayName } from '@/lib/brand';
+
+interface ThreadMessage {
+  id: string;
+  body: string;
+  isInternal: boolean;
+  isStaff: boolean;
+  createdAt: string;
+  author?: { id: string; name: string | null; email: string | null } | null;
+}
 
 interface Ticket {
   id: string;
@@ -26,6 +36,7 @@ interface Ticket {
   createdAt: string;
   updatedAt: string;
   resolvedAt: string | null;
+  messages?: ThreadMessage[];
 }
 
 const CATEGORIES = [
@@ -57,6 +68,8 @@ export default function SupportPage() {
   const [message, setMessage] = useState('');
   const [category, setCategory] = useState('other');
   const [priority, setPriority] = useState('medium');
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [replyingId, setReplyingId] = useState<string | null>(null);
 
   // Tutorial state
   const [showTutorial, setShowTutorial] = useState(false);
@@ -270,17 +283,109 @@ export default function SupportPage() {
                         <p className="text-sm text-muted-foreground mb-2">
                           {new Date(ticket.createdAt).toLocaleDateString('es-CO')} • Categoría: {ticket.category || 'Otro'}
                         </p>
-                        <p className="text-sm whitespace-pre-wrap mb-3">{ticket.message}</p>
-
-                        {ticket.adminReply && (
-                          <div className="mt-4 p-4 bg-muted/50 rounded border-l-4 border-orange-500">
-                            <p className="text-xs font-medium text-muted-foreground mb-1">RESPUESTA DEL EQUIPO:</p>
-                            <p className="text-sm whitespace-pre-wrap">{ticket.adminReply}</p>
-                            {ticket.resolvedAt && (
-                              <p className="text-xs text-muted-foreground mt-2">
-                                Resuelto el {new Date(ticket.resolvedAt).toLocaleDateString('es-CO')}
+                        {/* Conversation thread (public only) */}
+                        <div className="mt-3 space-y-2">
+                          {(ticket.messages && ticket.messages.length > 0
+                            ? ticket.messages
+                            : [
+                                {
+                                  id: `${ticket.id}-origin`,
+                                  body: ticket.message,
+                                  isInternal: false,
+                                  isStaff: false,
+                                  createdAt: ticket.createdAt,
+                                },
+                                ...(ticket.adminReply
+                                  ? [
+                                      {
+                                        id: `${ticket.id}-admin`,
+                                        body: ticket.adminReply,
+                                        isInternal: false,
+                                        isStaff: true,
+                                        createdAt: ticket.updatedAt,
+                                      },
+                                    ]
+                                  : []),
+                              ]
+                          ).map((m) => (
+                            <div
+                              key={m.id}
+                              className={`p-3 rounded-lg text-sm whitespace-pre-wrap ${
+                                m.isStaff
+                                  ? 'bg-muted/50 border-l-4 border-orange-500'
+                                  : 'bg-background border border-border'
+                              }`}
+                            >
+                              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+                                {m.isStaff
+                                  ? staffMessageDisplayName({ style: 'team' })
+                                  : 'Tú'}{' '}
+                                ·{' '}
+                                {new Date(m.createdAt).toLocaleString('es-CO', {
+                                  dateStyle: 'short',
+                                  timeStyle: 'short',
+                                })}
                               </p>
-                            )}
+                              {m.body}
+                            </div>
+                          ))}
+                        </div>
+
+                        {ticket.resolvedAt && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Resuelto el {new Date(ticket.resolvedAt).toLocaleDateString('es-CO')}
+                          </p>
+                        )}
+
+                        {ticket.status !== 'closed' && (
+                          <div className="mt-4 space-y-2">
+                            <Textarea
+                              rows={3}
+                              placeholder="Escribe una respuesta al equipo de soporte…"
+                              value={replyDrafts[ticket.id] || ''}
+                              onChange={(e) =>
+                                setReplyDrafts((prev) => ({
+                                  ...prev,
+                                  [ticket.id]: e.target.value,
+                                }))
+                              }
+                            />
+                            <Button
+                              size="sm"
+                              disabled={
+                                replyingId === ticket.id ||
+                                !(replyDrafts[ticket.id] || '').trim()
+                              }
+                              onClick={async () => {
+                                const text = (replyDrafts[ticket.id] || '').trim();
+                                if (!text) return;
+                                setReplyingId(ticket.id);
+                                try {
+                                  const res = await fetch(
+                                    `/api/support/tickets/${ticket.id}/messages`,
+                                    {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ body: text }),
+                                    }
+                                  );
+                                  const data = await res.json().catch(() => ({}));
+                                  if (!res.ok) {
+                                    toast.error(data.error || 'No se pudo enviar');
+                                    return;
+                                  }
+                                  toast.success('Respuesta enviada');
+                                  setReplyDrafts((prev) => ({ ...prev, [ticket.id]: '' }));
+                                  await fetchMyTickets();
+                                } catch {
+                                  toast.error('Error de conexión');
+                                } finally {
+                                  setReplyingId(null);
+                                }
+                              }}
+                            >
+                              {replyingId === ticket.id ? 'Enviando…' : 'Responder'}
+                            </Button>
                           </div>
                         )}
                       </div>

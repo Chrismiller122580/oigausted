@@ -123,6 +123,10 @@ export default function AdminMarketingContent() {
   const [message, setMessage] = useState('');
   const [segment, setSegment] = useState('all');
   const [cityFilter, setCityFilter] = useState('');
+  /** marketing = promos (honors marketingEmails); ops = system announcements */
+  const [broadcastMode, setBroadcastMode] = useState<'marketing' | 'ops'>('marketing');
+  /** colombia (default) or all countries on the platform */
+  const [geoScope, setGeoScope] = useState<'colombia' | 'all'>('colombia');
   const [recipientMode, setRecipientMode] = useState<RecipientMode>('segment');
   const [selectedUser, setSelectedUser] = useState<AudienceUser | null>(null);
   const [pickerSearch, setPickerSearch] = useState('');
@@ -330,6 +334,8 @@ export default function AdminMarketingContent() {
     const base = {
       subject: subject.trim(),
       message: message.trim(),
+      mode: broadcastMode,
+      geoScope,
       ...extra,
     };
     if (extra.testOnly) return base;
@@ -531,6 +537,8 @@ export default function AdminMarketingContent() {
       params.set('segment', segment);
       if (cityFilter) params.set('city', cityFilter);
       if (audienceSearch) params.set('search', audienceSearch);
+      params.set('geoScope', geoScope);
+      params.set('mode', broadcastMode);
       params.set('limit', '80');
 
       const res = await fetch(`/api/admin/marketing/audience?${params.toString()}`);
@@ -583,7 +591,7 @@ export default function AdminMarketingContent() {
       fetchAudience(true);
     }, 300);
     return () => clearTimeout(t);
-  }, [paintReady, segment, cityFilter, audienceSearch]);
+  }, [paintReady, segment, cityFilter, audienceSearch, geoScope, broadcastMode]);
 
   useEffect(() => {
     if (recipientMode !== 'user') return;
@@ -691,9 +699,14 @@ export default function AdminMarketingContent() {
       ? (dryRunResult?.recipientCount ?? (selectedUser.emailReachable === false ? 0 : 1))
       : (dryRunResult?.recipientCount ?? audienceReachable ?? audienceTotal);
 
+    const modeLabel =
+      broadcastMode === 'ops'
+        ? 'OPS / sistema (no usa opt-out de marketing)'
+        : 'Marketing (respeta marketingEmails)';
+    const geoLabel = geoScope === 'all' ? 'todos los países' : 'solo Colombia';
     const confirmMsg = isSingleUser
-      ? `¿Enviar este mensaje a ${selectedUser.name || 'usuario'} (${selectedUser.email})?\n\nSe respeta preferencias de email y marketing.`
-      : `¿Enviar este mensaje a aproximadamente ${targetCount} usuarios?\n\nSegmento: ${segment}${cityFilter ? ' · Ciudad: ' + cityFilter : ''}\n\nSe registra en auditoría y respeta preferencias de email.`;
+      ? `¿Enviar este mensaje a ${selectedUser.name || 'usuario'} (${selectedUser.email})?\n\nModo: ${modeLabel}\nAlcance: ${geoLabel}`
+      : `¿Enviar este mensaje a aproximadamente ${targetCount} usuarios?\n\nSegmento: ${segment}${cityFilter ? ' · Ciudad: ' + cityFilter : ''}\nModo: ${modeLabel}\nAlcance: ${geoLabel}\n\nSe registra en auditoría. Envío en lotes con reintento.`;
 
     if (!confirm(confirmMsg)) return;
 
@@ -1449,6 +1462,77 @@ export default function AdminMarketingContent() {
           >
             Usuario específico
           </button>
+        </div>
+
+        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-xl border border-border p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium mb-2">
+              Tipo de envío
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setBroadcastMode('marketing')}
+                className={`text-sm px-3 py-1.5 rounded-full border transition ${
+                  broadcastMode === 'marketing'
+                    ? 'bg-orange-600 text-white border-orange-600'
+                    : 'border-border hover:bg-muted'
+                }`}
+              >
+                Marketing / promo
+              </button>
+              <button
+                type="button"
+                onClick={() => setBroadcastMode('ops')}
+                className={`text-sm px-3 py-1.5 rounded-full border transition ${
+                  broadcastMode === 'ops'
+                    ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900'
+                    : 'border-border hover:bg-muted'
+                }`}
+              >
+                Ops / sistema
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              {broadcastMode === 'ops'
+                ? 'Anuncios operativos (caídas, políticas). Solo respeta email desactivado, no el opt-out de marketing.'
+                : 'Campañas y promos. Respeta marketingEmails + emailEnabled.'}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium mb-2">
+              Alcance geográfico
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setGeoScope('colombia')}
+                className={`text-sm px-3 py-1.5 rounded-full border transition ${
+                  geoScope === 'colombia'
+                    ? 'bg-orange-600 text-white border-orange-600'
+                    : 'border-border hover:bg-muted'
+                }`}
+              >
+                Solo Colombia
+              </button>
+              <button
+                type="button"
+                onClick={() => setGeoScope('all')}
+                className={`text-sm px-3 py-1.5 rounded-full border transition ${
+                  geoScope === 'all'
+                    ? 'bg-orange-600 text-white border-orange-600'
+                    : 'border-border hover:bg-muted'
+                }`}
+              >
+                Todos los países
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              {geoScope === 'all'
+                ? 'Incluye usuarios fuera de Colombia (si existen en la plataforma).'
+                : 'Filtro countryCode = co (comportamiento histórico).'}
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

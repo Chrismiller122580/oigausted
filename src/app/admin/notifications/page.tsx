@@ -1,10 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { Mail, Bell, X, User } from 'lucide-react';
+
+type DeliveryChannels = 'both' | 'in_app' | 'email';
+
+interface PickerUser {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+  businessName?: string | null;
+}
 
 interface NotificationStats {
   total: number;
@@ -28,12 +40,21 @@ interface NotificationStats {
 }
 
 export default function AdminNotificationsDashboard() {
+  const searchParams = useSearchParams();
+  const prefilledUserId = searchParams.get('userId');
+  const prefilledEmail = searchParams.get('email');
+
   // Send form state
-  const [userId, setUserId] = useState('');
+  const [selectedUser, setSelectedUser] = useState<PickerUser | null>(null);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerResults, setPickerResults] = useState<PickerUser[]>([]);
+  const [pickerLoading, setPickerLoading] = useState(false);
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [category, setCategory] = useState('system');
+  const [channels, setChannels] = useState<DeliveryChannels>('both');
   const [sending, setSending] = useState(false);
+  const prefillDone = useRef(false);
 
   // Analytics state
   const [stats, setStats] = useState<NotificationStats | null>(null);
@@ -115,10 +136,105 @@ export default function AdminNotificationsDashboard() {
     fetchStats();
   }, []);
 
+  const searchUsers = useCallback(async (q: string) => {
+    const query = q.trim();
+    if (query.length < 2) {
+      setPickerResults([]);
+      return;
+    }
+    setPickerLoading(true);
+    try {
+      const params = new URLSearchParams({ search: query, limit: '12' });
+      const res = await fetch(`/api/admin/users?${params.toString()}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const list = (data.users || []).map(
+        (u: {
+          id: string;
+          name: string | null;
+          email: string;
+          role: string;
+          businessName?: string | null;
+        }) => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          businessName: u.businessName,
+        })
+      ) as PickerUser[];
+      setPickerResults(list);
+    } catch {
+      setPickerResults([]);
+    } finally {
+      setPickerLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!selectedUser) void searchUsers(pickerSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [pickerSearch, selectedUser, searchUsers]);
+
+  // Prefill recipient from /admin/notifications?userId=…&email=…
+  useEffect(() => {
+    if (prefillDone.current || !prefilledUserId) return;
+    prefillDone.current = true;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/admin/users?search=${encodeURIComponent(prefilledUserId)}&limit=5`
+        );
+        if (!res.ok) {
+          if (prefilledEmail) {
+            setSelectedUser({
+              id: prefilledUserId,
+              name: null,
+              email: prefilledEmail,
+              role: 'user',
+            });
+          }
+          return;
+        }
+        const data = await res.json();
+        const match =
+          (data.users || []).find((u: PickerUser) => u.id === prefilledUserId) ||
+          (data.users || [])[0];
+        if (match) {
+          setSelectedUser({
+            id: match.id,
+            name: match.name,
+            email: match.email,
+            role: match.role,
+            businessName: match.businessName,
+          });
+        } else if (prefilledEmail) {
+          setSelectedUser({
+            id: prefilledUserId,
+            name: null,
+            email: prefilledEmail,
+            role: 'user',
+          });
+        }
+      } catch {
+        if (prefilledEmail) {
+          setSelectedUser({
+            id: prefilledUserId,
+            name: null,
+            email: prefilledEmail,
+            role: 'user',
+          });
+        }
+      }
+    })();
+  }, [prefilledUserId, prefilledEmail]);
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId || !title || !message) {
-      toast.error('Todos los campos son obligatorios');
+    if (!selectedUser?.id || !title.trim() || !message.trim()) {
+      toast.error('Selecciona un usuario y completa título y mensaje');
       return;
     }
 
@@ -127,19 +243,27 @@ export default function AdminNotificationsDashboard() {
       const res = await fetch('/api/admin/send-notification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, title, message, category, type: 'in_app' }),
+        body: JSON.stringify({
+          userId: selectedUser.id,
+          title: title.trim(),
+          message: message.trim(),
+          category,
+          channels,
+        }),
       });
 
       if (res.ok) {
-        toast.success('Notification sent successfully');
+        const data = await res.json().catch(() => ({}));
+        toast.success(data.message || 'Notification sent successfully');
         setTitle('');
         setMessage('');
-        // Refresh analytics after sending
         fetchStats();
+        void fetchLogs(true);
       } else {
-        toast.error('Error sending notification');
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Error sending notification');
       }
-    } catch (e) {
+    } catch {
       toast.error('Connection error');
     } finally {
       setSending(false);
@@ -249,18 +373,124 @@ export default function AdminNotificationsDashboard() {
       <div className="max-w-2xl">
         <h2 className="text-xl font-semibold mb-4">Send Manual Notification</h2>
         <p className="text-muted-foreground mb-4 text-sm">
-          Send notifications (in-app + automatic email). Ideal for support and testing.
+          Contact any user as admin or customer service. Search by name or email — no raw User ID required.
         </p>
 
         <form onSubmit={handleSend} className="space-y-5 bg-card p-6 rounded-2xl border">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Recipient</label>
+            {selectedUser ? (
+              <div className="flex items-center gap-2 p-3 rounded-lg border bg-muted/30">
+                <User className="h-4 w-4 text-orange-600 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">
+                    {selectedUser.name || selectedUser.email}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {selectedUser.email}
+                    {selectedUser.role ? ` · ${selectedUser.role}` : ''}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setPickerSearch('');
+                    setPickerResults([]);
+                  }}
+                  className="p-1 hover:bg-muted rounded"
+                  aria-label="Clear recipient"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <Input
+                  value={pickerSearch}
+                  onChange={(e) => setPickerSearch(e.target.value)}
+                  placeholder="Search by name, email, or user ID…"
+                  autoComplete="off"
+                />
+                {pickerLoading && (
+                  <p className="text-xs text-muted-foreground">Searching…</p>
+                )}
+                {pickerResults.length > 0 && (
+                  <div className="border rounded-lg overflow-hidden bg-background max-h-56 overflow-y-auto">
+                    {pickerResults.map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedUser(u);
+                          setPickerResults([]);
+                          setPickerSearch('');
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 border-b last:border-b-0"
+                      >
+                        <div className="font-medium">{u.name || '—'}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {u.email} · {u.role}
+                          {u.businessName ? ` · ${u.businessName}` : ''}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {pickerSearch.trim().length >= 2 &&
+                  !pickerLoading &&
+                  pickerResults.length === 0 && (
+                    <p className="text-xs text-muted-foreground">No users found.</p>
+                  )}
+              </>
+            )}
+          </div>
+
           <div>
-            <label className="text-sm font-medium">User ID</label>
-            <Input 
-              value={userId} 
-              onChange={(e) => setUserId(e.target.value)} 
-              placeholder="User ID" 
-              required 
-            />
+            <label className="text-sm font-medium">Channels</label>
+            <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {(
+                [
+                  {
+                    value: 'both' as const,
+                    label: 'In-app + email',
+                    icon: (
+                      <span className="flex items-center gap-1">
+                        <Bell className="h-3.5 w-3.5" />
+                        <Mail className="h-3.5 w-3.5" />
+                      </span>
+                    ),
+                  },
+                  {
+                    value: 'in_app' as const,
+                    label: 'In-app only',
+                    icon: <Bell className="h-3.5 w-3.5" />,
+                  },
+                  {
+                    value: 'email' as const,
+                    label: 'Email only',
+                    icon: <Mail className="h-3.5 w-3.5" />,
+                  },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setChannels(opt.value)}
+                  className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
+                    channels === opt.value
+                      ? 'border-orange-600 bg-orange-50 text-orange-900 dark:bg-orange-950/40 dark:text-orange-100'
+                      : 'border-border hover:bg-muted/50'
+                  }`}
+                >
+                  {opt.icon}
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              User preferences still apply (e.g. email disabled). CS sends use high priority so quiet hours do not block them.
+            </p>
           </div>
 
           <div>
@@ -294,13 +524,13 @@ export default function AdminNotificationsDashboard() {
             />
           </div>
 
-          <Button type="submit" disabled={sending} className="w-full">
+          <Button type="submit" disabled={sending || !selectedUser} className="w-full">
             {sending ? 'Sending...' : 'Send Notification'}
           </Button>
         </form>
 
         <p className="text-xs text-muted-foreground mt-4">
-          Notifications sent here respect user preferences (including quiet hours).
+          Tip: you can also open a user in Users and click <strong>Notify user</strong>.
         </p>
 
         {/* Digest Trigger Tools */}

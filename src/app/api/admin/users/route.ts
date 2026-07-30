@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { requireAdminFromDb, requireAdminPanelSession } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -18,19 +19,34 @@ export async function GET(req: NextRequest) {
     const roleFilter = searchParams.get('role');
     const activeFilter = searchParams.get('active'); // 'true' | 'false'
     const onlineFilter = searchParams.get('online') === 'true';
+    const search = (searchParams.get('search') || searchParams.get('q') || '').trim();
+    const limit = Math.min(parseInt(searchParams.get('limit') || '200', 10) || 200, 200);
 
     const isStaffFilter = roleFilter === 'accountant' || roleFilter === 'admin_assistant';
 
+    const where: Prisma.UserWhereInput = {
+      ...(isStaffFilter
+        ? { staffRole: roleFilter }
+        : roleFilter
+          ? { role: roleFilter }
+          : {}),
+      ...(activeFilter ? { isActive: activeFilter === 'true' } : {}),
+      ...(onlineFilter ? { lastActiveAt: { gte: onlineSinceDate() } } : {}),
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search } },
+              { email: { contains: search } },
+              { businessName: { contains: search } },
+              // Exact id match when staff pastes a cuid/uuid
+              { id: search },
+            ],
+          }
+        : {}),
+    };
+
     const users = await prisma.user.findMany({
-      where: {
-        ...(isStaffFilter
-          ? { staffRole: roleFilter }
-          : roleFilter
-            ? { role: roleFilter }
-            : {}),
-        ...(activeFilter && { isActive: activeFilter === 'true' }),
-        ...(onlineFilter && { lastActiveAt: { gte: onlineSinceDate() } }),
-      },
+      where,
       select: {
         id: true,
         name: true,
@@ -72,7 +88,7 @@ export async function GET(req: NextRequest) {
         }
       },
       orderBy: { createdAt: 'desc' },
-      take: 200
+      take: limit,
     });
 
     return NextResponse.json({ users });

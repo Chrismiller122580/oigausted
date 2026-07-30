@@ -86,6 +86,7 @@ model User {
   referrals      User[]   @relation("UserReferrals")
   referralEarnings ReferralEarning[] @relation("ReferrerEarnings")
   supportTickets SupportTicket[]
+  supportTicketMessages SupportTicketMessage[]
 
   // Marketing / broadcasts sent by this admin
   marketingCampaigns MarketingCampaign[]
@@ -496,15 +497,35 @@ model SupportTicket {
   category    String?  // e.g. "payment", "gig", "account", "technical", "other"
   priority    String   @default("medium") // low, medium, high, urgent
   status      String   @default("open")  // open, in_progress, resolved, closed
+  /// Last public staff reply (denormalized for legacy UI / email templates)
   adminReply  String?  @db.Text
   resolvedBy  String?  // admin id
   resolvedAt  DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  messages    SupportTicketMessage[]
 
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+}
+
+/// Threaded support conversation. isInternal=true is staff-only (never shown to the user).
+model SupportTicketMessage {
+  id         String   @id @default(cuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId   String?
+  author     User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  body       String   @db.Text
+  /// Staff-only note (not visible to the ticket owner, no user notification)
+  isInternal Boolean  @default(false)
+  /// true = admin/CS/accountant; false = ticket owner
+  isStaff    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+  @@index([authorId])
 }
 
 model SellerMarketingSubscription {

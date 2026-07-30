@@ -9,6 +9,22 @@ const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'OigaGIG <support@oigagig.com>';
+const DEFAULT_SUPPORT_EMAIL = 'support@oigagig.com';
+
+/** Reply-To for user-facing mail so CS can answer from the support inbox. */
+async function getSupportReplyTo(): Promise<string | undefined> {
+  try {
+    const { getPlatformConfig } = await import('@/lib/prisma');
+    const cfg = await getPlatformConfig();
+    const email = cfg?.supportEmail?.trim() || DEFAULT_SUPPORT_EMAIL;
+    return email || undefined;
+  } catch {
+    return DEFAULT_SUPPORT_EMAIL;
+  }
+}
+
+/** Which delivery channels to attempt (user prefs + quiet hours still apply). */
+export type NotificationChannels = 'in_app' | 'email' | 'both';
 
 export interface NotificationPayload {
   userId: string;
@@ -19,6 +35,13 @@ export interface NotificationPayload {
   link?: string;
   data?: JsonObject;
   priority?: 'low' | 'normal' | 'high';
+  /**
+   * Explicit channel control (admin/CS manual sends).
+   * - both: in-app + email when prefs allow (default for type in_app)
+   * - in_app: bell only, never side-effect email
+   * - email: email only (tracking row if needed; no bell unless prefs force via type)
+   */
+  channels?: NotificationChannels;
 }
 
 /** Prefs row shape from explicit select (marketingEmails omitted for prod DB compatibility). */
@@ -51,6 +74,7 @@ type NotificationPrefs = {
 type SendEmailDataOrOptions = JsonObject & {
   category?: string;
   priority?: 'low' | 'normal' | 'high';
+  channels?: NotificationChannels;
   data?: JsonObject;
 };
 
@@ -73,7 +97,15 @@ function jsonBoolean(data: JsonObject | undefined, key: string, fallback = false
  * Sends a notification through the requested channel(s).
  */
 export async function sendNotification(payload: NotificationPayload) {
-  const { userId, category, type, title, message, link, data } = payload;
+  const { userId, category, type, title, message, link, data, channels } = payload;
+
+  // Resolve channel intent: explicit channels override type defaults.
+  // type 'email' alone historically also created in-app; channels:'email' is email-only.
+  const channelMode: NotificationChannels =
+    channels ||
+    (type === 'email' ? 'both' : type === 'in_app' ? 'both' : 'both');
+  const wantInApp = channelMode === 'both' || channelMode === 'in_app';
+  const wantEmail = channelMode === 'both' || channelMode === 'email';
 
   // 1. Respect user preferences (defensive: default to enabled if prefs table/query fails due to schema)
   // Use explicit select omitting newer columns (e.g. marketingEmails) that may not exist in prod DB yet.
@@ -173,9 +205,9 @@ export async function sendNotification(payload: NotificationPayload) {
     return { success: true, skipped: 'disabled by user preference' };
   }
 
-  // 2. Store in-app notification (if enabled)
+  // 2. Store in-app notification (if enabled and channel wants in-app)
   let inAppNotifId: string | null = null;
-  if ((type === 'in_app' || ['email','sms','push'].includes(type)) && shouldSendInApp) {
+  if (wantInApp && shouldSendInApp) {
     try {
       const created = await prisma.notification.create({
         data: {
@@ -354,11 +386,19 @@ export async function sendNotification(payload: NotificationPayload) {
         }
       } else if (category === 'system' && (jsonString(data, 'ticketId') || title?.toLowerCase().includes('ticket') || title?.toLowerCase().includes('soporte'))) {
         const { supportTicketEmail } = await import('./emails/templates');
+        const kindRaw = jsonString(data, 'kind') || (jsonBoolean(data, 'supportUpdate') ? 'update' : 'received');
+        const kind =
+          kindRaw === 'resolved' || kindRaw === 'update' || kindRaw === 'received'
+            ? kindRaw
+            : 'received';
         emailContent = supportTicketEmail({
           userName: user.name,
           subject: jsonString(data, 'subject') || title || 'Soporte',
           isAdmin: jsonBoolean(data, 'isAdmin'),
           ticketId: jsonString(data, 'ticketId') || undefined,
+          kind,
+          adminReply: jsonString(data, 'adminReply') || undefined,
+          status: jsonString(data, 'status') || undefined,
         });
       } else if (category === 'marketing' && jsonString(data, 'playbookId')) {
         const { lifecycleNudgeEmail } = await import('./emails/templates');
@@ -403,11 +443,13 @@ export async function sendNotification(payload: NotificationPayload) {
         };
       }
 
+      const replyTo = await getSupportReplyTo();
       const emailResult = await resend.emails.send({
         from: FROM_EMAIL,
         to: user.email,
         subject: emailContent.subject,
         html: emailContent.html,
+        ...(replyTo ? { replyTo } : {}),
       });
 
       const resendId = emailResult.data?.id || null;
@@ -457,10 +499,8 @@ export async function sendNotification(payload: NotificationPayload) {
     }
   }
 
-  // 2. Handle Email via Resend (explicit 'email' type OR triggered alongside in_app)
-  // Use emailAllowed (prefs + quiet hours) instead of raw shouldSendEmail.
-  const shouldAlsoEmail = type === 'email' || (type === 'in_app' && shouldSendEmail);
-  if (shouldAlsoEmail && emailAllowed) {
+  // 2. Handle Email via Resend when channel wants email (prefs + quiet hours still apply)
+  if (wantEmail && emailAllowed) {
     // Ensure we have a tracking row for this email (create dedicated 'email' type record if needed)
     if (!emailTrackingNotifId) {
       try {
@@ -493,8 +533,11 @@ export async function sendNotification(payload: NotificationPayload) {
     devLog(`[NOTIF] SMS would be sent to user ${userId}`);
   }
 
-  if ((type === 'push' || effectiveShouldSendPush) && effectiveShouldSendPush) {
-    // Real Web Push will be attempted
+  // Push rides with in-app / both (not email-only admin sends)
+  if (
+    (type === 'push' || (wantInApp && effectiveShouldSendPush)) &&
+    effectiveShouldSendPush
+  ) {
     try {
       await sendDevicePushIfEnabled(userId, title, message, link, data, inAppNotifId);
     } catch (e) {
@@ -507,17 +550,47 @@ export async function sendNotification(payload: NotificationPayload) {
 
 // Convenience helpers
 export const notifications = {
-  async sendInApp(userId: string, category: string, title: string, message: string, link?: string, data?: JsonObject) {
-    return sendNotification({ userId, category, type: 'in_app', title, message, link, data });
+  async sendInApp(
+    userId: string,
+    category: string,
+    title: string,
+    message: string,
+    link?: string,
+    data?: JsonObject,
+    options?: { channels?: NotificationChannels; priority?: 'low' | 'normal' | 'high' },
+  ) {
+    return sendNotification({
+      userId,
+      category,
+      type: 'in_app',
+      title,
+      message,
+      link,
+      data,
+      channels: options?.channels,
+      priority: options?.priority,
+    });
   },
 
   async sendEmail(userId: string, title: string, message: string, link?: string, dataOrOptions?: SendEmailDataOrOptions) {
-    // Support legacy data + new { category, priority, data } style from marketing broadcasts
+    // Support legacy data + new { category, priority, data, channels } style
     const opts: SendEmailDataOrOptions = dataOrOptions || {};
     const category = opts.category || (opts.data ? 'system' : 'system');
     const priority = opts.priority || undefined;
-    const data = opts.data || (opts.category || opts.priority ? undefined : opts);
-    return sendNotification({ userId, category, type: 'email', title, message, link, data, priority });
+    const channels = (opts.channels as NotificationChannels | undefined) || undefined;
+    const data = opts.data || (opts.category || opts.priority || opts.channels ? undefined : opts);
+    return sendNotification({
+      userId,
+      category,
+      type: 'email',
+      title,
+      message,
+      link,
+      data,
+      priority,
+      // Default undefined → both channels (legacy). Pass channels:'email' for email-only.
+      channels,
+    });
   },
 
   async sendSMS(userId: string, message: string) {

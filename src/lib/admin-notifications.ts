@@ -51,11 +51,21 @@ export async function sendAdminEmail({
       return { sent: false }
     }
 
+    let replyTo = DEFAULT_ADMIN_EMAIL
+    try {
+      const { getPlatformConfig } = await import('@/lib/prisma')
+      const config = await getPlatformConfig()
+      if (config?.supportEmail?.trim()) replyTo = config.supportEmail.trim()
+    } catch {
+      // default
+    }
+
     await resend.emails.send({
       from: FROM_EMAIL,
       to: recipients,
       subject: subject.startsWith('[OigaGIG') ? subject : `[OigaGIG Admin] ${subject}`,
       html,
+      replyTo,
     })
 
     devLog(`[AdminEmail] Sent to ${recipients.join(', ')}`)

@@ -309,6 +309,9 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             <Link href="/admin/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Bell size={22} /> Notificaciones
             </Link>
+            <Link href="/admin/messages" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <MessageCircle size={22} /> Mensajes / Chats
+            </Link>
             <Link href="/admin/marketing" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Megaphone size={22} /> Marketing
             </Link>
