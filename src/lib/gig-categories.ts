@@ -257,7 +257,43 @@ export const gigCategories = [
       { key: "testDrive", label: "Prueba de manejo incluida", type: "checkbox", extraPrice: 25000 },
       { key: "delivery", label: "Entrega o traslado del vehículo", type: "checkbox", extraPrice: 120000 }
     ]
-  }
+  },
+  {
+    name: "Reparación de Computadores y Electrónica",
+    icon: "🖥️",
+    fields: [
+      {
+        key: "deviceType",
+        label: "Tipo de equipo",
+        type: "select",
+        options: [
+          { label: "Computador / laptop", extraPrice: 0 },
+          { label: "Celular / tablet", extraPrice: 0 },
+          { label: "Televisor / monitor", extraPrice: 15000 },
+          { label: "Consola de videojuegos", extraPrice: 20000 },
+          { label: "Impresora / periférico", extraPrice: 0 },
+          { label: "Otro electrónico", extraPrice: 0 },
+        ],
+      },
+      {
+        key: "serviceType",
+        label: "Tipo de servicio",
+        type: "select",
+        options: [
+          { label: "Diagnóstico", extraPrice: 0 },
+          { label: "Reparación de hardware", extraPrice: 40000 },
+          { label: "Software / sistema operativo", extraPrice: 25000 },
+          { label: "Limpieza y mantenimiento", extraPrice: 15000 },
+          { label: "Instalación o configuración", extraPrice: 20000 },
+          { label: "Recuperación de datos", extraPrice: 50000 },
+        ],
+      },
+      { key: "devices", label: "Número de equipos", type: "number", extraPrice: 30000 },
+      { key: "homeVisit", label: "Visita a domicilio", type: "checkbox", extraPrice: 35000 },
+      { key: "urgency", label: "Urgencia (mismo día)", type: "checkbox", extraPrice: 50000 },
+      { key: "partsIncluded", label: "Repuestos incluidos por el técnico", type: "checkbox", extraPrice: 60000 },
+    ],
+  },
 ];
 
 export default gigCategories;

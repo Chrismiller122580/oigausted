@@ -2,7 +2,7 @@ import { categoryEmojis } from './categories';
 
 /**
  * Central registry for Oiga GiG 1.0 premium custom category icons (AI-generated).
- * 22 icons in public/icons/ as optimized .jpg (reliable for Next.js / PWA / img tags).
+ * Category icons in public/icons/ as optimized .jpg (reliable for Next.js / PWA / img tags).
  *
  * Keys are stable kebab-case filenames (de-accented) matching the committed assets.
  * This is the single source of truth for rendering across landing, /gigs, GigCard, admin.
@@ -42,6 +42,7 @@ export const categoryIconKeys: Record<string, string> = {
   "Clases de Idiomas y Tutorías Online": "clases-de-idiomas-y-tutorias-online",
   "Gestión de Eventos y Organización de Fiestas": "gestion-de-eventos-y-organizacion-de-fiestas",
   "Venta de Autos y Vehículos": "venta-de-autos-y-vehiculos",
+  "Reparación de Computadores y Electrónica": "reparacion-de-computadores-y-electronica",
 };
 
 export function getCategoryIconKey(name: string): string | null {

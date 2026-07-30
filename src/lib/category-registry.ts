@@ -49,6 +49,14 @@ function getBuyerFields(categoryName: string) {
         { key: 'financingInterest', label: '¿Te interesa financiación?', type: 'checkbox' },
         { key: 'notes', label: 'Notas (SOAT, tecnomecánica, papeles, etc.)', type: 'text' },
       ];
+    case 'Reparación de Computadores y Electrónica':
+      return [
+        { key: 'deviceModel', label: 'Marca y modelo del equipo', type: 'text' },
+        { key: 'problemDescription', label: '¿Qué problema tiene?', type: 'text' },
+        { key: 'preferredDate', label: 'Fecha preferida', type: 'date' },
+        { key: 'address', label: 'Dirección del servicio (si es a domicilio)', type: 'text' },
+        { key: 'notes', label: 'Notas adicionales (garantía previa, accesorios, etc.)', type: 'text' },
+      ];
     default:
       // For newly created admin categories (or any not explicitly configured),
       // provide a sensible generic set of buyer fields.
@@ -74,7 +82,15 @@ function getTools(categoryName: string) {
   if (name.includes('transporte') || name.includes('mudanza') || name.includes('turismo') || name.includes('autos') || name.includes('vehículo') || name.includes('vehiculo')) {
     return ['maps'];
   }
-  if (name.includes('plomer') || name.includes('fontaner') || name.includes('electric') || name.includes('repar')) {
+  if (
+    name.includes('plomer') ||
+    name.includes('fontaner') ||
+    name.includes('electric') ||
+    name.includes('repar') ||
+    name.includes('computador') ||
+    name.includes('electrón') ||
+    name.includes('electron')
+  ) {
     return ['maps'];
   }
   if (name.includes('jardin') || name.includes('pintura') || name.includes('hogar')) {
@@ -138,6 +154,19 @@ function getUpgrades(categoryName: string) {
       { name: 'Entrega prioritaria', price: 80000, description: 'Traslado del vehículo en menos tiempo' },
       { name: 'Documentación incluida', price: 50000, description: 'Apoyo con papeles y trámite de traspaso' },
       { name: 'Peritaje completo', price: 90000, description: 'Inspección técnica profesional' },
+      ...base,
+    ];
+  }
+  if (
+    name.includes('computador') ||
+    name.includes('electrón') ||
+    name.includes('electron') ||
+    (name.includes('reparación') && name.includes('electr'))
+  ) {
+    return [
+      { name: 'Diagnóstico prioritario', price: 25000, description: 'Atención y revisión en menos tiempo' },
+      { name: 'Backup de datos incluido', price: 40000, description: 'Copia de seguridad antes de la reparación' },
+      { name: 'Garantía extendida del servicio', price: 35000, description: 'Mayor cobertura post-reparación' },
       ...base,
     ];
   }

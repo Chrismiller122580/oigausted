@@ -6,13 +6,14 @@ import MapsPollutionNuke from '@/components/maps/MapsPollutionNuke';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { DollarSign, Package, Star, Plus, TrendingUp, Users, Link2, Sparkles, Car, X } from 'lucide-react';
+import { DollarSign, Package, Star, Plus, TrendingUp, Users, Link2, Sparkles, Car, MonitorSmartphone, X } from 'lucide-react';
 import OnboardingTutorial from '@/components/common/OnboardingTutorial';
 import { usePlatformConfig } from '@/components/providers/PlatformConfigProvider';
 import { markTutorialDismissed, shouldAutoShowTutorial } from '@/lib/tutorial';
 import { getOrderStatusDisplayEs, OrderStatusLabel } from '@/lib/order-status';
 
 const AUTO_DOCS_PROMO_KEY = 'dismissedSellerAutoDocsPromo';
+const TECH_REPAIR_PROMO_KEY = 'dismissedSellerTechRepairPromo';
 
 export default function SellerDashboard() {
   const { data: session } = useSession();
@@ -22,6 +23,7 @@ export default function SellerDashboard() {
   const [reviews, setReviews] = useState<import('@/types/order').OrderReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAutoDocsPromo, setShowAutoDocsPromo] = useState(false);
+  const [showTechRepairPromo, setShowTechRepairPromo] = useState(false);
 
   // Tutorial state: auto appears for new sellers and when buyer->seller role unlock (full training on new features)
   const [showTutorial, setShowTutorial] = useState(false);
@@ -80,6 +82,18 @@ export default function SellerDashboard() {
     }
   }, [session?.user?.id, loading]);
 
+  // One-time promo: computer & electronics repair category
+  useEffect(() => {
+    if (!session?.user?.id || loading) return;
+    try {
+      if (!localStorage.getItem(TECH_REPAIR_PROMO_KEY)) {
+        setShowTechRepairPromo(true);
+      }
+    } catch {
+      setShowTechRepairPromo(true);
+    }
+  }, [session?.user?.id, loading]);
+
   const dismissAutoDocsPromo = () => {
     try {
       localStorage.setItem(AUTO_DOCS_PROMO_KEY, 'true');
@@ -87,6 +101,15 @@ export default function SellerDashboard() {
       /* ignore */
     }
     setShowAutoDocsPromo(false);
+  };
+
+  const dismissTechRepairPromo = () => {
+    try {
+      localStorage.setItem(TECH_REPAIR_PROMO_KEY, 'true');
+    } catch {
+      /* ignore */
+    }
+    setShowTechRepairPromo(false);
   };
 
   const paidAwaitingStart = orders.filter((o) => o.status === OrderStatusLabel.Paid);
@@ -195,6 +218,54 @@ export default function SellerDashboard() {
             </Card>
           </div>
         </div>
+
+        {showTechRepairPromo && (
+          <div className="mb-8 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-cyan-600 via-sky-600 to-blue-700 text-white p-5 sm:p-6 shadow-lg relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(#ffffff18_1px,transparent_1px)] [background-size:18px_18px] pointer-events-none" />
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur">
+                <MonitorSmartphone className="h-7 w-7" aria-hidden />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <p className="font-semibold text-lg sm:text-xl">Nuevo: Reparación de Computadores y Electrónica</p>
+                  <span className="text-[10px] font-mono uppercase tracking-wide bg-white/20 px-2 py-0.5 rounded-full">
+                    Nuevo
+                  </span>
+                </div>
+                <p className="text-white/90 text-sm sm:text-base leading-relaxed">
+                  Ofrece servicio técnico para PCs, laptops, celulares, TVs y más. Usa la categoría{' '}
+                  <strong>Reparación de Computadores y Electrónica</strong> al crear tu gig: define tipo de equipo,
+                  diagnóstico o reparación, visita a domicilio y urgencia. Ideal para técnicos y talleres.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 shrink-0 w-full lg:w-auto">
+                <Button
+                  asChild
+                  className="bg-white text-sky-800 hover:bg-white/90 font-semibold w-full sm:w-auto"
+                >
+                  <Link href="/create-gig">Publicar servicio técnico</Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-white/70 text-white hover:bg-white/10 w-full sm:w-auto"
+                  onClick={dismissTechRepairPromo}
+                >
+                  Entendido
+                </Button>
+              </div>
+              <button
+                type="button"
+                onClick={dismissTechRepairPromo}
+                className="absolute top-3 right-3 p-1.5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white lg:static lg:self-start"
+                aria-label="Cerrar anuncio"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {showAutoDocsPromo && (
           <div className="mb-8 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-orange-600 via-red-600 to-rose-600 text-white p-5 sm:p-6 shadow-lg relative overflow-hidden">

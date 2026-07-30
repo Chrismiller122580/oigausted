@@ -28,6 +28,7 @@ import { COLOMBIA_CITIES } from '@/lib/colombia-cities';
 import { findSaleDocsAddon, isSaleDocsAddon } from '@/lib/vehicle-sale-docs';
 
 const AUTOMOTIVE_CATEGORY = 'Venta de Autos y Vehículos';
+const TECH_REPAIR_CATEGORY = 'Reparación de Computadores y Electrónica';
 
 function CreateGigClient() {
   const { data: session, status } = useSession();
@@ -430,15 +431,29 @@ function CreateGigClient() {
               ))}
             </select>
             {!category && (
-              <p className="text-xs text-muted-foreground mt-1.5">
-                ¿Vendes carros o motos? Elige <strong>Venta de Autos y Vehículos</strong> y activa el
-                paquete de documentos OigaGIG (contrato + checklist por ciudad).
+              <p className="text-xs text-muted-foreground mt-1.5 space-y-1">
+                <span className="block">
+                  ¿Vendes carros o motos? Elige <strong>Venta de Autos y Vehículos</strong> y activa el
+                  paquete de documentos OigaGIG (contrato + checklist por ciudad).
+                </span>
+                <span className="block">
+                  ¿Arreglas PCs, laptops o celulares? Usa{' '}
+                  <strong>Reparación de Computadores y Electrónica</strong>.
+                </span>
               </p>
             )}
             {category === AUTOMOTIVE_CATEGORY && (
               <p className="text-xs text-orange-700 dark:text-orange-300 mt-1.5">
                 Más abajo puedes ofrecer el <strong>paquete de documentos OigaGIG</strong> con precio y
                 ciudad del traspaso.
+              </p>
+            )}
+            {category === TECH_REPAIR_CATEGORY && (
+              <p className="text-xs text-sky-700 dark:text-sky-300 mt-1.5">
+                Ideas de título: <strong>&quot;Formateo y optimización de laptops&quot;</strong>,{' '}
+                <strong>&quot;Reparación de celulares a domicilio&quot;</strong>,{' '}
+                <strong>&quot;Soporte técnico PC / TV / consolas&quot;</strong>. Completa los campos de
+                equipo y servicio para precios dinámicos.
               </p>
             )}
           </div>

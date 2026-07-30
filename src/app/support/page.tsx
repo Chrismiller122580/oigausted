@@ -350,6 +350,17 @@ export default function SupportPage() {
                       </p>
                     </CardContent>
                   </Card>
+                  <Card className="bg-card border-border">
+                    <CardContent className="p-5">
+                      <p className="font-semibold mb-1">¿Puedo ofrecer reparación de computadores y electrónica?</p>
+                      <p className="text-sm text-muted-foreground">
+                        Sí. Usa la categoría <strong>Reparación de Computadores y Electrónica</strong> al crear un gig.
+                        Puedes definir tipo de equipo (PC, laptop, celular, TV, consola), tipo de servicio
+                        (diagnóstico, hardware, software, limpieza, instalación o recuperación de datos), visita a
+                        domicilio y urgencia. Ideal para técnicos y talleres que atienden a domicilio o en local.
+                      </p>
+                    </CardContent>
+                  </Card>
                 </>
               )}
             </div>
@@ -403,7 +414,7 @@ export default function SupportPage() {
                   </div>
                   <ol className="list-decimal ml-5 space-y-2 text-sm">
                     <li><strong>Configura tu negocio:</strong> En Perfil completa nombre del negocio, ubicación y foto de portada. Tu URL pública (slug) se genera automáticamente. Los compradores te escriben por Mensajes en la app.</li>
-                    <li><strong>Crea gigs:</strong> Publica servicios con precio base + campos dinámicos (horas, habitaciones, etc.). Sube fotos atractivas. Para vehículos usa <strong>Venta de Autos y Vehículos</strong> y opcionalmente el paquete de documentos OigaGIG (contrato + checklist por ciudad).</li>
+                    <li><strong>Crea gigs:</strong> Publica servicios con precio base + campos dinámicos (horas, habitaciones, etc.). Sube fotos atractivas. Para vehículos usa <strong>Venta de Autos y Vehículos</strong> y opcionalmente el paquete de documentos OigaGIG (contrato + checklist por ciudad). Para soporte técnico elige <strong>Reparación de Computadores y Electrónica</strong>.</li>
                     <li><strong>Recibe y gestiona pedidos:</strong> Te notificamos. Acepta, chatea con el cliente y actualiza estado a "En Progreso" → "Completado". Si el comprador pidió documentos, descárgalos en el pedido tras el pago.</li>
                     <li><strong>Cobra:</strong> Al completar liberamos el pago a tu cuenta (Nequi configurado). Revisa ganancias y referidos.</li>
                     <li><strong>Construye reputación:</strong> Comparte tu enlace público /sellers/tu-slug. Responde rápido y recolecta reseñas excelentes.</li>
