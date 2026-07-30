@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client';
-import { colombiaUserFilter } from '@/lib/colombia-geo';
+import { andColombiaAudience } from '@/lib/colombia-geo';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
 
@@ -9,11 +9,10 @@ function subDays(date: Date, days: number): Date {
   return d;
 }
 
-const BASE_REACHABLE: Prisma.UserWhereInput = {
+const BASE_REACHABLE: Prisma.UserWhereInput = andColombiaAudience({
   email: { not: null },
   isActive: true,
-  ...colombiaUserFilter(),
-};
+});
 
 export type PlaybookCategory = 'acquisition' | 'retention' | 'seller';
 

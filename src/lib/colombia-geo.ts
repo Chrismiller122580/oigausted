@@ -39,9 +39,33 @@ export function buildCityWhere(cityInput: string): Prisma.UserWhereInput | null 
   };
 }
 
-/** Colombia users filter — empty fallback if countryCode column not migrated yet. */
+/**
+ * Colombia users filter for marketing / playbooks.
+ * Prefer a single-field filter so callers can spread this without clobbering
+ * existing top-level `OR` clauses on playbook where-objects.
+ * Schema-missing countryCode is handled by resolveAudienceWhere / withoutCountryCode.
+ */
 export function colombiaUserFilter(): Prisma.UserWhereInput {
   return { countryCode: 'co' };
+}
+
+/**
+ * AND-merge Colombia audience without overwriting existing OR/AND on playbook wheres.
+ * countryCode is non-null with default "co" in schema — exact match only.
+ */
+export function andColombiaAudience(where: Prisma.UserWhereInput): Prisma.UserWhereInput {
+  const clause: Prisma.UserWhereInput = { countryCode: 'co' };
+  if (Array.isArray(where.AND)) {
+    return { ...where, AND: [...where.AND, clause] };
+  }
+  if (where.AND) {
+    return { ...where, AND: [where.AND, clause] };
+  }
+  // Safe to spread single-field filter when no AND yet
+  if (!('OR' in where) && !('NOT' in where)) {
+    return { ...where, ...clause };
+  }
+  return { ...where, AND: [clause] };
 }
 
 export function isCountryCodeSchemaDrift(err: unknown): boolean {

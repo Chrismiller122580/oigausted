@@ -57,14 +57,24 @@ export const AUTOMATED_LIFECYCLE_RULES: LifecycleRule[] = [
   {
     playbookId: 'buyers-no-orders',
     maxPerRule: 100,
-    buildWhere: () => ({
-      email: { not: null },
-      isActive: true,
-      countryCode: 'co',
-      role: 'buyer',
-      ordersAsBuyer: { none: {} },
-      createdAt: { lte: subDays(new Date(), 7) },
-    }),
+    buildWhere: () => {
+      // Prefer playbook builder (includes Colombia audience safely)
+      const playbook = getPlaybookById('buyers-no-orders');
+      if (playbook) {
+        return {
+          ...playbook.buildWhere(),
+          createdAt: { lte: subDays(new Date(), 7) },
+        };
+      }
+      return {
+        email: { not: null },
+        isActive: true,
+        countryCode: 'co',
+        role: 'buyer',
+        ordersAsBuyer: { none: {} },
+        createdAt: { lte: subDays(new Date(), 7) },
+      };
+    },
   },
   {
     playbookId: 'buyers-abandoned-checkout',

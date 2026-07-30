@@ -8,7 +8,7 @@ import {
   isMissingMarketingCampaignTable,
   resolveMarketingRecipients,
 } from '@/lib/marketing-audience';
-import { colombiaUserFilter, isCountryCodeSchemaDrift, withoutCountryCode } from '@/lib/colombia-geo';
+import { andColombiaAudience, isCountryCodeSchemaDrift, withoutCountryCode } from '@/lib/colombia-geo';
 import { applyMergeFields, getPlaybookById } from '@/lib/marketing-playbooks';
 import { getPlaybookNudgedUserIds } from '@/lib/marketing-lifecycle';
 import { sellerToolkitLifecycleCopy } from '@/lib/seller-buyer-toolkit-campaign';
@@ -20,12 +20,11 @@ const PLAYBOOK_ID = 'sellers-get-buyers-toolkit';
 const BLAST_CAP = 5000;
 
 function sellerBlastWhere(excludeIds: string[]): Prisma.UserWhereInput {
-  const base: Prisma.UserWhereInput = {
+  const base = andColombiaAudience({
     email: { not: null },
     isActive: true,
     role: 'seller',
-    ...colombiaUserFilter(),
-  };
+  });
   if (excludeIds.length === 0) return base;
   return { AND: [base, { id: { notIn: excludeIds } }] };
 }

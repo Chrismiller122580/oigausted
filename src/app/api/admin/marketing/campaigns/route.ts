@@ -34,7 +34,11 @@ export async function GET(req: NextRequest) {
           subject: c.subject,
           segment: c.segment,
           recipientCount: c.recipientCount,
-          sentBy: c.sentBy ? (c.sentBy.name || c.sentBy.email) : 'System',
+          // Outbound brand is always OigaGIG; keep staff identity only as audit metadata.
+          sentBy: 'OigaGIG',
+          sentByStaff: c.sentBy
+            ? c.sentBy.name || c.sentBy.email || null
+            : null,
           sentById: c.sentById,
           createdAt: c.createdAt,
         })),

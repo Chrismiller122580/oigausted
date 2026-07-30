@@ -46,6 +46,7 @@ interface Campaign {
   segment: string;
   recipientCount: number;
   sentBy: string;
+  sentByStaff?: string | null;
   createdAt: string;
 }
 
@@ -603,8 +604,12 @@ export default function AdminMarketingContent() {
       setPickerLoading(true);
       try {
         const params = new URLSearchParams();
+        // Search across full platform so staff can find any user by email/name,
+        // then prefs still filter reachability by mode.
         params.set('segment', 'all');
         params.set('search', pickerSearch.trim());
+        params.set('geoScope', 'all');
+        params.set('mode', broadcastMode);
         params.set('limit', '10');
         const res = await fetch(`/api/admin/marketing/audience?${params.toString()}`);
         const data = await res.json().catch(() => ({}));
@@ -614,11 +619,11 @@ export default function AdminMarketingContent() {
       }
     }, 300);
     return () => clearTimeout(t);
-  }, [pickerSearch, recipientMode]);
+  }, [pickerSearch, recipientMode, broadcastMode]);
 
   useEffect(() => {
     setDryRunResult(null);
-  }, [segment, cityFilter, recipientMode, selectedUser?.id]);
+  }, [segment, cityFilter, recipientMode, selectedUser?.id, broadcastMode, geoScope]);
 
   useEffect(() => {
     if (!paintReady) return;
@@ -1701,16 +1706,30 @@ export default function AdminMarketingContent() {
             ) : (
               <>
                 <div className="text-5xl font-semibold tabular-nums tracking-tighter">{audienceReachable.toLocaleString()}</div>
-                <div className="text-muted-foreground">alcanzables (email + marketing activado)</div>
+                <div className="text-muted-foreground">
+                  {broadcastMode === 'ops'
+                    ? 'alcanzables (email activado · modo ops)'
+                    : 'alcanzables (email + marketing activado)'}
+                </div>
                 <div className="text-xs mt-1">Total que coincide con filtros: {audienceTotal.toLocaleString()}</div>
+                <div className="text-[11px] mt-1 text-muted-foreground">
+                  Alcance: {geoScope === 'all' ? 'todos los países' : 'Colombia'} ·{' '}
+                  {broadcastMode === 'ops' ? 'Ops / sistema' : 'Marketing'}
+                </div>
               </>
             )}
 
             <div className="my-4 h-px bg-border" />
 
             <div className="text-xs space-y-1 text-muted-foreground">
-              <div>• Respeta preferencias de email y marketing</div>
-              <div>• Los envíos de marketing omiten quiet hours intencionalmente</div>
+              <div>
+                •{' '}
+                {broadcastMode === 'ops'
+                  ? 'Modo ops: respeta email desactivado, no el opt-out de marketing'
+                  : 'Respeta preferencias de email y marketing'}
+              </div>
+              <div>• Prioridad alta: no se bloquea por quiet hours</div>
+              <div>• Remitente de correo: OigaGIG (no el nombre del admin)</div>
               <div>• Todo queda registrado en Auditoría + historial de campañas</div>
             </div>
           </div>
@@ -1723,7 +1742,12 @@ export default function AdminMarketingContent() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-3">
           <div className="min-w-0">
             <h2 className="text-lg sm:text-xl font-semibold">Lista de Correo / Audiencia Objetivo</h2>
-            <p className="text-sm text-muted-foreground">{audienceTotal} coincidencias • {audienceReachable} con email marketing activo</p>
+            <p className="text-sm text-muted-foreground">
+              {audienceTotal} coincidencias • {audienceReachable}{' '}
+              {broadcastMode === 'ops' ? 'con email activo (ops)' : 'con email marketing activo'}
+              {' · '}
+              {geoScope === 'all' ? 'todos los países' : 'Colombia'}
+            </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Input placeholder="Buscar nombre, email..." value={audienceSearch} onChange={e => setAudienceSearch(e.target.value)} className="w-full sm:w-60" />
@@ -1751,6 +1775,11 @@ export default function AdminMarketingContent() {
                 <tr>
                   <td colSpan={analyticsViewOnly ? 5 : 6} className="p-8 text-center text-muted-foreground">
                     No hay usuarios que coincidan.
+                    {geoScope === 'colombia' && (
+                      <span className="block mt-2 text-xs">
+                        Prueba &quot;Todos los países&quot; si tu base aún no tiene countryCode en todos los usuarios.
+                      </span>
+                    )}
                   </td>
                 </tr>
               )}
@@ -1811,7 +1840,14 @@ export default function AdminMarketingContent() {
                   <td className="p-3 font-medium">{c.subject}</td>
                   <td className="p-3"><code className="text-xs bg-muted px-1.5 py-0.5 rounded">{c.segment}</code></td>
                   <td className="p-3 text-right font-semibold">{c.recipientCount}</td>
-                  <td className="p-3 text-sm text-muted-foreground">{c.sentBy}</td>
+                  <td className="p-3 text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">{c.sentBy || 'OigaGIG'}</span>
+                    {c.sentByStaff ? (
+                      <span className="block text-[10px] text-muted-foreground">
+                        vía {c.sentByStaff}
+                      </span>
+                    ) : null}
+                  </td>
                 </tr>
               ))}
             </tbody>

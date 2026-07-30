@@ -1,8 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 import {
+  andColombiaAudience,
   buildCityWhere,
-  colombiaUserFilter,
   isCountryCodeSchemaDrift,
   stringContains,
   withoutCountryCode,
@@ -107,27 +107,24 @@ export function buildAudienceWhere(
   const city = opts.city;
   const searchTerm = opts.search ?? search;
   const geoScope: AudienceGeoScope = opts.geoScope === 'all' ? 'all' : 'colombia';
-  const geoFilter = geoScope === 'colombia' ? colombiaUserFilter() : {};
 
   const seg = (segment || 'all').toLowerCase();
   const playbookId = parsePlaybookId(seg);
   if (playbookId) {
     const playbookWhere = buildPlaybookWhere(playbookId);
     if (playbookWhere) {
-      const where: Prisma.UserWhereInput = {
-        ...playbookWhere,
-        ...geoFilter,
-      };
+      // Playbooks already include Colombia via BASE_REACHABLE (safe AND, no OR clobber).
+      // geoScope "all" is not applied to playbooks yet (playbooks are Colombia-focused).
+      const where: Prisma.UserWhereInput = { ...playbookWhere };
       applyCityFilter(where, city);
       applySearchFilter(where, searchTerm);
       return where;
     }
   }
 
-  const where: Prisma.UserWhereInput = {
+  let where: Prisma.UserWhereInput = {
     email: { not: null },
     isActive: true,
-    ...geoFilter,
   };
   if (seg === 'buyers') where.role = 'buyer';
   if (seg === 'sellers') where.role = 'seller';
@@ -135,6 +132,10 @@ export function buildAudienceWhere(
   if (seg === 'inactive') where.isActive = false;
   if (seg === 'active') {
     where.lastLoginAt = { gte: subDays(new Date(), ACTIVE_LOGIN_DAYS) };
+  }
+
+  if (geoScope === 'colombia') {
+    where = andColombiaAudience(where);
   }
 
   applyCityFilter(where, city);
@@ -181,16 +182,14 @@ export async function resolveMarketingRecipients(opts: {
     geoScope = 'colombia',
   } = opts;
 
-  const geoFilter = geoScope === 'colombia' ? colombiaUserFilter() : {};
-
   let baseUsers: MarketingRecipient[];
 
   if (userIds && userIds.length > 0) {
+    // Explicit IDs: never apply geoScope (admin intentionally picked these users).
+    // Still require an email address; isActive not required so CS can reach paused accounts.
     const idWhere = await resolveAudienceWhere({
       id: { in: userIds },
       email: { not: null },
-      isActive: true,
-      ...geoFilter,
     });
     baseUsers = await prisma.user.findMany({
       where: idWhere,
@@ -366,11 +365,11 @@ export async function getBuyerFunnelStats(city?: string): Promise<{
   onePlusOrders: number;
   repeatBuyers: number;
 }> {
-  const base: Prisma.UserWhereInput = {
+  let base: Prisma.UserWhereInput = {
     role: 'buyer',
     isActive: true,
-    ...colombiaUserFilter(),
   };
+  base = andColombiaAudience(base);
   applyCityFilter(base, city);
 
   const [totalBuyers, noOrders, onePlusOrders, repeatBuyers] = await Promise.all([
