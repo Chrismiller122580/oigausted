@@ -26,7 +26,7 @@ Developer legal identity is already on the Play account profile (owner settings)
 | Upload keystore | `mobile/android/keystore/oigagig-upload.jks` |
 | Keystore config | `mobile/android/keystore.properties` (gitignored) |
 | Signed bundle | `mobile/android/app/build/outputs/bundle/release/app-release.aab` |
-| Version | `versionName` **1.4**, `versionCode` **5** (`mobile/android/app/build.gradle`) |
+| Version | `versionName` **1.5**, `versionCode` **6** (`mobile/android/app/build.gradle`) |
 | High-res icon 512×512 | `mobile/store/play/icon-512.png` |
 | Feature graphic 1024×500 | `mobile/store/play/feature-graphic-1024x500.png` |
 | App icon 1024×1024 | `mobile/store/play/icon-1024.png` |
