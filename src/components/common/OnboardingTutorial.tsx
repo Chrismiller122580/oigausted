@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { isMobileBrowser } from '@/lib/pwa-install';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -131,6 +131,40 @@ const sellerSteps: TutorialStep[] = [
   }
 ];
 
+/** Prefer a visible match when several nodes share the same tutorial id (desktop + mobile nav). */
+function findVisibleTarget(selector: string): HTMLElement | null {
+  const nodes = document.querySelectorAll(selector);
+  let fallback: HTMLElement | null = null;
+
+  for (const node of nodes) {
+    const el = node as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) continue;
+
+    const style = window.getComputedStyle(el);
+    if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) {
+      continue;
+    }
+
+    // Prefer elements actually painted on-screen (not display:none parents)
+    if (el.checkVisibility?.({ checkOpacity: true, checkVisibilityCSS: true }) === false) {
+      continue;
+    }
+
+    if (!fallback) fallback = el;
+
+    // Prefer fully (or mostly) in viewport
+    const inView =
+      rect.top < window.innerHeight &&
+      rect.bottom > 0 &&
+      rect.left < window.innerWidth &&
+      rect.right > 0;
+    if (inView) return el;
+  }
+
+  return fallback;
+}
+
 export default function OnboardingTutorial({ mode, onComplete, onClose }: OnboardingTutorialProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
@@ -146,35 +180,79 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
     return () => window.removeEventListener('resize', syncLayout);
   }, []);
 
+  const clearSpotlightStyles = () => {
+    document.querySelectorAll<HTMLElement>('[data-tutorial-spotlight="1"]').forEach((el) => {
+      el.removeAttribute('data-tutorial-spotlight');
+      el.style.boxShadow = '';
+      el.style.backgroundColor = '';
+      el.style.color = '';
+      el.style.borderRadius = '';
+      el.style.padding = '';
+      el.style.outline = '';
+    });
+  };
+
+  /**
+   * Style the real control for contrast. We do NOT raise z-index here —
+   * sticky navs create stacking contexts that stay under the tutorial overlay.
+   * Visibility comes from a true cutout mask (four panels), not elevation.
+   */
+  const styleTarget = (el: HTMLElement) => {
+    clearSpotlightStyles();
+    el.style.borderRadius = '12px';
+    el.style.backgroundColor = 'rgb(255, 255, 255)';
+    el.style.color = 'rgb(24, 24, 27)';
+    el.style.boxShadow = '0 0 0 3px rgb(249, 115, 22)';
+    el.setAttribute('data-tutorial-spotlight', '1');
+  };
+
   // Compute highlight target rect (viewport-relative) when step changes
-  const updateTargetRect = () => {
+  const updateTargetRect = (opts?: { scroll?: boolean }) => {
     if (!step.target) {
+      clearSpotlightStyles();
       setTargetRect(null);
       return;
     }
-    const el = document.querySelector(step.target) as HTMLElement | null;
+    const el = findVisibleTarget(step.target);
     if (el) {
+      if (opts?.scroll) {
+        el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+      }
+      styleTarget(el);
       const rect = el.getBoundingClientRect();
-      setTargetRect(rect);
+      // Extra pad so the cutout fully clears the control + ring
+      const pad = 8;
+      setTargetRect(
+        new DOMRect(
+          Math.max(0, rect.left - pad),
+          Math.max(0, rect.top - pad),
+          rect.width + pad * 2,
+          rect.height + pad * 2,
+        ),
+      );
     } else {
+      clearSpotlightStyles();
       setTargetRect(null);
     }
   };
 
   useEffect(() => {
-    updateTargetRect();
+    updateTargetRect({ scroll: true });
 
     const handleUpdate = () => updateTargetRect();
     window.addEventListener('resize', handleUpdate);
     window.addEventListener('scroll', handleUpdate, true);
 
-    // Small delay in case elements render after modal
-    const t = setTimeout(updateTargetRect, 150);
+    // Re-measure after layout / sticky nav settles
+    const t1 = setTimeout(() => updateTargetRect(), 150);
+    const t2 = setTimeout(() => updateTargetRect(), 400);
 
     return () => {
       window.removeEventListener('resize', handleUpdate);
       window.removeEventListener('scroll', handleUpdate, true);
-      clearTimeout(t);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearSpotlightStyles();
     };
   }, [currentStep, step.target]);
 
@@ -200,21 +278,21 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
   const showSpotlight = !!targetRect && !!step.target;
   const StepIcon = step.icon;
 
-  // Explicit light/dark colors so tutorial text stays readable even if theme tokens conflict.
+  // Explicit solid light/dark colors — never rely on translucent theme tokens for body copy.
   const stepCardBody = (
     <>
-      <div className={`border-b border-border dark:border-zinc-700 flex items-center justify-between ${useCompactLayout ? 'p-4' : 'p-5'}`}>
+      <div className={`border-b border-zinc-200 dark:border-zinc-700 flex items-center justify-between ${useCompactLayout ? 'p-4' : 'p-5'}`}>
         <div className="flex items-center gap-3 min-w-0">
           {StepIcon && (
-            <div className={`rounded-xl bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300 flex items-center justify-center flex-shrink-0 ${useCompactLayout ? 'w-9 h-9' : 'w-10 h-10'}`}>
+            <div className={`rounded-xl bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-200 flex items-center justify-center flex-shrink-0 ${useCompactLayout ? 'w-9 h-9' : 'w-10 h-10'}`}>
               <StepIcon size={useCompactLayout ? 18 : 20} />
             </div>
           )}
           <div className="min-w-0">
-            <div className="text-xs text-zinc-600 dark:text-zinc-300">
+            <div className="text-xs font-medium text-zinc-600 dark:text-zinc-300">
               {mode === 'buyer' ? 'Capacitación para Compradores' : 'Capacitación para Vendedores'} • Paso {currentStep + 1} de {steps.length}
             </div>
-            <h2 className={`font-bold text-zinc-900 dark:text-zinc-50 truncate ${useCompactLayout ? 'text-lg' : 'text-xl'}`}>{step.title}</h2>
+            <h2 className={`font-bold text-zinc-950 dark:text-white truncate ${useCompactLayout ? 'text-lg' : 'text-xl'}`}>{step.title}</h2>
           </div>
         </div>
         <Button
@@ -222,30 +300,30 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
           size="icon"
           onClick={onClose}
           aria-label="Cerrar tutorial"
-          className="text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          className="text-zinc-800 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800"
         >
           <X size={18} />
         </Button>
       </div>
 
-      <CardContent className={`space-y-4 text-sm text-zinc-900 dark:text-zinc-100 ${useCompactLayout ? 'p-4' : 'p-5'}`}>
-        <p className="text-zinc-700 dark:text-zinc-200 leading-relaxed">{step.description}</p>
+      <CardContent className={`space-y-4 text-sm ${useCompactLayout ? 'p-4' : 'p-5'}`}>
+        <p className="text-zinc-800 dark:text-zinc-100 leading-relaxed text-[15px]">{step.description}</p>
 
-        <div className="bg-zinc-100 dark:bg-zinc-800/90 rounded-xl p-4 border border-zinc-200/80 dark:border-zinc-700">
-          <p className="font-semibold text-xs mb-2 text-orange-700 dark:text-orange-300">Consejos clave:</p>
-          <ul className="space-y-1.5 text-xs text-zinc-800 dark:text-zinc-100">
+        <div className="bg-orange-50 dark:bg-zinc-800 rounded-xl p-4 border border-orange-200/80 dark:border-zinc-600">
+          <p className="font-semibold text-xs mb-2 text-orange-800 dark:text-orange-300">Consejos clave:</p>
+          <ul className="space-y-1.5 text-xs text-zinc-900 dark:text-zinc-100">
             {step.tips.map((tip, index) => (
               <li key={index} className="flex items-start gap-2">
-                <span className="text-orange-600 dark:text-orange-400 mt-0.5 shrink-0">•</span>
-                <span className="text-zinc-800 dark:text-zinc-100">{tip}</span>
+                <span className="text-orange-600 dark:text-orange-400 mt-0.5 shrink-0 font-bold">•</span>
+                <span className="text-zinc-900 dark:text-zinc-100 leading-snug">{tip}</span>
               </li>
             ))}
           </ul>
         </div>
 
-        {showSpotlight && useCompactLayout ? (
-          <p className="text-[10px] text-zinc-600 dark:text-zinc-300 text-center">
-            Mira el área resaltada en naranja en la pantalla.
+        {showSpotlight ? (
+          <p className="text-[11px] font-medium text-orange-800 dark:text-orange-300 text-center">
+            Mira el control resaltado en naranja en la pantalla.
           </p>
         ) : null}
 
@@ -257,7 +335,7 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
         </div>
       </CardContent>
 
-      <div className={`border-t border-border dark:border-zinc-700 flex items-center justify-between gap-2 ${useCompactLayout ? 'p-3' : 'p-4'}`}>
+      <div className={`border-t border-zinc-200 dark:border-zinc-700 flex items-center justify-between gap-2 ${useCompactLayout ? 'p-3' : 'p-4'}`}>
         <Button
           variant="outline"
           size="sm"
@@ -273,7 +351,7 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="text-xs text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="text-xs text-zinc-800 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >
             Saltar
           </Button>
@@ -292,6 +370,51 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
       </div>
     </>
   );
+
+  /**
+   * True cutout: four dim panels around the target (not a full overlay).
+   * The hole stays undimmed so nav/button text remains fully readable.
+   */
+  const renderSpotlight = () => {
+    if (!targetRect) {
+      return (
+        <div className="fixed inset-0 z-[260] bg-black/70" onClick={onClose} aria-hidden />
+      );
+    }
+
+    const t = targetRect.top;
+    const l = targetRect.left;
+    const w = targetRect.width;
+    const h = targetRect.height;
+    const dim = 'fixed z-[260] bg-black/70';
+
+    const panels: CSSProperties[] = [
+      { top: 0, left: 0, width: '100%', height: Math.max(0, t) },
+      { top: t + h, left: 0, width: '100%', height: Math.max(0, window.innerHeight - (t + h)) },
+      { top: t, left: 0, width: Math.max(0, l), height: h },
+      { top: t, left: l + w, width: Math.max(0, window.innerWidth - (l + w)), height: h },
+    ];
+
+    return (
+      <>
+        {panels.map((style, i) => (
+          <div
+            key={i}
+            className={dim}
+            style={style}
+            onClick={onClose}
+            aria-hidden
+          />
+        ))}
+        {/* Orange frame around the hole (pointer-events none so the real control stays clickable) */}
+        <div
+          className="fixed z-[261] rounded-2xl border-[3px] border-orange-500 shadow-[0_0_0_3px_rgba(255,255,255,0.9)] pointer-events-none"
+          style={{ top: t, left: l, width: w, height: h }}
+          aria-hidden
+        />
+      </>
+    );
+  };
 
   // Position the callout card relative to the highlight (default bottom)
   const getCardStyle = () => {
@@ -317,7 +440,7 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
       position: 'fixed' as const,
       top: `${top}px`,
       left: `${left}px`,
-      zIndex: 53,
+      zIndex: 263,
       maxWidth: `${Math.min(cardWidth, window.innerWidth - 40)}px`,
     };
   };
@@ -342,25 +465,17 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
     return {};
   };
 
+  const cardSurface =
+    'bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-600 text-zinc-950 dark:text-white shadow-2xl';
+
   return (
     <div className="fixed inset-0 z-[260]">
       {isHighlighting ? (
         <>
-          <div className="fixed inset-0 bg-black/70" onClick={onClose} />
-
-          <div
-            className="fixed z-[262] border-[5px] border-orange-500 rounded-3xl pointer-events-none transition-all duration-200"
-            style={{
-              top: `${targetRect!.top - 8}px`,
-              left: `${targetRect!.left - 8}px`,
-              width: `${targetRect!.width + 16}px`,
-              height: `${targetRect!.height + 16}px`,
-              boxShadow: '0 0 0 9999px rgba(0,0,0,0.75)',
-            }}
-          />
+          {renderSpotlight()}
 
           <Card
-            className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 shadow-2xl w-full"
+            className={`${cardSurface} w-full z-[263]`}
             style={getCardStyle()}
           >
             <div style={getArrowStyle()} />
@@ -369,26 +484,15 @@ export default function OnboardingTutorial({ mode, onComplete, onClose }: Onboar
         </>
       ) : showSpotlight && useCompactLayout ? (
         <>
-          <div className="fixed inset-0 bg-black/70" onClick={onClose} />
+          {renderSpotlight()}
 
-          <div
-            className="fixed z-[262] border-[5px] border-orange-500 rounded-3xl pointer-events-none transition-all duration-200"
-            style={{
-              top: `${targetRect!.top - 8}px`,
-              left: `${targetRect!.left - 8}px`,
-              width: `${targetRect!.width + 16}px`,
-              height: `${targetRect!.height + 16}px`,
-              boxShadow: '0 0 0 9999px rgba(0,0,0,0.75)',
-            }}
-          />
-
-          <Card className="fixed inset-x-0 bottom-0 z-[263] rounded-t-2xl rounded-b-none border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-2xl max-h-[78vh] overflow-y-auto safe-area-inset-bottom">
+          <Card className={`fixed inset-x-0 bottom-0 z-[263] rounded-t-2xl rounded-b-none max-h-[78vh] overflow-y-auto safe-area-inset-bottom ${cardSurface}`}>
             {stepCardBody}
           </Card>
         </>
       ) : (
-        <div className={`fixed inset-0 flex bg-black/60 ${useCompactLayout ? 'items-end p-0' : 'items-center p-4'}`}>
-          <Card className={`w-full bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 shadow-2xl ${useCompactLayout ? 'rounded-t-2xl rounded-b-none max-h-[85vh] overflow-y-auto safe-area-inset-bottom' : 'max-w-2xl'}`}>
+        <div className={`fixed inset-0 flex bg-black/70 ${useCompactLayout ? 'items-end p-0' : 'items-center p-4'}`}>
+          <Card className={`w-full z-[263] ${cardSurface} ${useCompactLayout ? 'rounded-t-2xl rounded-b-none max-h-[85vh] overflow-y-auto safe-area-inset-bottom' : 'max-w-2xl'}`}>
             {stepCardBody}
           </Card>
         </div>

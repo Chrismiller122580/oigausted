@@ -277,6 +277,17 @@ nav [role="button"] {
   min-width: 0;
 }
 
+/* Tutorial spotlight: force readable contrast on the real highlighted control */
+[data-tutorial-spotlight='1'],
+[data-tutorial-spotlight='1'] * {
+  color: rgb(24 24 27) !important; /* zinc-900 */
+}
+
+[data-tutorial-spotlight='1'] svg {
+  color: rgb(234 88 12) !important; /* orange-600 icons stay visible */
+  stroke: rgb(234 88 12) !important;
+}
+
 /* Capacitor shell: status bar + home gesture insets on sticky chrome */
 html.native-app header.sticky,
 html.native-app nav.sticky {
