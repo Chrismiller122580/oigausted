@@ -37,9 +37,9 @@ export function Toast({ message, type = "success", duration = 2800, onClose }: T
 
   return (
     <div 
-      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 shadow-2xl ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
+      className={`fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[min(100vw-1.5rem,28rem)] transition-all duration-300 shadow-2xl ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
     >
-      <div className={`${styles[type]} text-white px-6 py-4 rounded-2xl border flex items-center gap-4 min-w-[300px] max-w-md`}>
+      <div className={`${styles[type]} text-white px-4 sm:px-6 py-4 rounded-2xl border flex items-center gap-3 sm:gap-4 w-full max-w-md`}>
         <Icon className="h-6 w-6 flex-shrink-0" aria-hidden />
         <p className="font-medium leading-snug text-[15px]">{message}</p>
       </div>

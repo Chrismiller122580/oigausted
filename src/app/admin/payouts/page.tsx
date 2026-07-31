@@ -10,6 +10,7 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import type { PayoutOrder, ReferralPayoutSummary } from '@/types/payout';
 import type { PayoutAuditReport } from '@/lib/payout-audit';
 import { useFinancePanel } from '@/hooks/useFinancePanel';
+import { ScrollableTable } from '@/components/ui/scrollable-table';
 
 const LOCAL_STORAGE_KEY = 'adminManuallyPaidPayouts';
 
@@ -508,7 +509,7 @@ export default function AdminPayoutsPage() {
                 className="w-full max-w-md px-4 py-2 border border-border rounded-xl bg-background text-sm"
               />
             </div>
-            <div className="overflow-x-auto border border-border rounded-xl">
+            <ScrollableTable className="border border-border rounded-xl">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
@@ -550,7 +551,7 @@ export default function AdminPayoutsPage() {
                   )}
                 </tbody>
               </table>
-            </div>
+            </ScrollableTable>
           </div>
         )}
 

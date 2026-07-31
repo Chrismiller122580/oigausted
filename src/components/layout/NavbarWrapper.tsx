@@ -115,7 +115,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   return (
     <>
       {banner}
-      <nav className="bg-background border-b border-border shadow-sm sticky top-0 z-50">
+      <nav className="bg-background border-b border-border shadow-sm sticky top-0 z-50 safe-area-inset-top">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             <Logo size={36} />

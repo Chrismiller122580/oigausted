@@ -49,19 +49,19 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
         : 'Portal Staff';
 
   return (
-    <div className="md:hidden fixed inset-0 z-[100] bg-background">
+    <div className="md:hidden fixed inset-0 z-[100] bg-background safe-area-inset-top safe-area-inset-bottom">
       {/* Header */}
       <div className="flex items-center justify-between px-6 h-16 border-b border-border">
         <Link href="/" onClick={onClose} className="flex items-center gap-3">
           <div className="w-8 h-8 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">OU</div>
         </Link>
-        <button onClick={onClose} className="p-2">
+        <button onClick={onClose} className="p-2" aria-label="Cerrar menú">
           <X size={28} />
         </button>
       </div>
 
       {/* Menu Content */}
-      <div className="px-6 py-8 space-y-2 text-lg overflow-y-auto h-[calc(100vh-5rem)]">
+      <div className="px-6 py-8 space-y-2 text-lg overflow-y-auto h-[calc(100dvh-5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))]">
         {role === 'public' && (
           <>
             <Link href="/privacy" onClick={onClose} className="block py-4 border-b border-border">

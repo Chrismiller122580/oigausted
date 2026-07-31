@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { devLog } from '@/lib/utils';
+import { ScrollableTable } from '@/components/ui/scrollable-table';
 
 interface SellerReferralRow {
   seller: {
@@ -129,7 +130,7 @@ export default function AdminReferralsPage() {
           {data.length === 0 ? (
             <p className="text-muted-foreground">No sellers registered yet.</p>
           ) : (
-            <div className="overflow-x-auto">
+            <ScrollableTable>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
@@ -191,7 +192,7 @@ export default function AdminReferralsPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollableTable>
           )}
         </CardContent>
       </Card>

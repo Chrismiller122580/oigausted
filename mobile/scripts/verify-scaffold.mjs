@@ -96,4 +96,23 @@ if (errors.length) {
 }
 
 console.log('✅ mobile scaffold verification passed')
+
+// Soft warnings (do not fail CI) — release blockers called out for humans
+const warnings = []
+const googleServices = join(root, 'android', 'app', 'google-services.json')
+if (!existsSync(googleServices)) {
+  warnings.push(
+    'android/app/google-services.json missing — native FCM push will not work (copy from Firebase; see google-services.json.example)',
+  )
+}
+const keystoreProps = join(root, 'android', 'keystore.properties')
+if (!existsSync(keystoreProps)) {
+  warnings.push('android/keystore.properties missing — cannot sign Play release AAB (run npm run mobile:keystore)')
+}
+
+if (warnings.length) {
+  console.log('\n⚠️  release warnings:')
+  for (const w of warnings) console.log(`  - ${w}`)
+}
+
 console.log('   Next: npm run mobile:open:android (Java 17+) or mobile:open:ios (macOS)')

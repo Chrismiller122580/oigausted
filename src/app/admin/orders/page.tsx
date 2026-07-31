@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Trash2, Eye, RefreshCw } from 'lucide-react';
 import { useAdminAssistantViewOnly } from '@/hooks/useAdminAssistantViewOnly';
+import { ScrollableTable } from '@/components/ui/scrollable-table';
 
 interface Order {
   id: string;
@@ -159,7 +160,8 @@ export default function AdminOrdersPage() {
         </div>
 
         <Card className="bg-card border-border">
-          <CardContent className="p-0 overflow-x-auto">
+          <CardContent className="p-0">
+            <ScrollableTable>
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-background">
                 <tr>
@@ -244,6 +246,7 @@ export default function AdminOrdersPage() {
                 ))}
               </tbody>
             </table>
+            </ScrollableTable>
           </CardContent>
         </Card>
 

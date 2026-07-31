@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { asAuditDetails } from '@/types/audit';
+import { ScrollableTable } from '@/components/ui/scrollable-table';
 
 interface AuditLog {
   id: string;
@@ -165,7 +166,7 @@ export default function AdminAuditPage() {
             ) : logs.length === 0 ? (
               <div className="p-12 text-center text-muted-foreground">No records found.</div>
             ) : (
-              <div className="overflow-x-auto">
+              <ScrollableTable>
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
@@ -259,7 +260,7 @@ export default function AdminAuditPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollableTable>
             )}
           </CardContent>
         </Card>

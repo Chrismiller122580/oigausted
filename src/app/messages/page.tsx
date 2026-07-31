@@ -64,7 +64,7 @@ export default function MessagesInboxPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 mobile-page-bottom">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center gap-3 mb-6">
         <Link href={isSeller ? '/seller' : '/buyer'} className="text-muted-foreground hover:text-foreground">
           <ArrowLeft size={20} />

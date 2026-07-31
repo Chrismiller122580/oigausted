@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { RefreshCw, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { ScrollableTable } from '@/components/ui/scrollable-table';
 
 type SellerTaxRecord = {
   id: string;
@@ -127,10 +128,11 @@ export function TaxDocumentsPage() {
       />
 
       <Card>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="p-0">
           {loading ? (
             <p className="p-8 text-center text-muted-foreground">Loading records…</p>
           ) : (
+            <ScrollableTable>
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-muted/30">
                 <tr>
@@ -163,6 +165,7 @@ export function TaxDocumentsPage() {
                 ))}
               </tbody>
             </table>
+            </ScrollableTable>
           )}
         </CardContent>
       </Card>

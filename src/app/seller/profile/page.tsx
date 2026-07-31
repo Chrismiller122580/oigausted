@@ -236,7 +236,7 @@ export default function MiNegocioPage() {
   // Use real data from session + fetched stats (removed hardcoded demo values for launch)
 
   return (
-    <div className="min-h-screen bg-background mobile-page-bottom md:pb-12 overflow-x-hidden">
+    <div className="min-h-screen bg-background md:pb-12 overflow-x-hidden">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <Link href="/seller" className="inline-flex items-center gap-2 text-orange-600 hover:underline mb-6 sm:mb-8 text-base sm:text-lg">
           <ArrowLeft size={20} className="sm:w-[22px] sm:h-[22px]" /> Volver al Dashboard

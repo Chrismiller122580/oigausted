@@ -32,7 +32,7 @@ export default function AdminAssistantNavbar({ children }: { children: React.Rea
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <header className="bg-background border-b border-border sticky top-0 z-50">
+      <header className="bg-background border-b border-border sticky top-0 z-50 safe-area-inset-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">

@@ -195,6 +195,24 @@
   }
 }
 
+/* Dense admin/staff tables: smoother horizontal scroll on phones */
+.overflow-x-auto:has(table) {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
+}
+
+@media (max-width: 767px) {
+  .overflow-x-auto:has(table) table {
+    min-width: 36rem;
+  }
+
+  .overflow-x-auto:has(table) th,
+  .overflow-x-auto:has(table) td {
+    white-space: nowrap;
+  }
+}
+
 /* Capacitor / notch devices: keep toasts clear of status bar and bottom nav */
 html.native-app [data-sonner-toaster][data-y-position='top'] {
   top: calc(env(safe-area-inset-top, 0px) + 0.75rem) !important;

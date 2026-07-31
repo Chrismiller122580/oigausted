@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import MobileMenu from './MobileMenu';
+import MobileBottomNav from './MobileBottomNav';
 import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import Logo from '@/components/common/Logo';
@@ -63,7 +64,7 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Top Header - always visible, compact */}
-      <header className="bg-background border-b border-border sticky top-0 z-50">
+      <header className="bg-background border-b border-border sticky top-0 z-50 safe-area-inset-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             {/* Logo - links to public homepage */}
@@ -158,13 +159,15 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
 
         {/* Main Content Area */}
         <div className="flex-1 min-w-0">
-          <main className="p-4 sm:p-6 lg:p-8">
+          <main className="p-4 sm:p-6 lg:p-8 mobile-page-bottom">
             {children}
           </main>
         </div>
       </div>
 
-      {/* Mobile Menu (existing component - vertical, good for admin) */}
+      <MobileBottomNav role="admin" />
+
+      {/* Full nav for less-used admin tools */}
       <MobileMenu 
         isOpen={isMobileMenuOpen} 
         onClose={() => setIsMobileMenuOpen(false)} 

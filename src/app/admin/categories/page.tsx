@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { toast } from 'sonner';
 import { Plus, Trash2, Edit2, Save, X, Tag, RefreshCw, AlertTriangle } from 'lucide-react';
 import { gigCategories as staticGigCategories } from '@/lib/gig-categories';
+import { ScrollableTable } from '@/components/ui/scrollable-table';
 
 interface FieldDef {
   key: string;
@@ -517,7 +518,7 @@ export default function AdminCategoriesPage() {
                   </div>
                 </div>
               )}
-              <div className="overflow-x-auto">
+              <ScrollableTable>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
@@ -559,7 +560,7 @@ export default function AdminCategoriesPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollableTable>
             </>
           )}
           <p className="text-xs text-muted-foreground mt-4">

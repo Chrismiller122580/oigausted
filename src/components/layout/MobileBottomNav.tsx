@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Package, Plus, List, Tag, MessageCircle, Users } from 'lucide-react';
+import { Home, Package, Plus, List, MessageCircle, Users, User } from 'lucide-react';
 
 interface MobileBottomNavProps {
   role: 'buyer' | 'seller' | 'admin';
@@ -60,40 +60,43 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
   }
 
   if (role === 'admin') {
+    const isAdminHome =
+      pathname === '/admin' || pathname === '/admin/overview';
+
     return (
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-background/95 backdrop-blur border-t border-border safe-area-inset-bottom">
         <div className="flex items-center justify-around h-16 px-1 text-[11px]">
           <Link 
             href="/admin" 
-            className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/admin') && !isActive('/admin/users') && !isActive('/admin/gigs') && !isActive('/admin/categories') && !isActive('/admin/support') ? 'text-orange-600' : 'text-muted-foreground'}`}
+            className={`flex flex-col items-center justify-center flex-1 py-1 min-h-[3rem] ${isAdminHome ? 'text-orange-600' : 'text-muted-foreground'}`}
           >
             <Home size={22} />
-            <span className="mt-0.5">Overview</span>
+            <span className="mt-0.5">Inicio</span>
           </Link>
           <Link 
-            href="/admin/gigs" 
-            className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/admin/gigs') ? 'text-orange-600' : 'text-muted-foreground'}`}
+            href="/admin/orders" 
+            className={`flex flex-col items-center justify-center flex-1 py-1 min-h-[3rem] ${isActive('/admin/orders') ? 'text-orange-600' : 'text-muted-foreground'}`}
           >
-            <Package size={22} />
-            <span className="mt-0.5">Gigs</span>
-          </Link>
-          <Link 
-            href="/admin/categories" 
-            className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/admin/categories') ? 'text-orange-600' : 'text-muted-foreground'}`}
-          >
-            <Tag size={22} />
-            <span className="mt-0.5">Categorías</span>
+            <List size={22} />
+            <span className="mt-0.5">Pedidos</span>
           </Link>
           <Link 
             href="/admin/users" 
-            className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/admin/users') ? 'text-orange-600' : 'text-muted-foreground'}`}
+            className={`flex flex-col items-center justify-center flex-1 py-1 min-h-[3rem] ${isActive('/admin/users') ? 'text-orange-600' : 'text-muted-foreground'}`}
           >
             <Users size={22} />
             <span className="mt-0.5">Usuarios</span>
           </Link>
           <Link 
+            href="/admin/gigs" 
+            className={`flex flex-col items-center justify-center flex-1 py-1 min-h-[3rem] ${isActive('/admin/gigs') ? 'text-orange-600' : 'text-muted-foreground'}`}
+          >
+            <Package size={22} />
+            <span className="mt-0.5">Gigs</span>
+          </Link>
+          <Link 
             href="/admin/support" 
-            className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/admin/support') ? 'text-orange-600' : 'text-muted-foreground'}`}
+            className={`flex flex-col items-center justify-center flex-1 py-1 min-h-[3rem] ${isActive('/admin/support') ? 'text-orange-600' : 'text-muted-foreground'}`}
           >
             <MessageCircle size={22} />
             <span className="mt-0.5">Soporte</span>
@@ -133,14 +136,14 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
           href="/orders" 
           className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/orders') ? 'text-orange-600' : 'text-muted-foreground'}`}
         >
-          <Package size={22} />
+          <List size={22} />
           <span className="mt-0.5">Pedidos</span>
         </Link>
         <Link 
           href="/profile" 
           className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/profile') ? 'text-orange-600' : 'text-muted-foreground'}`}
         >
-          <Home size={22} />
+          <User size={22} />
           <span className="mt-0.5">Perfil</span>
         </Link>
       </div>

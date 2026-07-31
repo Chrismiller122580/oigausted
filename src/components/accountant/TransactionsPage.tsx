@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { ScrollableTable } from '@/components/ui/scrollable-table';
 
 type TransactionOrder = {
   id: string;
@@ -96,10 +97,11 @@ export function TransactionsPage() {
       </div>
 
       <Card>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="p-0">
           {loading ? (
             <p className="p-8 text-center text-muted-foreground">Loading transactions…</p>
           ) : (
+            <ScrollableTable>
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-muted/30">
                 <tr>
@@ -158,6 +160,7 @@ export function TransactionsPage() {
                 ))}
               </tbody>
             </table>
+            </ScrollableTable>
           )}
         </CardContent>
       </Card>
