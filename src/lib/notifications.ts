@@ -276,6 +276,29 @@ export async function sendNotification(payload: NotificationPayload) {
           gigTitles,
           ctaUrl: `${appUrl}${link || '/seller/orders'}`,
         });
+      } else if (
+        category === 'order' &&
+        jsonString(data, 'kind') === 'buyer_open_orders_reminder'
+      ) {
+        const { buyerOpenOrdersReminderEmail } = await import('./emails/templates');
+        const openCount = jsonNumber(data, 'openCount', 1);
+        const pendingCount = jsonNumber(data, 'pendingCount', 0);
+        const paidCount = jsonNumber(data, 'paidCount', 0);
+        const inProgressCount = jsonNumber(data, 'inProgressCount', 0);
+        const gigTitlesRaw = data?.gigTitles;
+        const gigTitles = Array.isArray(gigTitlesRaw)
+          ? gigTitlesRaw.filter((t): t is string => typeof t === 'string')
+          : [];
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
+        emailContent = buyerOpenOrdersReminderEmail({
+          userName: user.name,
+          openCount,
+          pendingCount,
+          paidCount,
+          inProgressCount,
+          gigTitles,
+          ctaUrl: `${appUrl}${link || '/orders'}`,
+        });
       } else if (category === 'order' && jsonString(data, 'gigTitle')) {
         const {
           newOrderEmail,
