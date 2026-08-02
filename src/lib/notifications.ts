@@ -255,7 +255,28 @@ export async function sendNotification(payload: NotificationPayload) {
       let emailContent;
 
       // Use rich templates when we have enough context
-      if (category === 'order' && jsonString(data, 'gigTitle')) {
+      if (
+        category === 'order' &&
+        jsonString(data, 'kind') === 'seller_open_orders_reminder'
+      ) {
+        const { sellerOpenOrdersReminderEmail } = await import('./emails/templates');
+        const openCount = jsonNumber(data, 'openCount', 1);
+        const paidCount = jsonNumber(data, 'paidCount', 0);
+        const inProgressCount = jsonNumber(data, 'inProgressCount', 0);
+        const gigTitlesRaw = data?.gigTitles;
+        const gigTitles = Array.isArray(gigTitlesRaw)
+          ? gigTitlesRaw.filter((t): t is string => typeof t === 'string')
+          : [];
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
+        emailContent = sellerOpenOrdersReminderEmail({
+          userName: user.name,
+          openCount,
+          paidCount,
+          inProgressCount,
+          gigTitles,
+          ctaUrl: `${appUrl}${link || '/seller/orders'}`,
+        });
+      } else if (category === 'order' && jsonString(data, 'gigTitle')) {
         const {
           newOrderEmail,
           buyerOrderCreatedEmail,

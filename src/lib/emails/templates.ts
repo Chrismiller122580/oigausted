@@ -179,6 +179,91 @@ export function orderStatusUpdatedEmail({ userName, gigTitle, newStatus, orderId
   };
 }
 
+/** Daily reminder for sellers with Paid / In Progress orders. */
+export function sellerOpenOrdersReminderEmail({
+  userName,
+  openCount,
+  paidCount = 0,
+  inProgressCount = 0,
+  gigTitles = [],
+  ctaUrl,
+}: BaseEmailProps & {
+  openCount: number
+  paidCount?: number
+  inProgressCount?: number
+  gigTitles?: string[]
+  ctaUrl?: string
+}) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'
+  const link = ctaUrl || `${appUrl}/seller/orders`
+  const n = openCount
+  const subject =
+    n === 1 ? 'Tienes 1 pedido abierto en OigaGIG' : `Tienes ${n} pedidos abiertos en OigaGIG`
+
+  const parts: string[] = []
+  if (paidCount > 0) {
+    parts.push(
+      paidCount === 1
+        ? '1 pagado listo para iniciar'
+        : `${paidCount} pagados listos para iniciar`,
+    )
+  }
+  if (inProgressCount > 0) {
+    parts.push(
+      inProgressCount === 1 ? '1 en progreso' : `${inProgressCount} en progreso`,
+    )
+  }
+  const breakdown =
+    parts.length > 0
+      ? `<p style="margin: 0 0 8px 0; color: #444;">${parts.join(' · ')}</p>`
+      : ''
+
+  const titlesList =
+    gigTitles.length > 0
+      ? `<ul style="color: #444; padding-left: 20px; margin: 12px 0;">
+          ${gigTitles
+            .slice(0, 5)
+            .map((t) => `<li style="margin-bottom: 4px;">${t}</li>`)
+            .join('')}
+          ${gigTitles.length > 5 ? '<li>…</li>' : ''}
+        </ul>`
+      : ''
+
+  return {
+    subject,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
+        <h2 style="color: #111;">${n === 1 ? 'Tienes 1 pedido abierto' : `Tienes ${n} pedidos abiertos`}</h2>
+
+        <p>Hola <strong>${userName || 'Vendedor'}</strong>,</p>
+
+        <p style="color: #444; font-size: 16px; line-height: 1.5;">
+          Tienes pedidos que aún no están completados. Actualiza el estado o continúa el trabajo
+          para mantener informado al comprador.
+        </p>
+
+        <div style="background: #fff7ed; border: 1px solid #fed7aa; padding: 20px; border-radius: 12px; margin: 24px 0;">
+          <p style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: #ea580c;">
+            ${n} pedido${n === 1 ? '' : 's'} abierto${n === 1 ? '' : 's'}
+          </p>
+          ${breakdown}
+          ${titlesList}
+        </div>
+
+        <a href="${link}"
+           style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+          Ver mis pedidos
+        </a>
+
+        <p style="margin-top: 32px; font-size: 12px; color: #888;">
+          Este recordatorio se envía una vez al día mientras tengas pedidos abiertos.
+          OigaGIG • Servicios locales de confianza en Colombia
+        </p>
+      </div>
+    `,
+  }
+}
+
 export function reviewReceivedEmail({ 
   userName, 
   gigTitle, 
