@@ -41,6 +41,7 @@ Set these in Vercel Dashboard → Settings → Environment Variables (apply to P
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (for image uploads) |
 | `NEXT_PUBLIC_APP_URL` | `https://oigagig.com` |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps JS API key (enable Maps JavaScript API + Places API) |
+| `NEXT_PUBLIC_META_PIXEL_ID` | `1064604162935356` (optional override; this ID is the built-in default) |
 
 **Google Maps API key — HTTP referrer restrictions** (fixes `RefererNotAllowedMapError` on `/mapa`):
 

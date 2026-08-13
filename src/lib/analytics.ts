@@ -1,6 +1,7 @@
 import { track as vercelTrack } from '@vercel/analytics'
-import { hasGoogleAnalyticsConsent } from '@/lib/analytics-consent'
+import { hasAnalyticsConsent } from '@/lib/analytics-consent'
 import { GA_MEASUREMENT_ID } from '@/lib/ga-config'
+import { trackMetaPixelEvent } from '@/lib/meta-pixel'
 
 export type AnalyticsEventProps = Record<string, string | number | boolean | undefined>
 
@@ -16,7 +17,7 @@ function cleanProps(props?: AnalyticsEventProps): Record<string, string | number
   return Object.keys(cleaned).length > 0 ? cleaned : undefined
 }
 
-/** Fires to Vercel Analytics always; GA4 only when user accepted analytics cookies. */
+/** Fires to Vercel Analytics always; GA4 + Meta Pixel only after cookie consent. */
 export function trackEvent(name: string, props?: AnalyticsEventProps): void {
   if (typeof window === 'undefined') return
 
@@ -28,14 +29,18 @@ export function trackEvent(name: string, props?: AnalyticsEventProps): void {
     // Non-fatal: analytics must never break UX.
   }
 
-  if (!GA_MEASUREMENT_ID || !hasGoogleAnalyticsConsent()) return
+  if (!hasAnalyticsConsent()) return
 
-  const gtag = (window as GtagWindow).gtag
-  if (typeof gtag !== 'function') return
-
-  try {
-    gtag('event', name, payload)
-  } catch {
-    // Non-fatal.
+  if (GA_MEASUREMENT_ID) {
+    const gtag = (window as GtagWindow).gtag
+    if (typeof gtag === 'function') {
+      try {
+        gtag('event', name, payload)
+      } catch {
+        // Non-fatal.
+      }
+    }
   }
+
+  trackMetaPixelEvent(name, payload)
 }

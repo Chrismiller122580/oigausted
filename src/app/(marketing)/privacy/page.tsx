@@ -149,6 +149,11 @@ export default async function PrivacyPage() {
               Google puede usar cookies para entender tráfico, campañas y mejoras del producto. Consulta la
               política de Google para más detalle.
             </li>
+            <li>
+              <strong>Meta Pixel (opcional):</strong> solo si eliges &quot;Aceptar analíticas&quot;.
+              Meta (Facebook/Instagram) usa cookies para medir visitas, registros, checkout y compras,
+              y para mostrar anuncios más relevantes. Consulta la política de Meta para más detalle.
+            </li>
           </ul>
           <p className="mt-3">
             Puedes elegir &quot;Solo esenciales&quot; en cualquier momento desde el banner de cookies (al

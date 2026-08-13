@@ -65,8 +65,8 @@ export default function CookieConsent() {
       <div className="mx-auto max-w-3xl rounded-2xl border border-border bg-card/95 backdrop-blur shadow-xl p-4 md:p-5">
         <p className="text-sm text-foreground leading-relaxed">
           Usamos cookies esenciales para tu sesión y preferencias, y — si aceptas — Google Analytics
-          para entender cómo se usa el sitio y mejorar campañas. También medimos visitas de forma
-          anónima con Vercel Analytics (sin cookies de marketing).
+          y Meta Pixel para entender cómo se usa el sitio y medir campañas. También medimos visitas
+          de forma anónima con Vercel Analytics (sin cookies de marketing).
         </p>
         <p className="text-xs text-muted-foreground mt-2">
           Más información en nuestra{' '}

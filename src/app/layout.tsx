@@ -14,6 +14,7 @@ import { getPublicSiteInfo, getSiteUrl } from "@/lib/public-site";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import ConsentedGoogleAnalytics from "@/components/analytics/ConsentedGoogleAnalytics";
+import ConsentedMetaPixel from "@/components/analytics/ConsentedMetaPixel";
 import CookieConsent from "@/components/common/CookieConsent";
 import PwaInstallPrompt from "@/components/common/PwaInstallPrompt";
 
@@ -224,6 +225,7 @@ export default async function RootLayout({
           <Analytics />
           <SpeedInsights />
           <ConsentedGoogleAnalytics />
+          <ConsentedMetaPixel />
         </SessionProviderWrapper>
       </body>
     </html>

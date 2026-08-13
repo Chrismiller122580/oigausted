@@ -8,8 +8,13 @@ export function getAnalyticsConsent(): AnalyticsConsent | null {
   return value === 'accepted' || value === 'essential' ? value : null
 }
 
-export function hasGoogleAnalyticsConsent(): boolean {
+export function hasAnalyticsConsent(): boolean {
   return getAnalyticsConsent() === 'accepted'
+}
+
+/** @deprecated Use hasAnalyticsConsent — same cookie-banner grant. */
+export function hasGoogleAnalyticsConsent(): boolean {
+  return hasAnalyticsConsent()
 }
 
 export function setAnalyticsConsent(value: AnalyticsConsent): void {

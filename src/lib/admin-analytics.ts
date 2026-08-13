@@ -1,6 +1,7 @@
 import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status'
 import { prisma } from '@/lib/prisma'
 import { GA_MEASUREMENT_ID } from '@/lib/ga-config'
+import { META_PIXEL_ID } from '@/lib/meta-pixel'
 
 export type AnalyticsIntegration = {
   id: string
@@ -341,6 +342,12 @@ export function getAnalyticsIntegrations(): AnalyticsIntegration[] {
     process.env.ADMIN_VERCEL_SPEED_INSIGHTS_URL?.trim() || vercelAnalyticsUrl
   const gaDashboardUrl =
     process.env.ADMIN_GA_DASHBOARD_URL?.trim() || 'https://analytics.google.com/'
+  const metaPixelId = META_PIXEL_ID
+  const metaDashboardUrl =
+    process.env.ADMIN_META_PIXEL_DASHBOARD_URL?.trim() ||
+    (metaPixelId
+      ? `https://business.facebook.com/events_manager2/list/pixel/${metaPixelId}`
+      : 'https://business.facebook.com/events_manager2')
 
   return [
     {
@@ -380,6 +387,21 @@ export function getAnalyticsIntegrations(): AnalyticsIntegration[] {
             'Mirrors the same custom events sent to Vercel',
           ]
         : ['GA4 script is not injected until measurement ID is configured'],
+    },
+    {
+      id: 'meta-pixel',
+      name: 'Meta Pixel',
+      description: 'Consent-gated Facebook/Instagram ads and conversion tracking',
+      enabled: !!metaPixelId,
+      status: metaPixelId ? 'configured' : 'missing',
+      dashboardUrl: metaDashboardUrl,
+      detail: metaPixelId ? `Pixel ID: ${metaPixelId}` : 'Set NEXT_PUBLIC_META_PIXEL_ID',
+      notes: metaPixelId
+        ? [
+            'Only loads after user accepts analytics cookies',
+            'PageView on each route; maps signup, checkout, and payment events',
+          ]
+        : ['Pixel script is not injected until NEXT_PUBLIC_META_PIXEL_ID is set'],
     },
   ]
 }
