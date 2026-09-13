@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 
 function isBenignDomReconcileError(error: Error) {
   const msg = `${error?.name || ''} ${error?.message || ''}`;
-  return /NotFoundError|removeChild|The node to be removed is not a child/i.test(msg);
+  return /NotFoundError|removeChild|insertBefore|The node to be removed is not a child/i.test(msg);
 }
 
 export default function MarketingError({
@@ -15,16 +15,28 @@ export default function MarketingError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const benign = isBenignDomReconcileError(error);
+
   useEffect(() => {
     console.error('Admin marketing page error:', error);
-    if (!isBenignDomReconcileError(error)) return;
-    const key = 'oiga-marketing-dom-reload';
-    try {
-      if (sessionStorage.getItem(key) === '1') return;
-      sessionStorage.setItem(key, '1');
-    } catch {}
-    window.location.replace(window.location.href);
-  }, [error]);
+    if (!benign) return;
+    const t = window.setTimeout(() => {
+      try {
+        reset();
+      } catch {
+        window.location.replace('/admin/marketing');
+      }
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, [error, reset, benign]);
+
+  if (benign) {
+    return (
+      <div className="min-h-[40vh] flex items-center justify-center p-8 text-sm text-muted-foreground">
+        Cargando Marketing Studio…
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-8">
