@@ -11,7 +11,7 @@ import {
 import { andColombiaAudience, isCountryCodeSchemaDrift, withoutCountryCode } from '@/lib/colombia-geo';
 import { applyMergeFields, getPlaybookById } from '@/lib/marketing-playbooks';
 import { getPlaybookNudgedUserIds } from '@/lib/marketing-lifecycle';
-import { buyerPurchaseGuideLifecycleCopy } from '@/lib/buyer-purchase-guide-campaign';
+import { buyerPurchaseGuideLifecycleCopy, buyerPurchaseGuideLifecycleCopyForUser } from '@/lib/buyer-purchase-guide-campaign';
 import type { Prisma } from '@prisma/client';
 
 export const maxDuration = 300;
@@ -29,16 +29,36 @@ function buyerBlastWhere(excludeIds: string[]): Prisma.UserWhereInput {
   return { AND: [base, { id: { notIn: excludeIds } }] };
 }
 
+async function attachPreferredLanguage<T extends { id: string; preferredLanguage?: string | null }>(
+  users: T[],
+): Promise<T[]> {
+  if (users.length === 0) return users;
+  try {
+    const ids = users.map((u) => u.id);
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
+    const rows = await prisma.$queryRawUnsafe<Array<{ id: string; preferredLanguage: string | null }>>(
+      `SELECT id, "preferredLanguage" FROM "User" WHERE id IN (${placeholders})`,
+      ...ids,
+    );
+    const map = new Map(rows.map((r) => [r.id, r.preferredLanguage]));
+    return users.map((u) => ({ ...u, preferredLanguage: map.get(u.id) ?? u.preferredLanguage ?? null }));
+  } catch {
+    return users;
+  }
+}
+
 async function resolveBlastRecipients(excludeIds: string[]) {
   const where = buyerBlastWhere(excludeIds);
   try {
-    return await resolveMarketingRecipients({ where, take: BLAST_CAP });
+    const users = await resolveMarketingRecipients({ where, take: BLAST_CAP });
+    return attachPreferredLanguage(users);
   } catch (err) {
     if (isCountryCodeSchemaDrift(err)) {
-      return resolveMarketingRecipients({
+      const users = await resolveMarketingRecipients({
         where: withoutCountryCode(where),
         take: BLAST_CAP,
       });
+      return attachPreferredLanguage(users);
     }
     throw err;
   }
@@ -87,6 +107,7 @@ export async function POST(req: NextRequest) {
         email: r.email,
         name: r.name,
         city: r.city,
+        preferredLanguage: r.preferredLanguage ?? null,
       })),
       subject: copy.subject,
     });
@@ -135,8 +156,9 @@ export async function POST(req: NextRequest) {
       continue;
     }
     try {
-      const personalizedSubject = applyMergeFields(copy.subject, user, { ctaUrl });
-      const personalizedMessage = applyMergeFields(copy.message, user, { ctaUrl });
+      const localized = buyerPurchaseGuideLifecycleCopyForUser(user);
+      const personalizedSubject = applyMergeFields(localized.subject, user, { ctaUrl });
+      const personalizedMessage = applyMergeFields(localized.message, user, { ctaUrl });
       const result = await notifications.sendNotification({
         userId: user.id,
         category: 'marketing',
@@ -149,6 +171,7 @@ export async function POST(req: NextRequest) {
           playbookId: PLAYBOOK_ID,
           ctaLabel: playbook.defaultCta,
           ctaUrl,
+          language: localized.language,
           manualBlast: true,
         },
       });
