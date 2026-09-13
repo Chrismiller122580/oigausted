@@ -141,6 +141,22 @@ export default async function RootLayout({
   // - Constructor override as last defense
   //
   // This runs early in <head> before any page components.
+  const domGuardScript = `
+    (function() {
+      if (typeof Node !== 'function' || !Node.prototype) return;
+      var origRemove = Node.prototype.removeChild;
+      Node.prototype.removeChild = function(child) {
+        if (child && child.parentNode !== this) return child;
+        try { return origRemove.apply(this, arguments); } catch (e) { return child; }
+      };
+      var origInsert = Node.prototype.insertBefore;
+      Node.prototype.insertBefore = function(newNode, refNode) {
+        if (refNode && refNode.parentNode !== this) return newNode;
+        try { return origInsert.apply(this, arguments); } catch (e) { return newNode; }
+      };
+    })();
+  `;
+
   const mapsGuardScript = `
     (function() {
       if (typeof window === 'undefined') return;
@@ -212,6 +228,11 @@ export default async function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
+        <Script
+          id="dom-reconcile-guard"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: domGuardScript }}
+        />
         <Script
           id="maps-guard"
           strategy="afterInteractive"
