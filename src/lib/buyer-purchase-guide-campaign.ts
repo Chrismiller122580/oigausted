@@ -1,4 +1,5 @@
 import type { GeneratedCampaign } from '@/lib/marketing-campaign-types';
+import { resolveUserLanguage, type AppLanguage } from '@/lib/preferred-language';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
 
@@ -136,9 +137,66 @@ export function buyerPurchaseGuideAsGeneratedCampaign(): GeneratedCampaign {
   };
 }
 
-export function buyerPurchaseGuideLifecycleCopy(): { subject: string; message: string } {
+const BUYER_PURCHASE_GUIDE_EN = {
+  subject: 'How to hire a seller on OigaGIG (step by step)',
+  previewText: 'Search, chat in the app, pay with Wompi, and leave a review. Stay inside OigaGIG.',
+  body: `Hi {{name}},
+
+Hiring a professional on OigaGIG is simple and safe. Seller emails are not public — coordinate and pay inside the app.
+
+1) Find the service
+• Browse gigs by category or city: ${APP_URL}/gigs
+• Use the map if you want someone nearby: ${APP_URL}/mapa
+• Filter by reviews and read the seller’s public profile.
+
+2) Talk with the seller in OigaGIG
+• Open chat from the gig or profile. You don’t need their email.
+• Agree on date, scope, and price before paying.
+• If someone asks you to pay off-platform, don’t — protected payment is in the app.
+
+3) Book and pay safely
+• Tap Request / Hire on the service.
+• Pay with Wompi: Nequi, PSE, or card.
+• Funds stay protected until the service is confirmed.
+
+4) Track the order and review
+• Follow status in My Orders: ${APP_URL}/buyer
+• Coordinate details in the order chat.
+• When it’s done, leave a review. It helps other buyers in {{city}}.
+
+Quick checklist:
+☐ Pick a gig with reviews
+☐ Chat in the app (not email)
+☐ Pay with Wompi
+☐ Leave a review when finished
+
+Questions? Write to support@oigagig.com or ${APP_URL}/support.
+
+👉 Browse sellers: {{ctaUrl}}
+
+— The OigaGIG team`,
+} as const;
+
+export function buyerPurchaseGuideLifecycleCopy(
+  lang: AppLanguage = 'es',
+): { subject: string; message: string } {
+  if (lang === 'en') {
+    return {
+      subject: BUYER_PURCHASE_GUIDE_EN.subject,
+      message: BUYER_PURCHASE_GUIDE_EN.body,
+    };
+  }
   return {
     subject: BUYER_PURCHASE_GUIDE_CAMPAIGN.subject,
     message: BUYER_PURCHASE_GUIDE_CAMPAIGN.body,
   };
+}
+
+export function buyerPurchaseGuideLifecycleCopyForUser(user: {
+  preferredLanguage?: string | null;
+  countryCode?: string | null;
+  city?: string | null;
+}): { subject: string; message: string; language: AppLanguage } {
+  const language = resolveUserLanguage(user);
+  return { ...buyerPurchaseGuideLifecycleCopy(language), language };
 }
