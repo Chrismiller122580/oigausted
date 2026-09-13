@@ -58,7 +58,6 @@ function buildUpdateData(data: ProfilePatchInput): Prisma.UserUpdateInput {
     instagram: data.instagram !== undefined ? (data.instagram || null) : undefined,
     facebook: data.facebook !== undefined ? (data.facebook || null) : undefined,
     city: data.city !== undefined ? (data.city || null) : undefined,
-    preferredLanguage: data.preferredLanguage !== undefined ? (parseAppLanguage(data.preferredLanguage) || undefined) : undefined,
     latitude: data.latitude !== undefined ? data.latitude : undefined,
     longitude: data.longitude !== undefined ? data.longitude : undefined,
     serviceRadiusKm: data.serviceRadiusKm !== undefined ? data.serviceRadiusKm : undefined,
@@ -69,6 +68,44 @@ function buildUpdateData(data: ProfilePatchInput): Prisma.UserUpdateInput {
   }
 
   return updateData
+}
+
+async function persistPreferredLanguage(userId: string, value: string | undefined) {
+  const lang = parseAppLanguage(value)
+  if (!lang) return
+  try {
+    await prisma.$executeRawUnsafe(
+      'UPDATE "User" SET "preferredLanguage" = $1, "updatedAt" = NOW() WHERE id = $2',
+      lang,
+      userId,
+    )
+  } catch (err) {
+    if (!isMissingColumnError(err)) throw err
+    devLog('preferredLanguage column missing; skip language save')
+  }
+}
+
+async function readLanguageFields(userId: string): Promise<{
+  preferredLanguage?: string | null
+  countryCode?: string | null
+}> {
+  try {
+    const rows = await prisma.$queryRawUnsafe<Array<{ preferredLanguage: string | null; countryCode: string | null }>>(
+      'SELECT "preferredLanguage", "countryCode" FROM "User" WHERE id = $1',
+      userId,
+    )
+    return rows[0] || {}
+  } catch {
+    try {
+      const rows = await prisma.$queryRawUnsafe<Array<{ countryCode: string | null }>>(
+        'SELECT "countryCode" FROM "User" WHERE id = $1',
+        userId,
+      )
+      return rows[0] || {}
+    } catch {
+      return {}
+    }
+  }
 }
 
 async function resolveSlug(
@@ -149,7 +186,6 @@ function stripDriftedColumns(data: Prisma.UserUpdateInput): Prisma.UserUpdateInp
   delete safe.latitude
   delete safe.longitude
   delete safe.serviceRadiusKm
-  delete safe.preferredLanguage
   return safe
 }
 
@@ -157,7 +193,7 @@ function stripDriftedColumns(data: Prisma.UserUpdateInput): Prisma.UserUpdateInp
 export async function applyUserProfileUpdate(
   userId: string,
   input: ProfilePatchInput
-): Promise<User | null> {
+): Promise<(User & { preferredLanguage?: string | null; countryCode?: string | null }) | null> {
   if (input.businessName !== undefined) {
     const current = await prisma.user.findUnique({
       where: { id: userId },
@@ -188,27 +224,34 @@ export async function applyUserProfileUpdate(
     }
   }
 
+  let user: User | null = null
   try {
-    return await prisma.user.update({ where: { id: userId }, data: updateData })
+    user = await prisma.user.update({ where: { id: userId }, data: updateData })
   } catch (firstErr: unknown) {
     if (isSlugColumnError(firstErr) && updateData.slug !== undefined) {
       delete updateData.slug
       try {
-        return await prisma.user.update({ where: { id: userId }, data: updateData })
+        user = await prisma.user.update({ where: { id: userId }, data: updateData })
       } catch (secondErr: unknown) {
         if (isMissingColumnError(secondErr)) {
-          return rawSqlProfileUpdate(userId, stripDriftedColumns(updateData))
+          user = await rawSqlProfileUpdate(userId, stripDriftedColumns(updateData))
+        } else {
+          throw secondErr
         }
-        throw secondErr
       }
+    } else if (isMissingColumnError(firstErr)) {
+      user = await rawSqlProfileUpdate(userId, stripDriftedColumns(updateData))
+    } else {
+      throw firstErr
     }
-
-    if (isMissingColumnError(firstErr)) {
-      return rawSqlProfileUpdate(userId, stripDriftedColumns(updateData))
-    }
-
-    throw firstErr
   }
+
+  if (input.preferredLanguage !== undefined) {
+    await persistPreferredLanguage(userId, input.preferredLanguage)
+  }
+
+  const extra = await readLanguageFields(userId)
+  return user ? { ...user, ...extra } : null
 }
 
 const profileSelectFull = {
@@ -226,7 +269,6 @@ const profileSelectFull = {
   facebook: true,
   city: true,
   countryCode: true,
-  preferredLanguage: true,
   profilePicture: true,
   coverImageUrl: true,
   latitude: true,
@@ -259,15 +301,19 @@ const profileSelectCore = {
 
 /** Safe read of seller/buyer profile fields (falls back if optional columns missing). */
 export async function getUserProfile(userId: string) {
+  let user = null
   try {
-    return await prisma.user.findUnique({
+    user = await prisma.user.findUnique({
       where: { id: userId },
       select: profileSelectFull,
     })
   } catch {
-    return prisma.user.findUnique({
+    user = await prisma.user.findUnique({
       where: { id: userId },
       select: profileSelectCore,
     })
   }
+  if (!user) return null
+  const extra = await readLanguageFields(userId)
+  return { ...user, ...extra }
 }
