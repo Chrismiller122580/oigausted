@@ -24,6 +24,9 @@
     "src/app/api/admin/marketing/seller-toolkit-blast/route.ts": {
       "maxDuration": 300
     },
+    "src/app/api/admin/marketing/buyer-purchase-guide-blast/route.ts": {
+      "maxDuration": 300
+    },
     "src/app/api/admin/marketing/broadcast/route.ts": {
       "maxDuration": 300
     },
