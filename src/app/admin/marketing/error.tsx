@@ -1,7 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+
+function isBenignDomReconcileError(error: Error) {
+  const msg = `${error?.name || ''} ${error?.message || ''}`;
+  return /NotFoundError|removeChild|The node to be removed is not a child/i.test(msg);
+}
 
 export default function MarketingError({
   error,
@@ -10,9 +15,16 @@ export default function MarketingError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const retried = useRef(false);
+
   useEffect(() => {
     console.error('Admin marketing page error:', error);
-  }, [error]);
+    if (retried.current) return;
+    if (!isBenignDomReconcileError(error)) return;
+    retried.current = true;
+    const t = window.setTimeout(() => reset(), 50);
+    return () => window.clearTimeout(t);
+  }, [error, reset]);
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-8">
