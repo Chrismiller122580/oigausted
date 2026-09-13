@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { logAuditEvent } from '@/lib/audit'
 import { slugify, devLog } from '@/lib/utils'
 import { notifyAdminsBecomeSeller } from '@/lib/admin-notifications'
+import { isEmailAsBusinessName, EMAIL_AS_BUSINESS_NAME_ERROR } from '@/lib/business-name'
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
-      select: { role: true, businessName: true },
+      select: { role: true, businessName: true, email: true },
     })
 
     if (existingUser?.role === 'seller') {
@@ -61,6 +62,11 @@ export async function POST(request: NextRequest) {
     }
 
     const trimmedBusinessName = businessName.trim();
+    const violation = isEmailAsBusinessName(trimmedBusinessName, existingUser?.email)
+    if (violation) {
+      return NextResponse.json({ error: violation }, { status: 400 })
+    }
+
     let slug = slugify(trimmedBusinessName);
     let slugSafe = false;
 

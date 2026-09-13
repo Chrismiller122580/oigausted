@@ -8,7 +8,6 @@ const publicGigInclude = {
     select: {
       id: true,
       name: true,
-      email: true,
       businessName: true,
       slug: true,
       profilePicture: true,

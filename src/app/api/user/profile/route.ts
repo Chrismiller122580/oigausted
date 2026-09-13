@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { applyUserProfileUpdate, getUserProfile } from '@/lib/user-profile-update'
+import { applyUserProfileUpdate, getUserProfile, BusinessNameValidationError } from '@/lib/user-profile-update'
 
 export async function GET() {
   try {
@@ -40,6 +40,9 @@ export async function PATCH(request: Request) {
     })
   } catch (error: unknown) {
     console.error('Profile update error:', error)
+    if (error instanceof BusinessNameValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
     const errMsg = error instanceof Error ? error.message : ''
     const message =
       errMsg.includes('column') || errMsg.includes('slug')

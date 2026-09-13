@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { slugify, devLog } from '@/lib/utils'
+import { isEmailAsBusinessName, EMAIL_AS_BUSINESS_NAME_ERROR } from '@/lib/business-name'
 import type { Prisma, User } from '@prisma/client'
 
 export type ProfilePatchInput = {
@@ -17,6 +18,13 @@ export type ProfilePatchInput = {
   latitude?: number | null
   longitude?: number | null
   serviceRadiusKm?: number | null
+}
+
+export class BusinessNameValidationError extends Error {
+  constructor(message: string = EMAIL_AS_BUSINESS_NAME_ERROR) {
+    super(message)
+    this.name = 'BusinessNameValidationError'
+  }
 }
 
 export function isMissingColumnError(err: unknown): boolean {
@@ -145,6 +153,17 @@ export async function applyUserProfileUpdate(
   userId: string,
   input: ProfilePatchInput
 ): Promise<User | null> {
+  if (input.businessName !== undefined) {
+    const current = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    })
+    const violation = isEmailAsBusinessName(input.businessName, current?.email)
+    if (violation) {
+      throw new BusinessNameValidationError(violation)
+    }
+  }
+
   const updateData = buildUpdateData(input)
 
   // Saving business info from seller profile should persist seller role (not only in session)
