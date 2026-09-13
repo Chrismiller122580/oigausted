@@ -81,6 +81,26 @@ Tono educativo, no agresivo. Usar {{city}} cuando aplique.`,
     defaultCtaUrl: `${APP_URL}/gigs`,
   },
   {
+    id: 'buyers-how-to-purchase',
+    label: 'Guía: cómo contratar',
+    description: 'Compradores activos — guía para buscar, chatear en la app, pagar con Wompi y calificar',
+    category: 'acquisition',
+    roleFilter: 'buyer',
+    segment: 'playbook:buyers-how-to-purchase',
+    automatable: false,
+    buildWhere: () => ({
+      ...BASE_REACHABLE,
+      role: 'buyer',
+    }),
+    aiGoal: 'Enseñar a compradores cómo contratar un vendedor dentro de OigaGIG sin pedir emails públicos',
+    aiContext: `Audiencia: compradores activos en Colombia.
+Problema: algunos intentan contactar por correo o no saben cómo pagar seguro.
+Pasos: (1) buscar gigs por categoría/ciudad/mapa, (2) chatear en la app — no pedir el email del vendedor, (3) pedir y pagar con Wompi (Nequi, PSE o tarjeta), (4) seguir el pedido en /buyer y dejar reseña.
+Tono educativo y de confianza. Usar {{name}} y {{city}}.`,
+    defaultCta: 'Explorar vendedores',
+    defaultCtaUrl: `${APP_URL}/gigs`,
+  },
+  {
     id: 'buyers-abandoned-checkout',
     label: 'Checkout abandonado',
     description: 'Iniciaron un pedido en los últimos 7 días pero no completaron el pago',
@@ -144,7 +164,7 @@ NO presionar con urgencia falsa ni amenazas.`,
     aiGoal: 'Motivar a compradores con un pedido previo a hacer su segunda compra',
     aiContext: `Audiencia: compradores que completaron exactamente un pedido hace más de 45 días y no han vuelto.
 Problema: ya conocen OigaGIG pero no han re-contratado.
-Sugerir servicios complementarios o recurrentes en {{city}}: limpieza, mantenimiento, belleza.
+Sugerir servicios complementarios o recurrentes en {{city}}: limpiea, mantenimiento, belleza.
 Mencionar que pueden buscar por reseñas y pagar seguro. Tono de recordatorio amable.`,
     defaultCta: 'Buscar otro servicio',
     defaultCtaUrl: `${APP_URL}/gigs`,
