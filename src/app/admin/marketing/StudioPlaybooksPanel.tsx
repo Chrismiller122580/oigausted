@@ -35,7 +35,7 @@ function Inner(props: any) {
   } = props;
 
   return (
-    <>
+    <div className="space-y-6">
       <div className="bg-card border-2 border-orange-500/20 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div className="min-w-0">
@@ -129,13 +129,13 @@ function Inner(props: any) {
               { title: 'Compradores — Retención', filter: (pb: PlaybookSummary) => pb.category === 'retention' },
               { title: 'Vendedores', filter: (pb: PlaybookSummary) => pb.category === 'seller' },
             ] as const).map(({ title, filter }) => {
-              const sectionPlaybooks = playbooks.filter(filter);
+              const sectionPlaybooks: PlaybookSummary[] = (Array.isArray(playbooks) ? playbooks : []).filter(filter);
               if (sectionPlaybooks.length === 0) return null;
               return (
                 <div key={title}>
                   <h3 className="text-sm font-semibold text-muted-foreground mb-3">{title}</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                    {sectionPlaybooks.map((pb) => {
+                    {sectionPlaybooks.map((pb: PlaybookSummary) => {
                       const Icon = PLAYBOOK_ICONS[pb.id] || Lightbulb;
                       const isSelected = selectedPlaybookId === pb.id;
                       const isGeneratingPb = generatingPlaybookId === pb.id;
@@ -240,6 +240,6 @@ function Inner(props: any) {
           )}
         </div>
       )}
-    </>
+    </div>
   );
 }
