@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 
 function isBenignDomReconcileError(error: Error) {
@@ -15,16 +15,16 @@ export default function MarketingError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const retried = useRef(false);
-
   useEffect(() => {
     console.error('Admin marketing page error:', error);
-    if (retried.current) return;
     if (!isBenignDomReconcileError(error)) return;
-    retried.current = true;
-    const t = window.setTimeout(() => reset(), 50);
-    return () => window.clearTimeout(t);
-  }, [error, reset]);
+    const key = 'oiga-marketing-dom-reload';
+    try {
+      if (sessionStorage.getItem(key) === '1') return;
+      sessionStorage.setItem(key, '1');
+    } catch {}
+    window.location.replace(window.location.href);
+  }, [error]);
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-8">
