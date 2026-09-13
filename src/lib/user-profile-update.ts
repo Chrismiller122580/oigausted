@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { slugify, devLog } from '@/lib/utils'
 import { isEmailAsBusinessName, EMAIL_AS_BUSINESS_NAME_ERROR } from '@/lib/business-name'
+import { parseAppLanguage } from '@/lib/preferred-language'
 import type { Prisma, User } from '@prisma/client'
 
 export type ProfilePatchInput = {
@@ -14,6 +15,7 @@ export type ProfilePatchInput = {
   instagram?: string | null
   facebook?: string | null
   city?: string
+  preferredLanguage?: string
   businessName?: string
   latitude?: number | null
   longitude?: number | null
@@ -34,6 +36,7 @@ export function isMissingColumnError(err: unknown): boolean {
     msg.includes('serviceRadiusKm') ||
     msg.includes('latitude') ||
     msg.includes('longitude') ||
+    msg.includes('preferredLanguage') ||
     (msg.toLowerCase().includes('column') && msg.includes('does not exist'))
   )
 }
@@ -55,6 +58,7 @@ function buildUpdateData(data: ProfilePatchInput): Prisma.UserUpdateInput {
     instagram: data.instagram !== undefined ? (data.instagram || null) : undefined,
     facebook: data.facebook !== undefined ? (data.facebook || null) : undefined,
     city: data.city !== undefined ? (data.city || null) : undefined,
+    preferredLanguage: data.preferredLanguage !== undefined ? (parseAppLanguage(data.preferredLanguage) || undefined) : undefined,
     latitude: data.latitude !== undefined ? data.latitude : undefined,
     longitude: data.longitude !== undefined ? data.longitude : undefined,
     serviceRadiusKm: data.serviceRadiusKm !== undefined ? data.serviceRadiusKm : undefined,
@@ -145,6 +149,7 @@ function stripDriftedColumns(data: Prisma.UserUpdateInput): Prisma.UserUpdateInp
   delete safe.latitude
   delete safe.longitude
   delete safe.serviceRadiusKm
+  delete safe.preferredLanguage
   return safe
 }
 
@@ -166,7 +171,6 @@ export async function applyUserProfileUpdate(
 
   const updateData = buildUpdateData(input)
 
-  // Saving business info from seller profile should persist seller role (not only in session)
   if (input.businessName !== undefined && String(input.businessName).trim()) {
     const current = await prisma.user.findUnique({
       where: { id: userId },
@@ -221,6 +225,8 @@ const profileSelectFull = {
   instagram: true,
   facebook: true,
   city: true,
+  countryCode: true,
+  preferredLanguage: true,
   profilePicture: true,
   coverImageUrl: true,
   latitude: true,
@@ -245,6 +251,7 @@ const profileSelectCore = {
   instagram: true,
   facebook: true,
   city: true,
+  countryCode: true,
   profilePicture: true,
   rating: true,
   reviewCount: true,
