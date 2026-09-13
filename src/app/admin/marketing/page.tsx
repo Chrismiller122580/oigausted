@@ -28,9 +28,9 @@ const AdminMarketingContent = dynamic(() => import('./AdminMarketingContent'), {
 
 export default function AdminMarketingPage() {
   return (
-    <>
+    <div suppressHydrationWarning>
       <MapsPollutionNuke />
       <AdminMarketingContent />
-    </>
+    </div>
   );
 }
