@@ -7,6 +7,7 @@ import {
   formatBroadcastSegment,
   isMissingMarketingCampaignTable,
   resolveMarketingRecipients,
+  type MarketingRecipient,
 } from '@/lib/marketing-audience';
 import { andColombiaAudience, isCountryCodeSchemaDrift, withoutCountryCode } from '@/lib/colombia-geo';
 import { applyMergeFields, getPlaybookById } from '@/lib/marketing-playbooks';
@@ -20,6 +21,7 @@ const PLAYBOOK_ID = 'buyers-how-to-purchase';
 const BLAST_CAP = 5000;
 
 type PreferredLangRow = { id: string; preferredLanguage: string | null };
+type BlastRecipient = MarketingRecipient & { preferredLanguage: string | null };
 
 function buyerBlastWhere(excludeIds: string[]): Prisma.UserWhereInput {
   const base = andColombiaAudience({
@@ -31,10 +33,8 @@ function buyerBlastWhere(excludeIds: string[]): Prisma.UserWhereInput {
   return { AND: [base, { id: { notIn: excludeIds } }] };
 }
 
-async function attachPreferredLanguage<T extends { id: string; preferredLanguage?: string | null }>(
-  users: T[],
-): Promise<T[]> {
-  if (users.length === 0) return users;
+async function attachPreferredLanguage(users: MarketingRecipient[]): Promise<BlastRecipient[]> {
+  if (users.length === 0) return [];
   try {
     const ids = users.map((u) => u.id);
     const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
@@ -43,13 +43,16 @@ async function attachPreferredLanguage<T extends { id: string; preferredLanguage
       ...ids,
     )) as PreferredLangRow[];
     const map = new Map(rows.map((r: PreferredLangRow) => [r.id, r.preferredLanguage]));
-    return users.map((u) => ({ ...u, preferredLanguage: map.get(u.id) ?? u.preferredLanguage ?? null }));
+    return users.map((u) => ({
+      ...u,
+      preferredLanguage: map.get(u.id) ?? null,
+    }));
   } catch {
-    return users;
+    return users.map((u) => ({ ...u, preferredLanguage: null }));
   }
 }
 
-async function resolveBlastRecipients(excludeIds: string[]) {
+async function resolveBlastRecipients(excludeIds: string[]): Promise<BlastRecipient[]> {
   const where = buyerBlastWhere(excludeIds);
   try {
     const users = await resolveMarketingRecipients({ where, take: BLAST_CAP });
