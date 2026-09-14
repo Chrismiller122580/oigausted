@@ -4,6 +4,7 @@ import { devLog } from '@/lib/utils';
 import { COLOMBIA_NATIONAL_SCOPE } from '@/lib/colombia-cities';
 import { normalizeGeneratedCampaign } from '@/lib/marketing-campaign-types';
 import { getPlaybookById } from '@/lib/marketing-playbooks';
+import { SANTANDER_VOICE_GUIDE } from '@/lib/copy-voice';
 
 /** Grok generation can exceed default serverless limits on cold starts. */
 export const maxDuration = 60;
@@ -105,7 +106,6 @@ MODO PLAYBOOK EDUCATIVO (prioridad máxima):
 
     const apiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
     if (!apiKey) {
-      // Prefer usable fallback over a hard 500 so the admin UI never dead-ends.
       const fallback = createFallbackCampaign(
         effectiveGoal,
         channels,
@@ -131,7 +131,8 @@ Alcance geográfico de esta campaña: ${geoLabel}.
 ${targetScope === 'city' && targetCity ? `Personaliza el copy para ${targetCity} (menciona la ciudad, servicios locales, confianza regional).` : 'Escribe para alcance nacional en Colombia — no limites el mensaje a una sola ciudad.'}
 
 Tus fortalezas:
-- Escribes copy publicitario de alto rendimiento en español natural colombiano (profesional pero cercano, usa "vos", "parce", evita anglicismos innecesarios).
+${SANTANDER_VOICE_GUIDE}
+- Escribes copy publicitario de alto rendimiento en español colombiano de Santander (Bucaramanga): usted/le/su, cercano y claro. Nunca uses vos, parce, parcero ni tuteo.
 - Entiendes marketing de servicios locales: confianza, rapidez, precio justo, reseñas reales, cercanía.
 - Sabes optimizar para email (asuntos que se abren), Instagram/Facebook (engagement + conversión), WhatsApp, X/Twitter.
 - Evitas spam, generas urgencia ética y valor real.
@@ -176,7 +177,7 @@ Contexto del pedido actual:
 - Canales objetivo: ${channels.join(', ')}
 - Segmento sugerido por el admin: ${playbook?.segment || segmentHint || 'ninguno'}
 - Tono deseado: ${tone}
-- Idioma: ${isSpanish ? 'Español colombiano natural' : 'English'}
+- Idioma: ${isSpanish ? 'Español colombiano de Santander (usted, Bucaramanga)' : 'English'}
 - Alcance: ${geoLabel}
 - Enfoque compradores: ${buyerFocus}
 ${buyerFocusBlock}
@@ -212,35 +213,30 @@ Genera contenido de clase mundial, específico para servicios locales en Colombi
     const data = await response.json();
     let content = data.choices?.[0]?.message?.content || "";
 
-    // Try to extract clean JSON
     let parsed;
     try {
-      // Remove possible ```json fences
       content = content.replace(/```json\s?/gi, '').replace(/```\s?$/g, '').trim();
       parsed = JSON.parse(content);
     } catch (e) {
       devLog("Failed to parse Grok JSON, raw content:", content);
-      // Fallback: create a minimal useful structure
       parsed = createFallbackCampaign(effectiveGoal, channels, tone, isSpanish, playbook, targetCity || undefined, targetScope);
     }
 
-    // Ensure minimum structure
     parsed = normalizeGeneratedCampaign(parsed, effectiveGoal, variations);
     if (playbook) {
       parsed.recommendedSegment = playbook.segment;
       parsed.segmentReason = playbook.description;
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       campaign: parsed,
       generatedAt: new Date().toISOString()
     });
 
   } catch (error) {
     devLog("AI Marketing generate error:", error);
-    
-    // Always return something usable
+
     const fallback = createFallbackCampaign(
       effectiveGoal || "Promocionar OigaGIG",
       ["email", "instagram", "facebook"],
@@ -250,8 +246,8 @@ Genera contenido de clase mundial, específico para servicios locales en Colombi
       targetCity || undefined,
       targetScope,
     );
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       campaign: fallback,
       fallback: true,
       message: "Usando contenido de respaldo (Grok no disponible en este momento)"
@@ -270,17 +266,17 @@ function createFallbackCampaign(
 ) {
   const geo = targetScope === 'city' && targetCity ? targetCity : 'Colombia';
   const subject = playbook
-    ? (isSpanish ? `${playbook.label} — te ayudamos con el siguiente paso` : `${playbook.label} — next steps`)
+    ? (isSpanish ? `${playbook.label} — le ayudamos con el siguiente paso` : `${playbook.label} — next steps`)
     : isSpanish
-      ? "OigaGIG: Encuentra el servicio que necesitas hoy mismo"
+      ? "OigaGIG: Encuentre el servicio que necesita hoy mismo"
       : "OigaGIG: Find trusted local services today";
 
   const body = playbook
     ? (isSpanish
-        ? `Hola {{name}},\n\n${playbook.description}.\n\nSabemos que a veces no está claro cuál es el siguiente paso. Aquí te guiamos:\n\n1. Revisa tu cuenta en OigaGIG\n2. Sigue las instrucciones del panel\n3. Completa la acción pendiente\n\n👉 ${playbook.defaultCta}: {{ctaUrl}}\n\nSi necesitas ayuda, escríbenos a support@oigagig.com.\n\n— El equipo de OigaGIG`
+        ? `Buen día {{name}},\n\n${playbook.description}.\n\nLe contamos el siguiente paso, con calma:\n\n1. Revise su cuenta en OigaGIG\n2. Siga las instrucciones del panel\n3. Complete la acción pendiente\n\n👉 ${playbook.defaultCta}: {{ctaUrl}}\n\nSi necesita una mano, escríbanos a support@oigagig.com.\n\nQuedamos atentos.\n\n— El equipo de OigaGIG`
         : `Hello {{name}},\n\n${playbook.description}.\n\n👉 ${playbook.defaultCta}: {{ctaUrl}}\n\n— OigaGIG`)
     : isSpanish
-      ? `Hola,\n\nEn OigaGIG conectamos a personas con los mejores profesionales locales en ${geo}.\n\n¿Necesitas un plomero, electricista, estilista o servicio de limpieza? Encuentra opciones confiables con reseñas reales en segundos.\n\nExplora ahora: https://oigagig.com/gigs\n\n— El equipo de OigaGIG`
+      ? `Buen día,\n\nEn OigaGIG le conectamos con profesionales locales de confianza en ${geo}.\n\n¿Necesita un plomero, electricista, estilista o alguien de aseo? Encuentre opciones con reseñas reales en unos segundos.\n\nExplore ahora: https://oigagig.com/gigs\n\nQuedamos atentos.\n\n— El equipo de OigaGIG`
       : `Hello,\n\nOigaGIG connects you with trusted local professionals in ${geo}.\n\nFind plumbers, electricians, cleaners and more with real reviews.\n\nBrowse now: https://oigagig.com/gigs`;
 
   return {
@@ -295,15 +291,15 @@ function createFallbackCampaign(
       cta: playbook?.defaultCta || "Explorar servicios",
     },
     social: {
-      instagram: `🔧 ¿Buscas un servicio de confianza en ${geo}? En OigaGIG encuentras profesionales verificados con reseñas reales. #OigaGIG #ServiciosLocales #Colombia`,
-      facebook: `OigaGIG: la forma más fácil de encontrar servicios locales confiables en ${geo}. Plomería, electricidad, belleza, mudanzas y más. ¡Únete gratis!`,
-      x: `¿Necesitas un servicio confiable en ${geo}? OigaGIG te conecta con los mejores locales en minutos. → oigagig.com`,
-      whatsapp: `Hola! En OigaGIG encuentras servicios locales de confianza en ${geo}. ¿Qué necesitas hoy? Visita oigagig.com`,
+      instagram: `🔧 ¿Busca un servicio de confianza en ${geo}? En OigaGIG encuentra profesionales verificados con reseñas reales. #OigaGIG #ServiciosLocales #Colombia`,
+      facebook: `OigaGIG: la forma más fácil de encontrar servicios locales confiables en ${geo}. Plomería, electricidad, belleza, mudanzas y más. Regístrese gratis.`,
+      x: `¿Necesita un servicio confiable en ${geo}? OigaGIG le conecta con los mejores locales en minutos. → oigagig.com`,
+      whatsapp: `Buen día. En OigaGIG encuentra servicios locales de confianza en ${geo}. ¿Qué necesita hoy? Visite oigagig.com`,
       general: "OigaGIG — Servicios locales de confianza en Colombia. Conecta con profesionales verificados."
     },
     adCopies: [
       { headline: "Servicios locales que sí cumplen", body: `Profesionales con reseñas reales en ${geo}. Rápido y confiable.`, cta: "Buscar ahora" },
-      { headline: "Tu próximo servicio de confianza", body: "Elige entre los mejores evaluados de tu zona.", cta: "Ver opciones" },
+      { headline: "Su próximo servicio de confianza", body: "Elija entre los mejor evaluados de su zona.", cta: "Ver opciones" },
     ],
     visualPrompts: [
       `Photorealistic photo of a friendly Colombian service professional in ${geo}, natural daylight, warm colors, trustworthy vibe`,
@@ -315,5 +311,3 @@ function createFallbackCampaign(
     complianceTips: "Incluye opción clara de baja. No uses lenguaje engañoso. Sé transparente con los beneficios."
   };
 }
-
-
