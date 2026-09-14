@@ -64,7 +64,7 @@ export function languageRecommendationLabel(
   if (lang === 'en') {
     return `Recommended from your location (${country})`;
   }
-  return `Recomendado por tu ubicación (${country})`;
+  return `Recomendado por su ubicación (${country})`;
 }
 
 export function pickLocalizedCopy<T>(copies: { es: T; en: T }, lang: AppLanguage): T {
