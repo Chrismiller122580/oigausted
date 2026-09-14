@@ -251,7 +251,13 @@ export async function applyUserProfileUpdate(
   }
 
   const extra = await readLanguageFields(userId)
-  return user ? { ...user, ...extra } : null
+  return user
+    ? ({
+        ...user,
+        preferredLanguage: extra.preferredLanguage ?? null,
+        countryCode: extra.countryCode ?? user.countryCode ?? null,
+      } as User & { preferredLanguage?: string | null; countryCode?: string | null })
+    : null
 }
 
 const profileSelectFull = {
