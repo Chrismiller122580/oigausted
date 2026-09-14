@@ -19,6 +19,8 @@ export const maxDuration = 300;
 const PLAYBOOK_ID = 'buyers-how-to-purchase';
 const BLAST_CAP = 5000;
 
+type PreferredLangRow = { id: string; preferredLanguage: string | null };
+
 function buyerBlastWhere(excludeIds: string[]): Prisma.UserWhereInput {
   const base = andColombiaAudience({
     email: { not: null },
@@ -36,11 +38,11 @@ async function attachPreferredLanguage<T extends { id: string; preferredLanguage
   try {
     const ids = users.map((u) => u.id);
     const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
-    const rows = await prisma.$queryRawUnsafe<Array<{ id: string; preferredLanguage: string | null }>>(
+    const rows = (await prisma.$queryRawUnsafe(
       `SELECT id, "preferredLanguage" FROM "User" WHERE id IN (${placeholders})`,
       ...ids,
-    );
-    const map = new Map(rows.map((r) => [r.id, r.preferredLanguage]));
+    )) as PreferredLangRow[];
+    const map = new Map(rows.map((r: PreferredLangRow) => [r.id, r.preferredLanguage]));
     return users.map((u) => ({ ...u, preferredLanguage: map.get(u.id) ?? u.preferredLanguage ?? null }));
   } catch {
     return users;
