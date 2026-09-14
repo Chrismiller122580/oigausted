@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { Lock, MessageSquare, Send } from 'lucide-react';
+import { ExternalLink, Eye, Lock, MessageSquare, Send, UserCog } from 'lucide-react';
 import { staffMessageDisplayName } from '@/lib/brand';
 
 interface ThreadMessage {
@@ -35,6 +36,11 @@ interface Ticket {
 
 export default function AdminSupportPage() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const { update } = useSession();
+  const usersBase = pathname?.startsWith('/admin-assistant')
+    ? '/admin-assistant/users'
+    : '/admin/users';
   const deepLinkId = searchParams.get('id') || searchParams.get('ticketId');
   const deepLinkHandled = useRef<string | null>(null);
 
@@ -212,6 +218,44 @@ export default function AdminSupportPage() {
     return 'bg-muted-foreground';
   };
 
+  const impersonateUser = async (ticket: Ticket) => {
+    const target = ticket.user;
+    if (!target?.id) {
+      toast.error('This ticket has no linked user');
+      return;
+    }
+    if (
+      !confirm(
+        `View as ${target.email || target.name}? You will see the app as they do. Actions run as them and are logged. Stop anytime from the amber banner.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: target.id }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.error || 'Could not start impersonation');
+        return;
+      }
+      const data = await res.json();
+      if (!data.impersonationToken) {
+        toast.error('No impersonation token received');
+        return;
+      }
+      toast.success(`Opening ${target.email} view…`);
+      await update({ impersonationToken: data.impersonationToken });
+      window.location.href = '/';
+    } catch {
+      toast.error('Error impersonating user');
+    }
+  };
+
   const askGrokForHelp = (ticket: Ticket) => {
     const threadPreview = messages
       .slice(-6)
@@ -291,6 +335,14 @@ Please help draft a helpful reply or suggest how to resolve this.`;
                         <p className="text-sm text-muted-foreground">
                           {ticket.user.email} • {ticket.user.role}
                         </p>
+                        <Link
+                          href={`${usersBase}?userId=${encodeURIComponent(ticket.user.id)}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 text-xs text-orange-600 hover:underline mt-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Open user
+                        </Link>
                       </div>
                       <div className="text-right text-xs">
                         <span
@@ -340,6 +392,23 @@ Please help draft a helpful reply or suggest how to resolve this.`;
                       <br />
                       <strong>Category:</strong> {selectedTicket.category || 'N/A'} •{' '}
                       <strong>Priority:</strong> {selectedTicket.priority}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Link href={`${usersBase}?userId=${encodeURIComponent(selectedTicket.user.id)}`}>
+                          <Button size="sm" variant="outline" className="gap-1.5">
+                            <UserCog className="h-3.5 w-3.5" />
+                            Work on account
+                          </Button>
+                        </Link>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5"
+                          onClick={() => void impersonateUser(selectedTicket)}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          See what they see
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Thread */}
