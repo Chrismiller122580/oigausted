@@ -6,6 +6,14 @@ function getSecret(): string | null {
   return process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || null
 }
 
+/** Admin or admin_assistant may start/keep an impersonation session. */
+export function canActAsImpersonator(
+  user: { role?: string | null; staffRole?: string | null; isActive?: boolean | null } | null | undefined
+): boolean {
+  if (!user || user.isActive === false) return false
+  return user.role === 'admin' || user.staffRole === 'admin_assistant'
+}
+
 /** Issue a short-lived signed token after admin impersonate API succeeds. */
 export function createImpersonationToken(adminId: string, targetUserId: string): string | null {
   const secret = getSecret()
