@@ -14,6 +14,7 @@ import {
   type GigPageReview,
 } from '@/lib/gig-queries'
 import { formatGigLocation } from '@/lib/gig-location'
+import { buildLocalServiceMetadata, gigServiceJsonLd } from '@/lib/seo-metadata'
 import type { DynamicFieldDef } from '@/types/gig-fields'
 
 export const revalidate = 60
@@ -23,21 +24,26 @@ type PageProps = { params: Promise<{ id: string }> }
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params
   const gig = await getPublicGigById(id)
-  if (!gig) return { title: 'Servicio no encontrado' }
+  if (!gig) return { title: 'Servicio no encontrado', robots: { index: false, follow: false } }
 
+  const city = formatGigLocation(gig)
+  const place = city && city !== 'Remoto / online' ? city : 'Colombia'
+  const category = gig.category?.trim()
+  const title = category
+    ? `${gig.title} en ${place} | ${category}`
+    : `${gig.title} en ${place} | OigaGIG`
   const description =
-    gig.description?.slice(0, 160) ||
-    `${gig.title} — servicio local en OigaGIG`
+    gig.description?.replace(/\s+/g, ' ').trim() ||
+    `${gig.title}${category ? ` — ${category}` : ''} en ${place}. Profesionales locales en OigaGIG, pago seguro con Wompi.`
 
-  return {
-    title: gig.title,
+  return buildLocalServiceMetadata({
+    title,
     description,
-    openGraph: {
-      title: gig.title,
-      description,
-      images: gig.images[0] ? [{ url: gig.images[0] }] : undefined,
-    },
-  }
+    path: `/gigs/${gig.id}`,
+    image: gig.images[0] || null,
+    index: gig.isActive !== false,
+    keywords: [gig.title, category || '', place, 'servicios locales', 'oigagig'].filter(Boolean),
+  })
 }
 
 export default async function GigDetailPage({ params }: PageProps) {
@@ -58,9 +64,23 @@ export default async function GigDetailPage({ params }: PageProps) {
 
   const gigFields = gig.fields as DynamicFieldDef[]
   const locationLabel = formatGigLocation(gig)
+  const jsonLd = gigServiceJsonLd({
+    id: gig.id,
+    title: gig.title,
+    description: gig.description,
+    price: gig.price,
+    category: gig.category,
+    city: locationLabel,
+    image: gig.images[0] || null,
+    sellerName: gig.seller?.businessName || gig.seller?.name || null,
+  })
 
   return (
     <div className="bg-background py-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <GigViewTracker gigId={gig.id} sellerId={gig.sellerId} />
       <div className="max-w-7xl mx-auto px-6">
         <Link
