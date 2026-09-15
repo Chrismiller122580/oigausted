@@ -3,7 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
 import { devLog } from './utils'
-import { verifyImpersonationToken } from './impersonation'
+import { canActAsImpersonator, verifyImpersonationToken } from './impersonation'
 import { verifyMobileAuthToken } from './mobile-auth-token'
 import type { NextAuthOptions, Session } from 'next-auth'
 import type { JWT } from 'next-auth/jwt'
@@ -403,21 +403,21 @@ export const authOptions: NextAuthOptions = {
         if (update.longitude !== undefined) t.longitude = update.longitude
         if (update.serviceRadiusKm !== undefined) t.serviceRadiusKm = update.serviceRadiusKm
 
-        // === Impersonation support (admin only, requires signed token from /api/admin/impersonate) ===
+        // === Impersonation support (admin or admin_assistant, signed token from /api/admin/impersonate) ===
         if (update.impersonationToken) {
           const verified = verifyImpersonationToken(update.impersonationToken)
           if (verified && verified.adminId === t.id) {
             try {
-              const admin = await prisma.user.findUnique({
+              const actor = await prisma.user.findUnique({
                 where: { id: verified.adminId },
-                select: { role: true },
+                select: { role: true, staffRole: true, isActive: true },
               })
-              if (admin?.role === 'admin') {
+              if (canActAsImpersonator(actor)) {
                 t.impersonatorId = verified.adminId
                 t.impersonatedUserId = verified.targetUserId
               }
             } catch (e) {
-              devLog('[auth] Impersonation token admin check failed', e)
+              devLog('[auth] Impersonation token actor check failed', e)
             }
           }
         }
@@ -476,20 +476,20 @@ export const authOptions: NextAuthOptions = {
       // we override the visible identity (id, role, profile fields) with the target's data.
       // The original admin id is kept in impersonatorId so we can stop later.
       if (t.impersonatedUserId && t.impersonatorId) {
-        // Re-verify admin on every token refresh — revoke if impersonator is no longer admin
+        // Re-verify actor on every token refresh — revoke if they lost panel access
         try {
           const impersonator = await prisma.user.findUnique({
             where: { id: t.impersonatorId },
-            select: { role: true },
+            select: { role: true, staffRole: true, isActive: true },
           })
-          if (impersonator?.role !== 'admin') {
+          if (!canActAsImpersonator(impersonator)) {
             delete t.impersonatedUserId
             delete t.impersonatorId
             delete t.impersonating
             return token
           }
         } catch (e) {
-          devLog('[auth] Impersonation admin re-check failed (non-fatal)', e)
+          devLog('[auth] Impersonation actor re-check failed (non-fatal)', e)
         }
       }
 
