@@ -2,30 +2,36 @@ import type { Metadata } from 'next';
 import { BRAND_LOGO_PATH } from '@/lib/brand';
 
 export const marketingHomeMetadata: Metadata = {
-  title: 'OigaGIG — Conecta con profesionales locales en Colombia',
+  title: 'OigaGIG — Profesionales locales en Bucaramanga y Colombia',
   description:
-    'El profesional que necesitas, con gente de confianza a un Oiga de distancia. Servicios locales en Bogotá, Medellín, Cali y toda Colombia. Pagos seguros con Wompi.',
+    'Encuentre plomeros, técnicos, limpieza, belleza y más en Bucaramanga, Bogotá, Medellín y Cali. Chat en la app y pago seguro con Wompi.',
   keywords: [
     'servicios locales colombia',
-    'profesionales bogotá',
+    'servicios bucaramanga',
+    'plomero bucaramanga',
+    'limpieza bucaramanga',
+    'técnico computadores bogotá',
+    'profesionales medellín',
+    'marketplace servicios colombia',
     'oigagig',
-    'marketplace servicios',
+    'oiga gig',
     'wompi',
-    'freelance colombia',
   ],
+  alternates: { canonical: 'https://oigagig.com/' },
   openGraph: {
-    title: 'OigaGIG — Conecta con profesionales locales en Colombia',
+    title: 'OigaGIG — Profesionales locales en Bucaramanga y Colombia',
     description:
-      'Encuentra plomeros, limpieza, diseño, catering y más. Gente de confianza cerca de ti.',
+      'Encuentre plomeros, limpieza, técnicos y más cerca de usted. Ver el gig primero, comprar cuando esté listo.',
+    url: 'https://oigagig.com/',
     images: [{ url: BRAND_LOGO_PATH, width: 832, height: 1248, alt: 'OigaGIG' }],
     locale: 'es_CO',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'OigaGIG — Conecta con profesionales locales en Colombia',
+    title: 'OigaGIG — Profesionales locales en Bucaramanga y Colombia',
     description:
-      'Encuentra plomeros, limpieza, diseño, catering y más. Gente de confianza cerca de ti.',
+      'Encuentre plomeros, limpieza, técnicos y más cerca de usted.',
     images: [BRAND_LOGO_PATH],
   },
 };
