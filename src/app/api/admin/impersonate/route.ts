@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminFromDb } from '@/lib/admin-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdminPanelFromDb } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
@@ -8,7 +7,8 @@ import { createImpersonationToken } from '@/lib/impersonation';
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireAdminFromDb();
+    const access = await requireAdminPanelFromDb();
+    const session = access?.session;
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
@@ -19,10 +19,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'userId es requerido' }, { status: 400 });
     }
 
-    const adminId = session.user.id;
-    const adminEmail = session.user.email;
+    const actorId = session.user.id;
+    const actorEmail = session.user.email;
 
-    if (userId === adminId) {
+    if (userId === actorId) {
       return NextResponse.json({ error: 'No puedes impersonar tu propia cuenta' }, { status: 400 });
     }
 
@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
         email: true,
         name: true,
         role: true,
+        staffRole: true,
         businessName: true,
         isActive: true,
       }
@@ -47,12 +48,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No se puede impersonar un usuario inactivo' }, { status: 400 });
     }
 
+    // Never let staff become an admin by impersonating one
+    if (target.role === 'admin') {
+      return NextResponse.json({ error: 'No se puede impersonar una cuenta de administrador' }, { status: 400 });
+    }
+
     const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null;
     const userAgent = req.headers.get('user-agent') || null;
 
     // Record the impersonation start in the immutable audit log
     await logAuditEvent({
-      performedById: adminId,
+      performedById: actorId,
       action: 'USER_IMPERSONATED',
       targetType: 'User',
       targetId: userId,
@@ -62,18 +68,20 @@ export async function POST(req: NextRequest) {
           email: target.email,
           name: target.name,
           role: target.role,
+          staffRole: target.staffRole,
           businessName: target.businessName,
         },
         impersonator: {
-          id: adminId,
-          email: adminEmail ?? null,
+          id: actorId,
+          email: actorEmail ?? null,
+          isFullAdmin: access.isFullAdmin,
         },
       },
       ipAddress,
       userAgent,
     });
 
-    const impersonationToken = createImpersonationToken(adminId, target.id);
+    const impersonationToken = createImpersonationToken(actorId, target.id);
     if (!impersonationToken) {
       return NextResponse.json({ error: 'Impersonación no disponible (falta NEXTAUTH_SECRET)' }, { status: 500 });
     }
