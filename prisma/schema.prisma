@@ -3,6 +3,676 @@ generator client {
 }
 
 datasource db {
+  // Use PostgreSQL for production (Vercel, Supabase, Neon, etc.)
+  // For local development you can temporarily switch to SQLite:
+  // provider = "sqlite"
+  // url      = "file:./dev.db"
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// Your models (clean version)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String?
+  tagline       String?
+  email         String?   @unique
+  role          String    @default("buyer")
+  countryCode   String    @default("co") // ISO alpha-2 market: co, pa, sv, ...
+  staffRole     String?   // null | accountant | admin_assistant | analytics (additive staff tools)
+  phone         String?
+  idNumber      String?
+  address       String?
+  instagram     String?
+  facebook      String?
+  whatsapp      String?
+  businessName  String?
+  slug          String?   @unique
+  nit           String?
+  bio           String?
+  profilePicture String?
+  coverImageUrl  String?
+  rating        Float?    @default(0)
+  reviewCount   Int       @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  gigs          Gig[]
+  ordersAsBuyer Order[]   @relation("BuyerOrders")
+  ordersAsSeller Order[]  @relation("SellerOrders")
+  password      String?
+  reviewsReceived Review[] @relation("ReviewToSeller")
+  reviewsGiven  Review[]  @relation("ReviewToBuyer")
+  accounts      Account[]
+  sessions      Session[]
+  passwordResetTokens PasswordResetToken[]
+  auditLogs           AuditLog[]           @relation("AdminAuditLogs")
+  performedAuditLogs  AuditLog[]           @relation("PerformedByAuditLogs")
+  notifications       Notification[]
+  notificationPreferences NotificationPreference?
+  pushSubscriptions   PushSubscription[]
+
+  // Referral system
+  referralCode   String?  @unique
+  referredById   String?
+  referredBy     User?    @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals      User[]   @relation("UserReferrals")
+  referralEarnings ReferralEarning[] @relation("ReferrerEarnings")
+  supportTickets SupportTicket[]
+  supportTicketMessages SupportTicketMessage[]
+
+  // Marketing / broadcasts sent by this admin
+  marketingCampaigns MarketingCampaign[]
+
+  // UserLens UX audit reports & fix-queue reviews
+  userLensReports     UserLensReport[]
+  userLensFixReviews  UserLensFixItem[]  @relation("UserLensFixReviewer")
+
+  // Per-user custom referral commission rate (overrides global if set)
+  customReferralRate Float?  // e.g. 0.07 for 7%. Null = use PlatformConfig.referralCommissionRate (default 5%)
+
+  // Geolocation (Google Maps)
+  city          String?
+  latitude      Float?
+  longitude     Float?
+  serviceRadiusKm Int?     // How far the seller is willing to travel (for sellers)
+
+  // Bank / payout details for receiving seller net payouts (admin "Pagos a vendedores" via Wompi Pagos a Terceros or manual transfer)
+  // Seller must fill these before admin can record a Wompi payout for their orders.
+  payoutBankCode        String?  // e.g. "BANCOLOMBIA", "DAVIVIENDA", "BBVA" (use values from Wompi bank catalog)
+  payoutAccountNumber   String?
+  payoutAccountType     String?  // "SAVINGS" | "CHECKING" | "CURRENT"
+  payoutHolderName      String?
+  payoutDocumentType    String?  // "CC" | "NIT" | "CE" | "PASSPORT"
+  payoutDocumentNumber  String?
+  payoutPhone           String?
+  payoutEmail           String?
+
+  // Last login tracking (set on sign-in; IP/city enriched via /api/auth/record-login)
+  lastLoginAt          DateTime?
+  lastLoginIp          String?
+  lastLoginCity        String?
+  lastLoginUserAgent   String?
+
+  // Presence (updated via /api/presence/heartbeat while session is active)
+  lastActiveAt         DateTime?
+
+  // Contact moderation (chat / inquiry)
+  contactViolationCount Int       @default(0)
+  contactFlaggedAt      DateTime?
+  buyerInquiries        InquiryThread[]  @relation("BuyerInquiries")
+  sellerInquiries       InquiryThread[]  @relation("SellerInquiries")
+  contactViolations     ContactViolation[]
+
+  // Seller AI Marketing Studio
+  marketingSubscription SellerMarketingSubscription?
+  marketingGenerations  SellerMarketingGeneration[]
+
+  // Multi-visit gig interest tracking (buyer reminders)
+  gigViews              GigView[]
+  gigLikes              GigLike[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+
+  // Who performed the action (supports admins, regular users, and system/webhooks)
+  performedById String?
+  performedBy   User?    @relation("PerformedByAuditLogs", fields: [performedById], references: [id])
+
+  // Legacy: kept for backward compatibility with existing admin logs
+  adminId       String?
+  admin         User?    @relation("AdminAuditLogs", fields: [adminId], references: [id])
+
+  action        String   // e.g. "USER_ROLE_CHANGED", "ORDER_CREATED", "PAYMENT_CONFIRMED", "GIG_PUBLISHED", "REVIEW_SUBMITTED"
+  targetType    String   // "User", "Gig", "Order", "Review", "Payment", etc.
+  targetId      String?  // ID of the affected resource
+
+  details       Json?    // Flexible JSON for extra context (old values, new values, actor role, etc.)
+
+  ipAddress     String?
+  userAgent     String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([performedById])
+  @@index([adminId])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  category  String   // e.g. "order", "gig", "payment", "review", "system"
+  type      String   // "in_app", "email", "sms", "push"
+  title     String
+  message   String
+  link      String?  // URL to navigate to when clicked
+  data      Json?    // Extra metadata (JSON)
+
+  read      Boolean  @default(false)
+  readAt    DateTime?
+
+  // Delivery tracking (2027-grade observability)
+  emailStatus     String?   // pending, sent, delivered, opened, clicked, bounced, failed
+  emailSentAt     DateTime?
+  emailOpenedAt   DateTime?
+  pushStatus      String?   // sent, delivered, clicked, failed
+  pushSentAt      DateTime?
+  pushClickedAt   DateTime?
+  deliveryLog     Json?     // structured delivery attempts (resend ids, timestamps, channels)
+
+  // Direct lookup key for Resend email webhooks (set on send). Enables reliable correlation
+  // without brittle recent-N scans or findFirst-by-category hacks.
+  resendEmailId   String?   @unique
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([createdAt])
+  @@index([userId, category])
+  @@index([emailStatus])
+  @@index([pushStatus])
+}
+
+model NotificationPreference {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Global toggles
+  inAppEnabled Boolean @default(true)
+  emailEnabled Boolean @default(true)
+  smsEnabled   Boolean @default(false)
+  pushEnabled  Boolean @default(true)
+
+  // Granular preferences
+  orderUpdates  Boolean @default(true)
+  gigUpdates    Boolean @default(true)
+  reviewAlerts  Boolean @default(true)
+  paymentAlerts Boolean @default(true)
+  messageAlerts Boolean @default(true)
+  systemAlerts  Boolean @default(true)
+  marketingEmails Boolean @default(true)  // explicit opt-in for promos, system updates, newsletters
+
+  // Client experience toggles (browser notifications + sound)
+  desktopNotifications Boolean @default(true)
+  soundEnabled         Boolean @default(true)
+
+  // 2027 User Respect features
+  quietHoursEnabled Boolean @default(false)
+  quietHoursStart   String?   // e.g. "22:00"
+  quietHoursEnd     String?   // e.g. "08:00"
+
+  digestEnabled   Boolean @default(false)
+  digestFrequency String  @default("daily") // daily | weekly | never
+
+  // Light rate limiting
+  maxNotificationsPerHour Int @default(8)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  endpoint  String   @unique
+  p256dh    String   // public key for encryption
+  auth      String   // auth secret
+
+  userAgent String?
+  device    String?  // optional friendly name
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Gig {
+  id              String   @id @default(uuid())
+  title           String
+  description     String?
+  price           Float
+  category        String?
+  completionTime  String?
+  imageUrl        String?
+  images          String?  // JSON array of image URLs for multi-photo gigs
+  fields          String?
+  addons          String?
+  isActive        Boolean   @default(true)
+  showOnProfile   Boolean   @default(true) // seller-curated visibility on public /sellers/[slug] page
+  profileShowcaseOrder Int?  // display order on public profile (lower = first)
+  createdAt       DateTime @default(now())
+  deletedAt       DateTime? // soft delete for admin moderation / restore
+  sellerId        String
+  seller          User     @relation(fields: [sellerId], references: [id])
+  orders          Order[]
+  inquiries       InquiryThread[]
+  views           GigView[]
+  likes           GigLike[]
+  viewCount       Int      @default(0)
+  likeCount       Int      @default(0)
+
+  // Geolocation
+  city            String?
+  latitude        Float?
+  longitude       Float?
+  isRemote        Boolean? @default(false)  // Service can be done remotely/online
+}
+
+/// Public pre-purchase "me gusta esta idea" (not a post-service review).
+model GigLike {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gigId     String
+  gig       Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, gigId])
+  @@index([gigId])
+  @@index([userId])
+}
+
+/// Tracks how many times a logged-in buyer opened a gig (for multi-visit reminders).
+model GigView {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gigId          String
+  gig            Gig       @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  viewCount      Int       @default(1)
+  firstViewedAt  DateTime  @default(now())
+  lastViewedAt   DateTime  @default(now())
+  /// Set when we send the multi-visit reminder (once per user+gig).
+  reminderSentAt DateTime?
+
+  @@unique([userId, gigId])
+  @@index([userId])
+  @@index([gigId])
+  @@index([viewCount, reminderSentAt])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  icon        String   @default("🛠️")
+  description String?
+  fields      Json?    // Array of dynamic field definitions for pricing
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum OrderStatus {
+  Pending
+  Paid
+  In_Progress @map("In Progress")
+  Completed
+  Cancelled
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  price           Float
+  status          OrderStatus @default(Pending)
+  progress        Int      @default(0)
+  trackingNumber  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  buyerId         String
+  sellerId        String
+  gigId           String
+  buyer           User     @relation("BuyerOrders", fields: [buyerId], references: [id])
+  seller          User     @relation("SellerOrders", fields: [sellerId], references: [id])
+  gig             Gig      @relation(fields: [gigId], references: [id])
+  customFields    String?
+  messages        OrderMessage[]
+  files           OrderFile[]
+  reviews         Review[]
+  referralEarnings ReferralEarning[]
+
+  serviceLatitude  Float?
+  serviceLongitude Float?
+  serviceAddress   String?
+
+  sellerPayoutAt   DateTime?
+  wompiPayoutRef   String?
+}
+
+model OrderMessage {
+  id          String   @id @default(uuid())
+  content     String
+  isFromBuyer Boolean
+  createdAt   DateTime @default(now())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+
+  fileUrl     String?
+  fileName    String?
+}
+
+model OrderFile {
+  id          String   @id @default(cuid())
+  name        String
+  url         String
+  size        Int
+  type        String
+  uploadedBy  String
+  createdAt   DateTime @default(now())
+
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_files")
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  rating      Int
+  comment     String?
+  createdAt   DateTime @default(now())
+  reviewerId  String
+  sellerId    String
+  orderId     String
+  reviewer    User     @relation("ReviewToBuyer", fields: [reviewerId], references: [id])
+  seller      User     @relation("ReviewToSeller", fields: [sellerId], references: [id])
+  order       Order    @relation(fields: [orderId], references: [id])
+}
+
+model PlatformConfig {
+  id                      String   @id @default("singleton")
+  commissionRate          Float    @default(0.12)
+  referralCommissionRate  Float    @default(0.05)
+  minPayoutAmount         Float    @default(50000)
+  supportEmail            String   @default("support@oigagig.com")
+  supportPhone            String?
+  enableReviews           Boolean  @default(true)
+  enableChat              Boolean  @default(true)
+  maintenanceMode         Boolean  @default(false)
+  maintenanceMessage      String   @default("Estamos realizando mejoras. Volveremos pronto.")
+
+  referralsEnabled        Boolean  @default(true)
+  allowNewSignups         Boolean  @default(true)
+
+  maxUploadSizeMB         Int      @default(10)
+
+  siteName                String   @default("Oigagig")
+  siteTagline             String   @default("Conecta con profesionales locales en Colombia")
+  logoUrl                 String?
+
+  globalPushNotificationsEnabled  Boolean @default(true)
+  globalEmailNotificationsEnabled Boolean @default(true)
+
+  maintenanceBypassIps    String?
+
+  wompiRealPaymentsEnabled Boolean @default(false)
+
+  wompiSftpEnabled   Boolean @default(false)
+  wompiSftpHost      String?
+  wompiSftpPort      Int?    @default(22)
+  wompiSftpUsername  String?
+  wompiSftpPassword  String?
+  wompiSftpPrivateKey String? @db.Text
+  wompiSftpRemotePath String? @default("/")
+
+  tutorialsEnabled Boolean @default(true)
+
+  marketingStudioProPriceCOP       Int @default(29900)
+  marketingStudioFreeMonthlyLimit  Int @default(3)
+
+  updatedAt               DateTime @updatedAt
+}
+
+model ReferralEarning {
+  id            String   @id @default(cuid())
+  amount        Float
+  rateUsed      Float
+  status        String   @default("Pending")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  referrerId    String
+  referrer      User     @relation("ReferrerEarnings", fields: [referrerId], references: [id])
+
+  orderId       String
+  order         Order    @relation(fields: [orderId], references: [id])
+
+  @@unique([referrerId, orderId])
+
+  @@index([referrerId])
+  @@index([status])
+  @@index([updatedAt])
+  @@index([createdAt])
+}
+
+model SupportTicket {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     String
+  message     String   @db.Text
+  category    String?
+  priority    String   @default("medium")
+  status      String   @default("open")
+  adminReply  String?  @db.Text
+  resolvedBy  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  messages    SupportTicketMessage[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model SupportTicketMessage {
+  id         String   @id @default(cuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId   String?
+  author     User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  body       String   @db.Text
+  isInternal Boolean  @default(false)
+  isStaff    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+  @@index([authorId])
+}
+
+model SellerMarketingSubscription {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier             String    @default("free")
+  expiresAt        DateTime?
+  wompiReference   String?
+  enabled          Boolean   @default(true)
+  adminOverride    String?
+  adminNote        String?
+  updatedByAdminId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([tier])
+  @@index([expiresAt])
+}
+
+model SellerMarketingGeneration {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gigId     String?
+  channel   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model MarketingCampaign {
+  id             String   @id @default(cuid())
+  subject        String
+  message        String   @db.Text
+  segment        String
+  recipientCount Int      @default(0)
+  sentById       String?
+  sentBy         User?    @relation(fields: [sentById], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([sentById])
+}
+
+model FaqItem {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String   @db.Text
+  category  String?  @default("general")
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserLensReport {
+  id          String   @id @default(cuid())
+  scannedById String?
+  scannedBy   User?    @relation(fields: [scannedById], references: [id], onDelete: SetNull)
+  url         String
+  scanUrl     String?
+  finalUrl    String
+  title       String?
+  viewport    String
+  scannedAt   DateTime
+  loadTimeMs  Int
+  summary     Json?
+  result      Json
+  createdAt   DateTime @default(now())
+  fixItems    UserLensFixItem[]
+
+  @@index([scannedAt])
+  @@index([finalUrl])
+  @@index([scannedById])
+}
+
+model UserLensFixItem {
+  id           String   @id @default(cuid())
+  reportId     String
+  report       UserLensReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  source       String
+  category     String?
+  auditId      String?
+  severity     String?
+  title        String
+  description  String   @db.Text
+  targets      Json?
+  status       String   @default("pending")
+  reviewedById String?
+  reviewedBy   User?    @relation("UserLensFixReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  reviewNotes  String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([reportId])
+  @@index([status])
+  @@index([severity])
+  @@index([createdAt])
+}
+
+model InquiryThread {
+  id        String   @id @default(uuid())
+  buyerId   String
+  sellerId  String
+  gigId     String
+  status    String   @default("open")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  buyer    User             @relation("BuyerInquiries", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller   User             @relation("SellerInquiries", fields: [sellerId], references: [id], onDelete: Cascade)
+  gig      Gig              @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  messages InquiryMessage[]
+
+  @@unique([buyerId, gigId])
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([gigId])
+  @@index([updatedAt])
+}
+
+model InquiryMessage {
+  id          String   @id @default(uuid())
+  threadId    String
+  content     String
+  isFromBuyer Boolean
+  createdAt   DateTime @default(now())
+
+  thread InquiryThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+  @@index([createdAt])
+}
+
+model ContactViolation {
+  id              String   @id @default(uuid())
+  userId          String
+  contextType     String
+  contextId       String
+  violationTypes  String[]
+  snippet         String
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([contextType, contextId])
+  @@index([createdAt])
 }
