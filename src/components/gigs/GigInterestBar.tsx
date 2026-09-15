@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { Eye, Heart, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { buildGigPublicUrl, shareOrCopy, whatsAppShareHref } from '@/lib/share'
 
 export function formatInterestCount(n: number): string {
   if (!Number.isFinite(n) || n < 0) return '0'
@@ -31,10 +32,10 @@ export function GigInterestStats({
 }) {
   return (
     <div className={cn('flex items-center gap-3 text-xs text-muted-foreground', className)}>
-      <span className="inline-flex items-center gap-1" title="Personas a las que les gusta esta idea">
+      <span className="inline-flex items-center gap-1" title="Personas a las que les gusta esta idea, antes de contratar">
         <Heart className="h-3.5 w-3.5 text-rose-500" aria-hidden />
         <span className="tabular-nums font-medium text-foreground">{formatInterestCount(likeCount)}</span>
-        <span className="hidden sm:inline">les gusta</span>
+        <span className="hidden sm:inline">les gusta la idea</span>
       </span>
       <span className="inline-flex items-center gap-1" title="Veces que se ha visto este gig">
         <Eye className="h-3.5 w-3.5 text-sky-600" aria-hidden />
@@ -43,6 +44,19 @@ export function GigInterestStats({
       </span>
     </div>
   )
+}
+
+export async function shareGigLink(gigId: string, gigTitle: string) {
+  const url = buildGigPublicUrl(gigId)
+  const text = `${gigTitle} — servicio en OigaGIG`
+  const result = await shareOrCopy({ title: gigTitle, text, url })
+  if (result === 'shared' || result === 'cancelled') return result
+  if (result === 'copied') {
+    toast.success('Enlace copiado. Ya puede compartirlo.')
+    return result
+  }
+  window.open(whatsAppShareHref(text, url), '_blank', 'noopener,noreferrer')
+  return 'whatsapp' as const
 }
 
 export default function GigInterestBar({
@@ -93,31 +107,8 @@ export default function GigInterestBar({
     }
   }, [gigId, status, viewCount, likeCount])
 
-  const shareUrl =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/gigs/${gigId}`
-      : `https://oigagig.com/gigs/${gigId}`
-
   const handleShare = async () => {
-    const text = `${gigTitle} — servicio en OigaGIG`
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: gigTitle, text, url: shareUrl })
-        return
-      }
-    } catch (err) {
-      if ((err as { name?: string })?.name === 'AbortError') return
-    }
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      toast.success('Enlace copiado. Ya puede compartirlo.')
-    } catch {
-      window.open(
-        `https://wa.me/?text=${encodeURIComponent(`${text}\n${shareUrl}`)}`,
-        '_blank',
-        'noopener,noreferrer',
-      )
-    }
+    await shareGigLink(gigId, gigTitle)
   }
 
   const handleLike = async () => {
@@ -160,45 +151,50 @@ export default function GigInterestBar({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 mb-4">
-      <button
-        type="button"
-        onClick={() => void handleLike()}
-        disabled={busy || isOwnGig}
-        className={cn(
-          'inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition',
-          interest.liked
-            ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200'
-            : 'border-border bg-background hover:bg-muted',
-        )}
-        aria-pressed={interest.liked}
-      >
-        <Heart
-          className={cn('h-4 w-4', interest.liked && 'fill-rose-500 text-rose-500')}
-          aria-hidden
-        />
-        {interest.liked ? 'Le gusta esta idea' : 'Me gusta esta idea'}
-        <span className="tabular-nums text-muted-foreground">
-          {formatInterestCount(interest.likeCount)}
-        </span>
-      </button>
+    <div className="mb-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void handleLike()}
+          disabled={busy || isOwnGig}
+          className={cn(
+            'inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition',
+            interest.liked
+              ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200'
+              : 'border-border bg-background hover:bg-muted',
+          )}
+          aria-pressed={interest.liked}
+        >
+          <Heart
+            className={cn('h-4 w-4', interest.liked && 'fill-rose-500 text-rose-500')}
+            aria-hidden
+          />
+          {interest.liked ? 'Le gusta esta idea' : 'Me gusta esta idea'}
+          <span className="tabular-nums text-muted-foreground">
+            {formatInterestCount(interest.likeCount)}
+          </span>
+        </button>
 
-      <button
-        type="button"
-        onClick={() => void handleShare()}
-        className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3.5 py-2 text-sm font-medium hover:bg-muted transition"
-      >
-        <Share2 className="h-4 w-4" aria-hidden />
-        Compartir
-      </button>
+        <button
+          type="button"
+          onClick={() => void handleShare()}
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3.5 py-2 text-sm font-medium hover:bg-muted transition"
+        >
+          <Share2 className="h-4 w-4" aria-hidden />
+          Compartir gig
+        </button>
 
-      <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground ml-1">
-        <Eye className="h-4 w-4 text-sky-600" aria-hidden />
-        <span className="tabular-nums font-medium text-foreground">
-          {formatInterestCount(interest.viewCount)}
+        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground ml-1">
+          <Eye className="h-4 w-4 text-sky-600" aria-hidden />
+          <span className="tabular-nums font-medium text-foreground">
+            {formatInterestCount(interest.viewCount)}
+          </span>
+          vistas
         </span>
-        vistas
-      </span>
+      </div>
+      <p className="mt-1.5 text-xs text-muted-foreground">
+        Señal de interés pública, antes de contratar. Las reseñas con estrellas aparecen después del servicio.
+      </p>
     </div>
   )
 }

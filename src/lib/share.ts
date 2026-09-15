@@ -105,3 +105,10 @@ export function buildSellerPublicUrl(slugOrId: string, origin?: string): string 
   if (!path) return base
   return `${base}/sellers/${path}`
 }
+
+export function buildGigPublicUrl(gigId: string, origin?: string): string {
+  const base = (origin || getPublicShareOrigin()).replace(/\/$/, '')
+  const id = String(gigId || '').trim()
+  if (!id) return base
+  return `${base}/gigs/${id}`
+}

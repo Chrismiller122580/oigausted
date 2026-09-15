@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { ArrowLeft, Clock, MapPin } from 'lucide-react'
 import { GigImageGallery } from '@/components/common/GigImageGallery'
 import GigDetailActions from '@/components/gigs/GigDetailActions'
+import GigInterestBar from '@/components/gigs/GigInterestBar'
 import GigViewTracker from '@/components/gigs/GigViewTracker'
 import { StarRating } from '@/components/ui/star-rating'
 import { UserAvatar } from '@/components/ui/user-avatar'
@@ -83,7 +84,7 @@ export default async function GigDetailPage({ params }: PageProps) {
 
             <div>
               <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">{gig.title}</h1>
-              <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-5">
                 {gig.category && (
                   <span className="font-medium bg-emerald-100 text-emerald-700 px-4 py-1 rounded-full">
                     {gig.category}
@@ -102,6 +103,13 @@ export default async function GigDetailPage({ params }: PageProps) {
                   </div>
                 )}
               </div>
+              <GigInterestBar
+                gigId={gig.id}
+                gigTitle={gig.title}
+                sellerId={gig.sellerId}
+                viewCount={gig.viewCount}
+                likeCount={gig.likeCount}
+              />
             </div>
 
             <div>
@@ -113,7 +121,7 @@ export default async function GigDetailPage({ params }: PageProps) {
 
             <div>
               <h2 className="text-2xl font-semibold mb-4 flex items-center justify-between">
-                Reseñas
+                Reseñas del vendedor
                 {reviews.length > 0 && (
                   <span className="text-sm font-normal text-muted-foreground">
                     {reviews.length} recientes
@@ -142,9 +150,9 @@ export default async function GigDetailPage({ params }: PageProps) {
                 </div>
               ) : (
                 <div className="bg-card border border-border rounded-3xl p-8 text-center text-muted-foreground">
-                  Aún no hay reseñas para este vendedor.
+                  Aún no hay reseñas de clientes para este vendedor.
                   <br />
-                  <span className="text-sm">Sé el primero en dejar una después de tu compra.</span>
+                  <span className="text-sm">Las reseñas aparecen después de prestar el servicio.</span>
                 </div>
               )}
 
@@ -189,7 +197,15 @@ export default async function GigDetailPage({ params }: PageProps) {
               <div className="text-5xl sm:text-6xl font-bold text-emerald-600 mb-1">
                 ${gig.price.toLocaleString('es-CO')}
               </div>
-              <p className="text-muted-foreground mb-10">COP</p>
+              <p className="text-muted-foreground mb-6">COP</p>
+
+              <GigInterestBar
+                gigId={gig.id}
+                gigTitle={gig.title}
+                sellerId={gig.sellerId}
+                viewCount={gig.viewCount}
+                likeCount={gig.likeCount}
+              />
 
               <GigDetailActions
                 gigId={gig.id}
