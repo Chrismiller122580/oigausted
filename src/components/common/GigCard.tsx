@@ -7,9 +7,7 @@ import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { MapPin, Share2 } from "lucide-react"
 import StartInquiryButton from '@/components/common/StartInquiryButton'
-import BuyGigConfirmDialog from '@/components/gigs/BuyGigConfirmDialog'
 import { GigInterestStats, shareGigLink } from '@/components/gigs/GigInterestBar'
-import { useBuyGigConfirm } from '@/hooks/useBuyGigConfirm'
 import { CategoryIcon } from "@/lib/icon-registry"
 import { StarRating } from "@/components/ui/star-rating"
 import { UserAvatar } from "@/components/ui/user-avatar"
@@ -45,8 +43,8 @@ interface Gig {
   } | null
 }
 
-export default function GigCard({ 
-  gig, 
+export default function GigCard({
+  gig,
   sellerView = false,
   compact = false,
   distanceKm,
@@ -54,19 +52,18 @@ export default function GigCard({
   inProject = false,
   onAddToProject,
   showChatButton = false,
-}: { 
-  gig: Gig; 
-  sellerView?: boolean;
-  compact?: boolean;
-  distanceKm?: number;
-  mode?: 'buyer' | 'network';
-  inProject?: boolean;
-  onAddToProject?: (gig: Gig) => void;
-  showChatButton?: boolean;
+}: {
+  gig: Gig
+  sellerView?: boolean
+  compact?: boolean
+  distanceKm?: number
+  mode?: 'buyer' | 'network'
+  inProject?: boolean
+  onAddToProject?: (gig: Gig) => void
+  showChatButton?: boolean
 }) {
   const router = useRouter()
   const { data: session } = useSession()
-  const { open, pending, requestBuy, confirm, cancel } = useBuyGigConfirm()
 
   const sellerName =
     gig.seller?.name ||
@@ -74,19 +71,10 @@ export default function GigCard({
     "Vendedor"
 
   const locationLabel = formatGigLocation(gig)
+  const gigHref = `/gigs/${gig.id}`
 
   const userId = session?.user?.id
   const isOwnGig = userId && gig.seller?.id === userId
-
-  const handleBuyNow = () => {
-    requestBuy({
-      gigId: gig.id,
-      title: gig.title,
-      price: gig.price,
-      isActive: gig.isActive,
-      sellerId: gig.seller?.id,
-    })
-  }
 
   const handleShare = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -107,43 +95,45 @@ export default function GigCard({
         "dark:hover:ring-orange-800/40 hover:-translate-y-0.5",
       )}
     >
-      <div
-        className={cn(
-          "relative w-full overflow-hidden",
-          compact ? "h-32" : "h-48",
-          "bg-gradient-to-br from-orange-50 via-amber-50/80 to-slate-100",
-          "dark:from-orange-950/50 dark:via-slate-900 dark:to-slate-950",
-        )}
-      >
-        {gig.imageUrl ? (
-          <>
-            <Image
-              src={gig.imageUrl}
-              alt={gig.title}
-              fill
-              sizes="(max-width: 768px) 100vw, 33vw"
-              className="object-cover"
-            />
-            {/* Soft fade into card body */}
+      <Link href={gigHref} className="block">
+        <div
+          className={cn(
+            "relative w-full overflow-hidden",
+            compact ? "h-32" : "h-48",
+            "bg-gradient-to-br from-orange-50 via-amber-50/80 to-slate-100",
+            "dark:from-orange-950/50 dark:via-slate-900 dark:to-slate-950",
+          )}
+        >
+          {gig.imageUrl ? (
+            <>
+              <Image
+                src={gig.imageUrl}
+                alt={gig.title}
+                fill
+                sizes="(max-width: 768px) 100vw, 33vw"
+                className="object-cover"
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card via-card/50 to-transparent dark:from-card"
+              />
+            </>
+          ) : (
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card via-card/50 to-transparent dark:from-card"
-            />
-          </>
-        ) : (
-          <div
-            aria-hidden
-            className="absolute inset-0 flex items-center justify-center opacity-40"
-          >
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-orange-200/60 to-amber-100/40 dark:from-orange-800/40 dark:to-amber-900/20" />
-          </div>
-        )}
-      </div>
+              className="absolute inset-0 flex items-center justify-center opacity-40"
+            >
+              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-orange-200/60 to-amber-100/40 dark:from-orange-800/40 dark:to-amber-900/20" />
+            </div>
+          )}
+        </div>
+      </Link>
 
       <CardHeader className="pt-4">
-        <CardTitle className="line-clamp-2 text-foreground">{gig.title}</CardTitle>
-        
-        {/* Seller info: avatar + name + rating */}
+        <Link href={gigHref} className="hover:underline underline-offset-2">
+          <CardTitle className="line-clamp-2 text-foreground">{gig.title}</CardTitle>
+        </Link>
+
         <div className="mt-1 flex items-center justify-between gap-2 text-sm">
           <div className="flex min-w-0 items-center gap-2">
             <UserAvatar
@@ -156,8 +146,8 @@ export default function GigCard({
             {isOwnGig ? (
               <span className="truncate text-muted-foreground text-xs">{sellerName}</span>
             ) : (
-              <Link 
-                href={`/sellers/${gig.seller?.slug || gig.seller?.id}`} 
+              <Link
+                href={`/sellers/${gig.seller?.slug || gig.seller?.id}`}
                 className="truncate text-xs text-muted-foreground hover:text-orange-700 hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -166,7 +156,6 @@ export default function GigCard({
             )}
           </div>
 
-          {/* Rating badge — seller reviews after service, not idea likes */}
           {gig.seller?.rating && gig.seller.rating > 0 && (
             <div
               className={cn(
@@ -222,8 +211,8 @@ export default function GigCard({
                   {distanceKm.toFixed(1)} km
                 </span>
                 {gig.seller?.serviceRadiusKm && distanceKm > gig.seller.serviceRadiusKm && (
-                  <span 
-                    className="text-[10px] bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200 px-2 py-0.5 rounded-full font-medium ring-1 ring-rose-100/80" 
+                  <span
+                    className="text-[10px] bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200 px-2 py-0.5 rounded-full font-medium ring-1 ring-rose-100/80"
                     title={`Este vendedor suele atender hasta ${gig.seller.serviceRadiusKm} km`}
                   >
                     +{Math.round(distanceKm - gig.seller.serviceRadiusKm)}km
@@ -274,34 +263,27 @@ export default function GigCard({
           >
             Editar gig
           </Button>
-        ) : showChatButton && !isOwnGig && gig.isActive !== false ? (
-          <div className="flex flex-col gap-2 w-full">
-            <Button onClick={handleBuyNow} variant="brand" className="w-full">
-              Comprar Ahora
-            </Button>
-            <StartInquiryButton gigId={gig.id} fullWidth size="sm" label="Chatear en OigaGIG" />
-          </div>
-        ) : (
-          <Button
-            onClick={handleBuyNow}
-            variant="brand"
-            className="w-full"
-            disabled={isOwnGig || gig.isActive === false}
-          >
-            {isOwnGig ? "Tu propio gig" : (gig.isActive === false ? "Servicio pausado" : "Comprar Ahora")}
+        ) : isOwnGig ? (
+          <Button variant="brand" className="w-full" disabled>
+            Tu propio gig
           </Button>
+        ) : gig.isActive === false ? (
+          <Button variant="brand" className="w-full" disabled>
+            Servicio pausado
+          </Button>
+        ) : (
+          <div className="flex flex-col gap-2 w-full">
+            <Link href={gigHref} className="w-full">
+              <Button variant="brand" className="w-full">
+                Ver gig
+              </Button>
+            </Link>
+            {showChatButton && (
+              <StartInquiryButton gigId={gig.id} fullWidth size="sm" label="Chatear en OigaGIG" />
+            )}
+          </div>
         )}
       </CardFooter>
-
-      {pending && (
-        <BuyGigConfirmDialog
-          open={open}
-          title={pending.title}
-          price={pending.price}
-          onConfirm={confirm}
-          onCancel={cancel}
-        />
-      )}
     </Card>
   )
 }
