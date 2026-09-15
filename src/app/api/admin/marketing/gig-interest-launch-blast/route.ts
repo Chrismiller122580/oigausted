@@ -9,7 +9,7 @@ import {
   resolveMarketingRecipients,
 } from '@/lib/marketing-audience';
 import { andColombiaAudience, isCountryCodeSchemaDrift, withoutCountryCode } from '@/lib/colombia-geo';
-import { applyMergeFields, getPlaybookById } from '@/lib/marketing-playbooks';
+import { applyMergeFields } from '@/lib/marketing-playbooks';
 import { getPlaybookNudgedUserIds } from '@/lib/marketing-lifecycle';
 import {
   BUYER_GIG_INTEREST_PLAYBOOK_ID,
@@ -22,8 +22,21 @@ import type { Prisma } from '@prisma/client';
 export const maxDuration = 300;
 
 const BLAST_CAP = 5000;
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
 
 type Role = 'seller' | 'buyer';
+
+const SELLER_META = {
+  id: SELLER_GIG_INTEREST_PLAYBOOK_ID,
+  defaultCta: 'Ver mis gigs',
+  defaultCtaUrl: `${APP_URL}/seller/gigs`,
+};
+
+const BUYER_META = {
+  id: BUYER_GIG_INTEREST_PLAYBOOK_ID,
+  defaultCta: 'Explorar servicios',
+  defaultCtaUrl: `${APP_URL}/gigs`,
+};
 
 function audienceWhere(role: Role, excludeIds: string[]): Prisma.UserWhereInput {
   const base = andColombiaAudience({
@@ -72,12 +85,6 @@ export async function POST(req: NextRequest) {
   }
 
   const dryRun = new URL(req.url).searchParams.get('dryRun') === 'true';
-  const sellerPlaybook = getPlaybookById(SELLER_GIG_INTEREST_PLAYBOOK_ID);
-  const buyerPlaybook = getPlaybookById(BUYER_GIG_INTEREST_PLAYBOOK_ID);
-  if (!sellerPlaybook || !buyerPlaybook) {
-    return NextResponse.json({ error: 'Playbook not found' }, { status: 500 });
-  }
-
   const sellerCopy = sellerGigInterestLifecycleCopy();
   const buyerCopy = buyerGigInterestLifecycleCopy();
   const sellersAlready = await getPlaybookNudgedUserIds(SELLER_GIG_INTEREST_PLAYBOOK_ID);
@@ -144,7 +151,7 @@ export async function POST(req: NextRequest) {
 
   async function sendGroup(
     users: typeof sellers,
-    playbook: NonNullable<typeof sellerPlaybook>,
+    meta: { id: string; defaultCta: string; defaultCtaUrl: string },
     copy: { subject: string; message: string },
   ) {
     for (const user of users) {
@@ -154,10 +161,10 @@ export async function POST(req: NextRequest) {
       }
       try {
         const personalizedSubject = applyMergeFields(copy.subject, user, {
-          ctaUrl: playbook.defaultCtaUrl,
+          ctaUrl: meta.defaultCtaUrl,
         });
         const personalizedMessage = applyMergeFields(copy.message, user, {
-          ctaUrl: playbook.defaultCtaUrl,
+          ctaUrl: meta.defaultCtaUrl,
         });
         const result = await notifications.sendNotification({
           userId: user.id,
@@ -167,11 +174,11 @@ export async function POST(req: NextRequest) {
           message: personalizedMessage,
           priority: 'high',
           channels: 'both',
-          link: playbook.defaultCtaUrl.replace(/^https?:\/\/[^/]+/, '') || '/gigs',
+          link: meta.id.startsWith('sellers') ? '/seller/gigs' : '/gigs',
           data: {
-            playbookId: playbook.id,
-            ctaLabel: playbook.defaultCta,
-            ctaUrl: playbook.defaultCtaUrl,
+            playbookId: meta.id,
+            ctaLabel: meta.defaultCta,
+            ctaUrl: meta.defaultCtaUrl,
             manualBlast: true,
           },
         });
@@ -184,8 +191,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  await sendGroup(sellers, sellerPlaybook, sellerCopy);
-  await sendGroup(buyers, buyerPlaybook, buyerCopy);
+  await sendGroup(sellers, SELLER_META, sellerCopy);
+  await sendGroup(buyers, BUYER_META, buyerCopy);
 
   if (!adminId.startsWith('cron-')) {
     await logAuditEvent({
