@@ -38,11 +38,14 @@ export default function StudioBroadcastPanel() {
     setSelectedPlaybookId,
     sellerBlastLoading,
     buyerBlastLoading,
+    interestBlastLoading,
     generatedCampaign,
     selectUserForSend,
     applyAiSegment,
     runSellerToolkitBlast,
     runBuyerPurchaseGuideBlast,
+    runGigInterestLaunchBlast,
+    loadGigInterestCampaign,
     polishComposerWithAI,
     fetchAudience,
     fetchHistory,
@@ -64,6 +67,7 @@ export default function StudioBroadcastPanel() {
               <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Plantillas</p>
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={() => loadSellerToolkitCampaign('broadcast')}>Guía vendedores</Button>
+                <Button variant="outline" size="sm" onClick={() => loadGigInterestCampaign('broadcast')}>Herramienta nueva</Button>
                 <Button variant="outline" size="sm" onClick={() => loadSellerToolkitCampaign('social')}>IG + WhatsApp</Button>
                 <Button variant="outline" size="sm" onClick={() => presetMessage('update')}>Actualización</Button>
                 <Button variant="outline" size="sm" onClick={() => presetMessage('promo')}>Promo</Button>
@@ -75,6 +79,16 @@ export default function StudioBroadcastPanel() {
                 <Button variant="outline" size="sm" disabled={sellerBlastLoading} onClick={() => runSellerToolkitBlast(true)}>Vista previa</Button>
                 <Button size="sm" className="bg-orange-600 hover:bg-orange-700" disabled={sellerBlastLoading} onClick={() => runSellerToolkitBlast(false)}>
                   {sellerBlastLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />} Enviar a vendedores
+                </Button>
+              </div>
+            </div>
+            <div className="rounded-xl border border-emerald-200/60 bg-emerald-50/30 p-3 space-y-2">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Herramienta nueva</p>
+              <p className="text-xs text-muted-foreground">Me gusta, visitas y Ver gig. In-app + correo a vendedores y compradores que aún no lo recibieron.</p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" disabled={interestBlastLoading} onClick={() => runGigInterestLaunchBlast(true)}>Vista previa</Button>
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" disabled={interestBlastLoading} onClick={() => runGigInterestLaunchBlast(false)}>
+                  {interestBlastLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />} Enviar aviso
                 </Button>
               </div>
             </div>
