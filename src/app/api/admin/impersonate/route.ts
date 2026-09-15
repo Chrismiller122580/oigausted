@@ -8,11 +8,11 @@ import { createImpersonationToken } from '@/lib/impersonation';
 export async function POST(req: NextRequest) {
   try {
     const access = await requireAdminPanelFromDb();
-    const session = access?.session;
-    if (!session?.user?.id) {
+    if (!access?.session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
+    const session = access.session;
     const { userId } = await req.json();
 
     if (!userId || typeof userId !== 'string') {
