@@ -8,15 +8,24 @@ import {
   PUBLIC_SITE_URL,
 } from '@/lib/public-site';
 
+const OFFICE_STREET = 'Carrera 27 # 37-33';
+const OFFICE_CITY = 'Bucaramanga';
+const OFFICE_REGION = 'Santander';
+const OFFICE_COUNTRY = 'Colombia';
+const OFFICE_LINE = `${OFFICE_STREET}, ${OFFICE_CITY}, ${OFFICE_REGION}, ${OFFICE_COUNTRY}`;
+const OFFICE_MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(OFFICE_LINE)}`;
+
 export const metadata = buildPublicPageMetadata({
   title: 'Nosotros • Sobre OigaGIG',
   description:
-    'Conoce OigaGIG: el marketplace colombiano que conecta compradores y vendedores locales. Misión, valores y datos de contacto para soporte.',
+    'OigaGIG es el marketplace de servicios locales en Colombia. Oficina en Carrera 27 # 37-33, Bucaramanga, Santander.',
   path: '/about',
   keywords: [
     'sobre oigagig',
     'quienes somos',
     'contacto oigagig',
+    'oficina bucaramanga',
+    'carrera 27 37-33',
     'marketplace colombia',
     'servicios locales',
   ],
@@ -32,6 +41,13 @@ export default async function AboutPage() {
     url: PUBLIC_SITE_URL,
     description: site.siteTagline,
     logo: `${PUBLIC_SITE_URL}${BRAND_LOGO_PATH}`,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: OFFICE_STREET,
+      addressLocality: OFFICE_CITY,
+      addressRegion: OFFICE_REGION,
+      addressCountry: 'CO',
+    },
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer support',
@@ -131,6 +147,21 @@ export default async function AboutPage() {
               </div>
             </li>
           ) : null}
+
+          <li className="flex items-start gap-3">
+            <MapPin className="h-5 w-5 text-orange-600 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-medium">Oficina</p>
+              <a
+                href={OFFICE_MAPS_URL}
+                className="text-orange-600 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {OFFICE_LINE}
+              </a>
+            </div>
+          </li>
 
           <li className="flex items-start gap-3">
             <MapPin className="h-5 w-5 text-orange-600 mt-0.5 shrink-0" />
