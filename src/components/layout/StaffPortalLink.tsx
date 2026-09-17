@@ -20,7 +20,7 @@ export function StaffPortalLink({ className = '', compact = false }: StaffPortal
     staffRole === 'accountant'
       ? 'Portal Finanzas'
       : staffRole === 'analytics'
-        ? 'Portal Analytics'
+        ? 'Portal de analítica'
         : 'Portal Staff'
 
   return (
