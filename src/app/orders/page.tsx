@@ -40,7 +40,6 @@ export default function BuyerOrdersPage() {
     .catch(() => setLoading(false));
   }, [session, status]);
 
-  // Orders that are completed but have no review yet
   const reviewedOrderIds = new Set(reviews.map(r => r.orderId));
   const needsReview = (order: OrderDetail) =>
     order.status === 'Completed' && !reviewedOrderIds.has(order.id);
@@ -79,7 +78,7 @@ export default function BuyerOrdersPage() {
           <p className="text-xl text-muted-foreground mt-2">Seguimiento en tiempo real</p>
         </div>
         <Link href="/gigs" className="text-orange-600 hover:underline flex items-center gap-2">
-          Explorar más gigs →
+          Explorar más servicios →
         </Link>
       </div>
 
@@ -89,7 +88,7 @@ export default function BuyerOrdersPage() {
           <h3 className="text-2xl font-semibold mb-3 text-foreground">Aún no tienes pedidos</h3>
           <p className="text-muted-foreground mb-8">Cuando contrates un servicio aparecerá aquí</p>
           <Button asChild size="lg">
-            <Link href="/gigs">Explorar Gigs</Link>
+            <Link href="/gigs">Explorar servicios</Link>
           </Button>
         </Card>
       ) : (
@@ -135,7 +134,6 @@ export default function BuyerOrdersPage() {
                       </div>
                     </div>
 
-                    {/* Custom Requirements Summary */}
                     {Object.keys(parseCustomFields(order.customFields)).length > 0 && (
                       <div className="mt-6 bg-muted p-5 rounded-2xl text-sm">
                         <p className="font-medium mb-3">Tus requisitos:</p>

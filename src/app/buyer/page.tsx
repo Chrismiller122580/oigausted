@@ -10,6 +10,7 @@ import OnboardingTutorial from "@/components/common/OnboardingTutorial"
 import { usePlatformConfig } from "@/components/providers/PlatformConfigProvider"
 import { markTutorialDismissed, shouldAutoShowTutorial } from "@/lib/tutorial"
 import { MegaSearchBar } from "@/components/homepage/MegaSearchBar"
+import { getOrderStatusDisplayEs } from "@/lib/order-status"
 
 export default function BuyerDashboard() {
   const { data: session } = useSession()
@@ -24,7 +25,6 @@ export default function BuyerDashboard() {
   const [recentOrders, setRecentOrders] = useState<import('@/types/order').OrderDetail[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Tutorial / onboarding for new buyers (full training)
   const [showTutorial, setShowTutorial] = useState(false)
 
   const userName = session?.user?.name?.split(' ')[0] || 'Comprador'
@@ -59,14 +59,12 @@ export default function BuyerDashboard() {
       })
 
       setPendingReviewOrders(pending.slice(0, 3))
-      setRecentOrders(orders.slice(0, 4)) // most recent 4
+      setRecentOrders(orders.slice(0, 4))
     })
     .catch(console.error)
     .finally(() => setLoading(false))
   }, [session])
 
-  // Auto-show buyer tutorial for first-time / new users (support request: new users go through tutorial)
-  // Respects global admin toggle from PlatformConfig.tutorialsEnabled
   useEffect(() => {
     const uid = session?.user?.id
     if (uid && !loading && platformConfig?.tutorialsEnabled !== false && shouldAutoShowTutorial()) {
@@ -103,7 +101,6 @@ export default function BuyerDashboard() {
           </div>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           <StatCard icon={Package} iconColor="text-orange-400" label="Pedidos realizados" value={stats.orders} />
           <StatCard icon={RefreshCw} iconColor="text-blue-400" label="En progreso" value={stats.inProgress} />
@@ -111,7 +108,6 @@ export default function BuyerDashboard() {
           <StatCard icon={Star} iconColor="text-amber-400" label="Reseñas pendientes" value={stats.pendingReviews} highlight={stats.pendingReviews > 0} />
         </div>
 
-        {/* Main CTA + search */}
         <Card className="mb-10 bg-gradient-to-br from-orange-600 to-orange-700 text-white overflow-hidden">
           <CardContent className="p-8 sm:p-12 text-center">
             <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-white/15">
@@ -119,14 +115,14 @@ export default function BuyerDashboard() {
             </div>
             <h2 className="text-2xl font-bold mb-3">Encuentra el servicio perfecto</h2>
             <p className="text-base mb-6 max-w-2xl mx-auto text-white/90">
-              Miles de gigs locales en Colombia. Busca por servicio o ciudad y encuentra freelancers confiables.
+              Miles de servicios locales en Colombia. Busca por servicio o ciudad y encuentra freelancers confiables.
             </p>
             <div className="max-w-2xl mx-auto mb-6 text-left">
               <MegaSearchBar variant="hero" defaultCity="" className="[&_input]:border-white/20" />
             </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="lg" id="tutorial-browse-all-gigs" className="bg-card text-brand hover:bg-muted text-base px-8 py-3 rounded-xl font-semibold shadow-lg">
-                <Link href="/gigs">Ver Todos los Gigs</Link>
+                <Link href="/gigs">Ver todos los servicios</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white text-base px-8 py-3 rounded-xl font-semibold">
                 <Link href="/messages">Mis Mensajes</Link>
@@ -135,7 +131,6 @@ export default function BuyerDashboard() {
           </CardContent>
         </Card>
 
-        {/* Pending Reviews - High Impact for Beta */}
         {pendingReviewOrders.length > 0 && (
           <Card className="mb-12 border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/40">
             <CardContent className="p-10">
@@ -170,7 +165,6 @@ export default function BuyerDashboard() {
           </Card>
         )}
 
-        {/* Recent Orders Preview */}
         {recentOrders.length > 0 && (
           <div id="tutorial-recent-orders" className="mb-12">
             <div className="flex items-center justify-between mb-4 px-1">
@@ -198,7 +192,7 @@ export default function BuyerDashboard() {
                           <p className="text-sm mt-1 font-semibold text-foreground">${(order.price || 0).toLocaleString('es-CO')}</p>
                         </div>
                         <span className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap ${statusColor}`}>
-                          {order.status}
+                          {getOrderStatusDisplayEs(order.status)}
                         </span>
                       </CardContent>
                     </Card>
@@ -209,7 +203,6 @@ export default function BuyerDashboard() {
           </div>
         )}
 
-        {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="hover:shadow-md transition">
             <CardContent className="p-6 sm:p-8">
@@ -217,7 +210,7 @@ export default function BuyerDashboard() {
               <h3 className="text-xl font-semibold mb-2 text-foreground">Chats Activos</h3>
               <p className="text-muted-foreground mb-6 text-sm">Habla directamente con los vendedores</p>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/orders">Ir a Mis Chats</Link>
+                <Link href="/messages">Ir a Mis Chats</Link>
               </Button>
             </CardContent>
           </Card>
@@ -234,7 +227,6 @@ export default function BuyerDashboard() {
           </Card>
         </div>
 
-        {/* Become Seller nudge (only for pure buyers) */}
         {session?.user?.role === 'buyer' && (
           <div className="mt-10 text-center">
             <p className="text-muted-foreground">
@@ -247,7 +239,6 @@ export default function BuyerDashboard() {
         )}
       </div>
 
-      {/* Full onboarding tutorial modal for new users */}
       {showTutorial && (
         <OnboardingTutorial
           mode="buyer"
