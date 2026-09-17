@@ -14,10 +14,10 @@ export type AnalyticsNavItem = {
 
 /** Sidebar / mobile nav for the analytics insights panel. */
 export const ANALYTICS_NAV_ITEMS: AnalyticsNavItem[] = [
-  { href: '/analytics', label: 'Overview', icon: Home },
-  { href: '/analytics/analytics', label: 'Analytics', icon: Activity },
-  { href: '/analytics/reports', label: 'Reports', icon: BarChart3 },
-  { href: '/analytics/marketing', label: 'Marketing Insights', icon: Megaphone },
+  { href: '/analytics', label: 'Resumen', icon: Home },
+  { href: '/analytics/analytics', label: 'Analítica', icon: Activity },
+  { href: '/analytics/reports', label: 'Reportes', icon: BarChart3 },
+  { href: '/analytics/marketing', label: 'Insights de marketing', icon: Megaphone },
 ];
 
 /** Routes analytics staff must not access (redirect to overview). */
