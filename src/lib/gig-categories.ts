@@ -102,7 +102,7 @@ export const gigCategories = [
           { label: "Otro producto de belleza", extraPrice: 0 }
         ]
       },
-      { key: "quantity", label: "Cantidad de unidades", type: "number", extraPrice: 12000 },
+      { key: "quantity", label: "Cantidad de unidades", type: "number" },
       {
         key: "condition",
         label: "Condición",
@@ -137,7 +137,7 @@ export const gigCategories = [
           { label: "Otro producto natural", extraPrice: 0 }
         ]
       },
-      { key: "quantity", label: "Cantidad de unidades", type: "number", extraPrice: 10000 },
+      { key: "quantity", label: "Cantidad de unidades", type: "number" },
       {
         key: "origin",
         label: "Origen",
