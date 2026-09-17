@@ -7,7 +7,6 @@ import {
   LogOut,
   DollarSign,
   Menu,
-  X,
   MessageCircle,
   Home,
   Briefcase,
@@ -34,7 +33,6 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   id?: string;
-  /** Hide below this breakpoint to keep the bar from crowding on tablet widths */
   minBreakpoint?: 'lg' | 'xl';
 }
 
@@ -74,8 +72,8 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
 
   return (
     <>
-      <nav className="bg-background border-b sticky top-0 z-50 shadow-sm safe-area-inset-top">
-        <div className="max-w-7xl mx-auto px-6">
+      <nav className="bg-white dark:bg-neutral-950 border-b sticky top-0 z-[80] shadow-sm safe-area-inset-top">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center h-16 gap-4">
             <Logo size={36} />
 
@@ -136,16 +134,18 @@ export default function SellerNavbar({ children }: { children: React.ReactNode }
               </Button>
             </div>
 
-            <div className="md:hidden flex items-center gap-1 ml-auto">
+            <div className="md:hidden flex items-center gap-1 ml-auto shrink-0">
               <NotificationsBell />
               <ModeToggle />
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 text-muted-foreground hover:text-foreground transition"
-                aria-label="Toggle menu"
-              >
-                {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
-              </button>
+              {!isMobileMenuOpen && (
+                <button
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="p-2 text-muted-foreground hover:text-foreground transition"
+                  aria-label="Abrir menú"
+                >
+                  <Menu size={26} />
+                </button>
+              )}
             </div>
           </div>
         </div>
