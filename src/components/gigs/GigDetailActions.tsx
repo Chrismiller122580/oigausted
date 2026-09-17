@@ -1,11 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import StartInquiryButton from '@/components/common/StartInquiryButton'
 import BuyGigConfirmDialog from '@/components/gigs/BuyGigConfirmDialog'
 import { useBuyGigConfirm } from '@/hooks/useBuyGigConfirm'
+import { isQuantityField } from '@/lib/order-price'
+import { parseJsonArrayField } from '@/lib/utils'
 
 type Props = {
   gigId: string
@@ -28,10 +30,29 @@ export default function GigDetailActions({
   const userId = session?.user?.id
   const isOwnGig = userId === sellerId
   const { open, pending, requestBuy, confirm, cancel } = useBuyGigConfirm()
-  const hasQuantity = Boolean(quantityLabel)
+  const [loadedLabel, setLoadedLabel] = useState<string | null>(quantityLabel || null)
   const [quantity, setQuantity] = useState(1)
+  const label = loadedLabel || quantityLabel || null
+  const hasQuantity = Boolean(label)
   const units = hasQuantity ? Math.max(1, quantity) : 1
   const total = useMemo(() => Math.max(0, Math.round(Number(gigPrice) || 0) * units), [gigPrice, units])
+
+  useEffect(() => {
+    if (label) return
+    let cancelled = false
+    fetch(`/api/gigs/${gigId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const gig = data.gig || data
+        const fields = parseJsonArrayField(gig?.fields)
+        const qtyField = fields.find((field) => isQuantityField(field))
+        if (!cancelled && qtyField) setLoadedLabel(qtyField.label || 'Cantidad')
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [gigId, label])
 
   const handleBuyNow = () => {
     requestBuy({
@@ -56,7 +77,7 @@ export default function GigDetailActions({
     <div className="space-y-3 mb-8">
       {hasQuantity && (
         <div className="rounded-2xl border bg-muted/40 p-4">
-          <p className="text-sm font-medium mb-3">{quantityLabel}</p>
+          <p className="text-sm font-medium mb-3">{label}</p>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <button
