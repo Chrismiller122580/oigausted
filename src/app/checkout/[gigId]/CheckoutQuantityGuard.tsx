@@ -45,25 +45,25 @@ function mergeFacts(customFields: Record<string, unknown>, facts: Record<string,
 
 function lockSellerSelects() {
   if (typeof document === 'undefined') return;
-  const blocks = document.querySelectorAll('label, p, span');
+  const blocks = document.querySelectorAll('label');
   blocks.forEach((el) => {
-    const text = (el.textContent || '').trim().toLowerCase();
+    const text = (el.textContent || '').trim();
     if (!/(tipo de producto|origen|condici[oó]n|tipo de veh[ií]culo|tipo de recurso|a[nñ]o del modelo|unidad de medida|product type|origin|condition)/i.test(text)) {
       return;
     }
-    const wrap = el.closest('div');
-    if (!wrap) return;
+    const wrap = el.parentElement;
+    if (!wrap || wrap.getAttribute('data-seller-fact-locked')) return;
     const select = wrap.querySelector('select');
     if (!select) return;
     const selected = select.querySelector('option:checked') as HTMLOptionElement | null;
-    const value = selected && selected.value ? selected.textContent?.trim() : '';
-    if (value && !wrap.getAttribute('data-seller-fact-locked')) {
+    const value = selected && selected.value ? selected.textContent?.replace(/\s\(\+\$.*\)$/, '').trim() : '';
+    if (value) {
       const readout = document.createElement('p');
       readout.className = 'font-medium';
       readout.textContent = value;
       select.replaceWith(readout);
       wrap.setAttribute('data-seller-fact-locked', '1');
-    } else if (!value) {
+    } else {
       wrap.remove();
     }
   });
@@ -76,7 +76,7 @@ function lockSellerSelects() {
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.dispatchEvent(new Event('change', { bubbles: true }));
     }
-    if (Number(input.min) < 1) input.min = '1';
+    if (!input.min || Number(input.min) < 1) input.min = '1';
   });
 }
 
@@ -88,6 +88,19 @@ export default function CheckoutQuantityGuard() {
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
       const method = (init?.method || (typeof input !== 'string' && !(input instanceof URL) ? input.method : 'GET') || 'GET').toUpperCase();
+
+      if (init?.body && typeof init.body === 'string' && (url.includes('/api/checkout') || /\/api\/orders\//.test(url)) && method !== 'GET') {
+        try {
+          const body = JSON.parse(init.body);
+          const existing = body.customFields && typeof body.customFields === 'object' ? body.customFields : {};
+          const gigId = body.gigId || Object.keys(sellerFactsByGig)[0];
+          const facts = (gigId && sellerFactsByGig[String(gigId)]) || {};
+          const customFields = mergeFacts(existing, facts);
+          init = { ...init, body: JSON.stringify({ ...body, customFields }) };
+        } catch {
+          // leave request unchanged
+        }
+      }
 
       const res = await originalFetch(input, init);
 
@@ -101,23 +114,6 @@ export default function CheckoutQuantityGuard() {
         }
       } catch {
         // ignore parse errors
-      }
-
-      if (init?.body && typeof init.body === 'string' && (url.includes('/api/checkout') || /\/api\/orders\//.test(url))) {
-        try {
-          const body = JSON.parse(init.body);
-          const existing = body.customFields && typeof body.customFields === 'object' ? body.customFields : {};
-          const gigId = body.gigId || Object.keys(sellerFactsByGig)[0];
-          const facts = (gigId && sellerFactsByGig[String(gigId)]) || {};
-          const customFields = mergeFacts(existing, facts);
-          if (JSON.stringify(customFields) !== JSON.stringify(existing)) {
-            body.customFields = customFields;
-            init = { ...init, body: JSON.stringify(body) };
-            return originalFetch(input, init);
-          }
-        } catch {
-          // leave request unchanged
-        }
       }
 
       return res;
