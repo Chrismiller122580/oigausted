@@ -23,12 +23,12 @@ export default function BuyGigConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4"
       onClick={confirming ? undefined : onCancel}
       role="presentation"
     >
       <div
-        className="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-xl"
+        className="bg-white dark:bg-neutral-950 border border-border rounded-2xl w-full max-w-md p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
