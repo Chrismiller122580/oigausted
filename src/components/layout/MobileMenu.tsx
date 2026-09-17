@@ -1,12 +1,14 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import {
   X, LogOut, User, Home, Package, Plus, DollarSign, Users, BarChart3, TrendingUp,
   MessageCircle, Settings, Tag, Briefcase, Bell, Megaphone, Activity, ScanSearch,
-  Receipt, ShieldCheck, AlertCircle, FileText, List, Sparkles,
+  List, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getStaffPortalPath, isStaffRole } from '@/lib/session';
@@ -24,15 +26,20 @@ interface MobileMenuProps {
 export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileMenuProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
-  const isAuthPage =
-    pathname === '/login' ||
-    pathname === '/signup' ||
-    pathname === '/forgot-password' ||
-    pathname === '/reset-password' ||
-    pathname?.startsWith('/login/') ||
-    false;
+  const [mounted, setMounted] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isOpen]);
+
+  if (!isOpen || !mounted) return null;
 
   const handleSignOut = () => {
     onClose();
@@ -48,31 +55,23 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
         ? 'Portal Analytics'
         : 'Portal Staff';
 
-  return (
-    <div className="md:hidden fixed inset-0 z-[100] bg-background safe-area-inset-top safe-area-inset-bottom">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 h-16 border-b border-border">
+  const sheet = (
+    <div className="md:hidden fixed inset-0 z-[200] bg-white dark:bg-neutral-950 text-foreground">
+      <div className="flex items-center justify-between px-4 h-16 border-b border-border">
         <Link href="/" onClick={onClose} className="flex items-center gap-3">
           <div className="w-8 h-8 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">OU</div>
         </Link>
-        <button onClick={onClose} className="p-2" aria-label="Cerrar menú">
+        <button onClick={onClose} className="p-3" aria-label="Cerrar menú">
           <X size={28} />
         </button>
       </div>
 
-      {/* Menu Content */}
-      <div className="px-6 py-8 space-y-2 text-lg overflow-y-auto h-[calc(100dvh-5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))]">
+      <div className="px-5 py-4 space-y-1 text-lg overflow-y-auto h-[calc(100dvh-4rem)] pb-8">
         {role === 'public' && (
           <>
-            <Link href="/privacy" onClick={onClose} className="block py-4 border-b border-border">
-              Privacidad
-            </Link>
-            <Link href="/terms" onClick={onClose} className="block py-4 border-b border-border">
-              Términos
-            </Link>
-            <Link href="/login" onClick={onClose} className="block py-4 border-b border-border">
-              Iniciar Sesión
-            </Link>
+            <Link href="/privacy" onClick={onClose} className="block py-4 border-b border-border">Privacidad</Link>
+            <Link href="/terms" onClick={onClose} className="block py-4 border-b border-border">Términos</Link>
+            <Link href="/login" onClick={onClose} className="block py-4 border-b border-border">Iniciar Sesión</Link>
             <Link href="/signup" onClick={onClose} className="block py-4">
               <Button className="w-full bg-orange-600">Registrarse</Button>
             </Link>
@@ -111,11 +110,7 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
               <MessageCircle size={22} /> Soporte y Tutoriales
             </Link>
             <div className="pt-4">
-              <Button 
-                onClick={handleSignOut} 
-                variant="outline" 
-                className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200"
-              >
+              <Button onClick={handleSignOut} variant="outline" className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200">
                 <LogOut size={20} /> Cerrar Sesión
               </Button>
             </div>
@@ -171,13 +166,8 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             <Link href="/support" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <MessageCircle size={22} /> Soporte y Tutoriales
             </Link>
-
             <div className="pt-6">
-              <Button 
-                onClick={handleSignOut} 
-                variant="outline" 
-                className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200"
-              >
+              <Button onClick={handleSignOut} variant="outline" className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200">
                 <LogOut size={20} /> Cerrar Sesión
               </Button>
             </div>
@@ -190,22 +180,13 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             {ACCOUNTANT_NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onClose}
-                  className="flex items-center gap-3 py-4 border-b border-border"
-                >
+                <Link key={item.href} href={item.href} onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
                   <Icon size={22} /> {item.label}
                 </Link>
               );
             })}
             <div className="pt-6">
-              <Button
-                onClick={handleSignOut}
-                variant="outline"
-                className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200"
-              >
+              <Button onClick={handleSignOut} variant="outline" className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200">
                 <LogOut size={20} /> Cerrar Sesión
               </Button>
             </div>
@@ -218,22 +199,13 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             {ADMIN_ASSISTANT_NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onClose}
-                  className="flex items-center gap-3 py-4 border-b border-border"
-                >
+                <Link key={item.href} href={item.href} onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
                   <Icon size={22} /> {item.label}
                 </Link>
               );
             })}
             <div className="pt-6">
-              <Button
-                onClick={handleSignOut}
-                variant="outline"
-                className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200"
-              >
+              <Button onClick={handleSignOut} variant="outline" className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200">
                 <LogOut size={20} /> Cerrar Sesión
               </Button>
             </div>
@@ -246,22 +218,13 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             {ANALYTICS_NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onClose}
-                  className="flex items-center gap-3 py-4 border-b border-border"
-                >
+                <Link key={item.href} href={item.href} onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
                   <Icon size={22} /> {item.label}
                 </Link>
               );
             })}
             <div className="pt-6">
-              <Button
-                onClick={handleSignOut}
-                variant="outline"
-                className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200"
-              >
+              <Button onClick={handleSignOut} variant="outline" className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200">
                 <LogOut size={20} /> Cerrar Sesión
               </Button>
             </div>
@@ -273,18 +236,12 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             <Link href="/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Bell size={22} /> Notificaciones
             </Link>
-            <Link href="/admin" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              Overview
-            </Link>
+            <Link href="/admin" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">Overview</Link>
             <Link href="/admin/users" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Users size={22} /> Usuarios
             </Link>
-            <Link href="/admin/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              Gigs
-            </Link>
-            <Link href="/admin/orders" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              Orders
-            </Link>
+            <Link href="/admin/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">Gigs</Link>
+            <Link href="/admin/orders" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">Orders</Link>
             <Link href="/admin/categories" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Tag size={22} /> Categorías
             </Link>
@@ -294,9 +251,7 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             <Link href="/admin/payouts" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <DollarSign size={22} /> Pagos
             </Link>
-            <Link href="/admin/reports" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              Reportes
-            </Link>
+            <Link href="/admin/reports" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">Reportes</Link>
             <Link href="/admin/analytics" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Activity size={22} /> Analytics
             </Link>
@@ -327,20 +282,16 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             <Link href="/admin/grok-build" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border font-medium">
               ✨ Grok Build
             </Link>
-
             <div className="pt-6">
-              <Button 
-                onClick={handleSignOut} 
-                variant="outline" 
-                className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200"
-              >
+              <Button onClick={handleSignOut} variant="outline" className="w-full flex items-center gap-2 justify-center py-6 text-lg text-red-600 border-red-200">
                 <LogOut size={20} /> Cerrar Sesión
               </Button>
             </div>
           </>
         )}
-
       </div>
     </div>
   );
+
+  return createPortal(sheet, document.body);
 }
