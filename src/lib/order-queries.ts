@@ -188,11 +188,13 @@ export async function createPendingOrder({
   sellerId,
   gigId,
   price,
+  customFields = null,
 }: {
   buyerId: string
   sellerId: string
   gigId: string
   price: number
+  customFields?: Record<string, unknown> | null
 }) {
   return prisma.order.create({
     data: {
@@ -201,7 +203,7 @@ export async function createPendingOrder({
       gigId,
       price,
       status: labelToPrismaStatus(OrderStatusLabel.Pending),
-      customFields: null,
+      customFields: customFields ? JSON.stringify(customFields) : null,
     },
     select: orderCreateSelect,
   })
