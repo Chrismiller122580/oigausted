@@ -9,6 +9,8 @@ export interface DynamicFieldDef {
   extraPrice?: number
   options?: DynamicFieldOption[]
   required?: boolean
+  /** Seller-selected value saved on the gig; omit when the seller left the option blank. */
+  value?: string | number | boolean
 }
 
 export interface GigAddonMeta {
