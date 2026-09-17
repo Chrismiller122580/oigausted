@@ -36,7 +36,6 @@ export default function AdminGigsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [loading, setLoading] = useState(true);
-
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingGig, setEditingGig] = useState<Gig | null>(null);
   const [editForm, setEditForm] = useState<Record<string, unknown>>({});
@@ -45,15 +44,13 @@ export default function AdminGigsPage() {
     setLoading(true);
     try {
       let url = search ? `/api/admin/gigs?search=${encodeURIComponent(search)}` : '/api/admin/gigs';
-      if (withDeleted) {
-        url += (url.includes('?') ? '&' : '?') + 'includeDeleted=true';
-      }
+      if (withDeleted) url += (url.includes('?') ? '&' : '?') + 'includeDeleted=true';
       const res = await fetch(url);
       const data = await res.json();
       const list = data.gigs || [];
       setGigs(list);
       setFiltered(list);
-    } catch (e) {
+    } catch {
       toast.error('Error loading gigs');
     } finally {
       setLoading(false);
@@ -86,9 +83,7 @@ export default function AdminGigsPage() {
       if (res.ok) {
         toast.success(gig.isActive ? 'Gig paused' : 'Gig activated');
         fetchGigs();
-      } else {
-        toast.error('Could not change status');
-      }
+      } else toast.error('Could not change status');
     } catch {
       toast.error('Error');
     }
@@ -96,7 +91,6 @@ export default function AdminGigsPage() {
 
   const softDeleteGig = async (gig: Gig) => {
     if (!window.confirm(`Soft-delete "${gig.title}"? It can be restored later from the admin list.`)) return;
-
     try {
       const res = await fetch('/api/admin/gigs', {
         method: 'PATCH',
@@ -117,7 +111,6 @@ export default function AdminGigsPage() {
 
   const restoreGig = async (gig: Gig) => {
     if (!window.confirm(`Restore "${gig.title}"?`)) return;
-
     try {
       const res = await fetch('/api/admin/gigs', {
         method: 'PATCH',
@@ -198,12 +191,62 @@ export default function AdminGigsPage() {
     setEditForm({});
   };
 
+  if (isEditOpen && editingGig) {
+    return (
+      <div className="bg-background text-foreground max-w-2xl mx-auto pb-8">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <h1 className="text-2xl font-semibold">Edit Gig</h1>
+          <Button variant="outline" size="sm" onClick={closeEdit}>Close</Button>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4 truncate">{editingGig.title}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm block mb-1">Title</label>
+            <Input value={String(editForm.title ?? '')} onChange={e => setEditForm({ ...editForm, title: e.target.value })} />
+          </div>
+          <div>
+            <label className="text-sm block mb-1">Price (COP)</label>
+            <Input type="number" value={String(editForm.price ?? '')} onChange={e => setEditForm({ ...editForm, price: e.target.value })} />
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-sm block mb-1">Description</label>
+            <textarea
+              className="w-full bg-background border border-border rounded p-2 min-h-[100px]"
+              value={String(editForm.description ?? '')}
+              onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="text-sm block mb-1">Category</label>
+            <Input value={String(editForm.category ?? '')} onChange={e => setEditForm({ ...editForm, category: e.target.value })} />
+          </div>
+          <div>
+            <label className="text-sm block mb-1">Completion Time</label>
+            <Input value={String(editForm.completionTime ?? '')} onChange={e => setEditForm({ ...editForm, completionTime: e.target.value })} placeholder="e.g. 2-3 days" />
+          </div>
+          <div>
+            <label className="text-sm block mb-1">City / Location</label>
+            <Input value={String(editForm.city ?? '')} onChange={e => setEditForm({ ...editForm, city: e.target.value })} />
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <input type="checkbox" checked={!!editForm.isRemote} onChange={e => setEditForm({ ...editForm, isRemote: e.target.checked })} />
+            <span className="text-sm">Remote / Online service</span>
+          </div>
+        </div>
+        <div className="flex gap-3 mt-6 justify-end">
+          <Button variant="outline" onClick={closeEdit}>Cancel</Button>
+          <Button onClick={saveEdit}>Save Changes</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-background text-foreground">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
           <div>
-            <h1 className="text-5xl font-bold">Gig Moderation</h1>
+            <h1 className="text-2xl md:text-4xl font-bold">Gig Moderation</h1>
             <p className="text-muted-foreground mt-1">
               {viewOnly ? 'View-only — browse all platform services' : 'Manage all platform services — delete, edit, restore'}
             </p>
@@ -239,10 +282,8 @@ export default function AdminGigsPage() {
             {filtered.length === 0 && (
               <div className="text-center py-12">
                 <p className="text-xl text-muted-foreground">No gigs found matching the criteria.</p>
-                <p className="text-sm text-muted-foreground mt-1">Try a different search.</p>
               </div>
             )}
-
             {filtered.map(gig => (
               <Card key={gig.id} className="bg-card border-border">
                 <CardContent className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -264,54 +305,27 @@ export default function AdminGigsPage() {
                       {gig.orderCount || 0} orders • Created {new Date(gig.createdAt).toLocaleDateString('es-CO')}
                     </p>
                   </div>
-
                   <div className="flex gap-2 flex-wrap md:flex-nowrap">
                     <a href={`/gigs/${gig.id}`} target="_blank" rel="noreferrer">
                       <Button variant="outline" size="sm" className="border-border flex items-center gap-2">
                         <Eye size={16} /> View
                       </Button>
                     </a>
-
                     {!viewOnly && (
                       <>
                         {!gig.deletedAt && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => toggleActive(gig)}
-                            className="border-border flex items-center gap-2"
-                          >
+                          <Button variant="outline" size="sm" onClick={() => toggleActive(gig)} className="border-border flex items-center gap-2">
                             {gig.isActive ? <Pause size={16} /> : <Play size={16} />}
                             {gig.isActive ? 'Pause' : 'Activate'}
                           </Button>
                         )}
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEdit(gig)}
-                          className="border-border flex items-center gap-2"
-                        >
+                        <Button variant="outline" size="sm" onClick={() => openEdit(gig)} className="border-border flex items-center gap-2">
                           <Edit2 size={16} /> Edit
                         </Button>
-
                         {gig.deletedAt ? (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => restoreGig(gig)}
-                            className="flex items-center gap-2"
-                          >
-                            Restore
-                          </Button>
+                          <Button variant="default" size="sm" onClick={() => restoreGig(gig)}>Restore</Button>
                         ) : (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => softDeleteGig(gig)}
-                            className="flex items-center gap-2"
-                            title="Soft delete (can be restored later)"
-                          >
+                          <Button variant="destructive" size="sm" onClick={() => softDeleteGig(gig)} className="flex items-center gap-2">
                             <Trash2 size={16} /> Delete
                           </Button>
                         )}
@@ -324,61 +338,6 @@ export default function AdminGigsPage() {
           </div>
         )}
       </div>
-
-      {isEditOpen && editingGig && (
-        <div className="fixed inset-0 z-[80] bg-background md:bg-black/70 flex items-stretch md:items-center justify-center md:p-4">
-          <div className="bg-background md:bg-card border-0 md:border border-border rounded-none md:rounded-xl w-full max-w-2xl max-h-[100dvh] md:max-h-[90vh] overflow-y-auto p-5 pb-28 md:p-6">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <h2 className="text-xl md:text-2xl font-semibold">Edit Gig: {editingGig.title}</h2>
-              <Button variant="outline" size="sm" onClick={closeEdit}>Close</Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm block mb-1">Title</label>
-                <Input value={String(editForm.title ?? '')} onChange={e => setEditForm({ ...editForm, title: e.target.value })} />
-              </div>
-              <div>
-                <label className="text-sm block mb-1">Price (COP)</label>
-                <Input type="number" value={String(editForm.price ?? '')} onChange={e => setEditForm({ ...editForm, price: e.target.value })} />
-              </div>
-              <div className="md:col-span-2">
-                <label className="text-sm block mb-1">Description</label>
-                <textarea
-                  className="w-full bg-background border border-border rounded p-2 min-h-[100px]"
-                  value={String(editForm.description ?? '')}
-                  onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-sm block mb-1">Category</label>
-                <Input value={String(editForm.category ?? '')} onChange={e => setEditForm({ ...editForm, category: e.target.value })} />
-              </div>
-              <div>
-                <label className="text-sm block mb-1">Completion Time</label>
-                <Input value={String(editForm.completionTime ?? '')} onChange={e => setEditForm({ ...editForm, completionTime: e.target.value })} placeholder="e.g. 2-3 days" />
-              </div>
-              <div>
-                <label className="text-sm block mb-1">City / Location</label>
-                <Input value={String(editForm.city ?? '')} onChange={e => setEditForm({ ...editForm, city: e.target.value })} />
-              </div>
-              <div className="flex items-center gap-2 mt-6">
-                <input type="checkbox" checked={!!editForm.isRemote} onChange={e => setEditForm({ ...editForm, isRemote: e.target.checked })} />
-                <span className="text-sm">Remote / Online service</span>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6 justify-end">
-              <Button variant="outline" onClick={closeEdit}>Cancel</Button>
-              <Button onClick={saveEdit}>Save Changes</Button>
-            </div>
-
-            <p className="text-xs text-muted-foreground mt-3">
-              Note: Full fields (addons, dynamic fields, image) can also be edited via seller dashboard or advanced admin tools.
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
