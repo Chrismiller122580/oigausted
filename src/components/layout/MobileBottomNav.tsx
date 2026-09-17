@@ -15,7 +15,7 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
 
   if (role === 'seller') {
     return (
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-background/95 backdrop-blur border-t border-border safe-area-inset-bottom">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[80] bg-white dark:bg-neutral-950 border-t border-border safe-area-inset-bottom">
         <div className="flex items-center justify-around h-16 px-1 text-[11px]">
           <Link 
             href="/seller" 
@@ -64,7 +64,7 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
       pathname === '/admin' || pathname === '/admin/overview';
 
     return (
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-background/95 backdrop-blur border-t border-border safe-area-inset-bottom">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[80] bg-white dark:bg-neutral-950 border-t border-border safe-area-inset-bottom">
         <div className="flex items-center justify-around h-16 px-1 text-[11px]">
           <Link 
             href="/admin" 
@@ -106,9 +106,8 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
     );
   }
 
-  // Buyer bottom nav
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-background/95 backdrop-blur border-t border-border safe-area-inset-bottom">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[80] bg-white dark:bg-neutral-950 border-t border-border safe-area-inset-bottom">
       <div className="flex items-center justify-around h-16 px-1 text-[11px]">
         <Link 
           href="/buyer" 
