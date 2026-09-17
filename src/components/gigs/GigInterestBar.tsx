@@ -37,7 +37,7 @@ export function GigInterestStats({
         <span className="tabular-nums font-medium text-foreground">{formatInterestCount(likeCount)}</span>
         <span className="hidden sm:inline">les gusta la idea</span>
       </span>
-      <span className="inline-flex items-center gap-1" title="Veces que se ha visto este gig">
+      <span className="inline-flex items-center gap-1" title="Veces que se ha visto este servicio">
         <Eye className="h-3.5 w-3.5 text-sky-600" aria-hidden />
         <span className="tabular-nums font-medium text-foreground">{formatInterestCount(viewCount)}</span>
         <span className="hidden sm:inline">vistas</span>
@@ -113,7 +113,7 @@ export default function GigInterestBar({
 
   const handleLike = async () => {
     if (isOwnGig) {
-      toast.info('Este es su propio gig')
+      toast.info('Este es su propio servicio')
       return
     }
     if (!userId) {
@@ -181,7 +181,7 @@ export default function GigInterestBar({
           className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3.5 py-2 text-sm font-medium hover:bg-muted transition"
         >
           <Share2 className="h-4 w-4" aria-hidden />
-          Compartir gig
+          Compartir
         </button>
 
         <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground ml-1">
