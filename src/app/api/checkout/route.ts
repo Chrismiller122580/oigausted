@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { devLog } from '@/lib/utils';
 import { notifyAdminsNewOrder } from '@/lib/admin-notifications';
 import { createPendingOrder, ensureBuyerForOrder } from '@/lib/order-queries';
+import { computeOrderPrice } from '@/lib/order-price';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,13 +15,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { gigId } = await req.json();
+    const body = await req.json();
+    const { gigId, customFields } = body || {};
     const gig = await prisma.gig.findUnique({
       where: { id: gigId },
       select: {
         id: true,
         title: true,
         price: true,
+        fields: true,
         sellerId: true,
         isActive: true,
         seller: { select: { name: true, businessName: true } },
@@ -31,7 +34,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Gig not found" }, { status: 404 });
     }
 
-    // Prevent sellers from purchasing their own gigs (server-side enforcement)
     if (gig.sellerId === userId) {
       return NextResponse.json({ error: "No puedes comprar tu propio servicio" }, { status: 403 });
     }
@@ -42,11 +44,18 @@ export async function POST(req: NextRequest) {
 
     await ensureBuyerForOrder(session?.user)
 
+    const selections =
+      customFields && typeof customFields === 'object' && !Array.isArray(customFields)
+        ? customFields
+        : {};
+    const price = computeOrderPrice(gig.price, gig.fields, selections);
+
     const order = await createPendingOrder({
       buyerId: userId,
       sellerId: gig.sellerId,
       gigId: gig.id,
-      price: gig.price,
+      price,
+      customFields: Object.keys(selections).length ? selections : null,
     });
 
     devLog("✅ Order created:", order.id);
@@ -59,21 +68,21 @@ export async function POST(req: NextRequest) {
     notifyAdminsNewOrder({
       orderId: order.id,
       gigTitle: gig.title,
-      amount: gig.price,
+      amount: price,
       buyerName: buyer?.name || session?.user?.name,
       sellerName: gig.seller?.businessName || gig.seller?.name,
     }).catch(() => {})
 
-    return NextResponse.json({ 
-      success: true, 
-      order 
+    return NextResponse.json({
+      success: true,
+      order
     });
 
   } catch (error: unknown) {
     console.error("Checkout error:", error);
     const details = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ 
-      error: "Failed to create order", 
+    return NextResponse.json({
+      error: "Failed to create order",
       details
     }, { status: 500 });
   }
