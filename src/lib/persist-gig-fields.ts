@@ -1,6 +1,37 @@
 import { isQuantityField } from '@/lib/order-price'
 import type { CheckoutFormData, DynamicFieldDef } from '@/types/gig-fields'
 
+/** Listing facts only the seller can know. Buyer must not pick these at checkout. */
+const SELLER_ATTRIBUTE_KEYS = new Set([
+  'producttype',
+  'origin',
+  'origen',
+  'condition',
+  'condicion',
+  'condición',
+  'vehicletype',
+  'resourcetype',
+  'year',
+  'año',
+  'anio',
+  'unit',
+  'unidad',
+])
+
+export function isSellerAttributeField(
+  field: Pick<DynamicFieldDef, 'key' | 'label' | 'owner' | 'type'> | null | undefined
+): boolean {
+  if (!field) return false
+  if (field.owner === 'seller') return true
+  if (field.owner === 'buyer') return false
+  const key = String(field.key || '').toLowerCase().replace(/[\s_-]+/g, '')
+  if (SELLER_ATTRIBUTE_KEYS.has(key)) return true
+  const label = String(field.label || '').toLowerCase()
+  return /(
+    tipo de producto|origen|condici[oó]n|tipo de veh[ií]culo|tipo de recurso|a[nñ]o del modelo|unidad de medida
+  )/i.test(label.replace(/\s+/g, ' '))
+}
+
 export function seedQuantityDefaults(
   fields: DynamicFieldDef[],
   prev: CheckoutFormData = {}
