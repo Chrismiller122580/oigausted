@@ -16,7 +16,6 @@ import { NotificationsBell } from './NotificationsBell';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import Logo from '@/components/common/Logo';
 
-
 interface NavItem {
   href: string;
   label: string;
@@ -48,7 +47,7 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
   const { data: session } = useSession();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // pinned expanded state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 
   const handleSignOut = () => {
@@ -63,33 +62,27 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* Top Header - always visible, compact */}
-      <header className="bg-background border-b border-border sticky top-0 z-50 safe-area-inset-top">
+      <header className="bg-white dark:bg-neutral-950 border-b border-border sticky top-0 z-[80] safe-area-inset-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
-            {/* Logo - links to public homepage */}
             <div className="flex items-center gap-2">
               <Logo size={36} />
               <span className="font-semibold text-lg text-muted-foreground hidden sm:inline">Admin</span>
             </div>
-
-            {/* Desktop sidebar toggle - compact */}
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="hidden md:block ml-1 p-1.5 rounded-md hover:bg-accent text-muted-foreground"
               aria-label="Toggle sidebar"
-              title={isSidebarOpen ? "Collapse sidebar (icons only)" : "Expand sidebar (show labels)"}
             >
               <Menu size={18} className={isSidebarOpen ? '' : 'rotate-180'} />
             </button>
           </div>
 
-          {/* Right side - user + actions */}
           <div className="flex items-center gap-3">
             <div className="hidden md:flex items-center gap-3 text-sm">
               <div className="text-right">
                 <p className="font-medium text-foreground">{session?.user?.name || 'Admin'}</p>
-                <p className="text-xs text-muted-foreground">Administrator</p>
+                <p className="text-xs text-muted-foreground">Administrador</p>
               </div>
             </div>
 
@@ -108,7 +101,7 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-2 text-muted-foreground hover:text-foreground"
-              aria-label="Toggle menu"
+              aria-label="Abrir menú"
             >
               {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -117,7 +110,6 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
       </header>
 
       <div className="flex flex-1 max-w-7xl mx-auto w-full">
-        {/* Desktop Sidebar */}
         <aside
           className={`hidden md:block border-r border-border bg-muted/30 transition-all duration-200 overflow-hidden ${
             (isSidebarOpen || isSidebarHovered) ? 'w-64' : 'w-14'
@@ -148,16 +140,9 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
                 );
               })}
             </nav>
-
-            { (isSidebarOpen || isSidebarHovered) && (
-              <div className="mt-8 pt-6 border-t text-xs text-muted-foreground px-3">
-                Admin tools • {new Date().getFullYear()}
-              </div>
-            )}
           </div>
         </aside>
 
-        {/* Main Content Area */}
         <div className="flex-1 min-w-0">
           <main className="p-4 sm:p-6 lg:p-8 mobile-page-bottom">
             {children}
@@ -166,8 +151,6 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
       </div>
 
       <MobileBottomNav role="admin" />
-
-      {/* Full nav for less-used admin tools */}
       <MobileMenu 
         isOpen={isMobileMenuOpen} 
         onClose={() => setIsMobileMenuOpen(false)} 
