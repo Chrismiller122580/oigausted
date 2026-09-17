@@ -21,6 +21,10 @@ export default function SellerOrdersPage() {
   const [reviews, setReviews] = useState<(import('@/types/order').OrderReview & { orderId?: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [deliveryOrderId, setDeliveryOrderId] = useState<string | null>(null);
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryFee, setDeliveryFee] = useState('8000');
+  const [savingDelivery, setSavingDelivery] = useState(false);
 
   const loadOrders = async () => {
     if (!session?.user) {
@@ -54,7 +58,6 @@ export default function SellerOrdersPage() {
     loadOrders();
   }, [session, status]);
 
-  // Refresh while waiting on payments so Paid appears without manual reload
   useEffect(() => {
     if (!session?.user || orders.length === 0) return;
     const hasPending = orders.some((o) => o.status === OrderStatusLabel.Pending);
@@ -81,8 +84,41 @@ export default function SellerOrdersPage() {
   };
 
   const reviewedOrderIds = new Set(reviews.map(r => r.orderId));
-
   const hasReview = (orderId: string) => reviewedOrderIds.has(orderId);
+
+  const hasDelivery = (order: import('@/types/order').OrderDetail) => {
+    const fields = parseCustomFields(order.customFields);
+    return fields.entregaDomicilio === true || fields.entregaDomicilio === 'Sí';
+  };
+
+  const addDelivery = async (orderId: string) => {
+    setSavingDelivery(true);
+    try {
+      const res = await fetch(`/api/orders/${orderId}/delivery`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fee: Number(deliveryFee) || 0,
+          address: deliveryAddress.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(typeof data.error === 'string' ? data.error : 'No se pudo agregar domicilio');
+        return;
+      }
+      toast.success('Domicilio agregado. El comprador ya fue notificado.');
+      setDeliveryOrderId(null);
+      setDeliveryAddress('');
+      setDeliveryFee('8000');
+      setLoading(true);
+      await loadOrders();
+    } catch {
+      toast.error('No se pudo agregar domicilio');
+    } finally {
+      setSavingDelivery(false);
+    }
+  };
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
@@ -103,12 +139,10 @@ export default function SellerOrdersPage() {
         return;
       }
 
-      // Refresh the list
       const updatedOrders = orders.map(o =>
         o.id === orderId ? { ...o, status: newStatus as import('@/types/order').OrderDetail['status'] } : o
       );
       setOrders(updatedOrders);
-
       toast.success(`Pedido actualizado a: ${newStatus}`);
     } catch (error) {
       toast.error('No se pudo actualizar el estado');
@@ -116,9 +150,8 @@ export default function SellerOrdersPage() {
   };
 
   const paidOrders = orders.filter((o) => o.status === OrderStatusLabel.Paid);
-
-  const filteredOrders = statusFilter === 'All' 
-    ? orders 
+  const filteredOrders = statusFilter === 'All'
+    ? orders
     : orders.filter(o => o.status === statusFilter);
 
   if (loading) {
@@ -152,12 +185,11 @@ export default function SellerOrdersPage() {
               : `${paidOrders.length} pedidos pagados — listos para iniciar`}
           </p>
           <p className="text-sm text-blue-700/80 dark:text-blue-400/80 mt-1">
-            El comprador ya pagó. Usa &quot;Aceptar y Comenzar&quot; para pasar a En progreso.
+            El comprador ya pagó. Usa "Aceptar y Comenzar" para pasar a En progreso.
           </p>
         </div>
       )}
 
-      {/* Status Filters */}
       {orders.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-8">
           {['All', 'Pending', 'Paid', 'In Progress', 'Completed'].map((status) => {
@@ -170,8 +202,8 @@ export default function SellerOrdersPage() {
               key={status}
               onClick={() => setStatusFilter(status)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition inline-flex items-center gap-1.5 ${
-                statusFilter === status 
-                  ? 'bg-orange-600 text-white' 
+                statusFilter === status
+                  ? 'bg-orange-600 text-white'
                   : status === 'Paid' && count > 0
                     ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/60 ring-2 ring-blue-400/50'
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -269,7 +301,6 @@ export default function SellerOrdersPage() {
                 </div>
 
                 <div className="flex flex-col gap-3 w-full md:w-52 pt-4">
-                  {/* Quick Status Actions */}
                   {order.status === 'Pending' && (
                     <p className="text-xs text-muted-foreground text-center px-1">
                       Esperando pago del comprador
@@ -277,7 +308,7 @@ export default function SellerOrdersPage() {
                   )}
 
                   {order.status === OrderStatusLabel.Paid && (
-                    <Button 
+                    <Button
                       onClick={() => updateOrderStatus(order.id, 'In Progress')}
                       className="w-full bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/25"
                     >
@@ -286,12 +317,48 @@ export default function SellerOrdersPage() {
                   )}
 
                   {order.status === 'In Progress' && (
-                    <Button 
+                    <Button
                       onClick={() => updateOrderStatus(order.id, 'Completed')}
                       className="w-full bg-green-600 hover:bg-green-700"
                     >
                       Marcar como Completado
                     </Button>
+                  )}
+
+                  {(order.status === OrderStatusLabel.Paid || order.status === 'In Progress') && !hasDelivery(order) && (
+                    deliveryOrderId === order.id ? (
+                      <div className="space-y-2 rounded-xl border p-3 bg-muted/40">
+                        <p className="text-sm font-medium">Agregar domicilio</p>
+                        <input
+                          className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                          placeholder="Dirección de entrega"
+                          value={deliveryAddress}
+                          onChange={(e) => setDeliveryAddress(e.target.value)}
+                        />
+                        <input
+                          className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                          type="number"
+                          min="0"
+                          placeholder="Costo (COP)"
+                          value={deliveryFee}
+                          onChange={(e) => setDeliveryFee(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">No cambia el valor ya pagado. Se avisa al comprador por chat.</p>
+                        <Button className="w-full" disabled={savingDelivery} onClick={() => addDelivery(order.id)}>
+                          {savingDelivery ? 'Guardando...' : 'Confirmar domicilio'}
+                        </Button>
+                        <Button variant="outline" className="w-full" onClick={() => setDeliveryOrderId(null)}>
+                          Cancelar
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button variant="outline" className="w-full" onClick={() => setDeliveryOrderId(order.id)}>
+                        Agregar domicilio
+                      </Button>
+                    )
+                  )}
+                  {hasDelivery(order) && (
+                    <p className="text-xs text-center text-emerald-700">Domicilio agregado</p>
                   )}
 
                   <Link href={`/orders/${order.id}`}>
