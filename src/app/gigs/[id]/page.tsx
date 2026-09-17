@@ -27,6 +27,7 @@ function fieldPublicValue(field: DynamicFieldDef): string | number | boolean | u
 }
 
 function hasSellerSelectedValue(field: DynamicFieldDef): boolean {
+  if (isQuantityField(field)) return false
   const value = fieldPublicValue(field)
   if (value === true) return true
   if (typeof value === 'number' && Number.isFinite(value)) return true
@@ -82,6 +83,8 @@ export default async function GigDetailPage({ params }: PageProps) {
     : null
 
   const gigFields = (gig.fields as DynamicFieldDef[]).filter(hasSellerSelectedValue)
+  const quantityLabel =
+    (gig.fields as DynamicFieldDef[]).find((field) => isQuantityField(field))?.label || null
   const locationLabel = formatGigLocation(gig)
   const jsonLd = gigServiceJsonLd({
     id: gig.id,
@@ -247,10 +250,7 @@ export default async function GigDetailPage({ params }: PageProps) {
                 gigPrice={gig.price}
                 sellerId={gig.sellerId}
                 isActive={gig.isActive}
-                quantityLabel={
-                  (gig.fields as DynamicFieldDef[]).find((field) => isQuantityField(field))?.label
-                  || null
-                }
+                quantityLabel={quantityLabel}
               />
 
               {gig.seller && (
