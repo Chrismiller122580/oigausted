@@ -127,7 +127,12 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
+  let session = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch (e) {
+    console.error('getServerSession failed:', e);
+  }
   // Global guard against the Google Maps legacy Places Autocomplete widget.
   // The legacy widget (from stale bundles or accidental 'places' lib load) injects
   // .pac-container DOM nodes that React does not own. React unmount/reconcile then throws
