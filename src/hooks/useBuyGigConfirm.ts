@@ -12,6 +12,7 @@ export type BuyGigTarget = {
   price: number
   isActive?: boolean
   sellerId?: string
+  quantity?: number
 }
 
 export function useBuyGigConfirm() {
@@ -44,8 +45,10 @@ export function useBuyGigConfirm() {
 
   const confirm = useCallback(() => {
     if (!pending) return
+    const qty = Math.max(1, Math.floor(Number(pending.quantity) || 1))
+    const qtyQuery = pending.quantity ? `&quantity=${qty}` : ''
     setOpen(false)
-    router.push(`/checkout/${pending.gigId}?confirmed=1`)
+    router.push(`/checkout/${pending.gigId}?confirmed=1${qtyQuery}`)
     setPending(null)
   }, [pending, router])
 

@@ -6,6 +6,7 @@ type Props = {
   open: boolean
   title: string
   price: number
+  quantity?: number
   confirming?: boolean
   onConfirm: () => void
   onCancel: () => void
@@ -15,11 +16,13 @@ export default function BuyGigConfirmDialog({
   open,
   title,
   price,
+  quantity,
   confirming = false,
   onConfirm,
   onCancel,
 }: Props) {
   if (!open) return null
+  const units = Math.max(1, Math.floor(Number(quantity) || 1))
 
   return (
     <div
@@ -39,7 +42,14 @@ export default function BuyGigConfirmDialog({
         </h3>
         <p className="text-muted-foreground mb-6">
           Vas a iniciar la compra de{' '}
-          <span className="font-medium text-foreground">{title}</span> por{' '}
+          <span className="font-medium text-foreground">{title}</span>
+          {quantity ? (
+            <>
+              {' '}
+              ({units} {units === 1 ? 'unidad' : 'unidades'})
+            </>
+          ) : null}{' '}
+          por{' '}
           <span className="font-medium text-foreground">
             ${price.toLocaleString('es-CO')}
           </span>

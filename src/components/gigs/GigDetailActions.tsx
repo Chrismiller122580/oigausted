@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import StartInquiryButton from '@/components/common/StartInquiryButton'
@@ -12,6 +13,7 @@ type Props = {
   gigPrice: number
   sellerId: string
   isActive: boolean
+  quantityLabel?: string | null
 }
 
 export default function GigDetailActions({
@@ -20,19 +22,25 @@ export default function GigDetailActions({
   gigPrice,
   sellerId,
   isActive,
+  quantityLabel,
 }: Props) {
   const { data: session } = useSession()
   const userId = session?.user?.id
   const isOwnGig = userId === sellerId
   const { open, pending, requestBuy, confirm, cancel } = useBuyGigConfirm()
+  const hasQuantity = Boolean(quantityLabel)
+  const [quantity, setQuantity] = useState(1)
+  const units = hasQuantity ? Math.max(1, quantity) : 1
+  const total = useMemo(() => Math.max(0, Math.round(Number(gigPrice) || 0) * units), [gigPrice, units])
 
   const handleBuyNow = () => {
     requestBuy({
       gigId,
       title: gigTitle,
-      price: gigPrice,
+      price: total,
       isActive,
       sellerId,
+      quantity: hasQuantity ? units : undefined,
     })
   }
 
@@ -46,6 +54,42 @@ export default function GigDetailActions({
 
   return (
     <div className="space-y-3 mb-8">
+      {hasQuantity && (
+        <div className="rounded-2xl border bg-muted/40 p-4">
+          <p className="text-sm font-medium mb-3">{quantityLabel}</p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="h-11 w-11 rounded-xl border bg-background text-xl font-semibold"
+                onClick={() => setQuantity((n) => Math.max(1, n - 1))}
+                aria-label="Quitar una unidad"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                min={1}
+                value={units}
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                className="h-11 w-16 rounded-xl border bg-background text-center text-lg font-semibold"
+              />
+              <button
+                type="button"
+                className="h-11 w-11 rounded-xl border bg-background text-xl font-semibold"
+                onClick={() => setQuantity((n) => n + 1)}
+                aria-label="Agregar una unidad"
+              >
+                +
+              </button>
+            </div>
+            <p className="text-lg font-bold text-emerald-700 tabular-nums">
+              ${total.toLocaleString('es-CO')}
+            </p>
+          </div>
+        </div>
+      )}
+
       <Button
         onClick={handleBuyNow}
         size="lg"
@@ -69,6 +113,7 @@ export default function GigDetailActions({
           open={open}
           title={pending.title}
           price={pending.price}
+          quantity={pending.quantity}
           onConfirm={confirm}
           onCancel={cancel}
         />
