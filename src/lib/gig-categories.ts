@@ -84,6 +84,40 @@ export const gigCategories = [
     ]
   },
   {
+    name: "Venta de Productos de Belleza y Maquillaje",
+    icon: "🛍️",
+    fields: [
+      {
+        key: "productType",
+        label: "Tipo de producto",
+        type: "select",
+        options: [
+          { label: "Maquillaje", extraPrice: 0 },
+          { label: "Cuidado de la piel", extraPrice: 0 },
+          { label: "Cabello", extraPrice: 0 },
+          { label: "Uñas", extraPrice: 0 },
+          { label: "Fragancias", extraPrice: 0 },
+          { label: "Cuidado personal", extraPrice: 0 },
+          { label: "Kits o combos", extraPrice: 15000 },
+          { label: "Otro producto de belleza", extraPrice: 0 }
+        ]
+      },
+      { key: "quantity", label: "Cantidad de unidades", type: "number", extraPrice: 12000 },
+      {
+        key: "condition",
+        label: "Condición",
+        type: "select",
+        options: [
+          { label: "Nuevo / sellado", extraPrice: 0 },
+          { label: "Abierto sin usar", extraPrice: 0 },
+          { label: "Usado en buen estado", extraPrice: 0 }
+        ]
+      },
+      { key: "delivery", label: "Entrega a domicilio", type: "checkbox", extraPrice: 8000 },
+      { key: "giftWrap", label: "Envoltura para regalo", type: "checkbox", extraPrice: 5000 }
+    ]
+  },
+  {
     name: "Clases Particulares",
     icon: "📚",
     fields: [
@@ -186,7 +220,7 @@ export const gigCategories = [
       { key: "people", label: "Número de personas", type: "number", extraPrice: 20000 },
       { key: "hours", label: "Duración del tour (horas)", type: "number", extraPrice: 35000 },
       { key: "transport", label: "Transporte incluido", type: "checkbox", extraPrice: 45000 },
-      { key: "language", label: "Idioma del guía", type: "select", options: [
+      { key: "language", label: "Idioma del gía", type: "select", options: [
         { label: "Español", extraPrice: 0 },
         { label: "Inglés", extraPrice: 15000 },
         { label: "Francés", extraPrice: 20000 },
@@ -272,8 +306,8 @@ export const gigCategories = [
           { label: "Televisor / monitor", extraPrice: 15000 },
           { label: "Consola de videojuegos", extraPrice: 20000 },
           { label: "Impresora / periférico", extraPrice: 0 },
-          { label: "Otro electrónico", extraPrice: 0 },
-        ],
+          { label: "Otro electrónico", extraPrice: 0 }
+        ]
       },
       {
         key: "serviceType",
@@ -285,15 +319,15 @@ export const gigCategories = [
           { label: "Software / sistema operativo", extraPrice: 25000 },
           { label: "Limpieza y mantenimiento", extraPrice: 15000 },
           { label: "Instalación o configuración", extraPrice: 20000 },
-          { label: "Recuperación de datos", extraPrice: 50000 },
-        ],
+          { label: "Recuperación de datos", extraPrice: 50000 }
+        ]
       },
       { key: "devices", label: "Número de equipos", type: "number", extraPrice: 30000 },
       { key: "homeVisit", label: "Visita a domicilio", type: "checkbox", extraPrice: 35000 },
       { key: "urgency", label: "Urgencia (mismo día)", type: "checkbox", extraPrice: 50000 },
-      { key: "partsIncluded", label: "Repuestos incluidos por el técnico", type: "checkbox", extraPrice: 60000 },
-    ],
-  },
+      { key: "partsIncluded", label: "Repuestos incluidos por el técnico", type: "checkbox", extraPrice: 60000 }
+    ]
+  }
 ];
 
 export default gigCategories;
