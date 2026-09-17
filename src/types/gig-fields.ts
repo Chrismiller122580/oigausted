@@ -9,6 +9,8 @@ export interface DynamicFieldDef {
   extraPrice?: number
   options?: DynamicFieldOption[]
   required?: boolean
+  /** seller = listing fact set when publishing; buyer = checkout option. */
+  owner?: 'seller' | 'buyer'
   /** Seller-selected value saved on the gig; omit when the seller left the option blank. */
   value?: string | number | boolean
 }
