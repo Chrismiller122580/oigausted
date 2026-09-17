@@ -18,6 +18,9 @@ const SELLER_ATTRIBUTE_KEYS = new Set([
   'unidad',
 ])
 
+const SELLER_ATTRIBUTE_LABEL =
+  /tipo de producto|origen|condici[oó]n|tipo de veh[ií]culo|tipo de recurso|a[nñ]o del modelo|unidad de medida/i
+
 export function isSellerAttributeField(
   field: Pick<DynamicFieldDef, 'key' | 'label' | 'owner' | 'type'> | null | undefined
 ): boolean {
@@ -26,10 +29,7 @@ export function isSellerAttributeField(
   if (field.owner === 'buyer') return false
   const key = String(field.key || '').toLowerCase().replace(/[\s_-]+/g, '')
   if (SELLER_ATTRIBUTE_KEYS.has(key)) return true
-  const label = String(field.label || '').toLowerCase()
-  return /(
-    tipo de producto|origen|condici[oó]n|tipo de veh[ií]culo|tipo de recurso|a[nñ]o del modelo|unidad de medida
-  )/i.test(label.replace(/\s+/g, ' '))
+  return SELLER_ATTRIBUTE_LABEL.test(String(field.label || ''))
 }
 
 export function seedQuantityDefaults(
