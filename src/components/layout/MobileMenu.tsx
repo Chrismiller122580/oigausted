@@ -69,6 +69,7 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
       <div className="px-5 py-4 space-y-1 text-lg overflow-y-auto h-[calc(100dvh-4rem)] pb-8">
         {role === 'public' && (
           <>
+            <Link href="/gigs" onClick={onClose} className="block py-4 border-b border-border">Explorar servicios</Link>
             <Link href="/privacy" onClick={onClose} className="block py-4 border-b border-border">Privacidad</Link>
             <Link href="/terms" onClick={onClose} className="block py-4 border-b border-border">Términos</Link>
             <Link href="/login" onClick={onClose} className="block py-4 border-b border-border">Iniciar Sesión</Link>
@@ -92,10 +93,10 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
               <Settings size={22} /> Preferencias de notificaciones
             </Link>
             <Link id="tutorial-explore-gigs" href="/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <Home size={22} /> Explorar Gigs
+              <Home size={22} /> Explorar servicios
             </Link>
             <Link href="/buyer" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <Home size={22} /> Dashboard
+              <Home size={22} /> Inicio
             </Link>
             <Link href="/orders" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Package size={22} /> Mis Pedidos
@@ -131,10 +132,10 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
               <Settings size={22} /> Preferencias de notificaciones
             </Link>
             <Link href="/seller" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <Home size={22} /> Dashboard
+              <Home size={22} /> Inicio
             </Link>
             <Link href="/seller/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <Package size={22} /> Mis Gigs
+              <Package size={22} /> Mis servicios
             </Link>
             <Link href="/seller/orders" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <List size={22} /> Pedidos
@@ -158,7 +159,7 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
               <Users size={22} /> Referidos
             </Link>
             <Link href="/create-gig" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <Plus size={22} /> Crear Gig
+              <Plus size={22} /> Crear servicio
             </Link>
             <Link href="/profile" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <User size={22} /> Mi Perfil
