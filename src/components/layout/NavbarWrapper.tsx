@@ -38,7 +38,6 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   const staffRole = isStaffRole(session?.user?.staffRole) ? session.user.staffRole : null;
   const isAuthenticated = !!session?.user;
 
-  // Marketing homepage and country landings render their own HomeNavbar — skip role navbars
   if (pathname === '/' || isCountryLandingPath(pathname)) {
     return (
       <>
@@ -48,7 +47,6 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
     );
   }
 
-  // Full-screen map — no chrome navbar
   if (pathname === '/mapa') {
     return (
       <>
@@ -115,7 +113,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
   return (
     <>
       {banner}
-      <nav className="bg-background border-b border-border shadow-sm sticky top-0 z-50 safe-area-inset-top">
+      <nav className="bg-white dark:bg-neutral-950 border-b border-border shadow-sm sticky top-0 z-[80] safe-area-inset-top">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             <Logo size={36} />
@@ -130,7 +128,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
               {!isAuthPage && <ModeToggle />}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                aria-label="Toggle menu"
+                aria-label="Abrir menú"
                 className="p-2"
               >
                 {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
@@ -146,7 +144,7 @@ export default function NavbarWrapper({ children }: { children: React.ReactNode 
         role="public"
       />
 
-      <main>{children}</main>
+      <main className="mobile-page-bottom">{children}</main>
     </>
   );
 }
