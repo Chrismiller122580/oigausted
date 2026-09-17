@@ -128,7 +128,7 @@ export default function SellerDashboard() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-lg text-muted-foreground">Cargando tu dashboard...</p>
+          <p className="text-lg text-muted-foreground">Cargando su panel...</p>
         </div>
       </div>
     );
@@ -145,7 +145,7 @@ export default function SellerDashboard() {
         <div className="mb-8 md:mb-10 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>
-              <h1 className="text-5xl font-bold text-foreground">Mi Dashboard</h1>
+              <h1 className="text-5xl font-bold text-foreground">Mi panel</h1>
               <p className="text-xl text-muted-foreground mt-2">Hola, {session?.user?.name?.split(" ")[0] || 'Vendedor'}</p>
               <Link href="/seller/profile" className="text-sm text-orange-600 hover:underline inline-block mt-1">
                 Editar Mi Negocio →
@@ -154,7 +154,7 @@ export default function SellerDashboard() {
             <div className="flex justify-center sm:justify-end shrink-0">
               <Button id="tutorial-create-gig" asChild className="bg-orange-600 hover:bg-orange-700 text-lg px-8 py-6 rounded-2xl gap-3">
                 <Link href="/create-gig">
-                  <Plus size={24} /> Crear Nuevo Gig
+                  <Plus size={24} /> Crear servicio
                 </Link>
               </Button>
             </div>
@@ -235,7 +235,7 @@ export default function SellerDashboard() {
                 </div>
                 <p className="text-white/90 text-sm sm:text-base leading-relaxed">
                   Ofrece servicio técnico para PCs, laptops, celulares, TVs y más. Usa la categoría{' '}
-                  <strong>Reparación de Computadores y Electrónica</strong> al crear tu gig: define tipo de equipo,
+                  <strong>Reparación de Computadores y Electrónica</strong> al crear su servicio: define tipo de equipo,
                   diagnóstico o reparación, visita a domicilio y urgencia. Ideal para técnicos y talleres.
                 </p>
               </div>
@@ -282,7 +282,7 @@ export default function SellerDashboard() {
                   </span>
                 </div>
                 <p className="text-white/90 text-sm sm:text-base leading-relaxed">
-                  Publica carros, motos y camionetas en OigaGIG. Al crear el gig puedes ofrecer el{' '}
+                  Publica carros, motos y camionetas en OigaGIG. Al crear el servicio puede ofrecer el{' '}
                   <strong>paquete de documentos OigaGIG</strong>: contrato de compraventa + checklist de papeles
                   (SOAT, tecnomecánica, impuestos, traspaso) adaptado a la <strong>ciudad</strong> del trámite.
                   El comprador lo elige en el checkout y, tras pagar, ambos descargan los documentos en el pedido.
@@ -349,7 +349,7 @@ export default function SellerDashboard() {
           <Card>
             <CardContent className="p-8">
               <Package className="w-12 h-12 text-orange-600 mb-4" />
-              <p className="text-sm text-muted-foreground">Gigs Publicados</p>
+              <p className="text-sm text-muted-foreground">Servicios publicados</p>
               <p className="text-4xl font-bold mt-2 text-foreground">{gigs.length}</p>
             </CardContent>
           </Card>
@@ -445,7 +445,7 @@ export default function SellerDashboard() {
                 </div>
               ) : (
                 <div className="py-8 text-center">
-                  <p className="text-muted-foreground mb-4">Aún no tienes gigs publicados.</p>
+                  <p className="text-muted-foreground mb-4">Aún no tienes servicios publicados.</p>
                   <Link href="/create-gig">
                     <Button size="sm">Crear mi primer servicio</Button>
                   </Link>
