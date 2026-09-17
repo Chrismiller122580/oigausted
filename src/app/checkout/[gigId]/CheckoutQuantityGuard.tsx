@@ -20,12 +20,20 @@ function parseFields(raw: unknown): FieldDef[] {
   return Array.isArray(fields) ? fields : [];
 }
 
+function urlQuantity(): number | null {
+  if (typeof window === 'undefined') return null;
+  const n = Math.floor(Number(new URLSearchParams(window.location.search).get('quantity') || 0));
+  return n >= 1 ? n : null;
+}
+
 function sellerFactsFromFields(fields: FieldDef[]): Record<string, string | number | boolean> {
   const facts: Record<string, string | number | boolean> = {};
+  const qty = urlQuantity();
   for (const field of fields) {
     if (!field?.key) continue;
-    if (isQuantityField(field) && (facts[field.key] == null || facts[field.key] === '' || facts[field.key] === 0)) {
-      facts[field.key] = 1;
+    if (isQuantityField(field)) {
+      facts[field.key] = qty ?? 1;
+      continue;
     }
     if (!isSellerAttributeField(field)) continue;
     if (field.value !== undefined && field.value !== null && field.value !== '') {
@@ -37,7 +45,12 @@ function sellerFactsFromFields(fields: FieldDef[]): Record<string, string | numb
 
 function mergeFacts(customFields: Record<string, unknown>, facts: Record<string, string | number | boolean>) {
   const next = { ...customFields };
+  const qty = urlQuantity();
   for (const [key, value] of Object.entries(facts)) {
+    if (qty != null && isQuantityField({ key })) {
+      next[key] = qty;
+      continue;
+    }
     if (next[key] == null || next[key] === '' || next[key] === 0) next[key] = value;
   }
   return next;
@@ -45,10 +58,11 @@ function mergeFacts(customFields: Record<string, unknown>, facts: Record<string,
 
 function lockSellerSelects() {
   if (typeof document === 'undefined') return;
+  const qty = urlQuantity();
   const blocks = document.querySelectorAll('label');
   blocks.forEach((el) => {
     const text = (el.textContent || '').trim();
-    if (!/(tipo de producto|origen|condici[oó]n|tipo de veh[ií]culo|tipo de recurso|a[nñ]o del modelo|unidad de medida|product type|origin|condition)/i.test(text)) {
+    if (!/(tipo de producto|origen|condici[oó]n|tipo de veh[í]culo|tipo de recurso|a[nñ]o del modelo|unidad de medida|product type|origin|condition)/i.test(text)) {
       return;
     }
     const wrap = el.parentElement;
@@ -70,13 +84,17 @@ function lockSellerSelects() {
 
   document.querySelectorAll('input[type="number"]').forEach((node) => {
     const input = node as HTMLInputElement;
-    if (input.value === '' || input.value === '0') {
+    if (input.getAttribute('data-qty-seeded')) return;
+    if (input.value === '' || input.value === '0' || (qty != null && input.value === '1' && !input.dataset.userEdited)) {
+      const next = String(qty ?? 1);
       const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
-      desc?.set?.call(input, '1');
+      desc?.set?.call(input, next);
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.dispatchEvent(new Event('change', { bubbles: true }));
+      input.setAttribute('data-qty-seeded', '1');
     }
     if (!input.min || Number(input.min) < 1) input.min = '1';
+    input.addEventListener('input', () => { input.dataset.userEdited = '1'; }, { once: true });
   });
 }
 
