@@ -147,7 +147,7 @@ export default function SellerGigsManagement() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
             <h1 className="text-5xl font-bold tracking-tight text-foreground">Mis Servicios</h1>
-            <p className="text-xl text-muted-foreground mt-2">Gestiona, pausa o edita tus gigs</p>
+            <p className="text-xl text-muted-foreground mt-2">Gestione, pause o edite sus servicios</p>
           </div>
           {/* Center the CTA on mobile so it aligns nicely with the gig tiles below */}
           <div className="flex justify-center md:justify-end">
@@ -177,7 +177,7 @@ export default function SellerGigsManagement() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
           <Card>
             <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground">Total de Gigs</p>
+              <p className="text-sm text-muted-foreground">Total de servicios</p>
               <p className="text-4xl font-bold mt-1 text-foreground">{totalGigs}</p>
             </CardContent>
           </Card>
@@ -361,12 +361,12 @@ export default function SellerGigsManagement() {
             <h3 className="text-2xl font-semibold mb-2 text-foreground">No tienes servicios aquí</h3>
             <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
               {searchTerm || statusFilter !== 'all' 
-                ? 'No hay gigs que coincidan con tu filtro.' 
+                ? 'No hay servicios que coincidan con su filtro.' 
                 : 'Publica tu primer servicio y empieza a recibir pedidos.'}
             </p>
             <Link href="/create-gig">
               <Button className="bg-orange-600 hover:bg-orange-700 px-8 py-6 text-lg rounded-2xl">
-                Crear mi primer gig
+                Crear mi primer servicio
               </Button>
             </Link>
           </div>
@@ -374,7 +374,7 @@ export default function SellerGigsManagement() {
 
         {/* Footer tip */}
         <p className="text-center text-sm text-muted-foreground mt-10">
-          Los gigs pausados no aparecen en búsquedas ni en el marketplace.
+          Los servicios pausados no aparecen en búsquedas ni en el marketplace.
         </p>
       </div>
     </div>
