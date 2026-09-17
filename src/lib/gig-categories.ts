@@ -118,6 +118,41 @@ export const gigCategories = [
     ]
   },
   {
+    name: "Venta de Productos de Sanación Natural",
+    icon: "🌿",
+    fields: [
+      {
+        key: "productType",
+        label: "Tipo de producto",
+        type: "select",
+        options: [
+          { label: "Hierbas y plantas medicinales", extraPrice: 0 },
+          { label: "Tés e infusiones", extraPrice: 0 },
+          { label: "Aceites esenciales", extraPrice: 0 },
+          { label: "Ungüentos y bálsamos", extraPrice: 0 },
+          { label: "Suplementos naturales", extraPrice: 0 },
+          { label: "Cristales y minerales de sanación", extraPrice: 0 },
+          { label: "Sahumerios e inciensos", extraPrice: 0 },
+          { label: "Kits de sanación", extraPrice: 15000 },
+          { label: "Otro producto natural", extraPrice: 0 }
+        ]
+      },
+      { key: "quantity", label: "Cantidad de unidades", type: "number", extraPrice: 10000 },
+      {
+        key: "origin",
+        label: "Origen",
+        type: "select",
+        options: [
+          { label: "Elaborado a mano / artesanal", extraPrice: 8000 },
+          { label: "Cultivo propio", extraPrice: 5000 },
+          { label: "Producto comercial natural", extraPrice: 0 }
+        ]
+      },
+      { key: "usageGuide", label: "Guía de uso incluida", type: "checkbox", extraPrice: 6000 },
+      { key: "delivery", label: "Entrega a domicilio", type: "checkbox", extraPrice: 8000 }
+    ]
+  },
+  {
     name: "Clases Particulares",
     icon: "📚",
     fields: [
@@ -220,7 +255,7 @@ export const gigCategories = [
       { key: "people", label: "Número de personas", type: "number", extraPrice: 20000 },
       { key: "hours", label: "Duración del tour (horas)", type: "number", extraPrice: 35000 },
       { key: "transport", label: "Transporte incluido", type: "checkbox", extraPrice: 45000 },
-      { key: "language", label: "Idioma del gía", type: "select", options: [
+      { key: "language", label: "Idioma del guía", type: "select", options: [
         { label: "Español", extraPrice: 0 },
         { label: "Inglés", extraPrice: 15000 },
         { label: "Francés", extraPrice: 20000 },
