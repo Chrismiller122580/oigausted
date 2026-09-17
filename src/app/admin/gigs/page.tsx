@@ -37,7 +37,6 @@ export default function AdminGigsPage() {
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Edit modal state
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingGig, setEditingGig] = useState<Gig | null>(null);
   const [editForm, setEditForm] = useState<Record<string, unknown>>({});
@@ -95,7 +94,6 @@ export default function AdminGigsPage() {
     }
   };
 
-  // Soft delete (sets deletedAt)
   const softDeleteGig = async (gig: Gig) => {
     if (!window.confirm(`Soft-delete "${gig.title}"? It can be restored later from the admin list.`)) return;
 
@@ -138,10 +136,8 @@ export default function AdminGigsPage() {
     }
   };
 
-  // Edit
   const openEdit = async (gig: Gig) => {
     setEditingGig(gig);
-    // Fetch full details if needed (current list may be partial)
     try {
       const res = await fetch(`/api/gigs/${gig.id}`);
       const full = await res.json();
@@ -156,7 +152,6 @@ export default function AdminGigsPage() {
         city: full.city || '',
       });
     } catch {
-      // fallback to list data
       setEditForm({
         title: gig.title,
         price: gig.price,
@@ -330,11 +325,13 @@ export default function AdminGigsPage() {
         )}
       </div>
 
-      {/* Edit Modal */}
       {isEditOpen && editingGig && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border rounded-xl w-full max-w-2xl p-6">
-            <h2 className="text-2xl font-semibold mb-4">Edit Gig: {editingGig.title}</h2>
+        <div className="fixed inset-0 z-[80] bg-background md:bg-black/70 flex items-stretch md:items-center justify-center md:p-4">
+          <div className="bg-background md:bg-card border-0 md:border border-border rounded-none md:rounded-xl w-full max-w-2xl max-h-[100dvh] md:max-h-[90vh] overflow-y-auto p-5 pb-28 md:p-6">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <h2 className="text-xl md:text-2xl font-semibold">Edit Gig: {editingGig.title}</h2>
+              <Button variant="outline" size="sm" onClick={closeEdit}>Close</Button>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
