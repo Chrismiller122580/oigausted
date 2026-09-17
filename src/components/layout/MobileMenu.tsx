@@ -52,7 +52,7 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
     staffRole === 'accountant'
       ? 'Portal Finanzas'
       : staffRole === 'analytics'
-        ? 'Portal Analytics'
+        ? 'Portal de analítica'
         : 'Portal Staff';
 
   const sheet = (
@@ -237,12 +237,18 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             <Link href="/notifications" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Bell size={22} /> Notificaciones
             </Link>
-            <Link href="/admin" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">Overview</Link>
+            <Link href="/admin" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Home size={22} /> Resumen
+            </Link>
             <Link href="/admin/users" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Users size={22} /> Usuarios
             </Link>
-            <Link href="/admin/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">Gigs</Link>
-            <Link href="/admin/orders" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">Orders</Link>
+            <Link href="/admin/gigs" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <Package size={22} /> Servicios
+            </Link>
+            <Link href="/admin/orders" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <List size={22} /> Pedidos
+            </Link>
             <Link href="/admin/categories" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Tag size={22} /> Categorías
             </Link>
@@ -252,9 +258,11 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
             <Link href="/admin/payouts" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <DollarSign size={22} /> Pagos
             </Link>
-            <Link href="/admin/reports" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">Reportes</Link>
+            <Link href="/admin/reports" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
+              <BarChart3 size={22} /> Reportes
+            </Link>
             <Link href="/admin/analytics" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <Activity size={22} /> Analytics
+              <Activity size={22} /> Analítica
             </Link>
             <Link href="/admin/userlens" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <ScanSearch size={22} /> UserLens
@@ -266,7 +274,7 @@ export default function MobileMenu({ isOpen, onClose, role = 'public' }: MobileM
               <Bell size={22} /> Notificaciones
             </Link>
             <Link href="/admin/messages" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
-              <MessageCircle size={22} /> Mensajes / Chats
+              <MessageCircle size={22} /> Mensajes
             </Link>
             <Link href="/admin/marketing" onClick={onClose} className="flex items-center gap-3 py-4 border-b border-border">
               <Megaphone size={22} /> Marketing
