@@ -29,14 +29,18 @@ function formatValue(value: unknown): string {
 export default function OrderServiceDetails({ order, isBuyer, onOrderUpdated }: Props) {
   const fields = parseJsonArrayField(order.gig?.fields) as DynamicFieldDef[]
   const customFields = parseCustomFields(order.customFields)
-  const pending = String(order.status) === 'Pending'
+  const pending = /^pending$/i.test(String(order.status || ''))
   const canEdit = isBuyer && pending
   const [saving, setSaving] = useState(false)
 
-  const quantityField = useMemo(
-    () => fields.find((field) => isQuantityField(field)) || { key: 'quantity', label: 'Cantidad' },
-    [fields]
-  )
+  const quantityField = useMemo(() => {
+    const fromGig = fields.find((field) => isQuantityField(field))
+    if (fromGig) return fromGig
+    const fromOrder = Object.keys(customFields).find((key) =>
+      /quantity|qty|cantidad|unidades|units/i.test(key)
+    )
+    return { key: fromOrder || 'quantity', label: 'Cantidad' }
+  }, [fields, customFields])
 
   const quantity = Math.max(
     1,

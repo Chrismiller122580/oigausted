@@ -29,6 +29,13 @@ export function quantityFromSelections(
     const n = Math.floor(toNum(selections[field.key]))
     return Math.max(1, n || 1)
   }
+  const fallbackKey = Object.keys(selections).find((key) =>
+    /quantity|qty|unidades|units|cantidad/i.test(key)
+  )
+  if (fallbackKey) {
+    const n = Math.floor(toNum(selections[fallbackKey]))
+    return Math.max(1, n || 1)
+  }
   return 1
 }
 
