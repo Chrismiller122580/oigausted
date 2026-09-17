@@ -16,6 +16,7 @@ import {
 import { formatGigLocation } from '@/lib/gig-location'
 import { buildLocalServiceMetadata, gigServiceJsonLd } from '@/lib/seo-metadata'
 import type { DynamicFieldDef } from '@/types/gig-fields'
+import { isQuantityField } from '@/lib/order-price'
 
 export const revalidate = 60
 
@@ -246,6 +247,10 @@ export default async function GigDetailPage({ params }: PageProps) {
                 gigPrice={gig.price}
                 sellerId={gig.sellerId}
                 isActive={gig.isActive}
+                quantityLabel={
+                  (gig.fields as DynamicFieldDef[]).find((field) => isQuantityField(field))?.label
+                  || null
+                }
               />
 
               {gig.seller && (
