@@ -23,23 +23,23 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: '/admin', label: 'Overview', icon: Home },
-  { href: '/admin/users', label: 'Users', icon: Users },
-  { href: '/admin/gigs', label: 'Gigs', icon: Package },
-  { href: '/admin/orders', label: 'Orders', icon: List },
-  { href: '/admin/categories', label: 'Categories', icon: Tag },
-  { href: '/admin/earnings', label: 'Earnings', icon: TrendingUp },
-  { href: '/admin/payouts', label: 'Payouts', icon: DollarSign },
-  { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
-  { href: '/admin/analytics', label: 'Analytics', icon: Activity },
+  { href: '/admin', label: 'Resumen', icon: Home },
+  { href: '/admin/users', label: 'Usuarios', icon: Users },
+  { href: '/admin/gigs', label: 'Servicios', icon: Package },
+  { href: '/admin/orders', label: 'Pedidos', icon: List },
+  { href: '/admin/categories', label: 'Categorías', icon: Tag },
+  { href: '/admin/earnings', label: 'Ganancias', icon: TrendingUp },
+  { href: '/admin/payouts', label: 'Pagos', icon: DollarSign },
+  { href: '/admin/reports', label: 'Reportes', icon: BarChart3 },
+  { href: '/admin/analytics', label: 'Analítica', icon: Activity },
   { href: '/admin/userlens', label: 'UserLens', icon: ScanSearch },
-  { href: '/admin/referrals', label: 'Referrals', icon: Users },
-  { href: '/admin/notifications', label: 'Notifications', icon: Bell },
-  { href: '/admin/messages', label: 'Messages', icon: MessageCircle },
+  { href: '/admin/referrals', label: 'Referidos', icon: Users },
+  { href: '/admin/notifications', label: 'Notificaciones', icon: Bell },
+  { href: '/admin/messages', label: 'Mensajes', icon: MessageCircle },
   { href: '/admin/marketing', label: 'Marketing', icon: Megaphone },
-  { href: '/admin/support', label: 'Support', icon: MessageCircle },
-  { href: '/admin/settings', label: 'Settings', icon: Settings },
-  { href: '/admin/audit', label: 'Audit', icon: BarChart3 },
+  { href: '/admin/support', label: 'Soporte', icon: MessageCircle },
+  { href: '/admin/settings', label: 'Ajustes', icon: Settings },
+  { href: '/admin/audit', label: 'Auditoría', icon: BarChart3 },
   { href: '/admin/grok-build', label: 'Grok Build', icon: MessageCircle },
 ];
 
@@ -67,12 +67,12 @@ export default function AdminNavbar({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Logo size={36} />
-              <span className="font-semibold text-lg text-muted-foreground hidden sm:inline">Admin</span>
+              <span className="font-semibold text-lg text-muted-foreground hidden sm:inline">Administración</span>
             </div>
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="hidden md:block ml-1 p-1.5 rounded-md hover:bg-accent text-muted-foreground"
-              aria-label="Toggle sidebar"
+              aria-label="Alternar menú lateral"
             >
               <Menu size={18} className={isSidebarOpen ? '' : 'rotate-180'} />
             </button>
