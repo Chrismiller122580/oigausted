@@ -27,8 +27,8 @@ export function NotificationsBell() {
     refresh 
   } = useRealtimeNotifications({
     enableToasts: true,
-    enableSound: false,   // Bell's own detect effect handles sound based on user prefs
-    enableDesktop: false, // Bell's own detect effect handles desktop based on user prefs
+    enableSound: false,
+    enableDesktop: false,
   });
 
   const [unreadCount, setUnreadCount] = useState(0);
@@ -37,13 +37,10 @@ export function NotificationsBell() {
   const [loading, setLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Client-side presentation preferences (sound + desktop notifications)
-  // These are distinct from the server-side channel preferences (email/inApp/etc)
   const [clientPrefs, setClientPrefs] = useState({ desktop: true, sound: true });
   const seenIdsRef = useRef<Set<string>>(new Set());
   const prevUnreadRef = useRef(0);
 
-  // Sync with realtime hook — only surface unread notifications
   useEffect(() => {
     const unreadRealtime = realtimeNotifs.filter((n) => !n.read);
     setUnreadCount(realtimeUnread);
@@ -83,12 +80,9 @@ export function NotificationsBell() {
 
   useEffect(() => {
     if (!session?.user) return;
-    // Initial load + manual refresh support
     fetchNotifications(true);
-    // The useRealtimeNotifications hook handles the real-time updates now
   }, [session?.user]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -99,7 +93,6 @@ export function NotificationsBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Load client notification presentation prefs (desktop + sound)
   useEffect(() => {
     if (!session?.user) return;
     const loadPrefs = async () => {
@@ -113,7 +106,6 @@ export function NotificationsBell() {
           });
         }
       } catch {
-        // fallback to localStorage or defaults
         const d = localStorage.getItem('desktopNotifs');
         const s = localStorage.getItem('soundNotifs');
         setClientPrefs({
@@ -133,7 +125,7 @@ export function NotificationsBell() {
       const desktopNotif = new Notification(n.title, {
         body: n.message?.slice(0, 120) || 'Tienes una nueva notificación',
         icon: '/brand/oiga-gig-marketing.png',
-        tag: `oiga-${n.id}`, // avoid duplicates
+        tag: `oiga-${n.id}`,
         requireInteraction: false,
       });
 
@@ -143,32 +135,27 @@ export function NotificationsBell() {
         desktopNotif.close();
       };
     } catch (e) {
-      // permission or security error - ignore
+      // ignore
     }
   };
 
-  // Detect new notifications from polling and trigger sound + desktop
   useEffect(() => {
     if (loading) return;
 
-    const currentIds = new Set(notifications.map(n => n.id));
     let hasNew = false;
 
-    // Check for brand new notification ids
     notifications.forEach(n => {
       if (!seenIdsRef.current.has(n.id) && !n.read) {
         seenIdsRef.current.add(n.id);
-        if (prevUnreadRef.current > 0 || notifications.length > 0) { // avoid initial burst
+        if (prevUnreadRef.current > 0 || notifications.length > 0) {
           hasNew = true;
           triggerDesktopNotification(n);
         }
       }
     });
 
-    // Also detect unread count jump (covers some edge cases)
     if (unreadCount > prevUnreadRef.current && prevUnreadRef.current > 0) {
       hasNew = true;
-      // trigger for the first unread if possible
       const firstNew = notifications.find(n => !n.read);
       if (firstNew) triggerDesktopNotification(firstNew);
     }
@@ -188,11 +175,9 @@ export function NotificationsBell() {
 
     try {
       await fetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
-      // Refresh both local authoritative fetch and the realtime hook state
       fetchNotifications();
       refresh?.();
     } catch (err) {
-      // Revert optimistic on failure (simple: re-fetch)
       fetchNotifications();
       refresh?.();
     }
@@ -218,14 +203,11 @@ export function NotificationsBell() {
 
   const handleBellClick = () => {
     if (!isOpen) {
-      fetchNotifications(); // refresh when opening
+      fetchNotifications();
     }
     setIsOpen(!isOpen);
   };
 
-  // Do not render the bell UI (or trigger any side effects that assume auth)
-  // for unauthenticated users. Combined with guards in useRealtimeNotifications
-  // and the fetch effects, this eliminates 401 noise on public pages.
   if (!session?.user) {
     return null;
   }
@@ -237,7 +219,7 @@ export function NotificationsBell() {
         size="icon"
         className="relative"
         onClick={handleBellClick}
-        aria-label="Notifications"
+        aria-label="Notificaciones"
       >
         <Bell className="h-5 w-5" />
         {!loading && unreadCount > 0 && (
@@ -250,11 +232,11 @@ export function NotificationsBell() {
       {isOpen && (
         <>
           <div
-            className="fixed inset-0 z-40 md:hidden bg-black/20"
+            className="fixed inset-0 z-[120] md:hidden bg-black/40"
             onClick={() => setIsOpen(false)}
             aria-hidden
           />
-          <div className="fixed left-3 right-3 top-[calc(3.75rem+env(safe-area-inset-top,0px))] z-50 max-h-[min(70vh,24rem)] overflow-hidden rounded-xl border border-border bg-background shadow-lg md:absolute md:inset-auto md:right-0 md:top-full md:mt-2 md:w-80 md:max-h-none">
+          <div className="fixed left-3 right-3 top-[calc(3.75rem+env(safe-area-inset-top,0px))] z-[130] max-h-[min(70vh,24rem)] overflow-hidden rounded-xl border border-border bg-white dark:bg-neutral-950 shadow-lg md:absolute md:inset-auto md:right-0 md:top-full md:mt-2 md:w-80 md:max-h-none">
           <div className="flex items-center justify-between px-4 py-3 border-b">
             <span className="font-semibold">Notificaciones</span>
             {unreadCount > 0 && (
