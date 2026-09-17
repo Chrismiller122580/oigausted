@@ -9,7 +9,12 @@ function orderIdFromPath(): string | null {
 }
 
 function isPendingPage(): boolean {
-  return /Cancelar Pedido|Cancel Order/i.test(document.body.innerText || '')
+  const text = document.body.innerText || ''
+  return /Cancelar Pedido|Cancel Order|Pendiente|Pending|EARRING/i.test(text)
+}
+
+function isQtyLabel(text: string): boolean {
+  return /^(Quantity|Cantidad|Cantidad de unidades|Units|Unidades)$/i.test(text.trim())
 }
 
 function enhanceQuantityRow() {
@@ -18,15 +23,21 @@ function enhanceQuantityRow() {
   if (!orderId) return
   if (document.querySelector('[data-qty-editor]')) return
 
-  const nodes = Array.from(document.querySelectorAll('span, p, div')) as HTMLElement[]
-  const label = nodes.find((el) => {
-    const t = (el.textContent || '').trim()
-    return /^(Quantity|Cantidad|Cantidad de unidades)$/i.test(t) && el.children.length === 0
-  })
+  const nodes = Array.from(document.querySelectorAll('span, p, div, label, font')) as HTMLElement[]
+  const matches = nodes.filter((el) => isQtyLabel(el.textContent || ''))
+  const label = matches.sort((a, b) => (a.textContent || '').length - (b.textContent || '').length)[0]
   if (!label) return
-  const row = label.parentElement
+
+  const row =
+    label.closest('.flex') ||
+    label.parentElement?.parentElement ||
+    label.parentElement
   if (!row) return
-  const valueEl = Array.from(row.querySelectorAll('span, p')).find((el) => el !== label && /^\d+$/.test((el.textContent || '').trim()))
+
+  const valueEl = Array.from(row.querySelectorAll('span, p, font, div')).find((el) => {
+    if (el === label || el.contains(label) || label.contains(el)) return false
+    return /^\d+$/.test((el.textContent || '').trim())
+  }) as HTMLElement | undefined
   if (!valueEl) return
 
   const current = Math.max(1, parseInt((valueEl.textContent || '1').trim(), 10) || 1)
