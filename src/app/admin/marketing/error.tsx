@@ -3,9 +3,10 @@
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 
-function isBenignDomReconcileError(error: Error) {
-  const msg = `${error?.name || ''} ${error?.message || ''}`;
-  return /NotFoundError|removeChild|insertBefore|The node to be removed is not a child/i.test(msg);
+function isBenignDomReconcileError(error: unknown) {
+  const anyErr = error as { name?: string; message?: string } | null;
+  const msg = `${anyErr?.name || ''} ${anyErr?.message || ''} ${String(error || '')}`;
+  return /NotFoundError|removeChild|insertBefore|not a child of this node/i.test(msg);
 }
 
 export default function MarketingError({
@@ -18,15 +19,17 @@ export default function MarketingError({
   const benign = isBenignDomReconcileError(error);
 
   useEffect(() => {
-    console.error('Admin marketing page error:', error);
-    if (!benign) return;
+    if (!benign) {
+      console.error('Admin marketing page error:', error);
+      return;
+    }
     const t = window.setTimeout(() => {
       try {
         reset();
       } catch {
         window.location.replace('/admin/marketing');
       }
-    }, 50);
+    }, 20);
     return () => window.clearTimeout(t);
   }, [error, reset, benign]);
 
@@ -45,11 +48,6 @@ export default function MarketingError({
         <p className="text-sm text-muted-foreground">
           No se pudo cargar la página de marketing. Intenta de nuevo o recarga el navegador.
         </p>
-        {error.message ? (
-          <p className="text-xs text-muted-foreground font-mono bg-muted rounded-lg p-3 break-words">
-            {error.message}
-          </p>
-        ) : null}
         <div className="flex flex-wrap gap-2 justify-center">
           <Button onClick={() => reset()}>Reintentar</Button>
           <Button variant="outline" onClick={() => window.location.reload()}>
