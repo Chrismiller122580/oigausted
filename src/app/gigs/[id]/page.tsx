@@ -105,7 +105,7 @@ export default async function GigDetailPage({ params }: PageProps) {
           href="/gigs"
           className="flex items-center gap-2 text-emerald-600 hover:underline mb-8 inline-block"
         >
-          <ArrowLeft size={20} /> Volver a todos los gigs
+          <ArrowLeft size={20} /> Volver a todos los servicios
         </Link>
 
         {pausedNotice && (
