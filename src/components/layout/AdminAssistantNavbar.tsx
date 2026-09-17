@@ -32,7 +32,7 @@ export default function AdminAssistantNavbar({ children }: { children: React.Rea
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <header className="bg-background border-b border-border sticky top-0 z-50 safe-area-inset-top">
+      <header className="bg-white dark:bg-neutral-950 border-b border-border sticky top-0 z-[80] safe-area-inset-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
@@ -71,7 +71,7 @@ export default function AdminAssistantNavbar({ children }: { children: React.Rea
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-2 text-muted-foreground hover:text-foreground"
-              aria-label="Toggle menu"
+              aria-label="Abrir menú"
             >
               {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -114,7 +114,7 @@ export default function AdminAssistantNavbar({ children }: { children: React.Rea
         </aside>
 
         <div className="flex-1 min-w-0">
-          <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+          <main className="p-4 sm:p-6 lg:p-8 mobile-page-bottom">{children}</main>
         </div>
       </div>
 
