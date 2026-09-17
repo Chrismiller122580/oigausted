@@ -52,7 +52,7 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
             className={`flex flex-col items-center justify-center flex-1 py-1 ${isActive('/seller/gigs') ? 'text-orange-600' : 'text-muted-foreground'}`}
           >
             <Package size={22} />
-            <span className="mt-0.5">Gigs</span>
+            <span className="mt-0.5">Servicios</span>
           </Link>
         </div>
       </nav>
@@ -92,7 +92,7 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
             className={`flex flex-col items-center justify-center flex-1 py-1 min-h-[3rem] ${isActive('/admin/gigs') ? 'text-orange-600' : 'text-muted-foreground'}`}
           >
             <Package size={22} />
-            <span className="mt-0.5">Gigs</span>
+            <span className="mt-0.5">Servicios</span>
           </Link>
           <Link 
             href="/admin/support" 

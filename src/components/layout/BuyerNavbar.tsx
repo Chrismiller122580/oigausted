@@ -44,13 +44,13 @@ export default function BuyerNavbar({ children }: { children: React.ReactNode })
                 href="/gigs"
                 className={`flex items-center gap-2 transition ${isActive('/gigs') ? 'text-foreground font-semibold border-b-2 border-orange-600 pb-1' : 'text-muted-foreground hover:text-foreground'}`}
               >
-                <Search size={18} /> Explorar Gigs
+                <Search size={18} /> Explorar
               </Link>
               <Link
                 href="/buyer"
                 className={`flex items-center gap-2 transition ${isActive('/buyer') ? 'text-foreground font-semibold border-b-2 border-orange-600 pb-1' : 'text-muted-foreground hover:text-foreground'}`}
               >
-                <Home size={18} /> Dashboard
+                <Home size={18} /> Inicio
               </Link>
               <Link
                 href="/orders"
