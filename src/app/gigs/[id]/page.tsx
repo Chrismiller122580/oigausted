@@ -21,6 +21,24 @@ export const revalidate = 60
 
 type PageProps = { params: Promise<{ id: string }> }
 
+function fieldPublicValue(field: DynamicFieldDef): string | number | boolean | undefined {
+  return field.value
+}
+
+function hasSellerSelectedValue(field: DynamicFieldDef): boolean {
+  const value = fieldPublicValue(field)
+  if (value === true) return true
+  if (typeof value === 'number' && Number.isFinite(value)) return true
+  if (typeof value === 'string' && value.trim() !== '') return true
+  return false
+}
+
+function formatSellerFieldValue(field: DynamicFieldDef): string {
+  const value = fieldPublicValue(field)
+  if (field.type === 'checkbox') return 'Sí'
+  return String(value ?? '')
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params
   const gig = await getPublicGigById(id)
@@ -62,7 +80,7 @@ export default async function GigDetailPage({ params }: PageProps) {
     ? 'Este servicio está pausado temporalmente por el vendedor.'
     : null
 
-  const gigFields = gig.fields as DynamicFieldDef[]
+  const gigFields = (gig.fields as DynamicFieldDef[]).filter(hasSellerSelectedValue)
   const locationLabel = formatGigLocation(gig)
   const jsonLd = gigServiceJsonLd({
     id: gig.id,
@@ -190,7 +208,7 @@ export default async function GigDetailPage({ params }: PageProps) {
 
             {gigFields.length > 0 && (
               <div>
-                <h2 className="text-2xl font-semibold mb-6">Opciones del servicio</h2>
+                <h2 className="text-2xl font-semibold mb-6">Detalles del producto</h2>
                 <div className="grid gap-4">
                   {gigFields.map((field, index) => (
                     <div key={index} className="bg-card p-6 rounded-3xl border">
@@ -198,13 +216,8 @@ export default async function GigDetailPage({ params }: PageProps) {
                         {field.label || field.key}
                       </p>
                       <p className="text-lg font-medium text-foreground">
-                        {field.extraPrice
-                          ? `+$${field.extraPrice.toLocaleString('es-CO')} COP`
-                          : 'Incluido'}
+                        {formatSellerFieldValue(field)}
                       </p>
-                      {field.type && (
-                        <p className="text-xs text-muted-foreground mt-1">Tipo: {field.type}</p>
-                      )}
                     </div>
                   ))}
                 </div>
