@@ -10,6 +10,20 @@ export const revalidate = 0
 
 const ACTIVE_ORDER = ['Pending', 'Paid', 'In Progress']
 
+type SellerRecentOrder = {
+  id: string
+  status: string
+  gig: { title: string } | null
+  buyer: { name: string | null } | null
+}
+
+type BuyerRecentOrder = {
+  id: string
+  status: string
+  gig: { title: string } | null
+  seller: { name: string | null; businessName: string | null } | null
+}
+
 function firstName(name?: string | null) {
   if (!name) return null
   return name.trim().split(/\s+/)[0] || null
@@ -88,6 +102,8 @@ export async function GET() {
         }),
       ])
 
+      const recentOrders = recent as SellerRecentOrder[]
+
       const payload: WidgetPayload = {
         role: 'seller',
         greeting: name ? `Hola, ${name}` : 'Su panel',
@@ -97,7 +113,7 @@ export async function GET() {
           { label: 'En curso', value: String(inProgress), href: WIDGET_DEEP_LINKS.sellerOrders },
           { label: 'Mes', value: money(Number(monthPaid._sum?.price || 0)), href: WIDGET_DEEP_LINKS.seller },
         ],
-        items: recent.map((o) => ({
+        items: recentOrders.map((o) => ({
           title: o.gig?.title || 'Pedido',
           subtitle: o.buyer?.name || 'Comprador',
           badge: o.status,
@@ -137,6 +153,8 @@ export async function GET() {
       }),
     ])
 
+    const recentOrders = recent as BuyerRecentOrder[]
+
     const payload: WidgetPayload = {
       role: 'buyer',
       greeting: name ? `Hola, ${name}` : 'Hola',
@@ -144,7 +162,7 @@ export async function GET() {
         { label: 'En curso', value: String(inProgress), href: WIDGET_DEEP_LINKS.orders },
         { label: 'Reseñas', value: String(pendingReviews), href: WIDGET_DEEP_LINKS.orders },
       ],
-      items: recent.map((o) => ({
+      items: recentOrders.map((o) => ({
         title: o.gig?.title || 'Servicio',
         subtitle: o.seller?.businessName || o.seller?.name || 'Profesional',
         badge: o.status,
