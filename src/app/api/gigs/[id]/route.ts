@@ -6,13 +6,15 @@ import { devLog, parseJsonArrayField } from '@/lib/utils';
 import { publicGigWhere } from '@/lib/public-gigs';
 import { getGigImages, normalizeGigImagePayload, parseGigImagesField } from '@/lib/gig-images';
 import { OrderStatusLabel, labelToPrismaStatus } from '@/lib/order-status';
+import { listingContactRejection, scrubPublicGig } from '@/lib/scrub-public-gig';
+import { scrubListingText, scrubListingValue } from '@/lib/contact-moderation';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;   // ← This is the required fix for Next.js 16
+    const { id } = await params;
 
     const gigSelect = {
       id: true,
@@ -92,21 +94,22 @@ export async function GET(
     }
 
     const imageList = getGigImages(gig)
-
-    return NextResponse.json({
+    const parsed = {
       ...gig,
       images: imageList,
       imageUrl: imageList[0] ?? gig.imageUrl ?? null,
       fields: parseJsonArrayField(gig.fields),
       addons: parseJsonArrayField(gig.addons),
-    });
+    }
+
+    const payload = isAdmin ? parsed : scrubPublicGig(parsed)
+    return NextResponse.json(payload);
   } catch (error) {
     devLog('Get gig error:', error);
     return NextResponse.json({ error: 'Error al cargar el gig' }, { status: 500 });
   }
 }
 
-// PUT - Update gig (only the owner can edit)
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -146,12 +149,16 @@ export async function PUT(
       addons, 
       completionTime,
       isActive,
-      // Geolocation fields
       city,
       latitude,
       longitude,
       isRemote
     } = body;
+
+    const blocked = listingContactRejection({ title, description, fields, addons })
+    if (blocked) {
+      return NextResponse.json(blocked, { status: 400 })
+    }
 
     const imagePayload =
       images !== undefined || imageUrl !== undefined
@@ -162,19 +169,18 @@ export async function PUT(
         : null
 
     const updateData = {
-        ...(title !== undefined && { title }),
-        ...(description !== undefined && { description }),
+        ...(title !== undefined && { title: scrubListingText(String(title)) || String(title) }),
+        ...(description !== undefined && { description: description ? scrubListingText(String(description)) : null }),
         ...(price !== undefined && { price: Number(price) }),
         ...(category !== undefined && { category }),
         ...(imagePayload && {
           imageUrl: imagePayload.imageUrl,
           images: imagePayload.images,
         }),
-        ...(fields !== undefined && { fields: fields ? JSON.stringify(fields) : null }),
-        ...(addons !== undefined && { addons: addons ? JSON.stringify(addons) : null }),
+        ...(fields !== undefined && { fields: fields ? JSON.stringify(scrubListingValue(fields)) : null }),
+        ...(addons !== undefined && { addons: addons ? JSON.stringify(scrubListingValue(addons)) : null }),
         ...(completionTime !== undefined && { completionTime }),
         ...(isActive !== undefined && { isActive: Boolean(isActive) }),
-        // Geolocation (only set if provided)
         ...(city !== undefined && { city: city || null }),
         ...(latitude !== undefined && { latitude: latitude != null ? Number(latitude) : null }),
         ...(longitude !== undefined && { longitude: longitude != null ? Number(longitude) : null }),
@@ -194,8 +200,6 @@ export async function PUT(
       }
     }
 
-    devLog("Gig updated:", id);
-
     return NextResponse.json({ 
       success: true, 
       gigId: updated.id,
@@ -208,7 +212,6 @@ export async function PUT(
   }
 }
 
-// DELETE - Delete a gig (only owner, and preferably no active orders)
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -236,7 +239,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'No tienes permiso para eliminar este gig' }, { status: 403 });
     }
 
-    // Optional safety: check for active orders
     const activeOrders = await prisma.order.count({
       where: {
         gigId: id,
@@ -256,8 +258,6 @@ export async function DELETE(
     }
 
     await prisma.gig.delete({ where: { id } });
-
-    devLog("Gig deleted:", id);
 
     return NextResponse.json({ 
       success: true, 
