@@ -67,14 +67,8 @@ function resetRegex(re: RegExp) {
   return re
 }
 
-function compactDigits(text: string) {
-  return text.replace(/[^\d+]/g, '')
-}
-
 function listingHasMobile(text: string) {
-  if (resetRegex(LISTING_MOBILE_RE).test(text)) return true
-  const compact = compactDigits(text)
-  return /(?:^|[^+\d])(?:57)?3\d{9}(?!\d)/.test(` ${compact} `)
+  return resetRegex(LISTING_MOBILE_RE).test(text)
 }
 
 /** Detect phone/email/social contact info in chat messages. */
