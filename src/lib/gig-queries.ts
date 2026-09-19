@@ -7,6 +7,7 @@ import {
   publicGigWhereFallback,
 } from '@/lib/public-gigs'
 import { parseJsonArrayField } from '@/lib/utils'
+import { scrubPublicGig } from '@/lib/scrub-public-gig'
 
 function isMissingInterestColumn(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err)
@@ -143,17 +144,23 @@ function formatGigDetail(
   }
 ): PublicGigDetail {
   const imageList = getGigImages(gig)
-  return {
-    id: gig.id,
+  const scrubbed = scrubPublicGig({
     title: gig.title,
     description: gig.description,
+    fields: parseJsonArrayField(gig.fields),
+    addons: parseJsonArrayField(gig.addons),
+  })
+  return {
+    id: gig.id,
+    title: scrubbed.title || gig.title,
+    description: scrubbed.description,
     price: gig.price,
     category: gig.category,
     completionTime: gig.completionTime,
     imageUrl: imageList[0] ?? gig.imageUrl ?? null,
     images: imageList,
-    fields: parseJsonArrayField(gig.fields),
-    addons: parseJsonArrayField(gig.addons),
+    fields: scrubbed.fields,
+    addons: scrubbed.addons,
     isActive: gig.isActive,
     sellerId: gig.sellerId,
     city: gig.city ?? null,
@@ -320,24 +327,30 @@ export async function listPublicGigs({
     sellers.map((s: (typeof sellers)[number]) => [s.id, s]),
   )
 
-  const gigsWithSeller: PublicGigListItem[] = gigs.map((gig) => ({
-    id: gig.id,
-    title: gig.title,
-    description: gig.description,
-    price: gig.price,
-    category: gig.category,
-    imageUrl: gig.imageUrl,
-    isActive: gig.isActive,
-    createdAt: gig.createdAt,
-    city: gig.city,
-    latitude: gig.latitude,
-    longitude: gig.longitude,
-    isRemote: gig.isRemote,
-    sellerId: gig.sellerId,
-    viewCount: Number((gig as { viewCount?: number }).viewCount ?? 0),
-    likeCount: Number((gig as { likeCount?: number }).likeCount ?? 0),
-    seller: sellerMap[gig.sellerId] ?? null,
-  }))
+  const gigsWithSeller: PublicGigListItem[] = gigs.map((gig) => {
+    const scrubbed = scrubPublicGig({
+      title: gig.title,
+      description: gig.description,
+    })
+    return {
+      id: gig.id,
+      title: scrubbed.title || gig.title,
+      description: scrubbed.description,
+      price: gig.price,
+      category: gig.category,
+      imageUrl: gig.imageUrl,
+      isActive: gig.isActive,
+      createdAt: gig.createdAt,
+      city: gig.city,
+      latitude: gig.latitude,
+      longitude: gig.longitude,
+      isRemote: gig.isRemote,
+      sellerId: gig.sellerId,
+      viewCount: Number((gig as { viewCount?: number }).viewCount ?? 0),
+      likeCount: Number((gig as { likeCount?: number }).likeCount ?? 0),
+      seller: sellerMap[gig.sellerId] ?? null,
+    }
+  })
 
   return { gigs: gigsWithSeller, total }
 }
