@@ -32,7 +32,7 @@ const LISTING_MOBILE_RE =
   /(?<!\d)(?:\+?57[\s.\-]*)?3(?:[\s.\-]?\d){9}(?!\d)/g
 
 const WHATSAPP_RE =
-  /\b(?:whatsapp|whats\s?app|wsp|wasap|wassap|wa\.me|api\.whatsapp)\b/i
+  /\b(?:whatsapp|whats\s?app|wsp|wasap|wassap|wa\.me|api\.whatsapp|\bwpp\b)\b/i
 
 const WA_LINK_RE =
   /https?:\/\/(?:wa\.me|api\.whatsapp\.com)\/[^\s)]+/gi
@@ -50,7 +50,10 @@ const OBFUSCATION_HINTS =
   /\b(?:gmail|hotmail|outlook|yahoo|correo|escr[ií]beme|escribeme|ll[aá]mame|llamame|escribe al|mi n[uú]mero|mi numero|mi celular|mi telefono|mi tel[eé]fono)\b/i
 
 const CONTACT_CHANNEL_RE =
-  /\b(?:cont(?:a|á)ct(?:e|ame|enos)?|escr[ií]b(?:e|eme|anos)|ll[aá]m(?:e|ame|anos)|info(?:rmaci[oó]n)?|comunicarse|v[ií]a|por)\s+(?:whats?\s?app|wsp|wasap|wassap)\b/gi
+  /\b(?:cont(?:a|á)ct(?:e|ame|enos)?|escr[ií]b(?:e|eme|anos)|ll[aá]m(?:e|ame|anos)|info(?:rmaci[oó]n)?|comunicarse|v[ií]a|por)\s+(?:whats?\s?app|wsp|wasap|wassap|wpp)\b/gi
+
+const CONTACT_PITCH_RE =
+  /(?:whats?\s?app|wsp|wasap|wassap|\bwpp\b|telegram|t\.me|celular|\bcel\b|ll[aá]mame|mi n[uú]mero)[^\n]{0,28}(?:\+?57)?[\s.-]*3[\d\s.-]{8,}/i
 
 function normalizeForScan(text: string): string {
   return text
@@ -62,6 +65,16 @@ function normalizeForScan(text: string): string {
 function resetRegex(re: RegExp) {
   re.lastIndex = 0
   return re
+}
+
+function compactDigits(text: string) {
+  return text.replace(/[^\d+]/g, '')
+}
+
+function listingHasMobile(text: string) {
+  if (resetRegex(LISTING_MOBILE_RE).test(text)) return true
+  const compact = compactDigits(text)
+  return /(?:^|[^+\d])(?:57)?3\d{9}(?!\d)/.test(` ${compact} `)
 }
 
 /** Detect phone/email/social contact info in chat messages. */
@@ -111,7 +124,7 @@ export function detectListingContactInfo(text: string): ContactDetectionResult {
   if (resetRegex(EMAIL_RE).test(trimmed) || resetRegex(OBFUSCATED_EMAIL_RE).test(normalized)) {
     types.add('email')
   }
-  if (resetRegex(LISTING_MOBILE_RE).test(trimmed)) {
+  if (listingHasMobile(trimmed) || resetRegex(CONTACT_PITCH_RE).test(normalized)) {
     types.add('phone')
   }
   if (resetRegex(WA_LINK_RE).test(trimmed) || resetRegex(CONTACT_CHANNEL_RE).test(normalized) || /\b(?:wa\.me|api\.whatsapp)\b/i.test(normalized)) {
