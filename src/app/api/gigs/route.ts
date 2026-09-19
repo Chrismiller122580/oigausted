@@ -7,6 +7,8 @@ import { logAuditEvent } from '@/lib/audit';
 import { devLog } from '@/lib/utils';
 import { normalizeGigImagePayload, parseGigImagesField } from '@/lib/gig-images';
 import { notifyAdminsNewGig } from '@/lib/admin-notifications';
+import { listingContactRejection } from '@/lib/scrub-public-gig';
+import { scrubListingText, scrubListingValue } from '@/lib/contact-moderation';
 
 export async function GET(req: NextRequest) {
   try {
@@ -63,7 +65,6 @@ export async function GET(req: NextRequest) {
         take: limit,
       })
     } catch (dbErr: unknown) {
-      // Fallback during migration rollout if deletedAt column not yet added to DB
       const errMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
       console.warn('[Public Gigs] deletedAt filter failed (column may not exist yet), fetching without it', errMsg);
       const fallbackWhere = { isActive: true }
@@ -76,7 +77,6 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Attach seller info defensively (some old rows may have dangling sellerId)
     const sellerIds = [...new Set(gigs.map((g: { sellerId: string }) => g.sellerId).filter((id: string | null | undefined): id is string => !!id))];
     const sellers = await prisma.user.findMany({
       where: { id: { in: sellerIds } },
@@ -89,8 +89,9 @@ export async function GET(req: NextRequest) {
 
     const sellerMap = Object.fromEntries(sellers.map((s: { id: string }) => [s.id, s]));
 
+    const { scrubPublicGig } = await import('@/lib/scrub-public-gig')
     const gigsWithSeller = gigs.map((gig: (typeof gigs)[number]) => ({
-      ...gig,
+      ...scrubPublicGig(gig),
       seller: sellerMap[gig.sellerId] || null
     }));
 
@@ -122,7 +123,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - Create new gig (authenticated sellers)
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -149,7 +149,6 @@ export async function POST(req: NextRequest) {
       fields = [], 
       addons = [], 
       completionTime = "2-5 días",
-      // Geolocation fields
       city,
       latitude,
       longitude,
@@ -160,23 +159,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
     }
 
+    const blocked = listingContactRejection({ title, description, fields, addons })
+    if (blocked) {
+      return NextResponse.json(blocked, { status: 400 })
+    }
+
     const imagePayload = normalizeGigImagePayload(
       images !== undefined ? parseGigImagesField(images) : undefined,
       imageUrl
     )
 
+    const cleanTitle = scrubListingText(String(title)) || String(title)
+    const cleanDescription = description ? scrubListingText(String(description)) : null
+    const cleanFields = fields ? JSON.stringify(scrubListingValue(fields)) : null
+    const cleanAddons = addons ? JSON.stringify(scrubListingValue(addons)) : null
+
     const createData = {
-        title,
-        description: description || null,
+        title: cleanTitle,
+        description: cleanDescription,
         price: Number(price),
         category,
         imageUrl: imagePayload.imageUrl,
         images: imagePayload.images,
-        fields: fields ? JSON.stringify(fields) : null,
-        addons: addons ? JSON.stringify(addons) : null,
+        fields: cleanFields,
+        addons: cleanAddons,
         completionTime,
         sellerId,
-        // Geolocation
         city: city || null,
         latitude: latitude != null ? Number(latitude) : null,
         longitude: longitude != null ? Number(longitude) : null,
@@ -198,24 +206,22 @@ export async function POST(req: NextRequest) {
 
     devLog("✅ Gig created successfully:", gig.id);
 
-    // Audit log for system change (seller action)
     await logAuditEvent({
       performedById: sellerId,
       action: 'GIG_CREATED',
       targetType: 'Gig',
       targetId: gig.id,
-      details: { title, category, price: Number(price), isActive: true },
+      details: { title: cleanTitle, category, price: Number(price), isActive: true },
     });
 
-    // Send confirmation to seller (non-fatal: do not fail the publish if notif/prefs fails due to transient DB issues)
     try {
       await notifications.sendInApp(
         sellerId,
         'gig',
         '¡Gig publicado exitosamente!',
-        `Tu servicio "${title}" ya está visible para los compradores.`,
+        `Tu servicio "${cleanTitle}" ya está visible para los compradores.`,
         `/seller/gigs`,
-        { gigTitle: title, gigId: gig.id }
+        { gigTitle: cleanTitle, gigId: gig.id }
       );
     } catch (notifErr) {
       devLog("Gig created but failed to send confirmation notification (prefs or delivery issue):", notifErr);
@@ -228,7 +234,7 @@ export async function POST(req: NextRequest) {
       })
       await notifyAdminsNewGig({
         gigId: gig.id,
-        title,
+        title: cleanTitle,
         category,
         price: Number(price),
         sellerName: seller?.businessName || seller?.name,
