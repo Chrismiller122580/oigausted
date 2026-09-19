@@ -35,7 +35,12 @@ function sellerFactsFromFields(fields: FieldDef[]): Record<string, string | numb
       facts[field.key] = qty ?? 1;
       continue;
     }
-    if (!isSellerAttributeField(field)) continue;
+    if (!isSellerAttributeField({
+      key: field.key,
+      label: field.label || '',
+      type: field.type || 'text',
+      owner: field.owner,
+    })) continue;
     if (field.value !== undefined && field.value !== null && field.value !== '') {
       facts[field.key] = field.value;
     }
