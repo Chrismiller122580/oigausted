@@ -48,13 +48,18 @@ export default function DynamicCheckoutFields({ gig, formData, onChange }: Props
           <div key={field.key} className="space-y-2">
             <Label>{field.label}</Label>
             {field.type === 'number' && (
-              <Input
-                type="number"
-                min={isQuantityField(field) ? 1 : 0}
-                value={typeof formData[field.key] === 'boolean' ? '' : String(formData[field.key] ?? (isQuantityField(field) ? 1 : ''))}
-                onChange={(e) => onChange(field.key, isQuantityField(field) ? Math.max(1, parseInt(e.target.value, 10) || 1) : e.target.value)}
-                placeholder={isQuantityField(field) ? '1' : 'Ej: 3'}
-              />
+              <>
+                <Input
+                  type="number"
+                  min={isQuantityField(field) ? 1 : 0}
+                  value={typeof formData[field.key] === 'boolean' ? '' : String(formData[field.key] ?? (isQuantityField(field) ? 1 : ''))}
+                  onChange={(e) => onChange(field.key, isQuantityField(field) ? Math.max(1, parseInt(e.target.value, 10) || 1) : e.target.value)}
+                  placeholder={isQuantityField(field) ? '1' : 'Ej: 3'}
+                />
+                {isQuantityField(field) && (
+                  <p className="text-xs text-muted-foreground">Precio publicado es por 1 unidad. El total se actualiza abajo.</p>
+                )}
+              </>
             )}
             {field.type === 'checkbox' && (
               <label className="flex items-center gap-3 cursor-pointer">
