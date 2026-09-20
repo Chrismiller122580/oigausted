@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { detectAdultContent, detectAdultFields } from '@/lib/adult-content-moderation'
 import { redactSnippet } from '@/lib/contact-moderation'
@@ -30,26 +31,23 @@ async function upsertPendingFlag(input: {
   dryRun: boolean
 }) {
   if (input.dryRun) return { created: false }
-  const existing = await prisma.contentReviewFlag.findFirst({
-    where: {
-      targetType: input.targetType,
-      targetId: input.targetId,
-      reason: 'adult',
-      status: 'pending',
-    },
-    select: { id: true },
-  })
-  if (existing) return { created: false }
-  await prisma.contentReviewFlag.create({
-    data: {
-      targetType: input.targetType,
-      targetId: input.targetId,
-      reason: 'adult',
-      matches: input.matches,
-      snippet: input.snippet,
-      status: 'pending',
-    },
-  })
+  const existing = await prisma.$queryRaw<Array<{ id: string }>>`
+    SELECT id FROM "ContentReviewFlag"
+    WHERE "targetType" = ${input.targetType}
+      AND "targetId" = ${input.targetId}
+      AND reason = 'adult'
+      AND status = 'pending'
+    LIMIT 1
+  `
+  if (existing.length) return { created: false }
+  const id = randomUUID()
+  const matchesLiteral = `{${input.matches.map((m) => `"${m.replace(/"/g, '')}"`).join(',')}}`
+  await prisma.$executeRaw`
+    INSERT INTO "ContentReviewFlag"
+      (id, "targetType", "targetId", reason, matches, snippet, status, "createdAt")
+    VALUES
+      (${id}, ${input.targetType}, ${input.targetId}, 'adult', ${matchesLiteral}::text[], ${input.snippet}, 'pending', NOW())
+  `
   return { created: true }
 }
 
