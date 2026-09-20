@@ -21,6 +21,9 @@
       "memory": 3008,
       "maxDuration": 300
     },
+    "src/app/api/admin/scrub-contacts/route.ts": {
+      "maxDuration": 60
+    },
     "src/app/api/admin/marketing/seller-toolkit-blast/route.ts": {
       "maxDuration": 300
     },
@@ -53,6 +56,10 @@
     {
       "path": "/api/notifications/open-orders-reminder",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/admin/scrub-contacts",
+      "schedule": "0 13 * * 1"
     },
     {
       "path": "/api/admin/marketing/seller-toolkit-blast",
