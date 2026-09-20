@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { detectAdultContent, detectAdultFields } from '@/lib/adult-content-moderation'
 import { redactSnippet } from '@/lib/contact-moderation'
-import { notifyAdminsAdultContent } from '@/lib/admin-notifications'
+import { notifyAdminsAdultContent } from '@/lib/notify-adult-content'
 
 export type AdultScanHit = {
   surface: string
