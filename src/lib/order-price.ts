@@ -13,9 +13,18 @@ function toNum(v: unknown): number {
   return Number.isFinite(n) ? n : 0
 }
 
+const UNIT_KEY_RE =
+  /^(quantity|qty|units?|unidades|cantidad|devices?|equipos?|piezas?)$/i
+const UNIT_LABEL_RE =
+  /\b(cantidad(?:\s+de\s+[\wáéíóúñ]+)?|n[uú]mero de equipos|n[u\u00famero de unidades|unidades|units?|equipos|piezas)\b/i
+
+/** Buyer-chosen unit count. Seller base price is always for 1 unit. */
 export function isQuantityField(field: { key?: string; label?: string } | null | undefined): boolean {
-  const text = `${field?.key || ''} ${field?.label || ''}`.toLowerCase()
-  return /quantity|qty|unidades|units|cantidad/.test(text)
+  const key = String(field?.key || '').trim()
+  const label = String(field?.label || '').trim()
+  if (UNIT_KEY_RE.test(key)) return true
+  if (UNIT_LABEL_RE.test(label)) return true
+  return false
 }
 
 export function quantityFromSelections(
@@ -29,9 +38,7 @@ export function quantityFromSelections(
     const n = Math.floor(toNum(selections[field.key]))
     return Math.max(1, n || 1)
   }
-  const fallbackKey = Object.keys(selections).find((key) =>
-    /quantity|qty|unidades|units|cantidad/i.test(key)
-  )
+  const fallbackKey = Object.keys(selections).find((key) => isQuantityField({ key }))
   if (fallbackKey) {
     const n = Math.floor(toNum(selections[fallbackKey]))
     return Math.max(1, n || 1)
@@ -39,7 +46,7 @@ export function quantityFromSelections(
   return 1
 }
 
-/** Server-side order total from gig base price + dynamic field selections. */
+/** Server-side order total: base price × units + add-on extras. */
 export function computeOrderPrice(
   basePrice: number,
   fields: unknown,
