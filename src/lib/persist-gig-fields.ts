@@ -11,6 +11,7 @@ const SELLER_ATTRIBUTE_KEYS = new Set([
   'condición',
   'vehicletype',
   'resourcetype',
+  'devicetype',
   'year',
   'año',
   'anio',
@@ -19,7 +20,7 @@ const SELLER_ATTRIBUTE_KEYS = new Set([
 ])
 
 const SELLER_ATTRIBUTE_LABEL =
-  /tipo de producto|origen|condici[oó]n|tipo de veh[ií]culo|tipo de recurso|a[nñ]o del modelo|unidad de medida/i
+  /tipo de producto|tipo de equipo|origen|condici[oó]n|tipo de veh[ií]culo|tipo de recurso|a[nñ]o del modelo|unidad de medida/i
 
 export function isSellerAttributeField(
   field: Pick<DynamicFieldDef, 'key' | 'label' | 'owner' | 'type'> | null | undefined
