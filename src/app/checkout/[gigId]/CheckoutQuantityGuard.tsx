@@ -89,6 +89,9 @@ function lockSellerSelects() {
 
   document.querySelectorAll('input[type="number"]').forEach((node) => {
     const input = node as HTMLInputElement;
+    const wrap = input.closest('div');
+    const label = (wrap?.querySelector('label')?.textContent || input.getAttribute('aria-label') || '').trim();
+    if (!isQuantityField({ key: input.name || input.id || '', label })) return;
     if (input.getAttribute('data-qty-seeded')) return;
     if (input.value === '' || input.value === '0' || (qty != null && input.value === '1' && !input.dataset.userEdited)) {
       const next = String(qty ?? 1);
