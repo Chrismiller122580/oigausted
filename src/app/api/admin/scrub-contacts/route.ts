@@ -13,28 +13,12 @@ async function authorized(req: NextRequest) {
   return Boolean(session?.user?.id)
 }
 
-async function run(req: NextRequest, fallbackDryRun: boolean) {
-  if (!(await authorized(req))) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
-  const url = new URL(req.url)
-  const dryRun =
-    url.searchParams.get('dryRun') === 'true' ||
-    (url.searchParams.get('apply') !== '1' && fallbackDryRun && url.searchParams.get('dryRun') !== 'false')
-  const apply = url.searchParams.get('apply') === '1' || url.searchParams.get('dryRun') === 'false'
-  const report = await scrubMarketplaceContacts({
-    dryRun: apply ? false : dryRun,
-  })
-  return NextResponse.json(report)
-}
-
-/** Vercel Cron is GET + Bearer CRON_SECRET. Default apply so the weekly job writes. */
+/** Vercel Cron is GET + Bearer CRON_SECRET. Default apply; ?dryRun=true previews. */
 export async function GET(req: NextRequest) {
-  const url = new URL(req.url)
-  const dryRun = url.searchParams.get('dryRun') === 'true'
   if (!(await authorized(req))) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
+  const dryRun = new URL(req.url).searchParams.get('dryRun') === 'true'
   const report = await scrubMarketplaceContacts({ dryRun })
   return NextResponse.json(report)
 }
@@ -43,8 +27,7 @@ export async function POST(req: NextRequest) {
   if (!(await authorized(req))) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
-  const url = new URL(req.url)
-  const dryRun = url.searchParams.get('dryRun') === 'true'
+  const dryRun = new URL(req.url).searchParams.get('dryRun') === 'true'
   const report = await scrubMarketplaceContacts({ dryRun })
   return NextResponse.json(report)
 }
