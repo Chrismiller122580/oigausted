@@ -5,6 +5,7 @@ import {
   scrubListingText,
   scrubListingValue,
 } from '@/lib/contact-moderation'
+import { listingAdultRejection } from '@/lib/adult-content-moderation'
 
 export function scrubPublicGig<T extends {
   title?: string
@@ -27,6 +28,8 @@ export function listingContactRejection(input: {
   fields?: unknown
   addons?: unknown
 }): { error: string } | null {
+  const adult = listingAdultRejection(input)
+  if (adult) return adult
   const texts = [input.title, input.description].filter((v): v is string => typeof v === 'string')
   const textHit = texts.map(detectListingContactInfo).find((r) => r.blocked)
   const fieldHit = detectListingFieldsContact([input.fields, input.addons])
