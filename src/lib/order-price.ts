@@ -16,7 +16,7 @@ function toNum(v: unknown): number {
 const UNIT_KEY_RE =
   /^(quantity|qty|units?|unidades|cantidad|devices?|equipos?|piezas?)$/i
 const UNIT_LABEL_RE =
-  /\b(cantidad(?:\s+de\s+[\wáéíóúñ]+)?|n[uú]mero de equipos|n[u\u00famero de unidades|unidades|units?|equipos|piezas)\b/i
+  /\b(cantidad(?:\s+de\s+[\wáéíóúñ]+)?|n[uú]mero de equipos|n[uú]mero de unidades|unidades|units?|equipos|piezas)\b/i
 
 /** Buyer-chosen unit count. Seller base price is always for 1 unit. */
 export function isQuantityField(field: { key?: string; label?: string } | null | undefined): boolean {
