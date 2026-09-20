@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminFromDb } from '@/lib/admin-auth'
 import { scrubMarketplaceContacts } from '@/lib/scrub-marketplace-contacts'
+import { scanAndFlagAdultContent } from '@/lib/scrub-adult-content'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -19,8 +20,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
   const dryRun = new URL(req.url).searchParams.get('dryRun') === 'true'
-  const report = await scrubMarketplaceContacts({ dryRun })
-  return NextResponse.json(report)
+  const contacts = await scrubMarketplaceContacts({ dryRun })
+  const adult = await scanAndFlagAdultContent({ dryRun })
+  return NextResponse.json({ contacts, adult })
 }
 
 export async function POST(req: NextRequest) {
@@ -28,6 +30,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
   const dryRun = new URL(req.url).searchParams.get('dryRun') === 'true'
-  const report = await scrubMarketplaceContacts({ dryRun })
-  return NextResponse.json(report)
+  const contacts = await scrubMarketplaceContacts({ dryRun })
+  const adult = await scanAndFlagAdultContent({ dryRun })
+  return NextResponse.json({ contacts, adult })
 }
