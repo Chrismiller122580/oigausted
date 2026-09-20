@@ -4,17 +4,36 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
+type FlagRow = {
+  id: string
+  targetType: string
+  targetId: string
+  reason: string
+  matches: string[]
+  snippet: string
+  status: string
+  createdAt: Date
+  reviewedAt: Date | null
+  reviewedById: string | null
+}
+
 export async function GET(req: NextRequest) {
   const session = await requireAdminFromDb()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
   const status = new URL(req.url).searchParams.get('status') || 'pending'
-  const flags = await prisma.contentReviewFlag.findMany({
-    where: status === 'all' ? undefined : { status },
-    orderBy: { createdAt: 'desc' },
-    take: 200,
-  })
+  const flags =
+    status === 'all'
+      ? await prisma.$queryRaw<FlagRow[]>`
+          SELECT * FROM "ContentReviewFlag" ORDER BY "createdAt" DESC LIMIT 200
+        `
+      : await prisma.$queryRaw<FlagRow[]>`
+          SELECT * FROM "ContentReviewFlag"
+          WHERE status = ${status}
+          ORDER BY "createdAt" DESC
+          LIMIT 200
+        `
   return NextResponse.json({ flags, count: flags.length })
 }
 
@@ -29,17 +48,17 @@ export async function PATCH(req: NextRequest) {
   if (!id || !['cleared', 'removed', 'pending'].includes(status)) {
     return NextResponse.json({ error: 'Datos invalidos' }, { status: 400 })
   }
-  const flag = await prisma.contentReviewFlag.findUnique({ where: { id } })
+  const rows = await prisma.$queryRaw<FlagRow[]>`
+    SELECT * FROM "ContentReviewFlag" WHERE id = ${id} LIMIT 1
+  `
+  const flag = rows[0]
   if (!flag) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
 
-  const updated = await prisma.contentReviewFlag.update({
-    where: { id },
-    data: {
-      status,
-      reviewedAt: new Date(),
-      reviewedById: session.user.id,
-    },
-  })
+  await prisma.$executeRaw`
+    UPDATE "ContentReviewFlag"
+    SET status = ${status}, "reviewedAt" = NOW(), "reviewedById" = ${session.user.id}
+    WHERE id = ${id}
+  `
 
   if (flag.targetType === 'gig') {
     if (status === 'cleared') {
@@ -56,5 +75,5 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, flag: updated })
+  return NextResponse.json({ ok: true })
 }
