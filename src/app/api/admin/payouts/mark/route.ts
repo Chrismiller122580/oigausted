@@ -3,11 +3,12 @@ import { prisma } from '@/lib/prisma'
 import { requireFinancePanelSession } from '@/lib/admin-auth'
 import { missingSellerPayoutBankFields } from '@/lib/seller-payout-bank'
 import { logAuditEvent } from '@/lib/audit'
-import { toPrismaJsonField } from '@/lib/utils'
 
 export async function POST(req: Request) {
-  const gate = await requireFinancePanelSession()
-  if ('error' in gate) return gate.error
+  const session = await requireFinancePanelSession()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
 
   const body = await req.json().catch(() => ({}))
   const orderId = typeof body.orderId === 'string' ? body.orderId.trim() : ''
@@ -62,14 +63,14 @@ export async function POST(req: Request) {
   })
 
   await logAuditEvent({
-    performedById: gate.session.user.id,
+    performedById: session.user.id,
     action: 'SELLER_PAYOUT_MARKED',
     targetType: 'Order',
     targetId: orderId,
-    details: toPrismaJsonField({
+    details: {
       wompiPayoutRef: updated.wompiPayoutRef,
       bankRequired: true,
-    }),
+    },
   }).catch(() => {})
 
   return NextResponse.json({ success: true, order: updated })
