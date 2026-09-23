@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { slugify, devLog } from '@/lib/utils'
 import { isEmailAsBusinessName, EMAIL_AS_BUSINESS_NAME_ERROR } from '@/lib/business-name'
 import { parseAppLanguage } from '@/lib/preferred-language'
+import { publicMapCoords, sanitizeStoredCity } from '@/lib/public-location'
 import type { Prisma, User } from '@prisma/client'
 
 export type ProfilePatchInput = {
@@ -47,6 +48,8 @@ export function isSlugColumnError(err: unknown): boolean {
 }
 
 function buildUpdateData(data: ProfilePatchInput): Prisma.UserUpdateInput {
+  const publicCity = data.city !== undefined ? sanitizeStoredCity(data.city) : undefined
+  const pin = publicCity ? publicMapCoords(publicCity) : null
   const updateData: Prisma.UserUpdateInput = {
     name: data.name || undefined,
     tagline: data.tagline !== undefined ? (data.tagline || null) : undefined,
@@ -57,9 +60,9 @@ function buildUpdateData(data: ProfilePatchInput): Prisma.UserUpdateInput {
     whatsapp: data.whatsapp !== undefined ? (data.whatsapp || null) : undefined,
     instagram: data.instagram !== undefined ? (data.instagram || null) : undefined,
     facebook: data.facebook !== undefined ? (data.facebook || null) : undefined,
-    city: data.city !== undefined ? (data.city || null) : undefined,
-    latitude: data.latitude !== undefined ? data.latitude : undefined,
-    longitude: data.longitude !== undefined ? data.longitude : undefined,
+    city: publicCity !== undefined ? publicCity : undefined,
+    latitude: pin ? pin.latitude : data.latitude !== undefined ? data.latitude : undefined,
+    longitude: pin ? pin.longitude : data.longitude !== undefined ? data.longitude : undefined,
     serviceRadiusKm: data.serviceRadiusKm !== undefined ? data.serviceRadiusKm : undefined,
   }
 
