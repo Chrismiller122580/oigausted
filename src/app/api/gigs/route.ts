@@ -9,6 +9,7 @@ import { normalizeGigImagePayload, parseGigImagesField } from '@/lib/gig-images'
 import { notifyAdminsNewGig } from '@/lib/admin-notifications';
 import { listingContactRejection } from '@/lib/scrub-public-gig';
 import { scrubListingText, scrubListingValue } from '@/lib/contact-moderation';
+import { publicMapCoords, sanitizeStoredCity } from '@/lib/public-location';
 
 export async function GET(req: NextRequest) {
   try {
@@ -83,17 +84,24 @@ export async function GET(req: NextRequest) {
       select: { 
         id: true, name: true, businessName: true,
         profilePicture: true, rating: true, reviewCount: true,
-        latitude: true, longitude: true, serviceRadiusKm: true, city: true
+        city: true
       }
     });
 
     const sellerMap = Object.fromEntries(sellers.map((s: { id: string }) => [s.id, s]));
 
     const { scrubPublicGig } = await import('@/lib/scrub-public-gig')
-    const gigsWithSeller = gigs.map((gig: (typeof gigs)[number]) => ({
-      ...scrubPublicGig(gig),
-      seller: sellerMap[gig.sellerId] || null
-    }));
+    const gigsWithSeller = gigs.map((gig: (typeof gigs)[number]) => {
+      const city = sanitizeStoredCity(gig.city) || sanitizeStoredCity((sellerMap[gig.sellerId] as { city?: string | null } | undefined)?.city)
+      const pin = publicMapCoords(city)
+      return {
+        ...scrubPublicGig(gig),
+        city,
+        latitude: pin.latitude,
+        longitude: pin.longitude,
+        seller: sellerMap[gig.sellerId] || null
+      }
+    });
 
     devLog(`📦 /api/gigs returned ${gigs.length}/${total} gigs (page ${page})`);
 
@@ -150,8 +158,6 @@ export async function POST(req: NextRequest) {
       addons = [], 
       completionTime = "2-5 días",
       city,
-      latitude,
-      longitude,
       isRemote
     } = body;
 
@@ -173,6 +179,8 @@ export async function POST(req: NextRequest) {
     const cleanDescription = description ? scrubListingText(String(description)) : null
     const cleanFields = fields ? JSON.stringify(scrubListingValue(fields)) : null
     const cleanAddons = addons ? JSON.stringify(scrubListingValue(addons)) : null
+    const publicCity = sanitizeStoredCity(city)
+    const pin = publicMapCoords(publicCity)
 
     const createData = {
         title: cleanTitle,
@@ -185,9 +193,9 @@ export async function POST(req: NextRequest) {
         addons: cleanAddons,
         completionTime,
         sellerId,
-        city: city || null,
-        latitude: latitude != null ? Number(latitude) : null,
-        longitude: longitude != null ? Number(longitude) : null,
+        city: publicCity,
+        latitude: pin.latitude,
+        longitude: pin.longitude,
         isRemote: Boolean(isRemote),
     }
 
