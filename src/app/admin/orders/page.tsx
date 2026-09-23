@@ -20,6 +20,8 @@ interface Order {
   gig?: { title?: string; id?: string };
 }
 
+const PAID_STATUSES = new Set(['Paid', 'In Progress', 'Completed']);
+
 export default function AdminOrdersPage() {
   const viewOnly = useAdminAssistantViewOnly();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -91,6 +93,12 @@ export default function AdminOrdersPage() {
   };
 
   const updateStatus = async (orderId: string, newStatus: string) => {
+    const current = orders.find((o) => o.id === orderId);
+    const shouldRefund = newStatus === 'Cancelled' && !!current && PAID_STATUSES.has(current.status);
+    if (shouldRefund && !confirm('Cancelar y pedir el reembolso a Wompi para este pedido pagado?')) {
+      return;
+    }
+
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
@@ -98,13 +106,24 @@ export default function AdminOrdersPage() {
         body: JSON.stringify({ status: newStatus }),
       });
 
-      if (res.ok) {
-        toast.success(`Status updated to ${newStatus}`);
-        fetchOrders();
-      } else {
+      if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         toast.error(data.error || 'Could not update status');
+        return;
       }
+
+      if (shouldRefund) {
+        const refundRes = await fetch(`/api/orders/${orderId}/refund`, { method: 'POST' });
+        const refundData = await refundRes.json().catch(() => ({}));
+        if (refundData?.refund?.success) {
+          toast.success(refundData.refund.message || 'Reembolso enviado a Wompi');
+        } else {
+          toast.error(refundData?.refund?.message || 'Pedido cancelado. El reembolso hay que hacerlo en Wompi.');
+        }
+      } else {
+        toast.success(`Status updated to ${newStatus}`);
+      }
+      fetchOrders();
     } catch (e) {
       toast.error('Error updating status');
     }
@@ -253,7 +272,7 @@ export default function AdminOrdersPage() {
         <p className="text-center text-xs text-muted-foreground mt-6">
           {viewOnly
             ? 'View-only access — contact a full admin to change or delete orders.'
-            : 'Admin view — all orders across the platform. Use caution with delete (irreversible).'}
+            : 'Admin view — canceling a paid order now asks Wompi to void/refund automatically.'}
         </p>
       </div>
     </div>
