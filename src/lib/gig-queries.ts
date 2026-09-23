@@ -8,6 +8,7 @@ import {
 } from '@/lib/public-gigs'
 import { parseJsonArrayField } from '@/lib/utils'
 import { scrubPublicGig } from '@/lib/scrub-public-gig'
+import { publicMapCoords, sanitizeStoredCity } from '@/lib/public-location'
 
 function isMissingInterestColumn(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err)
@@ -56,8 +57,6 @@ const sellerListSelect = {
   rating: true,
   reviewCount: true,
   slug: true,
-  latitude: true,
-  longitude: true,
   serviceRadiusKm: true,
   city: true,
 } as const
@@ -122,6 +121,11 @@ export type PublicGigListItem = {
   } | null
 }
 
+function publicSellerCity(seller: { city?: string | null } | null | undefined) {
+  if (!seller) return null
+  return sanitizeStoredCity(seller.city)
+}
+
 function formatGigDetail(
   gig: {
     id: string
@@ -150,6 +154,9 @@ function formatGigDetail(
     fields: parseJsonArrayField(gig.fields),
     addons: parseJsonArrayField(gig.addons),
   })
+  const seller = gig.seller
+    ? { ...gig.seller, city: publicSellerCity(gig.seller) }
+    : null
   return {
     id: gig.id,
     title: scrubbed.title || gig.title,
@@ -163,11 +170,11 @@ function formatGigDetail(
     addons: scrubbed.addons,
     isActive: gig.isActive,
     sellerId: gig.sellerId,
-    city: gig.city ?? null,
+    city: sanitizeStoredCity(gig.city) ?? publicSellerCity(gig.seller),
     isRemote: gig.isRemote ?? null,
     viewCount: Number((gig as { viewCount?: number }).viewCount ?? 0),
     likeCount: Number((gig as { likeCount?: number }).likeCount ?? 0),
-    seller: gig.seller,
+    seller,
   }
 }
 
@@ -332,6 +339,9 @@ export async function listPublicGigs({
       title: gig.title,
       description: gig.description,
     })
+    const sellerRaw = sellerMap[gig.sellerId] ?? null
+    const cityLabel = sanitizeStoredCity(gig.city) || publicSellerCity(sellerRaw)
+    const pin = publicMapCoords(cityLabel)
     return {
       id: gig.id,
       title: scrubbed.title || gig.title,
@@ -341,14 +351,21 @@ export async function listPublicGigs({
       imageUrl: gig.imageUrl,
       isActive: gig.isActive,
       createdAt: gig.createdAt,
-      city: gig.city,
-      latitude: gig.latitude,
-      longitude: gig.longitude,
+      city: cityLabel,
+      latitude: pin.latitude,
+      longitude: pin.longitude,
       isRemote: gig.isRemote,
       sellerId: gig.sellerId,
       viewCount: Number((gig as { viewCount?: number }).viewCount ?? 0),
       likeCount: Number((gig as { likeCount?: number }).likeCount ?? 0),
-      seller: sellerMap[gig.sellerId] ?? null,
+      seller: sellerRaw
+        ? {
+            ...sellerRaw,
+            city: publicSellerCity(sellerRaw),
+            latitude: pin.latitude,
+            longitude: pin.longitude,
+          }
+        : null,
     }
   })
 
