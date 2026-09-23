@@ -65,7 +65,7 @@ export default function AdminPayoutsPage() {
         setAudit(data);
       }
     } catch {
-      // Non-fatal — page still works without audit banner
+      // Non-fatal
     }
   };
 
@@ -140,10 +140,10 @@ export default function AdminPayoutsPage() {
 
     for (const orderId of ids) {
       try {
-        const res = await fetch(`/api/orders/${orderId}`, {
-          method: 'PATCH',
+        const res = await fetch('/api/admin/payouts/mark', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sellerPayoutAt: new Date().toISOString() }),
+          body: JSON.stringify({ orderId }),
         });
         if (res.ok) synced++;
         else failed++;
@@ -179,20 +179,26 @@ export default function AdminPayoutsPage() {
     }
   };
 
+  const sellerHasBank = (order?: PayoutOrder | null) =>
+    !!(order?.seller?.payoutAccountNumber && order?.seller?.payoutBankCode);
+
   const markAsPaid = async (orderId: string, wompiRef?: string) => {
     const order = orders.find((o) => o.id === orderId);
     if (!order) return;
 
-    const hasBank = !!(order.seller?.payoutAccountNumber && order.seller?.payoutBankCode);
+    if (!sellerHasBank(order)) {
+      toast.error('No se puede pagar: el vendedor no tiene cuenta bancaria configurada.');
+      return;
+    }
 
     try {
-      const payload: { sellerPayoutAt: string; wompiPayoutRef?: string } = { sellerPayoutAt: new Date().toISOString() };
+      const payload: { orderId: string; wompiPayoutRef?: string } = { orderId };
       if (wompiRef?.trim()) {
         payload.wompiPayoutRef = wompiRef.trim();
       }
 
-      const patchRes = await fetch(`/api/orders/${orderId}`, {
-        method: 'PATCH',
+      const patchRes = await fetch('/api/admin/payouts/mark', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
@@ -222,7 +228,7 @@ export default function AdminPayoutsPage() {
             category: 'payment',
             type: 'in_app',
             title: 'Pago enviado a tu cuenta',
-            message: `Tu pago neto de $${net.toLocaleString('es-CO')} COP por "${order.gig?.title || 'el servicio'}" fue marcado como pagado vía Wompi.${refPart} Se acreditará en la cuenta registrada.`,
+            message: `Tu pago neto de $${net.toLocaleString('es-CO')} COP por "${order.gig?.title || 'el servicio'}" fue marcado como pagado v\u00eda Wompi.${refPart} Se acreditar\u00e1 en la cuenta registrada.`,
             link: `/orders/${orderId}`,
           }),
         }).catch(() => {});
@@ -237,8 +243,7 @@ export default function AdminPayoutsPage() {
       setPaidOrders((prev) => [paidOrder, ...prev]);
 
       const mode = payload.wompiPayoutRef ? 'Wompi' : 'manual';
-      const bankNote = hasBank ? '' : ' (seller bank details were missing)';
-      toast.success(`Seller payout recorded (${mode}). Referrals updated.${bankNote}`);
+      toast.success(`Seller payout recorded (${mode}). Referrals updated.`);
       fetchAudit();
     } catch {
       toast.error('Error marking payout');
@@ -249,10 +254,9 @@ export default function AdminPayoutsPage() {
     const order = orders.find((o) => o.id === orderId);
     if (!order) return;
 
-    const hasBank = !!(order.seller?.payoutAccountNumber && order.seller?.payoutBankCode);
-    if (!hasBank) {
-      const proceed = confirm('This seller has incomplete bank details. Record the payout anyway?');
-      if (!proceed) return;
+    if (!sellerHasBank(order)) {
+      toast.error('El vendedor debe configurar banco, cuenta, titular y documento antes del pago.');
+      return;
     }
 
     const ref = prompt(
@@ -307,9 +311,6 @@ export default function AdminPayoutsPage() {
                   <li key={b}>{b}</li>
                 ))}
             </ul>
-            <p className="text-xs text-muted-foreground mt-2">
-              Redeploy with DIRECT_DATABASE_URL set so prisma migrate deploy runs on build.
-            </p>
           </CardContent>
         </Card>
       );
@@ -322,9 +323,6 @@ export default function AdminPayoutsPage() {
             <div>
               <p className="font-semibold text-amber-400">
                 {localPaidIds.length} payout(s) saved only in this browser
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Sync them to the database so they persist across devices and refreshes.
               </p>
             </div>
             <Button onClick={syncLocalPayouts} disabled={syncingLocal} className="bg-amber-600 hover:bg-amber-700 shrink-0">
@@ -340,10 +338,7 @@ export default function AdminPayoutsPage() {
         <Card className="mb-6 border-amber-500/50 bg-amber-950/20">
           <CardContent className="p-4">
             <p className="font-semibold text-amber-400">
-              Payout system ready — {audit.payouts.completedUnpaidCount} pending (${audit.payouts.completedUnpaidNetCOP.toLocaleString('es-CO')} COP)
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {audit.sellersMissingBank.length} seller(s) have pending payouts but incomplete bank details (see below).
+              {audit.sellersMissingBank.length} seller(s) missing bank details — payouts blocked until they finish setup.
             </p>
           </CardContent>
         </Card>
@@ -354,10 +349,7 @@ export default function AdminPayoutsPage() {
       <Card className="mb-6 border-emerald-500/50 bg-emerald-950/20">
         <CardContent className="p-4">
           <p className="font-semibold text-emerald-400">
-            Payout system healthy — {audit.payouts.completedUnpaidCount} pending (${audit.payouts.completedUnpaidNetCOP.toLocaleString('es-CO')} COP)
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            {audit.payouts.completedPaidCount} paid • Schema OK • All pending sellers have bank details
+            Payout system healthy — {audit.payouts.completedUnpaidCount} pending
           </p>
         </CardContent>
       </Card>
@@ -373,18 +365,6 @@ export default function AdminPayoutsPage() {
             Net to pay to sellers:{' '}
             <span className="font-bold text-2xl text-emerald-400">${totalNetToSellers.toLocaleString('es-CO')}</span>
           </div>
-          <div className="text-sm">
-            Estimated platform revenue:{' '}
-            <span className="font-semibold text-amber-400">${totalPlatformRevenue.toLocaleString('es-CO')}</span>
-            &nbsp;•&nbsp; Referral liability:{' '}
-            <span className="font-semibold">${totalReferralLiability.toLocaleString('es-CO')}</span>
-          </div>
-          {totalPendingReferrals > 0 && (
-            <div className="text-sm text-orange-600">
-              Pending referral payouts:{' '}
-              <span className="font-semibold">${totalPendingReferrals.toLocaleString('es-CO')}</span>
-            </div>
-          )}
         </div>
 
         {renderHealthBanner()}
@@ -395,27 +375,15 @@ export default function AdminPayoutsPage() {
               <h2 className="text-xl font-semibold mb-4">Sellers missing bank details</h2>
               <div className="space-y-3">
                 {audit.sellersMissingBank.map((seller) => (
-                  <div
-                    key={seller.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/30"
-                  >
+                  <div key={seller.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/30">
                     <div>
                       <p className="font-medium">{seller.name || seller.email}</p>
                       <p className="text-sm text-muted-foreground">{seller.email}</p>
-                      <p className="text-xs text-amber-600 mt-1">
-                        Missing: {seller.missingFields.join(', ')}
-                      </p>
+                      <p className="text-xs text-amber-600 mt-1">Missing: {seller.missingFields.join(', ')}</p>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="font-bold text-emerald-400">${seller.pendingNetCOP.toLocaleString('es-CO')}</p>
-                        <p className="text-xs text-muted-foreground">{seller.pendingOrderCount} order(s)</p>
-                      </div>
-                      <Link href="/admin/users">
-                        <Button size="sm" variant="outline">
-                          View user
-                        </Button>
-                      </Link>
+                    <div className="text-right">
+                      <p className="font-bold text-emerald-400">${seller.pendingNetCOP.toLocaleString('es-CO')}</p>
+                      <p className="text-xs text-muted-foreground">{seller.pendingOrderCount} order(s)</p>
                     </div>
                   </div>
                 ))}
@@ -426,10 +394,7 @@ export default function AdminPayoutsPage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading payouts...</p>
-            </div>
+            <p className="text-muted-foreground">Loading payouts...</p>
           </div>
         ) : orders.length === 0 ? (
           <Card className="bg-card border-border p-12 text-center">
@@ -452,32 +417,33 @@ export default function AdminPayoutsPage() {
                         <p className="text-2xl font-bold text-emerald-400">
                           ${(order.breakdown?.netToSeller || order.price || 0).toLocaleString('es-CO')}
                         </p>
-                        <p className="text-xs text-muted-foreground line-through">
-                          ${(order.price || 0).toLocaleString('es-CO')} gross
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">Net to seller</p>
-                        {order.seller?.payoutAccountNumber && order.seller?.payoutBankCode ? (
+                        {sellerHasBank(order) ? (
                           <p className="text-[10px] text-emerald-600 mt-1">
-                            Bank: {order.seller.payoutBankCode} • ****{String(order.seller.payoutAccountNumber).slice(-4)}
+                            Bank: {order.seller?.payoutBankCode} • ****{String(order.seller?.payoutAccountNumber).slice(-4)}
                           </p>
                         ) : (
                           <p className="text-[10px] text-amber-600 mt-1">Missing bank details</p>
                         )}
                       </div>
                       <div className="flex flex-col gap-2">
-                        <Button onClick={() => recordWompiPayout(order.id)} className="bg-emerald-600 hover:bg-emerald-700">
+                        <Button
+                          onClick={() => recordWompiPayout(order.id)}
+                          disabled={!sellerHasBank(order)}
+                          className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
+                        >
                           Pay via Wompi
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => markAsPaid(order.id)} className="text-xs">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => markAsPaid(order.id)}
+                          disabled={!sellerHasBank(order)}
+                          className="text-xs disabled:opacity-50"
+                        >
                           Mark manual
                         </Button>
                         {canDeleteOrders && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => deleteOrder(order.id, order.reference)}
-                            className="text-xs"
-                          >
+                          <Button variant="destructive" size="sm" onClick={() => deleteOrder(order.id, order.reference)} className="text-xs">
                             Delete
                           </Button>
                         )}
@@ -488,122 +454,6 @@ export default function AdminPayoutsPage() {
               ))}
             </div>
           </ErrorBoundary>
-        )}
-
-        {paidOrders.length > 0 && (
-          <div className="mt-10">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-semibold">Paid Payouts History</h2>
-              {isDev && canDeleteOrders && (
-                <Button variant="destructive" onClick={clearAllOrders} className="text-sm">
-                  Clear ALL Orders (dev only)
-                </Button>
-              )}
-            </div>
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Search paid payouts by gig, seller, buyer, id..."
-                value={paidSearch}
-                onChange={(e) => setPaidSearch(e.target.value)}
-                className="w-full max-w-md px-4 py-2 border border-border rounded-xl bg-background text-sm"
-              />
-            </div>
-            <ScrollableTable className="border border-border rounded-xl">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-3">Gig / Seller</th>
-                    <th className="text-left p-3">Buyer</th>
-                    <th className="text-right p-3">Net Paid</th>
-                    <th className="text-left p-3">Paid At</th>
-                    <th className="text-left p-3">Wompi Ref</th>
-                    <th className="text-left p-3">ID</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredPaid.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                        No matching paid payouts.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredPaid.map((order) => (
-                      <tr key={order.id} className="border-t hover:bg-muted/30">
-                        <td className="p-3">
-                          <div className="font-medium">{order.gig?.title || 'Servicio'}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {order.seller?.businessName || order.seller?.name}
-                          </div>
-                        </td>
-                        <td className="p-3 text-muted-foreground">{order.buyer?.name}</td>
-                        <td className="p-3 text-right font-bold text-emerald-400">
-                          ${(order.breakdown?.netToSeller || order.price || 0).toLocaleString('es-CO')}
-                        </td>
-                        <td className="p-3 text-xs text-muted-foreground">
-                          {order.sellerPayoutAt ? new Date(order.sellerPayoutAt).toLocaleDateString('es-CO') : '—'}
-                        </td>
-                        <td className="p-3 text-[10px] text-emerald-600 font-mono">{order.wompiPayoutRef || '—'}</td>
-                        <td className="p-3 text-[10px] text-muted-foreground font-mono">{order.id.slice(0, 8)}…</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </ScrollableTable>
-          </div>
-        )}
-
-        {referralPayouts.length > 0 && (
-          <div className="mt-10">
-            <h2 className="text-2xl font-semibold mb-4">Pending Referral Payouts</h2>
-            <div className="space-y-4">
-              {referralPayouts.map((ref) => (
-                <Card key={ref.referrer.id} className="bg-card border-border">
-                  <CardContent className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <p className="font-semibold text-lg">Referrer: {ref.referrer.name}</p>
-                      <p className="text-sm text-muted-foreground">{ref.referrer.email}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Referred: {ref.referredCount} • Generated: ${(ref.totalGenerated || 0).toLocaleString('es-CO')}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-6">
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-orange-600">
-                          ${(ref.pendingPayout || 0).toLocaleString('es-CO')}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Pending / Requested</p>
-                      </div>
-                      <Button
-                        onClick={async () => {
-                          try {
-                            const res = await fetch('/api/admin/referrals', {
-                              method: 'PATCH',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ referrerId: ref.referrer.id }),
-                            });
-                            if (res.ok) {
-                              toast.success('Referral payout marked paid');
-                              fetchCompleted();
-                            } else {
-                              toast.error('Error');
-                            }
-                          } catch {
-                            toast.error('Connection error');
-                          }
-                        }}
-                        className="bg-orange-600 hover:bg-orange-700"
-                      >
-                        Mark Referrals Paid
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
         )}
       </div>
     </div>
