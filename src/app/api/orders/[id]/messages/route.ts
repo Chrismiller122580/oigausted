@@ -23,7 +23,6 @@ export async function GET(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    // Verify caller is part of the order, or admin / CS panel staff
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       select: { buyerId: true, sellerId: true },
@@ -46,7 +45,6 @@ export async function GET(
     const messages = await prisma.orderMessage.findMany({
       where: { orderId },
       orderBy: { createdAt: 'asc' },
-      // Include file attachment fields (requires the migration to have been run)
       select: {
         id: true,
         content: true,
@@ -58,7 +56,6 @@ export async function GET(
       }
     });
 
-    // Consistent shape expected by frontend
     return NextResponse.json({ messages, staffView: isStaff });
   } catch (error) {
     console.error('Messages GET error:', error);
@@ -78,23 +75,33 @@ export async function POST(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    // Verify caller is part of the order
-    const order = await prisma.order.findUnique({ where: { id: orderId }, select: { buyerId: true, sellerId: true } });
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { buyerId: true, sellerId: true, status: true },
+    });
     if (!order || (order.buyerId !== userId && order.sellerId !== userId)) {
       return NextResponse.json({ error: 'No autorizado para este pedido' }, { status: 403 });
     }
 
+    const purchased = /^(Paid|In_Progress|Completed)$/i.test(String(order.status));
     const contentType = request.headers.get('content-type') || '';
 
     let content = '';
     let isFromBuyer = true;
-
     let fileUrl: string | null = null;
     let fileName: string | null = null;
 
     if (contentType.includes('multipart/form-data')) {
+      if (!purchased) {
+        return NextResponse.json(
+          { error: 'Los archivos se habilitan después de pagar el pedido' },
+          { status: 403 }
+        );
+      }
+
       const formData = await request.formData();
       const file = formData.get('file') as File | null;
+      const text = String(formData.get('content') || '').trim();
 
       if (file) {
         const validation = await validateUploadFile(file)
@@ -111,22 +118,22 @@ export async function POST(
         }
 
         fileName = file.name;
-
         const blob = await put(file.name, file, {
           token,
           access: 'public',
           addRandomSuffix: true,
         });
-
         fileUrl = blob.url;
-        content = `📎 ${file.name}`;
-      } else {
-        content = '📎 Archivo adjunto';
       }
+
+      content = text || (fileName ? `📎 ${fileName}` : '');
     } else {
-      // JSON text message
       const body = await request.json().catch(() => ({}));
       content = body.content || body.text || '';
+    }
+
+    if (!content.trim() && !fileUrl) {
+      return NextResponse.json({ error: 'Escribe un mensaje o adjunta un archivo' }, { status: 400 });
     }
 
     if (content.trim()) {
@@ -140,13 +147,7 @@ export async function POST(
       }
     }
 
-    // Determine direction (best effort using order)
-    try {
-      const order = await prisma.order.findUnique({ where: { id: orderId }, select: { buyerId: true } });
-      if (order) {
-        isFromBuyer = userId === order.buyerId;
-      }
-    } catch {}
+    isFromBuyer = userId === order.buyerId;
 
     const message = await prisma.orderMessage.create({
       data: {
@@ -158,35 +159,34 @@ export async function POST(
       },
     });
 
-    // Notify the other party
     try {
-      const order = await prisma.order.findUnique({
+      const fullOrder = await prisma.order.findUnique({
         where: { id: orderId },
         select: { buyerId: true, sellerId: true, gig: { select: { title: true } } }
       });
 
-      if (order) {
-        const recipientId = isFromBuyer ? order.sellerId : order.buyerId;
+      if (fullOrder) {
+        const recipientId = isFromBuyer ? fullOrder.sellerId : fullOrder.buyerId;
         const senderRole = isFromBuyer ? 'comprador' : 'vendedor';
+        const preview = fileName ? `Archivo: ${fileName}` : content.substring(0, 100);
 
-        // Category 'message' so messageAlerts prefs apply (not only orderUpdates)
         await notifications.sendInApp(
           recipientId,
           'message',
           `Nuevo mensaje en el pedido`,
-          `${senderRole} te ha enviado un mensaje sobre "${order.gig.title}".`,
+          `${senderRole} te ha enviado un mensaje sobre "${fullOrder.gig.title}".`,
           `/orders/${orderId}`,
-          { orderId, gigTitle: order.gig.title }
+          { orderId, gigTitle: fullOrder.gig.title }
         );
 
         await notifications.sendNotification({
           userId: recipientId,
           category: 'message',
           type: 'email',
-          title: `Nuevo mensaje sobre "${order.gig.title}"`,
-          message: `${senderRole} te ha enviado un mensaje: "${content?.substring(0, 100) || 'Ver mensaje completo'}..."`,
+          title: `Nuevo mensaje sobre "${fullOrder.gig.title}"`,
+          message: `${senderRole} te ha enviado un mensaje: "${preview}..."`,
           link: `/orders/${orderId}`,
-          data: { orderId, gigTitle: order.gig.title }
+          data: { orderId, gigTitle: fullOrder.gig.title }
         });
       }
     } catch (notifErr) {

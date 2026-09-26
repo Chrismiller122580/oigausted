@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import OrderServiceDetails from '@/components/orders/OrderServiceDetails';
+import OrderChat from '@/components/orders/OrderChat';
 import {
   ClipboardList,
   CreditCard,
@@ -17,6 +18,10 @@ import { CategoryIcon } from '@/lib/icon-registry';
 import type { OrderDetail } from '@/types/order';
 import { getOrderStatusDisplayEs } from '@/lib/order-status';
 import { buildWompiWidgetConfig } from '@/lib/wompi-widget';
+
+function isPurchasedStatus(status?: string | null) {
+  return /^(paid|in[_\s-]?progress|completed)$/i.test(String(status || ''));
+}
 
 function OrderDetailClient() {
   const params = useParams();
@@ -128,6 +133,7 @@ function OrderDetailClient() {
   }
 
   const categoryName = order.gig?.category || '';
+  const purchased = isPurchasedStatus(order.status);
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -165,7 +171,7 @@ function OrderDetailClient() {
       </div>
 
       <div className="grid md:grid-cols-12 gap-8">
-        <div className="md:col-span-8">
+        <div className="md:col-span-8 space-y-8">
           <Card>
             <CardHeader><CardTitle>Detalles del Servicio</CardTitle></CardHeader>
             <CardContent className="space-y-4 pt-6">
@@ -176,6 +182,20 @@ function OrderDetailClient() {
               />
             </CardContent>
           </Card>
+
+          {purchased ? (
+            <OrderChat
+              orderId={order.id}
+              isBuyer={!!isBuyer}
+              gigTitle={order.gig?.title}
+            />
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-sm text-muted-foreground">
+                El chat con archivos se activa después de pagar el pedido. Así el comprador puede enviar fotos o documentos al vendedor en cualquier categoría.
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="md:col-span-4">
@@ -216,12 +236,14 @@ function OrderDetailClient() {
                   </Button>
                 </>
               )}
-              <Button asChild variant="outline" className="w-full">
-                <Link href={`/orders/${order.id}?tab=chat`}>
-                  <MessageCircle className="h-4 w-4" />
-                  Abrir chat
-                </Link>
-              </Button>
+              {purchased && (
+                <Button asChild variant="outline" className="w-full">
+                  <a href="#order-chat">
+                    <MessageCircle className="h-4 w-4" />
+                    Abrir chat
+                  </a>
+                </Button>
+              )}
             </CardContent>
           </Card>
         </div>
