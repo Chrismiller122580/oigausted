@@ -55,19 +55,22 @@ export default function OrderChat({ orderId, isBuyer, gigTitle }: Props) {
 
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        toast.error(data.error || 'No se pudo enviar el mensaje')
+        toast.error(data.error || 'No se pudo enviar el archivo')
         return
       }
       setNewMessage('')
       setSelectedFile(null)
       if (data.message) setMessages((prev) => [...prev, data.message])
       else await loadMessages()
+      if (selectedFile) toast.success('Archivo enviado. También se avisó por correo.')
     } catch {
       toast.error('Error de conexión')
     } finally {
       setSending(false)
     }
   }
+
+  const hasFile = messages.some((msg) => msg.fileUrl)
 
   return (
     <div id="order-chat">
@@ -79,9 +82,10 @@ export default function OrderChat({ orderId, isBuyer, gigTitle }: Props) {
         onSend={sendMessage}
         sending={sending}
         allowAttachments
+        emphasizeUpload={!hasFile}
         selectedFile={selectedFile}
         onSelectedFileChange={setSelectedFile}
-        subtitle={`Chat del pedido${gigTitle ? ` · ${gigTitle}` : ''} · puedes adjuntar archivos`}
+        subtitle={gigTitle ? `Pedido: ${gigTitle}` : 'Chat del pedido'}
       />
     </div>
   )
