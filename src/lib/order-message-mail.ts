@@ -21,7 +21,7 @@ function escapeHtml(value: string) {
 
 /**
  * Email a paid-order chat attachment to the other party.
- * Reply-To is support only. The sender email is never included.
+ * The sender email is never included. Replies are steered into the app chat.
  */
 export async function emailOrderAttachment({
   recipientId,
@@ -53,7 +53,7 @@ export async function emailOrderAttachment({
   const safeTitle = escapeHtml(gigTitle || 'tu pedido')
   const safeNote = note && !note.startsWith('📎') ? escapeHtml(note).slice(0, 500) : ''
   const image = isImageName(fileName, fileUrl)
-  const orderUrl = `${APP_URL}/orders/${orderId}#order-chat`
+  const replyUrl = `${APP_URL}/chat/responder?order=${encodeURIComponent(orderId)}`
 
   let attachment: { filename: string; content: string } | null = null
   try {
@@ -76,16 +76,20 @@ export async function emailOrderAttachment({
       ${safeNote ? `<p style="background:#f8fafc;border-radius:8px;padding:12px;">${safeNote}</p>` : ''}
       ${image ? `<p><img src="${fileUrl}" alt="${safeName}" style="max-width:100%;border-radius:12px;" /></p>` : ''}
       <p><a href="${fileUrl}" style="color:#ea580c;">Descargar ${safeName}</a></p>
-      <a href="${orderUrl}" style="background:#f97316;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;margin-top:8px;">Abrir el chat del pedido</a>
-      <p style="margin-top:28px;font-size:12px;color:#888;">Este correo sale de OigaGIG. No responde al comprador ni al vendedor. Responda en el chat del pedido.</p>
+      <p style="background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:14px 16px;">
+        <strong>No responda a este correo.</strong> Su respuesta no llega a la otra persona y no muestra su correo.
+        Responda en el chat del pedido dentro de OigaGIG.
+      </p>
+      <a href="${replyUrl}" style="background:#f97316;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;margin-top:16px;">Responder en la app</a>
+      <p style="margin-top:28px;font-size:12px;color:#888;">OigaGIG • Este aviso no incluye el correo del comprador ni del vendedor.</p>
     </div>
   `
 
   await resend.emails.send({
     from: FROM_EMAIL,
     to: recipient.email,
-    replyTo: process.env.RESEND_REPLY_TO || 'support@oigagig.com',
-    subject: `Archivo recibido: ${fileName || 'adjunto'} — ${gigTitle || 'pedido'}`,
+    replyTo: 'noreply@oigagig.com',
+    subject: `Archivo en el pedido. Responda en la app — ${gigTitle || 'OigaGIG'}`,
     html,
     ...(attachment ? { attachments: [attachment] } : {}),
   })
