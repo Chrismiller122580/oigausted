@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import OrderChat from '@/components/orders/OrderChat';
 import {
   ClipboardList,
   CreditCard,
+  ImagePlus,
   MessageCircle,
 } from 'lucide-react';
 import { CategoryIcon } from '@/lib/icon-registry';
@@ -170,6 +170,16 @@ function OrderDetailClient() {
         </div>
       </div>
 
+      {purchased && isBuyer && (
+        <a href="#order-chat" className="mb-6 flex items-center gap-3 rounded-xl border border-orange-300 bg-orange-50 p-4 text-slate-900">
+          <ImagePlus className="h-6 w-6 shrink-0 text-orange-600" />
+          <span>
+            <span className="block font-semibold">Subir la foto de este pedido</span>
+            <span className="block text-sm text-slate-600">Toque aquí. El vendedor no ve archivos enviados por otro chat.</span>
+          </span>
+        </a>
+      )}
+
       <div className="grid md:grid-cols-12 gap-8">
         <div className="md:col-span-8 space-y-8">
           <Card>
@@ -219,22 +229,22 @@ function OrderDetailClient() {
               )}
               {isBuyer && order.status === 'Pending' && (
                 <>
-                  <Button
-                    onClick={payNow}
-                    disabled={paying}
-                    className="w-full bg-green-600 hover:bg-green-700"
-                  >
+                  <Button onClick={payNow} disabled={paying} className="w-full bg-green-600 hover:bg-green-700">
                     <CreditCard className="h-4 w-4" />
                     {paying ? 'Abriendo pago...' : 'Pagar ahora con Wompi'}
                   </Button>
-                  <Button
-                    onClick={() => updateStatus('Cancelled')}
-                    variant="outline"
-                    className="w-full text-red-600 border-red-200 hover:bg-red-50"
-                  >
+                  <Button onClick={() => updateStatus('Cancelled')} variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">
                     Cancelar Pedido
                   </Button>
                 </>
+              )}
+              {purchased && (
+                <Button asChild className="w-full bg-orange-600 hover:bg-orange-700">
+                  <a href="#order-chat">
+                    <ImagePlus className="h-4 w-4" />
+                    Subir foto en el chat
+                  </a>
+                </Button>
               )}
               {purchased && (
                 <Button asChild variant="outline" className="w-full">
