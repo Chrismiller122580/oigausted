@@ -10,6 +10,7 @@ import {
   detectContactInfo,
 } from '@/lib/contact-moderation';
 import { recordContactViolation } from '@/lib/contact-violation';
+import { emailOrderAttachment } from '@/lib/order-message-mail';
 
 export async function GET(
   request: Request,
@@ -103,7 +104,7 @@ export async function POST(
       const file = formData.get('file') as File | null;
       const text = String(formData.get('content') || '').trim();
 
-      if (file) {
+      if (file && file.size > 0) {
         const validation = await validateUploadFile(file)
         if (!validation.ok) {
           return NextResponse.json({ error: validation.error }, { status: validation.status })
@@ -168,26 +169,48 @@ export async function POST(
       if (fullOrder) {
         const recipientId = isFromBuyer ? fullOrder.sellerId : fullOrder.buyerId;
         const senderRole = isFromBuyer ? 'comprador' : 'vendedor';
-        const preview = fileName ? `Archivo: ${fileName}` : content.substring(0, 100);
+        const preview = fileUrl
+          ? `Archivo adjunto: ${fileName || 'archivo'}. También se envió a su correo.`
+          : content.substring(0, 100);
 
         await notifications.sendInApp(
           recipientId,
           'message',
-          `Nuevo mensaje en el pedido`,
-          `${senderRole} te ha enviado un mensaje sobre "${fullOrder.gig.title}".`,
-          `/orders/${orderId}`,
-          { orderId, gigTitle: fullOrder.gig.title }
+          fileUrl ? 'Nuevo archivo en el pedido' : 'Nuevo mensaje en el pedido',
+          `${senderRole} te ha enviado ${fileUrl ? 'un archivo' : 'un mensaje'} sobre "${fullOrder.gig.title}".`,
+          `/orders/${orderId}#order-chat`,
+          { orderId, gigTitle: fullOrder.gig.title, fileUrl, fileName }
         );
 
         await notifications.sendNotification({
           userId: recipientId,
           category: 'message',
           type: 'email',
-          title: `Nuevo mensaje sobre "${fullOrder.gig.title}"`,
-          message: `${senderRole} te ha enviado un mensaje: "${preview}..."`,
-          link: `/orders/${orderId}`,
-          data: { orderId, gigTitle: fullOrder.gig.title }
+          priority: fileUrl ? 'high' : 'normal',
+          title: fileUrl
+            ? `Archivo en "${fullOrder.gig.title}"`
+            : `Nuevo mensaje sobre "${fullOrder.gig.title}"`,
+          message: `${senderRole} te ha enviado un mensaje: "${preview}"`,
+          link: `/orders/${orderId}#order-chat`,
+          data: {
+            orderId,
+            gigTitle: fullOrder.gig.title,
+            fileUrl: fileUrl || '',
+            fileName: fileName || '',
+          }
         });
+
+        if (fileUrl && fileName) {
+          await emailOrderAttachment({
+            recipientId,
+            orderId,
+            gigTitle: fullOrder.gig.title,
+            fileUrl,
+            fileName,
+            note: content,
+            fromBuyer: isFromBuyer,
+          }).catch((err) => console.error('Attachment email failed', err));
+        }
       }
     } catch (notifErr) {
       console.error('Failed to send message notification', notifErr);
