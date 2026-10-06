@@ -8,7 +8,7 @@ import NavbarWrapper from "@/components/layout/NavbarWrapper";
 import SessionProviderWrapper from "@/components/providers/SessionProviderWrapper";
 import MaintenanceBanner from "@/components/layout/MaintenanceBanner";
 import AppToaster from "@/components/common/AppToaster";
-import { ensurePlatformConfig } from "@/lib/prisma"; // one-off ensure of PlatformConfig singleton (maintenanceMode etc.) on first boot/request
+import { ensurePlatformConfig } from "@/lib/prisma";
 import { BRAND_LOGO_PATH } from "@/lib/brand";
 import { getPublicSiteInfo, getSiteUrl } from "@/lib/public-site";
 import { Analytics } from "@vercel/analytics/react";
@@ -17,10 +17,10 @@ import ConsentedGoogleAnalytics from "@/components/analytics/ConsentedGoogleAnal
 import ConsentedMetaPixel from "@/components/analytics/ConsentedMetaPixel";
 import CookieConsent from "@/components/common/CookieConsent";
 import PwaInstallPrompt from "@/components/common/PwaInstallPrompt";
+import AppUpdateBanner from "@/components/common/AppUpdateBanner";
 
 const inter = Inter({ subsets: ["latin"], display: "swap", preload: false });
 
-// Dynamic metadata powered by admin settings (branding)
 export async function generateMetadata(): Promise<Metadata> {
   let siteName = "OigaGIG";
   const defaultDescription =
@@ -28,10 +28,6 @@ export async function generateMetadata(): Promise<Metadata> {
   let siteTagline = defaultDescription;
   let appUrl = "https://oigagig.com";
 
-  // Proactively ensure the PlatformConfig singleton exists on the very first
-  // request that needs metadata (covers "app boot" / first hit after deploy or DB reset).
-  // This + the lazy ensure inside getPlatformConfig() + the seed makes maintenanceMode
-  // (and other toggles) reliably persist from the first admin save.
   ensurePlatformConfig().catch(() => { /* non-fatal */ });
 
   try {
@@ -133,19 +129,6 @@ export default async function RootLayout({
   } catch (e) {
     console.error('getServerSession failed:', e);
   }
-  // Global guard against the Google Maps legacy Places Autocomplete widget.
-  // The legacy widget (from stale bundles or accidental 'places' lib load) injects
-  // .pac-container DOM nodes that React does not own. React unmount/reconcile then throws
-  // NotFoundError: removeChild + "more hooks than previous render" (#310).
-  //
-  // We ONLY nuke the JS constructor and places namespace (no DOM removal, which was
-  // causing its own removeChild errors and breaking legit map loads).
-  // We rely on:
-  // - Never loading 'places' library (see googleMapsLoader.ts + GoogleMap.tsx)
-  // - CSS to hide any stray .pac-container (see globals.css)
-  // - Constructor override as last defense
-  //
-  // This runs early in <head> before any page components.
   const domGuardScript = `
     (function() {
       if (typeof Node !== 'function' || !Node.prototype) return;
@@ -169,18 +152,11 @@ export default async function RootLayout({
         function neutralizeGoogleMaps() {
           var g = window.google;
           if (!g || !g.maps) return false;
-          
-          // Block legacy Autocomplete constructor (prevents widget from ever attaching)
           if (g.maps.places && g.maps.places.Autocomplete) {
             try {
-              g.maps.places.Autocomplete = function() {
-                // console.warn suppressed in prod guard (dev only noise)
-                return {};
-              };
+              g.maps.places.Autocomplete = function() { return {}; };
             } catch(e) {}
           }
-          
-          // Nuclear: completely nuke the places library if present from stale code.
           if (g.maps.places) {
             try {
               g.maps.places = {
@@ -191,18 +167,11 @@ export default async function RootLayout({
                 RankBy: {},
                 PlaceAutocompleteElement: function() {}
               };
-              // console.warn suppressed (prod guard noise)
             } catch(e) {}
           }
           return true;
         }
-        
-        // Run immediately
         neutralizeGoogleMaps();
-        
-        // Periodic nuke for first 10s (catches late injection from code chunks).
-        // Intentionally no MutationObserver on document — observing the full subtree
-        // fired on every React update and contributed to DOM reconciliation errors.
         var cleanupInterval = setInterval(function() {
           var g = window.google;
           if (g && g.maps && g.maps.places) {
@@ -218,31 +187,16 @@ export default async function RootLayout({
             } catch(e) {}
           }
         }, 1000);
-        
-        setTimeout(function() {
-          clearInterval(cleanupInterval);
-        }, 3000);
-        
-        // console.debug suppressed for prod (guard still active)
-      } catch (e) {
-        // Never break the page
-      }
+        setTimeout(function() { clearInterval(cleanupInterval); }, 3000);
+      } catch (e) {}
     })();
   `;
 
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
-        <Script
-          id="dom-reconcile-guard"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: domGuardScript }}
-        />
-        <Script
-          id="maps-guard"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{ __html: mapsGuardScript }}
-        />
+        <Script id="dom-reconcile-guard" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: domGuardScript }} />
+        <Script id="maps-guard" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: mapsGuardScript }} />
         <SessionProviderWrapper session={session}>
           <MaintenanceBanner />
           <NavbarWrapper>
@@ -250,6 +204,7 @@ export default async function RootLayout({
           </NavbarWrapper>
           <AppToaster />
           <CookieConsent />
+          <AppUpdateBanner />
           <PwaInstallPrompt />
           <Analytics />
           <SpeedInsights />
