@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ImagePlus } from 'lucide-react'
 import { toast } from 'sonner'
 import ChatPanel, { type ChatMessage } from '@/components/chat/ChatPanel'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,10 @@ type ThreadDetail = {
   seller?: { id: string; name?: string | null; businessName?: string | null } | null
 }
 
+function isPurchased(status?: string | null) {
+  return /^(paid|in[_\s-]?progress|completed)$/i.test(String(status || ''))
+}
+
 export default function MessageThreadPage() {
   const params = useParams()
   const router = useRouter()
@@ -33,6 +37,7 @@ export default function MessageThreadPage() {
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [missing, setMissing] = useState(false)
+  const [paidOrderId, setPaidOrderId] = useState<string | null>(null)
 
   const userId = session?.user?.id
   const isBuyer = thread ? thread.buyerId === userId : false
@@ -75,6 +80,21 @@ export default function MessageThreadPage() {
       .catch(() => setMissing(true))
       .finally(() => setLoading(false))
   }, [status, userId, threadId, router])
+
+  useEffect(() => {
+    if (!thread?.gig?.id || !isBuyer) return
+    fetch('/api/orders')
+      .then((r) => r.json())
+      .then((data) => {
+        const orders = Array.isArray(data) ? data : data.orders || []
+        const match = orders.find((order: { id?: string; gigId?: string; gig?: { id?: string }; status?: string }) => {
+          const gigId = order.gigId || order.gig?.id
+          return gigId === thread.gig?.id && isPurchased(order.status)
+        })
+        setPaidOrderId(match?.id || null)
+      })
+      .catch(() => setPaidOrderId(null))
+  }, [thread?.gig?.id, isBuyer])
 
   useEffect(() => {
     if (!threadId || loading || !userId) return
@@ -139,6 +159,7 @@ export default function MessageThreadPage() {
   const otherName = isBuyer
     ? thread.seller?.businessName || thread.seller?.name || 'Vendedor'
     : thread.buyer?.name || 'Comprador'
+  const orderHref = paidOrderId ? `/orders/${paidOrderId}#order-chat` : null
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-24">
@@ -160,6 +181,16 @@ export default function MessageThreadPage() {
         <p className="text-sm text-muted-foreground">Conversación con {otherName}</p>
       </div>
 
+      {orderHref && (
+        <Link href={orderHref} className="mb-4 flex items-center gap-3 rounded-xl border border-orange-300 bg-orange-50 p-4 text-slate-900">
+          <ImagePlus className="h-6 w-6 shrink-0 text-orange-600" />
+          <span>
+            <span className="block font-semibold">Subir la foto en el pedido pagado</span>
+            <span className="block text-sm text-slate-600">Este chat es de antes de la compra y no recibe archivos.</span>
+          </span>
+        </Link>
+      )}
+
       <ChatPanel
         messages={messages}
         isBuyer={isBuyer}
@@ -167,10 +198,21 @@ export default function MessageThreadPage() {
         onNewMessageChange={setNewMessage}
         onSend={sendMessage}
         sending={sending}
-        subtitle={`Coordinación previa a la compra · ${gigTitle}`}
+        subtitle={orderHref ? 'Este chat no admite fotos. Súbala en el pedido.' : `Coordinación previa a la compra · ${gigTitle}`}
       />
 
-      {isBuyer && gigId && (
+      {isBuyer && orderHref && (
+        <div className="mt-4 text-center">
+          <Button asChild className="bg-orange-600 hover:bg-orange-700">
+            <Link href={orderHref}>
+              <ImagePlus className="h-4 w-4" />
+              Subir foto del pedido
+            </Link>
+          </Button>
+        </div>
+      )}
+
+      {isBuyer && gigId && !orderHref && (
         <div className="mt-4 text-center">
           <Button
             className="bg-emerald-600 hover:bg-emerald-700"
