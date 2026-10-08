@@ -88,6 +88,7 @@ export async function POST(
     const contentType = request.headers.get('content-type') || '';
 
     let content = '';
+    let typedText = '';
     let isFromBuyer = true;
     let fileUrl: string | null = null;
     let fileName: string | null = null;
@@ -102,7 +103,7 @@ export async function POST(
 
       const formData = await request.formData();
       const file = formData.get('file') as File | null;
-      const text = String(formData.get('content') || '').trim();
+      typedText = String(formData.get('content') || '').trim();
 
       if (file && file.size > 0) {
         const validation = await validateUploadFile(file)
@@ -127,20 +128,21 @@ export async function POST(
         fileUrl = blob.url;
       }
 
-      content = text || (fileName ? `📎 ${fileName}` : '');
+      content = typedText || (fileName ? '📎 Foto adjunta' : '');
     } else {
       const body = await request.json().catch(() => ({}));
-      content = body.content || body.text || '';
+      typedText = String(body.content || body.text || '').trim();
+      content = typedText;
     }
 
     if (!content.trim() && !fileUrl) {
       return NextResponse.json({ error: 'Escribe un mensaje o adjunta un archivo' }, { status: 400 });
     }
 
-    if (content.trim()) {
-      const detection = detectContactInfo(content);
+    if (typedText) {
+      const detection = detectContactInfo(typedText);
       if (detection.blocked) {
-        await recordContactViolation(userId, 'order', orderId, detection.types, content);
+        await recordContactViolation(userId, 'order', orderId, detection.types, typedText);
         return NextResponse.json(
           { error: CONTACT_BLOCKED_MESSAGE, blocked: true, types: detection.types },
           { status: 422 }
@@ -170,7 +172,7 @@ export async function POST(
         const recipientId = isFromBuyer ? fullOrder.sellerId : fullOrder.buyerId;
         const senderRole = isFromBuyer ? 'comprador' : 'vendedor';
         const preview = fileUrl
-          ? `Archivo adjunto: ${fileName || 'archivo'}. También se envió a su correo.`
+          ? 'Archivo adjunto. También se envió a su correo.'
           : content.substring(0, 100);
 
         await notifications.sendInApp(
@@ -207,7 +209,7 @@ export async function POST(
             gigTitle: fullOrder.gig.title,
             fileUrl,
             fileName,
-            note: content,
+            note: typedText,
             fromBuyer: isFromBuyer,
           }).catch((err) => console.error('Attachment email failed', err));
         }
