@@ -70,7 +70,7 @@ export default function OrderChat({ orderId, isBuyer, gigTitle }: Props) {
     }
   }
 
-  const hasFile = messages.some((msg) => msg.fileUrl)
+  const hasMyFile = messages.some((msg) => msg.fileUrl && msg.isFromBuyer === isBuyer)
 
   return (
     <div id="order-chat">
@@ -82,7 +82,14 @@ export default function OrderChat({ orderId, isBuyer, gigTitle }: Props) {
         onSend={sendMessage}
         sending={sending}
         allowAttachments
-        emphasizeUpload={!hasFile}
+        emphasizeUpload={!hasMyFile}
+        uploadTitle={isBuyer ? 'Suba aquí la foto o el archivo' : 'Envíe aquí el trabajo terminado'}
+        uploadBody={
+          isBuyer
+            ? 'No lo envíe por WhatsApp ni por el chat de antes de pagar. Toque el botón, elija la imagen y luego Enviar.'
+            : 'El comprador no recibe archivos del chat anterior. Elija la foto restaurada y luego toque Enviar.'
+        }
+        uploadButton={isBuyer ? 'Subir foto o archivo' : 'Enviar foto restaurada'}
         selectedFile={selectedFile}
         onSelectedFileChange={setSelectedFile}
         subtitle={gigTitle ? `Pedido: ${gigTitle}` : 'Chat del pedido'}

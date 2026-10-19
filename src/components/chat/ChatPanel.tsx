@@ -25,6 +25,9 @@ type Props = {
   subtitle?: string
   allowAttachments?: boolean
   emphasizeUpload?: boolean
+  uploadTitle?: string
+  uploadBody?: string
+  uploadButton?: string
   selectedFile?: File | null
   onSelectedFileChange?: (file: File | null) => void
 }
@@ -44,6 +47,9 @@ export default function ChatPanel({
   subtitle,
   allowAttachments = false,
   emphasizeUpload = false,
+  uploadTitle = 'Suba aquí la foto o el archivo',
+  uploadBody = 'No lo envíe por WhatsApp ni por el chat de antes de pagar. Toque el botón, elija la imagen y luego Enviar.',
+  uploadButton = 'Subir foto o archivo',
   selectedFile = null,
   onSelectedFileChange,
 }: Props) {
@@ -69,13 +75,11 @@ export default function ChatPanel({
         {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
         {allowAttachments && emphasizeUpload && (
           <div className="mt-3 rounded-xl border border-orange-300 bg-orange-50 p-4 text-slate-900">
-            <p className="font-semibold">Suba aquí la foto o el archivo</p>
-            <p className="mt-1 text-sm text-slate-600">
-              No lo envíe por WhatsApp ni por el chat de antes de pagar. Toque el botón, elija la imagen y luego Enviar.
-            </p>
+            <p className="font-semibold">{uploadTitle}</p>
+            <p className="mt-1 text-sm text-slate-600">{uploadBody}</p>
             <Button type="button" className="mt-3 w-full bg-orange-600 hover:bg-orange-700" onClick={openPicker} disabled={sending}>
               <ImagePlus className="h-4 w-4" />
-              Subir foto o archivo
+              {uploadButton}
             </Button>
           </div>
         )}
