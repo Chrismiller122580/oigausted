@@ -180,6 +180,16 @@ function OrderDetailClient() {
         </a>
       )}
 
+      {purchased && isSeller && (
+        <a href="#order-chat" className="mb-6 flex items-center gap-3 rounded-xl border border-orange-300 bg-orange-50 p-4 text-slate-900">
+          <ImagePlus className="h-6 w-6 shrink-0 text-orange-600" />
+          <span>
+            <span className="block font-semibold">Enviar la foto restaurada</span>
+            <span className="block text-sm text-slate-600">El chat de Mensajes no entrega archivos. Súbala aquí y toque Enviar.</span>
+          </span>
+        </a>
+      )}
+
       <div className="grid md:grid-cols-12 gap-8">
         <div className="md:col-span-8 space-y-8">
           <Card>
@@ -242,7 +252,7 @@ function OrderDetailClient() {
                 <Button asChild className="w-full bg-orange-600 hover:bg-orange-700">
                   <a href="#order-chat">
                     <ImagePlus className="h-4 w-4" />
-                    Subir foto en el chat
+                    {isSeller ? 'Enviar foto restaurada' : 'Subir foto en el chat'}
                   </a>
                 </Button>
               )}
