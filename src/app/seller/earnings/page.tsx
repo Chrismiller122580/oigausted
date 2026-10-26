@@ -20,16 +20,11 @@ export default function SellerEarningsPage() {
     platformFees: 0,
     referralFees: 0,
   });
-  const [referralEarnings, setReferralEarnings] = useState({
-    total: 0,
-    pending: 0,
-  });
+  const [referralEarnings, setReferralEarnings] = useState({ total: 0, pending: 0 });
   const [transactions, setTransactions] = useState<Array<Record<string, unknown> & { id: string; amount?: number }>>([]);
   const [reportRows, setReportRows] = useState<Array<{ id: string; date: string; gig: string; gross: number; net: number; status: string }>>([]);
   const [commissionRate, setCommissionRate] = useState(DEFAULT_PAYOUT_CONFIG.platformCommissionRate);
   const [loading, setLoading] = useState(true);
-
-  // Seller payout bank details (for Wompi seller payouts from admin)
   const [bankForm, setBankForm] = useState({
     payoutBankCode: '',
     payoutAccountNumber: '',
@@ -42,6 +37,7 @@ export default function SellerEarningsPage() {
   });
   const [bankLoading, setBankLoading] = useState(false);
   const [bankSaved, setBankSaved] = useState(false);
+  const isNequi = bankForm.payoutBankCode === 'NEQUI';
 
   useEffect(() => {
     fetchEarnings();
@@ -69,32 +65,20 @@ export default function SellerEarningsPage() {
       const res = await fetch('/api/orders?role=seller');
       const data = await res.json();
       const sellerOrders = Array.isArray(data) ? data : [];
-
-      const completedOrders = sellerOrders.filter(o => o.status === 'Completed');
-
-      const completedWithBreakdown = completedOrders.map(o => {
-        const breakdown = calculateOrderPayout(
-          Number(o.price) || 0,
-          !!o.seller?.referredById,
-          rates
-        );
+      const completedOrders = sellerOrders.filter((o) => o.status === 'Completed');
+      const completedWithBreakdown = completedOrders.map((o) => {
+        const breakdown = calculateOrderPayout(Number(o.price) || 0, !!o.seller?.referredById, rates);
         return { ...o, breakdown };
       });
-
-      const aggregated = aggregatePayouts(completedWithBreakdown.map(o => o.breakdown));
-
-      // This month net
+      const aggregated = aggregatePayouts(completedWithBreakdown.map((o) => o.breakdown));
       const now = new Date();
-      const thisMonthOrders = completedWithBreakdown.filter(o =>
-        new Date(o.createdAt).getMonth() === now.getMonth() &&
-        new Date(o.createdAt).getFullYear() === now.getFullYear()
-      );
-      const thisMonthNet = aggregatePayouts(thisMonthOrders.map(o => o.breakdown)).netToSeller;
-
-      const unpaidCompleted = completedWithBreakdown.filter(
-        (o: { sellerPayoutAt?: string | null }) => !o.sellerPayoutAt
-      );
-      const pendingAmount = aggregatePayouts(unpaidCompleted.map(o => o.breakdown)).netToSeller;
+      const thisMonthOrders = completedWithBreakdown.filter((o) => {
+        const d = new Date(o.createdAt);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      });
+      const thisMonthNet = aggregatePayouts(thisMonthOrders.map((o) => o.breakdown)).netToSeller;
+      const unpaidCompleted = completedWithBreakdown.filter((o: { sellerPayoutAt?: string | null }) => !o.sellerPayoutAt);
+      const pendingAmount = aggregatePayouts(unpaidCompleted.map((o) => o.breakdown)).netToSeller;
 
       setEarnings({
         total: aggregated.netToSeller,
@@ -106,18 +90,18 @@ export default function SellerEarningsPage() {
         referralFees: aggregated.referralFee,
       });
 
-      const tx = completedWithBreakdown
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 15)
-        .map((o) => ({
-          id: o.id,
-          date: new Date(o.createdAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }),
-          gig: o.gig?.title || 'Servicio',
-          amount: o.breakdown.netToSeller,
-          status: o.sellerPayoutAt ? 'Pagado' : 'Pendiente',
-        }));
-
-      setTransactions(tx);
+      setTransactions(
+        completedWithBreakdown
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 15)
+          .map((o) => ({
+            id: o.id,
+            date: new Date(o.createdAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }),
+            gig: o.gig?.title || 'Servicio',
+            amount: o.breakdown.netToSeller,
+            status: o.sellerPayoutAt ? 'Pagado' : 'Pendiente',
+          }))
+      );
       setReportRows(
         completedWithBreakdown
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -131,7 +115,6 @@ export default function SellerEarningsPage() {
           }))
       );
 
-      // Fetch referral earnings
       const refRes = await fetch('/api/referrals');
       if (refRes.ok) {
         const refData = await refRes.json();
@@ -153,9 +136,7 @@ export default function SellerEarningsPage() {
       return;
     }
     const header = ['Fecha', 'Pedido', 'Bruto (COP)', 'Neto (COP)', 'Estado', 'ID'];
-    const lines = reportRows.map((r) =>
-      [r.date, `"${r.gig.replace(/"/g, '""')}"`, r.gross, r.net, r.status, r.id].join(',')
-    );
+    const lines = reportRows.map((r) => [r.date, `"${r.gig.replace(/"/g, '""')}"`, r.gross, r.net, r.status, r.id].join(','));
     const csv = [header.join(','), ...lines].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -167,6 +148,23 @@ export default function SellerEarningsPage() {
     toast.success('Reporte descargado');
   };
 
+  const setDestination = (value: string) => {
+    if (value === 'NEQUI') {
+      setBankForm((prev) => ({
+        ...prev,
+        payoutBankCode: 'NEQUI',
+        payoutAccountType: 'NEQUI',
+        payoutAccountNumber: prev.payoutBankCode === 'NEQUI' ? prev.payoutAccountNumber : '',
+      }));
+      return;
+    }
+    setBankForm((prev) => ({
+      ...prev,
+      payoutBankCode: prev.payoutBankCode === 'NEQUI' ? '' : prev.payoutBankCode,
+      payoutAccountType: prev.payoutAccountType === 'NEQUI' ? 'SAVINGS' : prev.payoutAccountType,
+    }));
+  };
+
   const saveBank = async () => {
     setBankLoading(true);
     try {
@@ -175,12 +173,13 @@ export default function SellerEarningsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bankForm),
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setBankSaved(true);
-        toast.success('Datos bancarios guardados. El administrador podrá usarlos para pagarte vía Wompi.');
+        if (data.bank) setBankForm((prev) => ({ ...prev, ...data.bank }));
+        toast.success(isNequi ? 'Nequi guardado para pagos de vendedor.' : 'Datos bancarios guardados para pagos de vendedor.');
       } else {
-        const err = await res.json().catch(() => ({}));
-        toast.error(err?.error || 'No se pudieron guardar los datos bancarios');
+        toast.error(data?.error || 'No se pudieron guardar los datos');
       }
     } catch {
       toast.error('Error de conexión al guardar');
@@ -213,12 +212,8 @@ export default function SellerEarningsPage() {
         {earnings.pending > 0 && !bankComplete && (
           <Card className="mb-8 border-amber-500/50 bg-amber-950/20">
             <CardContent className="p-5">
-              <p className="font-semibold text-amber-400">
-                Tienes ${earnings.pending.toLocaleString('es-CO')} COP pendiente de pago
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Completa tus datos bancarios abajo para que el administrador pueda enviarte el pago vía Wompi.
-              </p>
+              <p className="font-semibold text-amber-400">Tienes ${earnings.pending.toLocaleString('es-CO')} COP pendiente de pago</p>
+              <p className="text-sm text-muted-foreground mt-1">Complete banco o Nequi abajo. Es solo para el pago del vendedor.</p>
             </CardContent>
           </Card>
         )}
@@ -233,97 +228,66 @@ export default function SellerEarningsPage() {
           </Button>
         </div>
 
-        {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-12">
-          <Card>
-            <CardContent className="p-8">
-              <DollarSign className="w-12 h-12 text-green-600 mb-4" />
-              <p className="text-sm text-muted-foreground">Total Ganado</p>
-              <p className="text-4xl font-bold mt-2 text-foreground">${(earnings.total || 0).toLocaleString('es-CO')}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Bruto: ${(earnings.grossTotal || 0).toLocaleString('es-CO')}
-                {earnings.platformFees > 0 && (
-                  <> • Comisión plataforma: -${(earnings.platformFees || 0).toLocaleString('es-CO')}</>
-                )}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-8">
-              <TrendingUp className="w-12 h-12 text-orange-600 mb-4" />
-              <p className="text-sm text-muted-foreground">Este Mes</p>
-              <p className="text-4xl font-bold mt-2 text-foreground">${earnings.thisMonth.toLocaleString('es-CO')}</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-8">
-              <div className="text-amber-600">
-                <DollarSign className="w-12 h-12 mb-4" />
-              </div>
-              <p className="text-sm text-muted-foreground">Pendiente de Pago</p>
-              <p className="text-4xl font-bold mt-2 text-foreground">${earnings.pending.toLocaleString('es-CO')}</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-8">
-              <Package className="w-12 h-12 text-blue-600 mb-4" />
-              <p className="text-sm text-muted-foreground">Gigs Completados</p>
-              <p className="text-4xl font-bold mt-2 text-foreground">{earnings.completedGigs}</p>
-            </CardContent>
-          </Card>
-
-          {/* Referral Earnings Card */}
-          <Card className="border-emerald-200">
-            <CardContent className="p-8">
-              <div className="flex items-center gap-2 mb-4">
-                <Users className="w-12 h-12 text-emerald-600" />
-              </div>
-              <p className="text-sm text-muted-foreground">Ganancias por Referidos</p>
-              <p className="text-4xl font-bold mt-2 text-emerald-600">${referralEarnings.total.toLocaleString('es-CO')}</p>
-              <p className="text-xs text-muted-foreground mt-1">Pendiente: ${referralEarnings.pending.toLocaleString('es-CO')}</p>
-            </CardContent>
-          </Card>
+          <Card><CardContent className="p-8"><DollarSign className="w-12 h-12 text-green-600 mb-4" /><p className="text-sm text-muted-foreground">Total Ganado</p><p className="text-4xl font-bold mt-2 text-foreground">${(earnings.total || 0).toLocaleString('es-CO')}</p></CardContent></Card>
+          <Card><CardContent className="p-8"><TrendingUp className="w-12 h-12 text-orange-600 mb-4" /><p className="text-sm text-muted-foreground">Este Mes</p><p className="text-4xl font-bold mt-2 text-foreground">${earnings.thisMonth.toLocaleString('es-CO')}</p></CardContent></Card>
+          <Card><CardContent className="p-8"><DollarSign className="w-12 h-12 text-amber-600 mb-4" /><p className="text-sm text-muted-foreground">Pendiente de Pago</p><p className="text-4xl font-bold mt-2 text-foreground">${earnings.pending.toLocaleString('es-CO')}</p></CardContent></Card>
+          <Card><CardContent className="p-8"><Package className="w-12 h-12 text-blue-600 mb-4" /><p className="text-sm text-muted-foreground">Gigs Completados</p><p className="text-4xl font-bold mt-2 text-foreground">{earnings.completedGigs}</p></CardContent></Card>
+          <Card className="border-emerald-200"><CardContent className="p-8"><Users className="w-12 h-12 text-emerald-600 mb-4" /><p className="text-sm text-muted-foreground">Ganancias por Referidos</p><p className="text-4xl font-bold mt-2 text-emerald-600">${referralEarnings.total.toLocaleString('es-CO')}</p><p className="text-xs text-muted-foreground mt-1">Pendiente: ${referralEarnings.pending.toLocaleString('es-CO')}</p></CardContent></Card>
         </div>
 
-        {/* Bank details for Wompi seller payouts (admin will use this when recording "Pagar con Wompi") */}
         <Card className="mb-12 border-emerald-200">
           <CardContent className="p-8">
             <div className="flex items-center gap-3 mb-4">
               <Landmark className="w-8 h-8 text-emerald-600" />
               <div>
-                <h3 className="text-2xl font-semibold">Datos bancarios para cobros</h3>
-                <p className="text-sm text-muted-foreground">Completa esto para que el administrador pueda pagarte los giros netos vía Wompi (Pagos a Terceros). Se usan solo para payouts de vendedores.</p>
+                <h3 className="text-2xl font-semibold">Dónde recibir el pago</h3>
+                <p className="text-sm text-muted-foreground">Solo para payouts de vendedor, por Wompi Pagos a Terceros. No cambia cómo paga el comprador.</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
-                <label className="text-xs text-muted-foreground">Banco (código Wompi)</label>
-                <input value={bankForm.payoutBankCode} onChange={(e) => setBankForm({ ...bankForm, payoutBankCode: e.target.value })} placeholder="BANCOLOMBIA" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Número de cuenta</label>
-                <input value={bankForm.payoutAccountNumber} onChange={(e) => setBankForm({ ...bankForm, payoutAccountNumber: e.target.value })} placeholder="1234567890" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Tipo de cuenta</label>
-                <select value={bankForm.payoutAccountType} onChange={(e) => setBankForm({ ...bankForm, payoutAccountType: e.target.value })} className="w-full mt-1 px-3 py-2 border rounded-xl bg-background">
-                  <option value="SAVINGS">Ahorros (Savings)</option>
-                  <option value="CHECKING">Corriente (Checking)</option>
-                  <option value="CURRENT">Current</option>
+                <label className="text-xs text-muted-foreground">Destino del pago</label>
+                <select value={isNequi ? 'NEQUI' : 'BANK'} onChange={(e) => setDestination(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-xl bg-background">
+                  <option value="BANK">Cuenta bancaria</option>
+                  <option value="NEQUI">Nequi</option>
                 </select>
               </div>
+              {isNequi ? (
+                <div>
+                  <label className="text-xs text-muted-foreground">Número Nequi</label>
+                  <input value={bankForm.payoutAccountNumber} onChange={(e) => setBankForm({ ...bankForm, payoutAccountNumber: e.target.value.replace(/\D/g, '').slice(0, 10), payoutBankCode: 'NEQUI', payoutAccountType: 'NEQUI' })} placeholder="3001234567" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs text-muted-foreground">Banco</label>
+                  <input value={bankForm.payoutBankCode} onChange={(e) => setBankForm({ ...bankForm, payoutBankCode: e.target.value })} placeholder="BANCOLOMBIA" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
+                </div>
+              )}
+              {!isNequi && (
+                <>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Número de cuenta</label>
+                    <input value={bankForm.payoutAccountNumber} onChange={(e) => setBankForm({ ...bankForm, payoutAccountNumber: e.target.value })} placeholder="1234567890" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Tipo de cuenta</label>
+                    <select value={bankForm.payoutAccountType} onChange={(e) => setBankForm({ ...bankForm, payoutAccountType: e.target.value })} className="w-full mt-1 px-3 py-2 border rounded-xl bg-background">
+                      <option value="SAVINGS">Ahorros</option>
+                      <option value="CHECKING">Corriente</option>
+                    </select>
+                  </div>
+                </>
+              )}
               <div>
-                <label className="text-xs text-muted-foreground">Titular de la cuenta</label>
-                <input value={bankForm.payoutHolderName} onChange={(e) => setBankForm({ ...bankForm, payoutHolderName: e.target.value })} placeholder="Nombre completo como aparece en la cuenta" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
+                <label className="text-xs text-muted-foreground">Titular</label>
+                <input value={bankForm.payoutHolderName} onChange={(e) => setBankForm({ ...bankForm, payoutHolderName: e.target.value })} placeholder="Nombre como aparece en Nequi o el banco" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Tipo documento</label>
                 <select value={bankForm.payoutDocumentType} onChange={(e) => setBankForm({ ...bankForm, payoutDocumentType: e.target.value })} className="w-full mt-1 px-3 py-2 border rounded-xl bg-background">
-                  <option value="CC">CC (Cédula)</option>
+                  <option value="CC">CC</option>
                   <option value="NIT">NIT</option>
                   <option value="CE">CE</option>
                   <option value="PASSPORT">Pasaporte</option>
@@ -333,27 +297,17 @@ export default function SellerEarningsPage() {
                 <label className="text-xs text-muted-foreground">Número de documento</label>
                 <input value={bankForm.payoutDocumentNumber} onChange={(e) => setBankForm({ ...bankForm, payoutDocumentNumber: e.target.value })} placeholder="12345678" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Teléfono (opcional)</label>
-                <input value={bankForm.payoutPhone} onChange={(e) => setBankForm({ ...bankForm, payoutPhone: e.target.value })} placeholder="3001234567" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Email de la cuenta (opcional)</label>
-                <input value={bankForm.payoutEmail} onChange={(e) => setBankForm({ ...bankForm, payoutEmail: e.target.value })} placeholder="pago@tuempresa.com" className="w-full mt-1 px-3 py-2 border rounded-xl bg-background" />
-              </div>
             </div>
 
             <div className="mt-4 flex items-center gap-3">
               <Button onClick={saveBank} disabled={bankLoading} className="bg-emerald-600 hover:bg-emerald-700">
-                {bankLoading ? 'Guardando...' : 'Guardar datos bancarios'}
+                {bankLoading ? 'Guardando...' : isNequi ? 'Guardar Nequi' : 'Guardar datos bancarios'}
               </Button>
-              {bankSaved && <span className="text-emerald-600 text-sm">✓ Guardado. El admin lo verá al pagar vía Wompi.</span>}
-              <p className="text-[11px] text-muted-foreground ml-auto">Estos datos solo los usa el administrador para registrar tus pagos. Nunca se comparten públicamente.</p>
+              {bankSaved && <span className="text-emerald-600 text-sm">Guardado. El admin lo usa solo para el payout.</span>}
             </div>
           </CardContent>
         </Card>
 
-        {/* Recent Transactions */}
         <Card>
           <CardContent className="p-10">
             <h3 className="text-2xl font-semibold mb-8 text-foreground">Historial de Pagos</h3>
@@ -367,27 +321,21 @@ export default function SellerEarningsPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-green-600">+${(t.amount ?? 0).toLocaleString('es-CO')}</p>
-                      <p className={`text-sm ${t.status === 'Pagado' ? 'text-green-600' : 'text-amber-600'}`}>
-                        {String(t.status ?? '')}
-                      </p>
+                      <p className={`text-sm ${t.status === 'Pagado' ? 'text-green-600' : 'text-amber-600'}`}>{String(t.status ?? '')}</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-10 text-muted-foreground">
-                Aún no tienes transacciones registradas.
-              </div>
+              <div className="text-center py-10 text-muted-foreground">Aún no tienes transacciones registradas.</div>
             )}
           </CardContent>
         </Card>
 
         <div className="mt-12 text-center text-muted-foreground text-sm">
-          Los pagos netos a vendedores se registran en el panel Admin (Payouts) usando Wompi. Completa tus datos bancarios arriba para agilizar el proceso. Reportes de SFTP de Wompi pueden usarse para reconciliación.
-
+          Los pagos netos se registran en Admin. Nequi es solo el destino del payout del vendedor.
           <div className="mt-6 text-xs text-muted-foreground border-t pt-4">
-            <strong>Nota sobre comisiones:</strong> Tus ganancias netas descontan solo la comisión de plataforma ({(commissionRate * 100).toFixed(0)}%).
-            La comisión por referido la paga la plataforma, no se descuenta de tu pago. &quot;Pendiente de Pago&quot; son pedidos completados que el admin aún no ha girado.
+            <strong>Nota sobre comisiones:</strong> el neto descuenta la comisión de plataforma ({(commissionRate * 100).toFixed(0)}%).
           </div>
         </div>
       </div>
