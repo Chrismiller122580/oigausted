@@ -7,9 +7,7 @@ import { devLog } from '@/lib/utils';
 import type { Prisma } from '@prisma/client';
 
 /**
- * Seller payout bank details (for receiving net seller payouts via Wompi or manual).
- * GET: return the current seller's saved bank info (sanitized).
- * POST/PATCH: save/update the bank fields (seller only).
+ * Seller payout destination (bank or Nequi). Used only for seller payouts.
  */
 
 const ALLOWED_FIELDS = [
@@ -22,6 +20,10 @@ const ALLOWED_FIELDS = [
   'payoutPhone',
   'payoutEmail',
 ] as const;
+
+function cleanNequi(value: unknown) {
+  return String(value || '').replace(/\D/g, '');
+}
 
 export async function GET() {
   try {
@@ -83,7 +85,6 @@ async function handleSave(req: NextRequest) {
 
     for (const f of ALLOWED_FIELDS) {
       if (body[f] !== undefined) {
-        // Basic sanitization: trim strings, cap lengths
         let v = body[f];
         if (typeof v === 'string') v = v.trim().slice(0, 120);
         data[f] = v || null;
@@ -92,6 +93,21 @@ async function handleSave(req: NextRequest) {
 
     if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+    }
+
+    const isNequi = String(data.payoutBankCode || body.payoutBankCode || '').toUpperCase() === 'NEQUI';
+    if (isNequi) {
+      const nequi = cleanNequi(data.payoutAccountNumber || body.payoutAccountNumber);
+      if (!/^3\d{9}$/.test(nequi)) {
+        return NextResponse.json(
+          { error: 'El número Nequi debe ser un celular colombiano de 10 dígitos, que empiece por 3' },
+          { status: 400 }
+        );
+      }
+      data.payoutBankCode = 'NEQUI';
+      data.payoutAccountType = 'NEQUI';
+      data.payoutAccountNumber = nequi;
+      data.payoutPhone = nequi;
     }
 
     const updated = await prisma.user.update({
@@ -110,6 +126,6 @@ async function handleSave(req: NextRequest) {
     return NextResponse.json({ success: true, bank: updated });
   } catch (e: unknown) {
     devLog('[payout-bank] save error', e);
-    return NextResponse.json({ error: 'Failed to save bank details' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to save payout details' }, { status: 500 });
   }
 }
