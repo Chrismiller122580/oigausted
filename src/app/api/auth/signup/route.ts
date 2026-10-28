@@ -23,15 +23,20 @@ export async function POST(request: NextRequest) {
       role: requestedRole,
       turnstileToken,
       countryCode: requestedCountry,
+      dataConsent,
     } = await request.json()
 
     if (!name || !email || !password) {
-      return NextResponse.json({ error: "Faltan campos requeridos (nombre, email, contraseña)" }, { status: 400 })
+      return NextResponse.json({ error: "Faltan campos requeridos (nombre, email, contrase\u00f1a)" }, { status: 400 })
+    }
+
+    if (!dataConsent) {
+      return NextResponse.json({ error: "Debes autorizar el tratamiento de tus datos personales para continuar." }, { status: 400 })
     }
 
     // Basic password strength
     if (password.length < 8) {
-      return NextResponse.json({ error: "La contraseña debe tener al menos 8 caracteres" }, { status: 400 })
+      return NextResponse.json({ error: "La contrase\u00f1a debe tener al menos 8 caracteres" }, { status: 400 })
     }
 
     const ip = getRequestIp(request.headers)
@@ -69,10 +74,10 @@ export async function POST(request: NextRequest) {
         where: { id: 'singleton' },
         select: { allowNewSignups: true },
       })
-      // Missing row → treat as allowed (first boot); explicit false → blocked
+      // Missing row \u2192 treat as allowed (first boot); explicit false \u2192 blocked
       if (cfg && cfg.allowNewSignups === false) {
         return NextResponse.json(
-          { error: 'Los registros nuevos están deshabilitados temporalmente. Intenta más tarde o contacta soporte.' },
+          { error: 'Los registros nuevos est\u00e1n deshabilitados temporalmente. Intenta m\u00e1s tarde o contacta soporte.' },
           { status: 403 },
         )
       }
@@ -96,7 +101,7 @@ export async function POST(request: NextRequest) {
     const existingUser = await prisma.user.findUnique({ where: { email } })
 
     if (existingUser) {
-      return NextResponse.json({ error: "Este correo ya está registrado" }, { status: 400 })
+      return NextResponse.json({ error: "Este correo ya est\u00e1 registrado" }, { status: 400 })
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
@@ -112,6 +117,9 @@ export async function POST(request: NextRequest) {
           role: safeRole,
           countryCode,
           password: hashedPassword,
+          dataProcessingConsentAt: new Date(),
+          dataProcessingConsentIp: ip || null,
+          dataProcessingConsentVersion: "2026-10-28",
           ...(safeRole === 'seller' && {
             businessName: String(name).trim() || 'Mi Negocio',
           }),
@@ -177,12 +185,12 @@ export async function POST(request: NextRequest) {
     const welcomeMessage = pioneerEligible
       ? `Hola ${name}, eres el profesional pionero #${pioneerNumber} en ${country.name}. Destacado gratis y cero comisiones el primer mes cuando lancemos.`
       : isComingSoonCountry(countryCode) && safeRole === 'buyer'
-        ? `Hola ${name}, gracias por registrarte. Te avisaremos cuando ${country.name} esté en vivo.`
+        ? `Hola ${name}, gracias por registrarte. Te avisaremos cuando ${country.name} est\u00e9 en vivo.`
         : `Hola ${name}, gracias por registrarte. Ya puedes explorar servicios o publicar los tuyos.`
 
     await notifications.sendEmail(
       newUser.id,
-      '¡Bienvenido!',
+      '\u00a1Bienvenido!',
       welcomeMessage,
       `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/gigs`,
       { isWelcome: true }
