@@ -30,6 +30,7 @@ function SignUpClient() {
     password: "",
     role: "buyer" as "buyer" | "seller"
   })
+  const [dataConsent, setDataConsent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -83,8 +84,14 @@ function SignUpClient() {
     setLoading(true)
     setError("")
 
+    if (!dataConsent) {
+      setError("Debes autorizar el tratamiento de tus datos personales para continuar.")
+      setLoading(false)
+      return
+    }
+
     if (turnstileEnabled && !turnstileToken) {
-      setError("Completa la verificación anti-bot antes de continuar.")
+      setError("Completa la verificaci\u00f3n anti-bot antes de continuar.")
       setLoading(false)
       return
     }
@@ -98,6 +105,7 @@ function SignUpClient() {
           countryCode,
           referralCode: refCode || undefined,
           turnstileToken,
+          dataConsent: true,
         }),
       })
 
@@ -111,13 +119,13 @@ function SignUpClient() {
 
       if (data.pioneer) {
         toast.success(
-          `¡Eres el profesional #${data.pioneer.number} en ${data.pioneer.countryName}! Destacado gratis el primer mes.`,
+          `\u00a1Eres el profesional #${data.pioneer.number} en ${data.pioneer.countryName}! Destacado gratis el primer mes.`,
           { duration: 8000 },
         )
       } else if (data.comingSoonCountry && formData.role === 'buyer' && signupCountry) {
-        toast.success(`Te avisaremos cuando ${signupCountry.name} esté en vivo.`)
+        toast.success(`Te avisaremos cuando ${signupCountry.name} est\u00e9 en vivo.`)
       } else {
-        toast.success(`¡Registro exitoso como ${formData.role === "buyer" ? "Comprador" : "Vendedor"}!`)
+        toast.success(`\u00a1Registro exitoso como ${formData.role === "buyer" ? "Comprador" : "Vendedor"}!`)
       }
 
       // Auto sign-in so the user lands inside the app immediately
@@ -143,7 +151,7 @@ function SignUpClient() {
       // Fallback: send them to login page
       router.push(getAuthCallbackUrl("/login"))
     } catch (err) {
-      setError("Error de conexión. Inténtalo de nuevo.")
+      setError("Error de conexi\u00f3n. Int\u00e9ntalo de nuevo.")
       setLoading(false)
     }
   }
@@ -170,7 +178,7 @@ function SignUpClient() {
           <div className="flex justify-center mb-6">
             <Logo size={88} variant="hero" linkClassName="justify-center drop-shadow-lg" />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold">¡Bienvenido a {siteName}!</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold">\u00a1Bienvenido a {siteName}!</h1>
           <p className="mt-2 text-white/90">Crea tu cuenta y comienza a conectar</p>
         </div>
 
@@ -183,7 +191,7 @@ function SignUpClient() {
               <div className="mt-1 text-blue-800">
                 {formData.role === 'seller'
                   ? `Te registras como pionero en ${signupCountry.name}. Los primeros ${signupCountry.pioneerLimit} profesionales obtienen beneficios especiales.`
-                  : `Te avisaremos cuando ${signupCountry.name} esté en vivo.`}
+                  : `Te avisaremos cuando ${signupCountry.name} est\u00e9 en vivo.`}
               </div>
             </div>
           )}
@@ -196,23 +204,23 @@ function SignUpClient() {
           {!signupsEnabled && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm">
               <div className="font-semibold text-amber-700">Registros deshabilitados</div>
-              <div className="text-amber-600 mt-1">El administrador ha cerrado temporalmente los nuevos registros en {siteName}. El formulario está deshabilitado.</div>
+              <div className="text-amber-600 mt-1">El administrador ha cerrado temporalmente los nuevos registros en {siteName}. El formulario est\u00e1 deshabilitado.</div>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <Label htmlFor="name" className="text-sm font-medium">Nombre Completo</Label>
-              <Input id="name" type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Juan Pérez" required disabled={!signupsEnabled} className="mt-1.5 h-12 text-base" />
+              <Input id="name" type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Juan P\u00e9rez" required disabled={!signupsEnabled} className="mt-1.5 h-12 text-base" />
             </div>
             <div>
-              <Label htmlFor="email" className="text-sm font-medium">Correo Electrónico</Label>
+              <Label htmlFor="email" className="text-sm font-medium">Correo Electr\u00f3nico</Label>
               <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="tu@email.com" required disabled={!signupsEnabled} className="mt-1.5 h-12 text-base" />
             </div>
             <div>
-              <Label htmlFor="password" className="text-sm font-medium">Contraseña</Label>
+              <Label htmlFor="password" className="text-sm font-medium">Contrase\u00f1a</Label>
               <div className="relative mt-1.5">
-                <Input id="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="••••••••" required disabled={!signupsEnabled} className="h-12 text-base pr-10" />
+                <Input id="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" required disabled={!signupsEnabled} className="h-12 text-base pr-10" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" disabled={!signupsEnabled}>
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -225,6 +233,26 @@ function SignUpClient() {
                 <Button type="button" variant={formData.role === "seller" ? "default" : "outline"} onClick={() => setFormData({ ...formData, role: "seller" })} className="flex-1 py-6 text-base" disabled={!signupsEnabled}>Vendedor</Button>
               </div>
             </div>
+
+            <div className="flex items-start gap-3">
+              <input
+                id="dataConsent"
+                type="checkbox"
+                checked={dataConsent}
+                onChange={(e) => setDataConsent(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                required
+                disabled={!signupsEnabled}
+              />
+              <label htmlFor="dataConsent" className="text-sm leading-relaxed cursor-pointer text-zinc-700 dark:text-zinc-300">
+                Autorizo el tratamiento de mis datos personales conforme a la{" "}
+                <Link href="/privacy" target="_blank" className="text-orange-600 hover:underline font-medium">
+                  Pol\u00edtica de Tratamiento de Datos Personales
+                </Link>
+                .
+              </label>
+            </div>
+
             {turnstileEnabled && turnstileSiteKey && (
               <TurnstileWidget
                 siteKey={turnstileSiteKey}
@@ -236,7 +264,7 @@ function SignUpClient() {
             <Button
               type="submit"
               className="w-full py-6 text-lg bg-orange-600 hover:bg-orange-700 rounded-2xl font-semibold"
-              disabled={loading || !signupsEnabled || (turnstileEnabled && !turnstileToken)}
+              disabled={loading || !signupsEnabled || !dataConsent || (turnstileEnabled && !turnstileToken)}
             >
               {loading ? "Creando cuenta..." : "Crear Cuenta"}
             </Button>
@@ -261,7 +289,7 @@ function SignUpClient() {
           )}
 
           <div className="text-center text-sm text-muted-foreground pt-2">
-            ¿Ya tienes cuenta? <Link href="/login" className="text-orange-600 hover:underline font-medium">Inicia sesión</Link>
+            \u00bfYa tienes cuenta? <Link href="/login" className="text-orange-600 hover:underline font-medium">Inicia sesi\u00f3n</Link>
           </div>
         </div>
       </div>
