@@ -72,7 +72,15 @@ export default function LoginPage() {
     const checkSession = async () => {
       const session = await getSession();
       if (session?.user) {
-        router.replace(getPostLoginRedirectPath(session));
+        const dest = getPostLoginRedirectPath(session);
+        try {
+          const c = await fetch('/api/auth/consent').then(r => r.json()).catch(() => null);
+          if (c?.needsConsent) {
+            router.replace(`/consent?callbackUrl=${encodeURIComponent(dest)}`);
+            return;
+          }
+        } catch {}
+        router.replace(dest);
       }
     };
     checkSession();
@@ -86,7 +94,7 @@ export default function LoginPage() {
     const fromQuery = new URLSearchParams(window.location.search).get('callbackUrl');
 
     if (turnstileEnabled && !turnstileToken) {
-      setError('Completa la verificación anti-bot antes de continuar.');
+      setError('Completa la verificaci\u00f3n anti-bot antes de continuar.');
       setIsLoading(false);
       return;
     }
@@ -135,6 +143,17 @@ export default function LoginPage() {
         const session = await getSession();
         destination = getAuthCallbackUrl(getPostLoginRedirectPath(session));
       }
+
+      // Force express data-processing consent for existing users
+      try {
+        const c = await fetch('/api/auth/consent').then(r => r.json()).catch(() => null);
+        if (c?.needsConsent) {
+          const consentUrl = `/consent?callbackUrl=${encodeURIComponent(destination)}`;
+          window.location.assign(consentUrl);
+          return;
+        }
+      } catch {}
+
       // Keep isLoading true until navigation so the form doesn't flash back.
       window.location.assign(destination);
       return;
@@ -193,7 +212,7 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -263,7 +282,7 @@ export default function LoginPage() {
                 variant="outline"
                 className="w-full py-5 text-base flex items-center justify-center gap-2"
               >
-                {/* Inline Google "G" logo SVG — reliable on all platforms including macOS Safari / PWA / no external network dependency */}
+                {/* Inline Google "G" logo SVG \u2014 reliable on all platforms including macOS Safari / PWA / no external network dependency */}
                 <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.51h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.34z"/>
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -286,4 +305,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
