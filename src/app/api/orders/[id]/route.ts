@@ -476,6 +476,25 @@ export async function PATCH(
         } catch (e) {
           devLog('[orders PATCH] order files lookup failed (non-fatal):', e)
         }
+
+        // Post download links into the order chat so both parties see them there
+        try {
+          const chatLines = [
+            'Pedido marcado como completado.',
+            downloadLinks.length
+              ? 'Descargas disponibles:\n' + downloadLinks.map(d => `• ${d.label}: ${d.url}`).join('\n')
+              : 'No hay archivos adjuntos en este pedido.',
+          ]
+          await prisma.orderMessage.create({
+            data: {
+              orderId,
+              content: chatLines.join('\n\n'),
+              isFromBuyer: false,
+            },
+          })
+        } catch (e) {
+          devLog('[orders PATCH] completion chat message failed (non-fatal):', e)
+        }
       }
 
       for (const r of recipients) {

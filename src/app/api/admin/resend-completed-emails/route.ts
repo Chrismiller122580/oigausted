@@ -89,6 +89,25 @@ export async function POST(req: NextRequest) {
       ]
 
       if (!dryRun) {
+        // Also post download links into the order chat
+        try {
+          const chatLines = [
+            'Pedido marcado como completado.',
+            downloadLinks.length
+              ? 'Descargas disponibles:\n' + downloadLinks.map(d => `• ${d.label}: ${d.url}`).join('\n')
+              : 'No hay archivos adjuntos en este pedido.',
+          ]
+          await prisma.orderMessage.create({
+            data: {
+              orderId: order.id,
+              content: chatLines.join('\n\n'),
+              isFromBuyer: false,
+            },
+          })
+        } catch (e) {
+          devLog('[resend-completed] chat message failed', e)
+        }
+
         for (const r of recipients) {
           try {
             await notifications.sendInApp(
