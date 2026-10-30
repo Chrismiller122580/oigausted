@@ -533,12 +533,12 @@ export async function PATCH(
               orderId,
               newStatus: statusEs,
               recipientRole: r.role,
-              buyerName: updatedOrder.buyer?.name || undefined,
-              sellerName: updatedOrder.seller?.businessName || updatedOrder.seller?.name || undefined,
-              downloadLinks: statusLabel === OrderStatusLabel.Completed ? downloadLinks : undefined,
+              buyerName: updatedOrder.buyer?.name || '',
+              sellerName: updatedOrder.seller?.businessName || updatedOrder.seller?.name || '',
+              downloadLinks: statusLabel === OrderStatusLabel.Completed ? downloadLinks : [],
               completedAt: statusLabel === OrderStatusLabel.Completed
                 ? new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
-                : undefined,
+                : '',
               actions: actions as unknown as JsonValue,
             }
           )
