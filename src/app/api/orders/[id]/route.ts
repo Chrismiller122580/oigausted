@@ -426,12 +426,13 @@ export async function PATCH(
       type NotifRecipient = { userId: string; role: 'buyer' | 'seller' }
       const recipients: NotifRecipient[] = []
 
-      if (
-        statusLabel === OrderStatusLabel.InProgress ||
-        statusLabel === OrderStatusLabel.Completed
-      ) {
-        // Seller advanced the order → notify buyer
+      if (statusLabel === OrderStatusLabel.InProgress) {
+        // Seller started the work → notify buyer
         recipients.push({ userId: updatedOrder.buyerId, role: 'buyer' })
+      } else if (statusLabel === OrderStatusLabel.Completed) {
+        // Completion confirmation goes to both parties
+        recipients.push({ userId: updatedOrder.buyerId, role: 'buyer' })
+        recipients.push({ userId: updatedOrder.sellerId, role: 'seller' })
       } else if (statusLabel === OrderStatusLabel.Cancelled) {
         // Buyer cancel → seller; admin/seller cancel → buyer (+ seller if admin)
         if (isBuyer) {
@@ -446,6 +447,35 @@ export async function PATCH(
         // Manual/dev Paid (Wompi path has its own notifs) — inform both
         recipients.push({ userId: updatedOrder.buyerId, role: 'buyer' })
         recipients.push({ userId: updatedOrder.sellerId, role: 'seller' })
+      }
+
+      // Completion: attach confirmation downloads (sale docs + any order files)
+      let downloadLinks: { label: string; url: string }[] = []
+      if (statusLabel === OrderStatusLabel.Completed) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'
+        try {
+          const { orderIncludesSaleDocsBundle } = await import('@/lib/vehicle-sale-docs')
+          if (orderIncludesSaleDocsBundle(updatedOrder.customFields)) {
+            downloadLinks.push(
+              { label: 'Descargar contrato de compraventa', url: `${appUrl}/api/orders/${orderId}/sale-docs?doc=contract` },
+              { label: 'Descargar checklist', url: `${appUrl}/api/orders/${orderId}/sale-docs?doc=checklist` },
+            )
+          }
+        } catch (e) {
+          devLog('[orders PATCH] sale docs check failed (non-fatal):', e)
+        }
+        try {
+          const files = await prisma.orderFile.findMany({
+            where: { orderId },
+            select: { name: true, url: true },
+            orderBy: { createdAt: 'asc' },
+          })
+          for (const f of files) {
+            if (f.url) downloadLinks.push({ label: f.name || 'Archivo del pedido', url: f.url })
+          }
+        } catch (e) {
+          devLog('[orders PATCH] order files lookup failed (non-fatal):', e)
+        }
       }
 
       for (const r of recipients) {
@@ -469,15 +499,20 @@ export async function PATCH(
           ]
         }
 
-        const title =
-          statusLabel === OrderStatusLabel.Cancelled
+        const isCompleted = statusLabel === OrderStatusLabel.Completed
+        const title = isCompleted
+          ? (r.role === 'buyer' ? '¡Pedido completado!' : 'Pedido marcado como completado')
+          : statusLabel === OrderStatusLabel.Cancelled
             ? r.role === 'seller'
               ? 'Pedido cancelado por el comprador'
               : 'Pedido cancelado'
             : `Pedido actualizado: ${statusEs}`
 
-        const message =
-          statusLabel === OrderStatusLabel.Cancelled
+        const message = isCompleted
+          ? (r.role === 'buyer'
+              ? `Tu pedido de "${gigTitle}" fue completado. Revisa la confirmación y, si aplica, las descargas.`
+              : `El pedido de "${gigTitle}" quedó completado.`)
+          : statusLabel === OrderStatusLabel.Cancelled
             ? r.role === 'seller'
               ? `El comprador canceló el pedido de "${gigTitle}".`
               : `Tu pedido de "${gigTitle}" fue cancelado.`
@@ -498,6 +533,12 @@ export async function PATCH(
               orderId,
               newStatus: statusEs,
               recipientRole: r.role,
+              buyerName: updatedOrder.buyer?.name || undefined,
+              sellerName: updatedOrder.seller?.businessName || updatedOrder.seller?.name || undefined,
+              downloadLinks: statusLabel === OrderStatusLabel.Completed ? downloadLinks : undefined,
+              completedAt: statusLabel === OrderStatusLabel.Completed
+                ? new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
+                : undefined,
               actions: actions as unknown as JsonValue,
             }
           )

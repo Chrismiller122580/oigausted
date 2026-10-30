@@ -180,6 +180,83 @@ export function orderStatusUpdatedEmail({ userName, gigTitle, newStatus, orderId
 }
 
 /** Daily reminder for sellers with Paid / In Progress orders. */
+/** Completion confirmation for buyer/seller when an order is marked Completed. */
+export function orderCompletedEmail({
+  userName,
+  gigTitle,
+  amount,
+  orderId,
+  otherPartyName,
+  recipientRole = 'buyer',
+  downloadLinks = [],
+  completedAt,
+}: OrderEmailProps & {
+  recipientRole?: 'buyer' | 'seller';
+  downloadLinks?: { label: string; url: string }[];
+  completedAt?: string;
+}) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
+  const orderUrl = `${appUrl}/orders/${orderId}`;
+  const isBuyer = recipientRole !== 'seller';
+  const when = completedAt || new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+
+  const downloadsHtml = downloadLinks.length
+    ? `
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 12px; margin: 20px 0;">
+        <p style="margin: 0 0 10px 0; font-weight: 600; color: #111;">Descargas de este pedido</p>
+        ${downloadLinks
+          .map(
+            (d) =>
+              `<p style="margin: 6px 0;"><a href="${d.url}" style="color: #f97316; font-weight: 600; text-decoration: none;">${d.label}</a></p>`,
+          )
+          .join('')}
+      </div>`
+    : '';
+
+  const body = isBuyer
+    ? `Tu pedido de <strong>"${gigTitle}"</strong> con <strong>${otherPartyName || 'el vendedor'}</strong> fue marcado como completado.`
+    : `Marcaste como completado el pedido de <strong>"${gigTitle}"</strong> con <strong>${otherPartyName || 'el comprador'}</strong>.`;
+
+  const extra = isBuyer
+    ? `<p style="color: #444; font-size: 15px; line-height: 1.5;">Este correo es tu confirmación. Puedes ver el pedido y dejar una reseña cuando quieras.</p>`
+    : `<p style="color: #444; font-size: 15px; line-height: 1.5;">El comprador ya recibió la confirmación. El pago queda registrado en tus pedidos.</p>`;
+
+  return {
+    subject: isBuyer
+      ? `Pedido completado: ${gigTitle}`
+      : `Confirmación de pedido completado: ${gigTitle}`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
+        <h2 style="color: #111;">${isBuyer ? '¡Pedido completado!' : 'Pedido marcado como completado'}</h2>
+
+        <p>Hola <strong>${userName || 'Usuario'}</strong>,</p>
+
+        <p>${body}</p>
+
+        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 20px; border-radius: 12px; margin: 24px 0;">
+          <p style="margin: 0 0 8px 0;"><strong>Servicio:</strong> ${gigTitle}</p>
+          <p style="margin: 0 0 8px 0;"><strong>Monto:</strong> $${Number(amount || 0).toLocaleString('es-CO')} COP</p>
+          <p style="margin: 0 0 8px 0;"><strong>Pedido:</strong> ${orderId}</p>
+          <p style="margin: 0;"><strong>Fecha:</strong> ${when}</p>
+        </div>
+
+        ${downloadsHtml}
+        ${extra}
+
+        <a href="${orderUrl}"
+           style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin-top: 8px;">
+          ${isBuyer ? 'Ver confirmación y reseña' : 'Ver pedido'}
+        </a>
+
+        <p style="margin-top: 32px; font-size: 12px; color: #888;">
+          Guarda este correo como comprobante. OigaGIG • Servicios locales de confianza en Colombia
+        </p>
+      </div>
+    `,
+  };
+}
+
+
 export function sellerOpenOrdersReminderEmail({
   userName,
   openCount,

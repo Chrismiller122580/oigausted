@@ -304,6 +304,7 @@ export async function sendNotification(payload: NotificationPayload) {
           newOrderEmail,
           buyerOrderCreatedEmail,
           orderStatusUpdatedEmail,
+          orderCompletedEmail,
         } = await import('./emails/templates');
         const gigTitle = jsonString(data, 'gigTitle');
         const newStatus = jsonString(data, 'newStatus');
@@ -314,8 +315,29 @@ export async function sendNotification(payload: NotificationPayload) {
         const isBuyerConfirmation =
           jsonString(data, 'recipientRole') === 'buyer' ||
           jsonBoolean(data, 'buyerOrderConfirmation');
+        const recipientRole =
+          jsonString(data, 'recipientRole') === 'seller' ? 'seller' : 'buyer';
+        const downloadLinksRaw = data?.downloadLinks;
+        const downloadLinks = Array.isArray(downloadLinksRaw)
+          ? downloadLinksRaw
+              .filter((d): d is { label: string; url: string } =>
+                !!d && typeof d === 'object' && typeof (d as { label?: unknown }).label === 'string' && typeof (d as { url?: unknown }).url === 'string'
+              )
+          : [];
+        const completedAt = jsonString(data, 'completedAt') || undefined;
 
-        if (newStatus) {
+        if (newStatus && /complet/i.test(newStatus)) {
+          emailContent = orderCompletedEmail({
+            userName: user.name,
+            gigTitle,
+            amount,
+            otherPartyName,
+            orderId,
+            recipientRole,
+            downloadLinks,
+            completedAt,
+          });
+        } else if (newStatus) {
           emailContent = orderStatusUpdatedEmail({
             userName: user.name,
             gigTitle,
