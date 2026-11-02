@@ -259,11 +259,24 @@ export default function AdminPayoutsPage() {
       return;
     }
 
-    const ref = prompt(
-      'Enter the Wompi payout / transfer reference (Pagos a Terceros). Optional but recommended.',
-      ''
-    );
-    await markAsPaid(orderId, ref || undefined);
+    if (!confirm(`Enviar pago neto de $${(order.breakdown?.netToSeller || order.price || 0).toLocaleString('es-CO')} COP a Wompi Pagos a Terceros?`)) return;
+
+    try {
+      const res = await fetch('/api/admin/payouts/wompi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || 'No se pudo crear el pago en Wompi');
+        return;
+      }
+      toast.success(data.note || 'Pago enviado a Wompi. Se marcará al confirmar.');
+      fetchCompleted();
+    } catch {
+      toast.error('Error al contactar Wompi');
+    }
   };
 
   const aggregated = aggregatePayouts(
