@@ -38,7 +38,9 @@ export async function POST(req: Request) {
   }
 
   const missing = missingSellerPayoutBankFields(order.seller || {})
-  if (missing.length > 0) {
+  // Allow if only bank code is missing and the other three are present (default to NEQUI for 3xx numbers)
+  const onlyBankCodeMissing = missing.length === 1 && missing[0] === 'payoutBankCode'
+  if (missing.length > 0 && !onlyBankCodeMissing) {
     return NextResponse.json(
       {
         error: 'No se puede pagar: el vendedor no tiene la cuenta bancaria completa.',
@@ -46,6 +48,16 @@ export async function POST(req: Request) {
       },
       { status: 400 }
     )
+  }
+  if (onlyBankCodeMissing) {
+    const acct = String(order.seller?.payoutAccountNumber || '').replace(/\D/g, '')
+    await prisma.user.update({
+      where: { id: order.sellerId },
+      data: {
+        payoutBankCode: /^3\d{9}$/.test(acct) ? 'NEQUI' : 'BANCOLOMBIA',
+        payoutAccountType: /^3\d{9}$/.test(acct) ? 'NEQUI' : 'SAVINGS',
+      },
+    }).catch(() => {})
   }
 
   const wompiPayoutRef =

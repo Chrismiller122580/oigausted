@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [error, setError] = useState('');
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const [turnstileEnabled, setTurnstileEnabled] = useState(false);
@@ -43,8 +44,8 @@ export default function LoginPage() {
         urlError === 'OAuthSignin'
           ? 'Google sign-in failed. This is common in temporary dev environments (changing URLs). Try the email/password form instead.'
           : urlError === 'CredentialsSignin'
-            ? 'Invalid email or password.'
-            : 'There was a problem signing in. Please try again.';
+            ? 'Correo o contraseña incorrectos.'
+            : 'Hubo un problema al iniciar sesión. Intenta de nuevo.';
 
       setError(friendlyMessage);
 
@@ -69,18 +70,29 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
+    // Prefill last email for repeat logins
+    try {
+      const last = localStorage.getItem('oigagig:lastLoginEmail');
+      if (last) setEmail(last);
+    } catch {}
+
     const checkSession = async () => {
-      const session = await getSession();
-      if (session?.user) {
-        const dest = getPostLoginRedirectPath(session);
-        try {
-          const c = await fetch('/api/auth/consent').then(r => r.json()).catch(() => null);
-          if (c?.needsConsent) {
-            router.replace(`/consent?callbackUrl=${encodeURIComponent(dest)}`);
-            return;
-          }
-        } catch {}
-        router.replace(dest);
+      try {
+        const session = await getSession();
+        if (session?.user) {
+          const dest = getPostLoginRedirectPath(session);
+          try {
+            const c = await fetch('/api/auth/consent').then(r => r.json()).catch(() => null);
+            if (c?.needsConsent) {
+              router.replace(`/consent?callbackUrl=${encodeURIComponent(dest)}`);
+              return;
+            }
+          } catch {}
+          router.replace(dest);
+          return;
+        }
+      } finally {
+        setCheckingSession(false);
       }
     };
     checkSession();
@@ -125,13 +137,14 @@ export default function LoginPage() {
       setIsLoading(false);
       setError(
         result.error === 'CredentialsSignin'
-          ? 'Invalid email or password.'
-          : 'There was a problem signing in. Please try again.',
+          ? 'Correo o contraseña incorrectos.'
+          : 'Hubo un problema al iniciar sesión. Intenta de nuevo.',
       );
       return;
     }
 
     if (result?.ok) {
+      try { localStorage.setItem('oigagig:lastLoginEmail', email.trim().toLowerCase()); } catch {}
       // Fire-and-forget: record-login does IP geolocation (up to 3s). Never block redirect.
       void fetch('/api/auth/record-login', {
         method: 'POST',
@@ -174,6 +187,17 @@ export default function LoginPage() {
     }
   };
 
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 dark:from-zinc-950 dark:to-zinc-900 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-muted-foreground">Verificando sesión…</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 dark:from-zinc-950 dark:to-zinc-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-xl">
@@ -182,19 +206,19 @@ export default function LoginPage() {
             <Logo size={72} variant="hero" linkClassName="justify-center" />
           </div>
           <CardTitle className="text-2xl font-bold text-foreground">
-            Welcome back
+            Bienvenido de nuevo
           </CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">Sign in to OigaGIG</p>
+          <p className="text-sm text-muted-foreground mt-1">Inicia sesión en OigaGIG</p>
         </CardHeader>
 
         <CardContent>
           <div className="mb-4">
-            <p className="text-sm font-medium text-foreground mb-3">Sign in with your account</p>
+            <p className="text-sm font-medium text-foreground mb-3">Inicia sesión con tu cuenta</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="email" className="text-sm">Email</Label>
+              <Label htmlFor="email" className="text-sm">Correo</Label>
               <Input
                 id="email"
                 type="email"
@@ -207,7 +231,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <Label htmlFor="password" className="text-sm">Password</Label>
+              <Label htmlFor="password" className="text-sm">Contraseña</Label>
               <div className="relative mt-1">
                 <Input
                   id="password"
@@ -252,17 +276,17 @@ export default function LoginPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Signing in...
+                  Iniciando sesión...
                 </>
               ) : (
-                'Sign In'
+                'Iniciar sesión'
               )}
             </Button>
           </form>
 
           <div className="text-center mt-4">
             <Link href="/forgot-password" className="text-sm text-orange-600 hover:underline">
-              Forgot your password?
+              ¿Olvidaste tu contraseña?
             </Link>
           </div>
 
@@ -295,9 +319,9 @@ export default function LoginPage() {
           )}
 
           <p className="text-center text-sm text-muted-foreground mt-8">
-            New here?{' '}
+            ¿Nuevo aquí?{' '}
             <Link href="/signup" className="font-medium text-orange-600 hover:underline">
-              Create an account
+              Crear una cuenta
             </Link>
           </p>
         </CardContent>

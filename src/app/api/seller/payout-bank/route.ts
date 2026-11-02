@@ -95,6 +95,21 @@ async function handleSave(req: NextRequest) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
 
+    // Require a bank code (or auto-default Nequi for 10-digit numbers starting with 3)
+    const bankCode = String(data.payoutBankCode || body.payoutBankCode || '').trim();
+    const acct = String(data.payoutAccountNumber || body.payoutAccountNumber || '').replace(/\D/g, '');
+    if (!bankCode) {
+      if (/^3\d{9}$/.test(acct)) {
+        data.payoutBankCode = 'NEQUI';
+        data.payoutAccountType = 'NEQUI';
+      } else {
+        return NextResponse.json(
+          { error: 'Indica el banco o elige Nequi. El código del banco es obligatorio.' },
+          { status: 400 }
+        );
+      }
+    }
+
     const isNequi = String(data.payoutBankCode || body.payoutBankCode || '').toUpperCase() === 'NEQUI';
     if (isNequi) {
       const nequi = cleanNequi(data.payoutAccountNumber || body.payoutAccountNumber);
