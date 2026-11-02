@@ -418,3 +418,39 @@ export async function notifyAdminsReferralPayout({
     data: { amount },
   })
 }
+
+export async function notifyAdminsSellerPayout({
+  sellerName,
+  gigTitle,
+  amount,
+  orderId,
+  payoutId,
+}: {
+  sellerName: string
+  gigTitle: string
+  amount: number
+  orderId: string
+  payoutId?: string | null
+}) {
+  const safeSeller = escapeHtml(sellerName)
+  const safeGig = escapeHtml(gigTitle)
+  const ref = payoutId ? escapeHtml(payoutId) : ''
+  await notifyAdmins({
+    title: 'Pago a vendedor enviado',
+    message: `Se envió $${amount.toLocaleString('es-CO')} a ${sellerName} por "${gigTitle}".`,
+    link: '/admin/payouts',
+    emailSubject: `Pago enviado: $${amount.toLocaleString('es-CO')} a ${sellerName}`,
+    emailBodyHtml: `
+      <p>Se creó un pago en Wompi Pagos a Terceros.</p>
+      <p><strong>Vendedor:</strong> ${safeSeller}</p>
+      <p><strong>Servicio:</strong> ${safeGig}</p>
+      <p><strong>Monto neto:</strong> $${amount.toLocaleString('es-CO')} COP</p>
+      <p><strong>Pedido:</strong> ${escapeHtml(orderId)}</p>
+      ${ref ? `<p><strong>ID Wompi:</strong> ${ref}</p>` : ''}
+    `,
+    eventLabel: 'Pago a vendedor',
+    ctaLabel: 'Ver pagos',
+    ctaHref: '/admin/payouts',
+    data: { orderId, payoutId },
+  })
+}

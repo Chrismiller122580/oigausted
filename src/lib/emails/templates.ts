@@ -753,3 +753,47 @@ export function adminAlertEmail({ title, bodyHtml, ctaLabel, ctaHref, eventLabel
     `,
   };
 }
+
+
+/** Seller notification that a payout was submitted to Wompi. */
+export function sellerPayoutSentEmail({
+  userName,
+  gigTitle,
+  amount,
+  orderId,
+  bankCode,
+  accountLast4,
+}: BaseEmailProps & {
+  gigTitle: string
+  amount: number
+  orderId: string
+  bankCode?: string | null
+  accountLast4?: string | null
+}) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'
+  const bankLine = bankCode
+    ? `<p style="margin: 0;"><strong>Cuenta:</strong> ${bankCode} • ****${accountLast4 || '----'}</p>`
+    : ''
+  return {
+    subject: `Pago enviado: $${amount.toLocaleString('es-CO')} por "${gigTitle}"`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
+        <h2 style="color: #111;">Tu pago está en camino</h2>
+        <p>Hola <strong>${userName || 'Vendedor'}</strong>,</p>
+        <p>Enviamos el pago neto de tu servicio <strong>"${gigTitle}"</strong> a través de Wompi.</p>
+        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 20px; border-radius: 12px; margin: 24px 0;">
+          <p style="margin: 0 0 8px 0;"><strong>Monto:</strong> $${amount.toLocaleString('es-CO')} COP</p>
+          <p style="margin: 0 0 8px 0;"><strong>Pedido:</strong> ${orderId}</p>
+          ${bankLine}
+        </div>
+        <p style="color: #444; font-size: 15px; line-height: 1.5;">
+          El pago se está procesando. Dependiendo del banco puede acreditarse en minutos o en el siguiente ciclo ACH.
+        </p>
+        <a href="${appUrl}/seller/earnings"
+           style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin-top: 8px;">
+          Ver mis ganancias
+        </a>
+      </div>
+    `,
+  }
+}

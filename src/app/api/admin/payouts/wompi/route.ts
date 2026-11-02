@@ -11,6 +11,9 @@ import {
   createWompiPayout,
 } from '@/lib/wompi-payouts'
 import { devLog } from '@/lib/utils'
+import { sendNotification } from '@/lib/notifications'
+import { notifyAdminsSellerPayout } from '@/lib/admin-notifications'
+import { sellerPayoutSentEmail } from '@/lib/emails/templates'
 
 export async function POST(req: Request) {
   const session = await requireFinancePanelSession()
@@ -40,6 +43,7 @@ export async function POST(req: Request) {
       status: true,
       sellerPayoutAt: true,
       sellerId: true,
+      gig: { select: { title: true } },
       seller: {
         select: {
           id: true,
@@ -132,6 +136,35 @@ export async function POST(req: Request) {
       targetId: order.id,
       details: { payoutId: result.payoutId, amountCents, bankId },
     }).catch(() => {})
+
+    const amountCOP = amountCents / 100
+    const last4 = (s.payoutAccountNumber || '').replace(/\D/g, '').slice(-4)
+    const email = sellerPayoutSentEmail({
+      userName: s.payoutHolderName || s.name,
+      gigTitle: order.gig?.title || 'tu servicio',
+      amount: amountCOP,
+      orderId: order.id,
+      bankCode: s.payoutBankCode,
+      accountLast4: last4,
+    })
+
+    await sendNotification({
+      userId: s.id,
+      category: 'payment',
+      type: 'email',
+      title: email.subject,
+      message: `Enviamos $${amountCOP.toLocaleString('es-CO')} COP a tu cuenta ${s.payoutBankCode || ''}. Se está procesando.`,
+      link: '/seller/earnings',
+      data: { orderId: order.id, payoutId: result.payoutId },
+    }).catch((e) => devLog('[wompi-payout] seller notify failed', e))
+
+    await notifyAdminsSellerPayout({
+      sellerName: s.payoutHolderName || s.name || s.email,
+      gigTitle: order.gig?.title || 'servicio',
+      amount: amountCOP,
+      orderId: order.id,
+      payoutId: result.payoutId,
+    }).catch((e) => devLog('[wompi-payout] admin notify failed', e))
 
     return NextResponse.json({
       success: true,
