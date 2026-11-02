@@ -14,6 +14,7 @@ import { devLog } from '@/lib/utils'
 import { sendNotification } from '@/lib/notifications'
 import { notifyAdminsSellerPayout } from '@/lib/admin-notifications'
 import { sellerPayoutSentEmail } from '@/lib/emails/templates'
+import { sendWhatsApp, sendAdminWhatsApp } from '@/lib/whatsapp'
 
 export async function POST(req: Request) {
   const session = await requireFinancePanelSession()
@@ -49,6 +50,8 @@ export async function POST(req: Request) {
           id: true,
           name: true,
           email: true,
+          phone: true,
+          whatsapp: true,
           businessName: true,
           referredById: true,
           payoutBankCode: true,
@@ -157,6 +160,17 @@ export async function POST(req: Request) {
       link: '/seller/earnings',
       data: { orderId: order.id, payoutId: result.payoutId },
     }).catch((e) => devLog('[wompi-payout] seller notify failed', e))
+
+    const waTo = s.whatsapp || s.phone;
+    if (waTo) {
+      await sendWhatsApp(
+        waTo,
+        `OigaGIG: enviamos $${amountCOP.toLocaleString('es-CO')} COP a tu ${s.payoutBankCode || 'cuenta'} por "${order.gig?.title || 'tu servicio'}". Se está procesando.`,
+      ).catch(() => {});
+    }
+    await sendAdminWhatsApp(
+      `Pago enviado: $${amountCOP.toLocaleString('es-CO')} a ${s.payoutHolderName || s.name} por "${order.gig?.title || 'servicio'}". Pedido ${order.id}.`,
+    ).catch(() => {});
 
     await notifyAdminsSellerPayout({
       sellerName: s.payoutHolderName || s.name || s.email,

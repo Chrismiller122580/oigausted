@@ -5,6 +5,7 @@ import { getWompiPayoutsConfig, getWompiPayoutByReference, isPayoutSuccess } fro
 import { sendNotification } from '@/lib/notifications'
 import { notifyAdminsSellerPayout } from '@/lib/admin-notifications'
 import { sellerPayoutConfirmedEmail } from '@/lib/emails/templates'
+import { sendWhatsApp, sendAdminWhatsApp } from '@/lib/whatsapp'
 import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG } from '@/lib/payout'
 import { getPlatformConfig } from '@/lib/prisma'
 import { devLog } from '@/lib/utils'
@@ -25,7 +26,7 @@ export async function POST() {
       price: true,
       wompiPayoutRef: true,
       gig: { select: { title: true } },
-      seller: { select: { id: true, name: true, email: true, payoutHolderName: true, referredById: true } },
+      seller: { select: { id: true, name: true, email: true, phone: true, whatsapp: true, payoutHolderName: true, referredById: true } },
     },
   })
 
@@ -64,6 +65,12 @@ export async function POST() {
           message: `Wompi confirmó tu pago de $${amount.toLocaleString('es-CO')} COP.`,
           link: '/seller/earnings',
         }).catch(() => {})
+        const waTo = order.seller.whatsapp || order.seller.phone;
+        if (waTo) {
+          await sendWhatsApp(waTo, `OigaGIG: Wompi acreditó $${amount.toLocaleString('es-CO')} COP por "${order.gig?.title || 'tu servicio'}".`).catch(() => {});
+        }
+        await sendAdminWhatsApp(`Pago acreditado: $${amount.toLocaleString('es-CO')} a ${order.seller.payoutHolderName || order.seller.name}.`).catch(() => {});
+
         await notifyAdminsSellerPayout({
           sellerName: order.seller.payoutHolderName || order.seller.name || order.seller.email,
           gigTitle: order.gig?.title || 'servicio',
