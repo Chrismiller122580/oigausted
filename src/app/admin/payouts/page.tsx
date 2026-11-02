@@ -437,15 +437,26 @@ export default function AdminPayoutsPage() {
                         ) : (
                           <p className="text-[10px] text-amber-600 mt-1">Missing bank details</p>
                         )}
+                        {order.wompiPayoutRef && !order.sellerPayoutAt && (
+                          <p className="text-[10px] text-sky-400 mt-1">
+                            Enviado a Wompi · {String(order.wompiPayoutRef).slice(0, 8)}…
+                          </p>
+                        )}
                       </div>
                       <div className="flex flex-col gap-2">
-                        <Button
-                          onClick={() => recordWompiPayout(order.id)}
-                          disabled={!sellerHasBank(order)}
-                          className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
-                        >
-                          Pay via Wompi
-                        </Button>
+                        {order.wompiPayoutRef && !order.sellerPayoutAt ? (
+                          <Button disabled className="bg-sky-700/60 text-sky-100 cursor-default">
+                            Enviado a Wompi
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => recordWompiPayout(order.id)}
+                            disabled={!sellerHasBank(order)}
+                            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            Pay via Wompi
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
