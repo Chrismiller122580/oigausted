@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logAuditEvent } from '@/lib/audit'
 import { devLog } from '@/lib/utils'
+import { sendNotification } from '@/lib/notifications'
+import { notifyAdminsSellerPayout } from '@/lib/admin-notifications'
+import { sellerPayoutConfirmedEmail } from '@/lib/emails/templates'
+import { calculateOrderPayout, DEFAULT_PAYOUT_CONFIG } from '@/lib/payout'
+import { getPlatformConfig } from '@/lib/prisma'
 
 /**
  * Wompi Pagos a Terceros webhook.
@@ -43,6 +48,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, already: true })
     }
 
+    const full = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        price: true,
+        gig: { select: { title: true } },
+        seller: { select: { id: true, name: true, email: true, payoutHolderName: true, referredById: true } },
+      },
+    })
+
     await prisma.order.update({
       where: { id: orderId },
       data: {
@@ -50,6 +65,37 @@ export async function POST(req: Request) {
         wompiPayoutRef: payout?.id || transaction?.payoutId || ref,
       },
     })
+
+    if (full?.seller) {
+      const config = await getPlatformConfig().catch(() => null)
+      const rates = {
+        platformCommissionRate: config?.commissionRate ?? DEFAULT_PAYOUT_CONFIG.platformCommissionRate,
+        referralCommissionRate: config?.referralCommissionRate ?? DEFAULT_PAYOUT_CONFIG.referralCommissionRate,
+      }
+      const amount = calculateOrderPayout(full.price, !!full.seller.referredById, rates).netToSeller
+      const email = sellerPayoutConfirmedEmail({
+        userName: full.seller.payoutHolderName || full.seller.name,
+        gigTitle: full.gig?.title || 'tu servicio',
+        amount,
+        orderId: full.id,
+      })
+      await sendNotification({
+        userId: full.seller.id,
+        category: 'payment',
+        type: 'email',
+        title: email.subject,
+        message: `Wompi confirmó tu pago de $${amount.toLocaleString('es-CO')} COP.`,
+        link: '/seller/earnings',
+        data: { orderId: full.id },
+      }).catch(() => {})
+      await notifyAdminsSellerPayout({
+        sellerName: full.seller.payoutHolderName || full.seller.name || full.seller.email,
+        gigTitle: full.gig?.title || 'servicio',
+        amount,
+        orderId: full.id,
+        payoutId: payout?.id || transaction?.payoutId,
+      }).catch(() => {})
+    }
 
     await logAuditEvent({
       performedById: null,

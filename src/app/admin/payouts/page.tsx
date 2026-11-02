@@ -70,6 +70,8 @@ export default function AdminPayoutsPage() {
   };
 
   const fetchCompleted = async () => {
+    // Confirm any Wompi payouts that finished processing
+    await fetch('/api/admin/payouts/wompi/refresh', { method: 'POST' }).catch(() => {});
     try {
       let rates: PayoutConfig = DEFAULT_PAYOUT_CONFIG;
       const configRes = await fetch('/api/admin/config').catch(() => null);

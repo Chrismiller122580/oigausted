@@ -129,3 +129,21 @@ export async function createWompiPayout(
 
   return { payoutId, reference: input.reference, raw };
 }
+
+export async function getWompiPayoutByReference(
+  cfg: WompiPayoutsConfig,
+  reference: string
+): Promise<{ id: string; status: string; raw: unknown } | null> {
+  const url = `${cfg.baseUrl}/payouts?reference=${encodeURIComponent(reference)}&limit=5`;
+  const res = await fetch(url, { headers: headers(cfg) });
+  if (!res.ok) return null;
+  const data = await res.json().catch(() => ({}));
+  const list = Array.isArray(data) ? data : (data.data || data.payouts || []);
+  const match = list.find((p: { reference?: string }) => p.reference === reference) || list[0];
+  if (!match) return null;
+  return { id: match.id || '', status: String(match.status || '').toUpperCase(), raw: match };
+}
+
+export function isPayoutSuccess(status: string): boolean {
+  return ['TOTAL_PAYMENT', 'APPROVED', 'PAID'].includes(status.toUpperCase());
+}

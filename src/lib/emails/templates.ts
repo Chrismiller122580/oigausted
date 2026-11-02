@@ -797,3 +797,31 @@ export function sellerPayoutSentEmail({
     `,
   }
 }
+
+
+/** Seller notification that Wompi confirmed the payout. */
+export function sellerPayoutConfirmedEmail({
+  userName,
+  gigTitle,
+  amount,
+  orderId,
+}: BaseEmailProps & { gigTitle: string; amount: number; orderId: string }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'
+  return {
+    subject: `Pago acreditado: $${amount.toLocaleString('es-CO')} por "${gigTitle}"`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
+        <h2 style="color: #111;">Tu pago fue acreditado</h2>
+        <p>Hola <strong>${userName || 'Vendedor'}</strong>,</p>
+        <p>Wompi confirmó el pago de <strong>$${amount.toLocaleString('es-CO')} COP</strong> por <strong>"${gigTitle}"</strong>.</p>
+        <p style="color: #444; font-size: 15px; line-height: 1.5;">
+          Ya debería aparecer en tu cuenta. Si no lo ves, revisa en las próximas horas según el ciclo de tu banco.
+        </p>
+        <a href="${appUrl}/seller/earnings"
+           style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin-top: 8px;">
+          Ver mis ganancias
+        </a>
+      </div>
+    `,
+  }
+}
