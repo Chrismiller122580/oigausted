@@ -26,6 +26,9 @@ export default function BuyerDashboard() {
   const [loading, setLoading] = useState(true)
 
   const [showTutorial, setShowTutorial] = useState(false)
+  const [prefsDone, setPrefsDone] = useState(true)
+  const [suggestions, setSuggestions] = useState<{ id: string; title: string; price: number; category: string | null; city: string | null }[]>([])
+  const [saved, setSaved] = useState<{ id: string; title: string; price: number }[]>([])
 
   const userName = session?.user?.name?.split(' ')[0] || 'Comprador'
 
@@ -63,6 +66,10 @@ export default function BuyerDashboard() {
     })
     .catch(console.error)
     .finally(() => setLoading(false))
+
+    fetch('/api/buyer/preferences').then(r => r.json()).then(d => setPrefsDone(Boolean(d.completed))).catch(() => {})
+    fetch('/api/buyer/suggestions').then(r => r.json()).then(d => setSuggestions(d.gigs || [])).catch(() => {})
+    fetch('/api/buyer/saved').then(r => r.json()).then(d => setSaved(d.gigs || [])).catch(() => {})
   }, [session])
 
   useEffect(() => {
@@ -130,6 +137,52 @@ export default function BuyerDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {!prefsDone && (
+          <Card className="mb-8 border-orange-300 bg-orange-50 dark:bg-orange-950/30">
+            <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold">Cuéntanos qué necesitas</h3>
+                <p className="text-sm text-muted-foreground">Ciudad y 3 categorías. Te mostramos servicios para ti.</p>
+              </div>
+              <Button asChild className="bg-orange-600 hover:bg-orange-700">
+                <Link href="/buyer/intereses">Responder</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {suggestions.length > 0 && (
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-semibold">Para ti</h3>
+              <Link href="/buyer/intereses" className="text-sm text-orange-600 hover:underline">Cambiar intereses</Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {suggestions.map(g => (
+                <Link key={g.id} href={`/gigs/${g.id}`} className="block rounded-2xl border bg-card p-4 hover:shadow-md transition">
+                  <p className="font-medium line-clamp-2">{g.title}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{g.category}{g.city ? ` · ${g.city}` : ''}</p>
+                  <p className="text-emerald-600 font-semibold mt-2">${g.price.toLocaleString('es-CO')}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {saved.length > 0 && (
+          <div className="mb-10">
+            <h3 className="text-2xl font-semibold mb-4">Guardados</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {saved.map(g => (
+                <Link key={g.id} href={`/gigs/${g.id}`} className="block rounded-2xl border bg-card p-4 hover:shadow-md">
+                  <p className="font-medium line-clamp-2">{g.title}</p>
+                  <p className="text-emerald-600 font-semibold mt-2">${g.price.toLocaleString('es-CO')}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {pendingReviewOrders.length > 0 && (
           <Card className="mb-12 border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/40">

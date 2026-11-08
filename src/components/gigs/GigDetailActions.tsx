@@ -32,7 +32,20 @@ export default function GigDetailActions({
   const { open, pending, requestBuy, confirm, cancel } = useBuyGigConfirm()
   const [loadedLabel, setLoadedLabel] = useState<string | null>(quantityLabel || null)
   const [quantity, setQuantity] = useState(1)
+  const [saved, setSaved] = useState(false)
   const label = loadedLabel || quantityLabel || null
+
+  useEffect(() => {
+    if (!userId) return
+    fetch(`/api/gigs/${gigId}/save`).then(r => r.json()).then(d => setSaved(Boolean(d.saved))).catch(() => {})
+  }, [userId, gigId])
+
+  const toggleSave = async () => {
+    if (!userId) { window.location.href = `/login?callbackUrl=/gigs/${gigId}`; return }
+    const method = saved ? 'DELETE' : 'POST'
+    const res = await fetch(`/api/gigs/${gigId}/save`, { method })
+    if (res.ok) setSaved(!saved)
+  }
   const hasQuantity = Boolean(label)
   const units = hasQuantity ? Math.max(1, quantity) : 1
   const total = useMemo(() => Math.max(0, Math.round(Number(gigPrice) || 0) * units), [gigPrice, units])
@@ -118,6 +131,9 @@ export default function GigDetailActions({
         disabled={!isActive}
       >
         {!isActive ? 'Servicio pausado' : 'Comprar ahora'}
+        </Button>
+        <Button type="button" variant="outline" onClick={toggleSave} className="w-full">
+          {saved ? 'Guardado' : 'Guardar'}
       </Button>
       {isActive && (
         <StartInquiryButton

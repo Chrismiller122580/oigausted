@@ -118,6 +118,11 @@ model User {
   marketingGenerations  SellerMarketingGeneration[]
   gigViews              GigView[]
   gigLikes              GigLike[]
+  savedGigs             SavedGig[]
+  buyerCity             String?
+  buyerInterests        String?
+  buyerUrgency          String?
+  buyerPrefsAt          DateTime?
 }
 
 model PasswordResetToken {
@@ -240,6 +245,7 @@ model Gig {
   inquiries       InquiryThread[]
   views           GigView[]
   likes           GigLike[]
+  savedBy         SavedGig[]
   viewCount       Int      @default(0)
   likeCount       Int      @default(0)
   city            String?
@@ -258,6 +264,18 @@ model GigLike {
   @@unique([userId, gigId])
   @@index([gigId])
   @@index([userId])
+}
+
+model SavedGig {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gigId     String
+  gig       Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@unique([userId, gigId])
+  @@index([userId])
+  @@index([gigId])
 }
 
 model GigView {

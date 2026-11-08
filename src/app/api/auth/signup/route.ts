@@ -24,6 +24,9 @@ export async function POST(request: NextRequest) {
       turnstileToken,
       countryCode: requestedCountry,
       dataConsent,
+      buyerCity,
+      buyerInterests,
+      buyerUrgency,
     } = await request.json()
 
     if (!name || !email || !password) {
@@ -195,6 +198,19 @@ export async function POST(request: NextRequest) {
       `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/gigs`,
       { isWelcome: true }
     )
+
+    if (safeRole !== 'seller' && (buyerCity || (Array.isArray(buyerInterests) && buyerInterests.length))) {
+      const interests = Array.isArray(buyerInterests) ? buyerInterests.slice(0, 5) : []
+      await prisma.user.update({
+        where: { id: newUser.id },
+        data: {
+          buyerCity: buyerCity ? String(buyerCity).slice(0, 80) : null,
+          buyerInterests: interests.length ? JSON.stringify(interests) : null,
+          buyerUrgency: ['this_week', 'this_month', 'browsing'].includes(buyerUrgency) ? buyerUrgency : 'browsing',
+          buyerPrefsAt: interests.length && buyerCity ? new Date() : null,
+        },
+      }).catch(() => {})
+    }
 
     notifyAdminsNewSignup({
       name: newUser.name,

@@ -825,3 +825,32 @@ export function sellerPayoutConfirmedEmail({
     `,
   }
 }
+
+
+/** Existing buyers: what's new + answer interests. */
+export function buyerWhatsNewEmail({ userName }: BaseEmailProps) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'
+  const link = `${appUrl}/buyer/intereses`
+  return {
+    subject: 'Novedades en OigaGIG: servicios para ti',
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px;">
+        <h2 style="color: #111;">Hola ${userName || 'Comprador'}</h2>
+        <p>Mejoramos cómo encuentras servicios en OigaGIG.</p>
+        <ul style="color: #333; line-height: 1.6;">
+          <li><strong>Para ti</strong> — servicios según tu ciudad y lo que necesitas.</li>
+          <li><strong>Guardar</strong> — guarda un gig y vuelve cuando quieras contratar.</li>
+          <li><strong>Tus intereses</strong> — tres preguntas y te mostramos opciones cerca.</li>
+        </ul>
+        <p>Si ya tienes cuenta, responde las preguntas para ver recomendaciones:</p>
+        <a href="${link}"
+           style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin-top: 8px;">
+          Decirnos qué necesitas
+        </a>
+        <p style="color: #666; font-size: 13px; margin-top: 24px;">
+          También puedes buscar en <a href="${appUrl}/gigs">${appUrl}/gigs</a>.
+        </p>
+      </div>
+    `,
+  }
+}

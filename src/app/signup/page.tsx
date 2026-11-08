@@ -28,7 +28,10 @@ function SignUpClient() {
     name: "",
     email: "",
     password: "",
-    role: "buyer" as "buyer" | "seller"
+    role: "buyer" as "buyer" | "seller",
+    buyerCity: "",
+    buyerInterests: [] as string[],
+    buyerUrgency: "browsing",
   })
   const [dataConsent, setDataConsent] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -232,6 +235,39 @@ function SignUpClient() {
                 <Button type="button" variant={formData.role === "buyer" ? "default" : "outline"} onClick={() => setFormData({ ...formData, role: "buyer" })} className="flex-1 py-6 text-base" disabled={!signupsEnabled}>Comprador</Button>
                 <Button type="button" variant={formData.role === "seller" ? "default" : "outline"} onClick={() => setFormData({ ...formData, role: "seller" })} className="flex-1 py-6 text-base" disabled={!signupsEnabled}>Vendedor</Button>
               </div>
+
+            {formData.role === "buyer" && (
+              <div className="space-y-3 rounded-xl border p-4">
+                <p className="text-sm font-medium">Para recomendarte servicios</p>
+                <Input
+                  placeholder="Tu ciudad (ej. Bucaramanga)"
+                  value={formData.buyerCity}
+                  onChange={(e) => setFormData({ ...formData, buyerCity: e.target.value })}
+                  className="h-11"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {["Limpieza de Hogar y Oficinas","Plomería y Fontanería","Belleza y Maquillaje a Domicilio","Fotografía y Video","Reparaciones y Mantenimiento del Hogar","Mensajería y Delivery","Cocina Casera y Catering","Diseño Gráfico y Logos"].map((name) => {
+                    const on = formData.buyerInterests.includes(name)
+                    return (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => setFormData({
+                          ...formData,
+                          buyerInterests: on
+                            ? formData.buyerInterests.filter((x) => x !== name)
+                            : formData.buyerInterests.length >= 3 ? formData.buyerInterests : [...formData.buyerInterests, name],
+                        })}
+                        className={`rounded-full border px-3 py-1 text-xs ${on ? "bg-orange-600 text-white border-orange-600" : "bg-background"}`}
+                      >
+                        {name}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">Hasta 3. Puedes cambiarlo después.</p>
+              </div>
+            )}
             </div>
 
             <div className="flex items-start gap-3">

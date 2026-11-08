@@ -493,6 +493,9 @@ export async function sendNotification(payload: NotificationPayload) {
             </div>
           `
         };
+      } else if (category === 'system' && jsonString(data, 'kind') === 'buyer_whats_new') {
+        const { buyerWhatsNewEmail } = await import('./emails/templates');
+        emailContent = buyerWhatsNewEmail({ userName: user.name });
       } else {
         // Generic fallback for all other categories (system, payment, gig, etc.)
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com';
