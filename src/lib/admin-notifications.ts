@@ -451,6 +451,6 @@ export async function notifyAdminsSellerPayout({
     eventLabel: 'Pago a vendedor',
     ctaLabel: 'Ver pagos',
     ctaHref: '/admin/payouts',
-    data: { orderId, payoutId },
+    data: { orderId, payoutId: payoutId ?? null },
   })
 }
