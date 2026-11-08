@@ -16,6 +16,6 @@ export async function GET() {
     },
   })
   return NextResponse.json({
-    gigs: rows.filter(r => r.gig.isActive).map(r => r.gig),
+    gigs: rows.filter((r: { gig: { isActive: boolean } }) => r.gig.isActive).map((r: { gig: unknown }) => r.gig),
   })
 }
