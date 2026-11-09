@@ -53,7 +53,7 @@ export default function AccountantOverviewPage() {
       <div className="flex items-center justify-center py-24">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading overview…</p>
+          <p className="text-muted-foreground">Cargando resumen…</p>
         </div>
       </div>
     );
@@ -63,7 +63,7 @@ export default function AccountantOverviewPage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Payroll & Finance Overview</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Nómina y finanzas</h1>
           <p className="text-muted-foreground mt-2">
             Live snapshot of payouts, revenue, and referral liabilities.
             {lastUpdated && (
@@ -75,7 +75,7 @@ export default function AccountantOverviewPage() {
         </div>
         <Button variant="outline" size="sm" onClick={() => fetchOverview()} disabled={loading}>
           <RefreshCw size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          Actualizar
         </Button>
       </div>
 
@@ -103,12 +103,12 @@ export default function AccountantOverviewPage() {
           <Card className="hover:shadow-md transition h-full">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Users className="h-4 w-4" /> Referrals
+                <Users className="h-4 w-4" /> Referidos
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">{formatCOP(stats?.pendingReferralsCOP ?? 0)}</p>
-              <p className="text-xs text-muted-foreground mt-1">Pending referral payouts</p>
+              <p className="text-xs text-muted-foreground mt-1">Pagos de referidos pendientes</p>
             </CardContent>
           </Card>
         </Link>
@@ -132,7 +132,7 @@ export default function AccountantOverviewPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Quick links</CardTitle>
+          <CardTitle>Accesos rápidos</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-2 sm:grid-cols-2">
