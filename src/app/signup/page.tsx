@@ -72,8 +72,8 @@ function SignUpClient() {
     if (urlError) {
       const friendlyMessage = 
         urlError === 'OAuthSignin' 
-          ? 'Google sign-in failed. This is common in temporary dev environments (changing URLs). Try the email/password form instead.'
-          : 'There was a problem signing in. Please try again.';
+          ? 'No se pudo iniciar sesión con Google. Use el formulario de correo y contraseña.'
+          : 'Hubo un problema al iniciar sesión. Intente de nuevo.';
       
       setError(friendlyMessage);
       
@@ -94,7 +94,7 @@ function SignUpClient() {
     }
 
     if (turnstileEnabled && !turnstileToken) {
-      setError("Completa la verificaci\u00f3n anti-bot antes de continuar.")
+      setError("Completa la verificación anti-bot antes de continuar.")
       setLoading(false)
       return
     }
@@ -122,13 +122,13 @@ function SignUpClient() {
 
       if (data.pioneer) {
         toast.success(
-          `\u00a1Eres el profesional #${data.pioneer.number} en ${data.pioneer.countryName}! Destacado gratis el primer mes.`,
+          `¡Eres el profesional #${data.pioneer.number} en ${data.pioneer.countryName}! Destacado gratis el primer mes.`,
           { duration: 8000 },
         )
       } else if (data.comingSoonCountry && formData.role === 'buyer' && signupCountry) {
-        toast.success(`Te avisaremos cuando ${signupCountry.name} est\u00e9 en vivo.`)
+        toast.success(`Te avisaremos cuando ${signupCountry.name} esté en vivo.`)
       } else {
-        toast.success(`\u00a1Registro exitoso como ${formData.role === "buyer" ? "Comprador" : "Vendedor"}!`)
+        toast.success(`¡Registro exitoso como ${formData.role === "buyer" ? "Comprador" : "Vendedor"}!`)
       }
 
       // Auto sign-in so the user lands inside the app immediately
@@ -154,7 +154,7 @@ function SignUpClient() {
       // Fallback: send them to login page
       router.push(getAuthCallbackUrl("/login"))
     } catch (err) {
-      setError("Error de conexi\u00f3n. Int\u00e9ntalo de nuevo.")
+      setError("Error de conexión. Inténtalo de nuevo.")
       setLoading(false)
     }
   }
@@ -186,7 +186,7 @@ function SignUpClient() {
           <div className="flex justify-center mb-6">
             <Logo size={88} variant="hero" linkClassName="justify-center drop-shadow-lg" />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold">\u00a1Bienvenido a {siteName}!</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold">¡Bienvenido a {siteName}!</h1>
           <p className="mt-2 text-white/90">Crea tu cuenta y comienza a conectar</p>
         </div>
 
@@ -199,7 +199,7 @@ function SignUpClient() {
               <div className="mt-1 text-blue-800">
                 {formData.role === 'seller'
                   ? `Te registras como pionero en ${signupCountry.name}. Los primeros ${signupCountry.pioneerLimit} profesionales obtienen beneficios especiales.`
-                  : `Te avisaremos cuando ${signupCountry.name} est\u00e9 en vivo.`}
+                  : `Te avisaremos cuando ${signupCountry.name} esté en vivo.`}
               </div>
             </div>
           )}
@@ -212,23 +212,23 @@ function SignUpClient() {
           {!signupsEnabled && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm">
               <div className="font-semibold text-amber-700">Registros deshabilitados</div>
-              <div className="text-amber-600 mt-1">El administrador ha cerrado temporalmente los nuevos registros en {siteName}. El formulario est\u00e1 deshabilitado.</div>
+              <div className="text-amber-600 mt-1">El administrador ha cerrado temporalmente los nuevos registros en {siteName}. El formulario está deshabilitado.</div>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <Label htmlFor="name" className="text-sm font-medium">Nombre Completo</Label>
-              <Input id="name" type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Juan P\u00e9rez" required disabled={!signupsEnabled} className="mt-1.5 h-12 text-base" />
+              <Input id="name" type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Juan Pérez" required disabled={!signupsEnabled} className="mt-1.5 h-12 text-base" />
             </div>
             <div>
-              <Label htmlFor="email" className="text-sm font-medium">Correo Electr\u00f3nico</Label>
-              <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="tu@email.com" required disabled={!signupsEnabled} className="mt-1.5 h-12 text-base" />
+              <Label htmlFor="email" className="text-sm font-medium">Correo Electrónico</Label>
+              <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="usted@correo.com" required disabled={!signupsEnabled} className="mt-1.5 h-12 text-base" />
             </div>
             <div>
-              <Label htmlFor="password" className="text-sm font-medium">Contrase\u00f1a</Label>
+              <Label htmlFor="password" className="text-sm font-medium">Contraseña</Label>
               <div className="relative mt-1.5">
-                <Input id="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" required disabled={!signupsEnabled} className="h-12 text-base pr-10" />
+                <Input id="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="••••••••" required disabled={!signupsEnabled} className="h-12 text-base pr-10" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" disabled={!signupsEnabled}>
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -333,7 +333,7 @@ function SignUpClient() {
           )}
 
           <div className="text-center text-sm text-muted-foreground pt-2">
-            \u00bfYa tienes cuenta? <Link href="/login" className="text-orange-600 hover:underline font-medium">Inicia sesi\u00f3n</Link>
+            ¿Ya tienes cuenta? <Link href="/login" className="text-orange-600 hover:underline font-medium">Inicia sesión</Link>
           </div>
         </div>
       </div>
