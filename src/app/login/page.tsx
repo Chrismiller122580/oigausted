@@ -200,7 +200,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 dark:from-zinc-950 dark:to-zinc-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-xl">
+      <Card className="w-full max-w-md shadow-xl relative z-10">
         <CardHeader className="text-center pb-4">
           <div className="flex justify-center mb-3">
             <Logo size={72} variant="hero" linkClassName="justify-center" />
@@ -211,7 +211,7 @@ export default function LoginPage() {
           <p className="text-sm text-muted-foreground mt-1">Inicia sesión en OigaGIG</p>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="relative z-10">
           <div className="mb-4">
             <p className="text-sm font-medium text-foreground mb-3">Inicia sesión con tu cuenta</p>
           </div>
@@ -284,9 +284,16 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="text-center mt-4">
-            <Link href="/forgot-password" className="text-sm text-orange-600 hover:underline">
-              ¿Olvidaste tu contraseña?
+          <div className="text-center mt-5 relative z-20">
+            <Link
+              href="/forgot-password"
+              className="inline-flex items-center justify-center min-h-11 px-3 text-sm font-medium text-orange-600 underline underline-offset-2 hover:text-orange-700 pointer-events-auto"
+              onClick={(e) => {
+                e.preventDefault();
+                router.push('/forgot-password');
+              }}
+            >
+              ¿Olvidó su contraseña?
             </Link>
           </div>
 
@@ -297,7 +304,7 @@ export default function LoginPage() {
                   <div className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-card px-3 text-muted-foreground">or</span>
+                  <span className="bg-card px-3 text-muted-foreground">o</span>
                 </div>
               </div>
 
@@ -318,9 +325,16 @@ export default function LoginPage() {
             </>
           )}
 
-          <p className="text-center text-sm text-muted-foreground mt-8">
-            ¿Nuevo aquí?{' '}
-            <Link href="/signup" className="font-medium text-orange-600 hover:underline">
+          <p className="text-center text-sm text-muted-foreground mt-8 relative z-20">
+            ¿No tiene cuenta?{' '}
+            <Link
+              href="/signup"
+              className="inline-flex items-center justify-center min-h-11 px-2 font-medium text-orange-600 underline underline-offset-2 hover:text-orange-700 pointer-events-auto"
+              onClick={(e) => {
+                e.preventDefault();
+                router.push('/signup');
+              }}
+            >
               Crear una cuenta
             </Link>
           </p>
