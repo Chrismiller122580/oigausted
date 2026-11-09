@@ -19,6 +19,7 @@ import CookieConsent from "@/components/common/CookieConsent";
 import PwaInstallPrompt from "@/components/common/PwaInstallPrompt";
 import AppUpdateBanner from "@/components/common/AppUpdateBanner";
 import ConsentGate from "@/components/auth/ConsentGate";
+import SiteLegalFooter from "@/components/layout/SiteLegalFooter";
 
 const inter = Inter({ subsets: ["latin"], display: "swap", preload: false });
 
@@ -204,6 +205,7 @@ export default async function RootLayout({
           <NavbarWrapper>
             {children}
           </NavbarWrapper>
+          <SiteLegalFooter />
           <AppToaster />
           <CookieConsent />
           <AppUpdateBanner />
