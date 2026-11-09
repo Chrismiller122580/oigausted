@@ -35,7 +35,7 @@ export function TaxDocumentsPage() {
       const data = await res.json();
       setSellers(data.sellers || []);
     } catch {
-      toast.error('Error loading seller tax records');
+      toast.error('Error al cargar documentos fiscales');
     } finally {
       setLoading(false);
     }
@@ -103,7 +103,7 @@ export function TaxDocumentsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tax Documents</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Documentos fiscales</h1>
           <p className="text-muted-foreground mt-2">
             Seller NIT and payout identity records · {filtered.length} sellers
           </p>
@@ -115,13 +115,13 @@ export function TaxDocumentsPage() {
           </Button>
           <Button variant="outline" size="sm" onClick={fetchSellers} disabled={loading}>
             <RefreshCw size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            Actualizar
           </Button>
         </div>
       </div>
 
       <Input
-        placeholder="Search business, email, NIT, document..."
+        placeholder="Buscar negocio, correo, NIT, documento..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="max-w-md"
@@ -130,18 +130,18 @@ export function TaxDocumentsPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <p className="p-8 text-center text-muted-foreground">Loading records…</p>
+            <p className="p-8 text-center text-muted-foreground">Cargando registros…</p>
           ) : (
             <ScrollableTable>
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-muted/30">
                 <tr>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Business</th>
+                  <th className="text-left p-4 font-medium text-muted-foreground">Negocio</th>
                   <th className="text-left p-4 font-medium text-muted-foreground">NIT</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Document</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Holder</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Bank</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Email</th>
+                  <th className="text-left p-4 font-medium text-muted-foreground">Documento</th>
+                  <th className="text-left p-4 font-medium text-muted-foreground">Titular</th>
+                  <th className="text-left p-4 font-medium text-muted-foreground">Banco</th>
+                  <th className="text-left p-4 font-medium text-muted-foreground">Correo</th>
                 </tr>
               </thead>
               <tbody>
