@@ -35,7 +35,7 @@ export function TransactionsPage() {
       const list = Array.isArray(data) ? data : data.orders || [];
       setOrders(list);
     } catch {
-      toast.error('Error loading transactions');
+      toast.error('Error al cargar transacciones');
     } finally {
       setLoading(false);
     }
@@ -71,13 +71,13 @@ export function TransactionsPage() {
         </div>
         <Button variant="outline" size="sm" onClick={fetchOrders} disabled={loading}>
           <RefreshCw size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          Actualizar
         </Button>
       </div>
 
       <div className="flex flex-wrap gap-3">
         <Input
-          placeholder="Search ID, buyer, seller, gig, Wompi ref..."
+          placeholder="Buscar ID, comprador, vendedor, servicio, ref Wompi..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-sm"
@@ -87,11 +87,11 @@ export function TransactionsPage() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="bg-card border border-border rounded-lg px-3 py-2 text-sm"
         >
-          <option value="all">All statuses</option>
-          <option value="Pending">Pending</option>
+          <option value="all">Todos los estados</option>
+          <option value="Pending">Pendiente</option>
           <option value="Paid">Paid</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Completed">Completed</option>
+          <option value="In Progress">En progreso</option>
+          <option value="Completed">Completado</option>
           <option value="Cancelled">Cancelled</option>
         </select>
       </div>
@@ -99,7 +99,7 @@ export function TransactionsPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <p className="p-8 text-center text-muted-foreground">Loading transactions…</p>
+            <p className="p-8 text-center text-muted-foreground">Cargando transacciones…</p>
           ) : (
             <ScrollableTable>
             <table className="w-full text-sm">
