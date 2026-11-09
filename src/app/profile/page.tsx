@@ -455,7 +455,7 @@ export default function ProfilePage() {
               <label className="cursor-pointer">
                 <div className="w-32 h-32 bg-card rounded-3xl overflow-hidden border-4 border-white shadow-xl relative group">
                   {formData.imageUrl ? (
-                    <img src={formData.imageUrl} alt="Profile" className="w-full h-full object-cover" />
+                    <img src={formData.imageUrl} alt="Foto de perfil" className="w-full h-full object-cover" />
                   ) : (
                     <UserAvatar name={formData.name} size="xl" className="w-full h-full rounded-none border-0 text-7xl" />
                   )}
