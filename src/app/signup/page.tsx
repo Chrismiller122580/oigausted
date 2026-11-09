@@ -160,6 +160,11 @@ function SignUpClient() {
   }
 
   const handleGoogleSignIn = async () => {
+    if (!dataConsent) {
+      setError('Debe autorizar el tratamiento de sus datos personales antes de continuar con Google.');
+      document.getElementById('dataConsent')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     const fromQuery = new URLSearchParams(window.location.search).get('callbackUrl');
     const callbackUrl = fromQuery || getAuthCallbackUrl('/');
 
@@ -270,22 +275,25 @@ function SignUpClient() {
             )}
             </div>
 
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 rounded-2xl border-2 border-orange-400 bg-orange-50 p-4 dark:border-orange-500 dark:bg-orange-950/40">
               <input
                 id="dataConsent"
                 type="checkbox"
                 checked={dataConsent}
                 onChange={(e) => setDataConsent(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                className="mt-1 h-5 w-5 shrink-0 rounded border-gray-400 text-orange-600 focus:ring-orange-500"
                 required
                 disabled={!signupsEnabled}
               />
-              <label htmlFor="dataConsent" className="text-sm leading-relaxed cursor-pointer text-zinc-700 dark:text-zinc-300">
-                Autorizo el tratamiento de mis datos personales conforme a la{" "}
-                <Link href="/privacy" target="_blank" className="text-orange-600 hover:underline font-medium">
-                  Pol\u00edtica de Tratamiento de Datos Personales
-                </Link>
-                .
+              <label htmlFor="dataConsent" className="text-sm leading-relaxed cursor-pointer text-zinc-800 dark:text-zinc-100">
+                <span className="font-semibold">¿Autoriza el tratamiento de sus datos personales?</span>
+                <span className="block mt-1">
+                  Autorizo el tratamiento de mis datos personales conforme a la{" "}
+                  <Link href="/privacy" target="_blank" className="text-orange-700 hover:underline font-medium">
+                    Política de Tratamiento de Datos Personales
+                  </Link>
+                  . Obligatorio para crear la cuenta.
+                </span>
               </label>
             </div>
 
