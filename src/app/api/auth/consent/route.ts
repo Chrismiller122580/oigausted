@@ -6,6 +6,23 @@ import { getRequestIp } from "@/lib/rate-limit";
 
 const POLICY_VERSION = "2026-10-28";
 
+async function ensureConsentColumns() {
+  await prisma.$executeRawUnsafe(
+    `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "dataProcessingConsentAt" TIMESTAMP(3)`,
+  );
+  await prisma.$executeRawUnsafe(
+    `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "dataProcessingConsentIp" TEXT`,
+  );
+  await prisma.$executeRawUnsafe(
+    `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "dataProcessingConsentVersion" TEXT`,
+  );
+}
+
+function isMissingConsentColumn(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("dataProcessingConsent") || message.includes("P2022");
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,7 +32,6 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}));
     const version = typeof body.version === "string" ? body.version : POLICY_VERSION;
-
     const ip = getRequestIp(request.headers);
 
     const user = await prisma.user.findUnique({
@@ -27,14 +43,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
     }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        dataProcessingConsentAt: new Date(),
-        dataProcessingConsentIp: ip || null,
-        dataProcessingConsentVersion: version,
-      },
-    });
+    const save = () =>
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          dataProcessingConsentAt: new Date(),
+          dataProcessingConsentIp: ip || null,
+          dataProcessingConsentVersion: version,
+        },
+      });
+
+    try {
+      await save();
+    } catch (error) {
+      if (!isMissingConsentColumn(error)) throw error;
+      console.warn("[consent] columns missing, adding them now");
+      await ensureConsentColumns();
+      await save();
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -50,17 +76,25 @@ export async function GET() {
       return NextResponse.json({ needsConsent: false });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { dataProcessingConsentAt: true },
-    });
+    const read = () =>
+      prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { dataProcessingConsentAt: true },
+      });
 
-    // Logged-in user with no consent timestamp must see the checkbox.
+    let user;
+    try {
+      user = await read();
+    } catch (error) {
+      if (!isMissingConsentColumn(error)) throw error;
+      await ensureConsentColumns();
+      user = await read();
+    }
+
     return NextResponse.json({
       needsConsent: !user?.dataProcessingConsentAt,
     });
   } catch (error) {
-    // Fail closed for authenticated users: a broken check must not skip Ley 1581 consent.
     console.error("[consent] GET failed, requiring consent:", error);
     try {
       const session = await getServerSession(authOptions);
