@@ -34,7 +34,7 @@ export function SettingsPage() {
       if (!res.ok) throw new Error('Failed');
       setSettings(await res.json());
     } catch {
-      toast.error('Error loading settings');
+      toast.error('Error al cargar la configuración');
     } finally {
       setLoading(false);
     }
@@ -50,22 +50,22 @@ export function SettingsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Accounting Settings</h1>
-          <p className="text-muted-foreground mt-2">Read-only finance configuration and payout system health</p>
+          <h1 className="text-3xl font-bold tracking-tight">Configuración contable</h1>
+          <p className="text-muted-foreground mt-2">Configuración financiera de solo lectura y estado de pagos</p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchSettings} disabled={loading}>
           <RefreshCw size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          Actualizar
         </Button>
       </div>
 
       {loading && !settings ? (
-        <p className="text-muted-foreground">Loading settings…</p>
+        <p className="text-muted-foreground">Cargando configuración…</p>
       ) : settings ? (
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Commission rates</CardTitle>
+              <CardTitle className="text-base">Comisiones</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <p>
@@ -81,7 +81,7 @@ export function SettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Wompi payments</CardTitle>
+              <CardTitle className="text-base">Pagos Wompi</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <p>
@@ -90,17 +90,17 @@ export function SettingsPage() {
               <p>
                 Configured:{' '}
                 <span className={settings.wompiConfigured ? 'text-emerald-600' : 'text-amber-600'}>
-                  {settings.wompiConfigured ? 'Yes' : 'Incomplete'}
+                  {settings.wompiConfigured ? 'Sí' : 'Incompleto'}
                 </span>
               </p>
-              <p>Real payments: {settings.wompiRealPaymentsEnabled ? 'Enabled' : 'Disabled'}</p>
-              <p>SFTP reconciliation: {settings.wompiSftpEnabled ? 'Enabled' : 'Disabled'}</p>
+              <p>Pagos reales: {settings.wompiRealPaymentsEnabled ? 'Activo' : 'Inactivo'}</p>
+              <p>Conciliación SFTP: {settings.wompiSftpEnabled ? 'Activo' : 'Inactivo'}</p>
             </CardContent>
           </Card>
 
           <Card className="md:col-span-2">
             <CardHeader>
-              <CardTitle className="text-base">Payout system</CardTitle>
+              <CardTitle className="text-base">Sistema de pagos</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-2 text-sm">
               <p>
@@ -110,7 +110,7 @@ export function SettingsPage() {
                 </span>
               </p>
               <p>
-                Pending payouts: {settings.pendingPayoutCount} (
+                Pagos pendientes: {settings.pendingPayoutCount} (
                 ${Math.round(settings.pendingPayoutNetCOP).toLocaleString('es-CO')} COP)
               </p>
               <p>sellerPayoutAt column: {settings.payoutSchema.sellerPayoutAt ? '✓' : '✕'}</p>
