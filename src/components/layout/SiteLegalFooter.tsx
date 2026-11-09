@@ -9,10 +9,10 @@ export default function SiteLegalFooter() {
         <span>© {year} OigaGIG. Todos los derechos reservados.</span>
         <nav aria-label="Legal" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
           <Link href="/privacy" className="font-medium text-orange-600 hover:underline">
-            Politica de Tratamiento de Datos Personales
+            Política de Tratamiento de Datos Personales
           </Link>
           <Link href="/terms" className="font-medium text-orange-600 hover:underline">
-            Terminos y Condiciones
+            Términos y Condiciones
           </Link>
           <Link href="/support" className="hover:text-foreground">
             Soporte
