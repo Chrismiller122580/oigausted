@@ -20,7 +20,7 @@ function ConsentClient() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accepted) {
-      setError("Debes autorizar el tratamiento de tus datos personales para continuar.");
+      setError("Debe autorizar el tratamiento de sus datos personales para continuar.");
       return;
     }
     setLoading(true);
@@ -34,15 +34,15 @@ function ConsentClient() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "No se pudo registrar tu autorizaci\u00f3n.");
+        setError(data.error || "No se pudo registrar su autorizacion.");
         setLoading(false);
         return;
       }
-      toast.success("Autorizaci\u00f3n registrada. Gracias.");
+      toast.success("Autorizacion registrada. Gracias.");
       router.push(callbackUrl);
       router.refresh();
     } catch {
-      setError("Error de conexi\u00f3n. Int\u00e9ntalo de nuevo.");
+      setError("Error de conexion. Intente de nuevo.");
       setLoading(false);
     }
   };
@@ -51,9 +51,9 @@ function ConsentClient() {
     <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 flex items-center justify-center p-4">
       <div className="bg-card rounded-3xl max-w-md w-full shadow-2xl p-8 space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Autorizaci\u00f3n de datos personales</h1>
+          <h1 className="text-2xl font-bold">Autorizacion de datos personales</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Para continuar usando OigaGIG necesitamos tu autorizaci\u00f3n expresa para el tratamiento de tus datos personales.
+            Para continuar usando OigaGIG necesitamos su autorizacion expresa para el tratamiento de sus datos personales.
           </p>
         </div>
 
@@ -62,21 +62,30 @@ function ConsentClient() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3 rounded-2xl border-2 border-orange-400 bg-orange-50 p-4 dark:border-orange-500 dark:bg-orange-950/40">
             <input
               id="dataConsent"
               type="checkbox"
               checked={accepted}
               onChange={(e) => setAccepted(e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+              className="mt-1 h-5 w-5 shrink-0 rounded border-gray-400 text-orange-600 focus:ring-orange-500"
               required
             />
-            <Label htmlFor="dataConsent" className="text-sm leading-relaxed cursor-pointer">
-              Autorizo el tratamiento de mis datos personales conforme a la{" "}
-              <Link href="/privacy" target="_blank" className="text-orange-600 hover:underline font-medium">
-                Pol\u00edtica de Tratamiento de Datos Personales
-              </Link>
-              .
+            <Label htmlFor="dataConsent" className="text-sm leading-relaxed cursor-pointer text-zinc-800 dark:text-zinc-100">
+              <span className="font-semibold block">
+                Autoriza el tratamiento de sus datos personales?
+              </span>
+              <span className="block mt-1">
+                Autorizo el tratamiento de mis datos personales conforme a la{" "}
+                <Link href="/privacy" target="_blank" className="text-orange-700 hover:underline font-medium">
+                  Politica de Tratamiento de Datos Personales
+                </Link>
+                {" "}y los{" "}
+                <Link href="/terms" target="_blank" className="text-orange-700 hover:underline font-medium">
+                  Terminos y Condiciones
+                </Link>
+                .
+              </span>
             </Label>
           </div>
 
@@ -86,8 +95,10 @@ function ConsentClient() {
         </form>
 
         <p className="text-xs text-muted-foreground text-center">
-          Puedes consultar el texto completo en cualquier momento en{" "}
-          <Link href="/privacy" className="text-orange-600 hover:underline">oigagig.com/privacy</Link>.
+          Puede consultar el texto completo en{" "}
+          <Link href="/privacy" className="text-orange-600 hover:underline">oigagig.com/privacy</Link>
+          {" "}y{" "}
+          <Link href="/terms" className="text-orange-600 hover:underline">oigagig.com/terms</Link>.
         </p>
       </div>
     </div>
