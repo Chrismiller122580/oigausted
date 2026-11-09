@@ -34,15 +34,15 @@ function ConsentClient() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "No se pudo registrar su autorizacion.");
+        setError(data.error || "No se pudo registrar su autorización.");
         setLoading(false);
         return;
       }
-      toast.success("Autorizacion registrada. Gracias.");
+      toast.success("Autorización registrada. Gracias.");
       router.push(callbackUrl);
       router.refresh();
     } catch {
-      setError("Error de conexion. Intente de nuevo.");
+      setError("Error de conexión. Intente de nuevo.");
       setLoading(false);
     }
   };
@@ -51,9 +51,9 @@ function ConsentClient() {
     <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 flex items-center justify-center p-4">
       <div className="bg-card rounded-3xl max-w-md w-full shadow-2xl p-8 space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Autorizacion de datos personales</h1>
+          <h1 className="text-2xl font-bold">Autorización de datos personales</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Para continuar usando OigaGIG necesitamos su autorizacion expresa para el tratamiento de sus datos personales.
+            Para continuar usando OigaGIG necesitamos su autorización expresa para el tratamiento de sus datos personales.
           </p>
         </div>
 
@@ -73,16 +73,16 @@ function ConsentClient() {
             />
             <Label htmlFor="dataConsent" className="text-sm leading-relaxed cursor-pointer text-zinc-800 dark:text-zinc-100">
               <span className="font-semibold block">
-                Autoriza el tratamiento de sus datos personales?
+                ¿Autoriza el tratamiento de sus datos personales?
               </span>
               <span className="block mt-1">
                 Autorizo el tratamiento de mis datos personales conforme a la{" "}
                 <Link href="/privacy" target="_blank" className="text-orange-700 hover:underline font-medium">
-                  Politica de Tratamiento de Datos Personales
+                  Política de Tratamiento de Datos Personales
                 </Link>
                 {" "}y los{" "}
                 <Link href="/terms" target="_blank" className="text-orange-700 hover:underline font-medium">
-                  Terminos y Condiciones
+                  Términos y Condiciones
                 </Link>
                 .
               </span>
