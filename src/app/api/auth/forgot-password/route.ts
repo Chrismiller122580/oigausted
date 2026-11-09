@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
-import { notifications } from '@/lib/notifications'
+import { Resend } from 'resend'
+import { passwordResetEmail } from '@/lib/emails/templates'
 import { logAuditEvent } from '@/lib/audit'
 import { checkRateLimit, getRequestIp, RATE_LIMITS } from '@/lib/rate-limit'
 import { verifyTurnstileToken } from '@/lib/turnstile'
+
+const resendApiKey = process.env.RESEND_API_KEY
+const resend = resendApiKey ? new Resend(resendApiKey) : null
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'OigaGIG <support@oigagig.com>'
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,10 +51,11 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
+      select: { id: true, email: true, name: true },
     })
 
     // Always return success to avoid email enumeration
-    if (!user) {
+    if (!user?.email) {
       return NextResponse.json({ success: true })
     }
 
@@ -72,13 +78,37 @@ export async function POST(request: NextRequest) {
 
     const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/reset-password?token=${token}`
 
-    await notifications.sendEmail(
-      user.id,
-      'Restablece tu contraseña en OigaGIG',
-      `Recibimos una solicitud para restablecer tu contraseña. El enlace expira en 1 hora.`,
-      resetLink,
-      { resetLink }
-    )
+    // Transactional security email: always send, ignore notification prefs / quiet hours.
+    if (!resend) {
+      console.error('[forgot-password] RESEND_API_KEY missing — reset email not sent', {
+        userId: user.id,
+      })
+    } else {
+      const emailContent = passwordResetEmail({
+        userName: user.name,
+        resetLink,
+      })
+
+      const sent = await resend.emails.send({
+        from: FROM_EMAIL,
+        to: user.email,
+        subject: emailContent.subject,
+        html: emailContent.html,
+        replyTo: 'support@oigagig.com',
+      })
+
+      if (sent.error) {
+        console.error('[forgot-password] Resend rejected password reset email', {
+          userId: user.id,
+          error: sent.error,
+        })
+      } else {
+        console.log('[forgot-password] Password reset email sent', {
+          userId: user.id,
+          emailId: sent.data?.id,
+        })
+      }
+    }
 
     return NextResponse.json({
       success: true,
