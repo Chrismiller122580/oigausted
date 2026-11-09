@@ -103,7 +103,7 @@ export async function GET() {
         name: u.name || u.email,
         businessName: u.businessName,
         joined: u.createdAt,
-        status: u.role === 'seller' ? 'Active Seller' : 'Buyer',
+        status: u.role === 'seller' ? 'Vendedor activo' : 'Comprador',
         earnings: earningsBySeller[u.id] || 0,
       }))
     })
