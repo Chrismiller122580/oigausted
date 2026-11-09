@@ -47,7 +47,7 @@ export default function AdminAssistantOverviewPage() {
       <div className="flex items-center justify-center py-24">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading overview…</p>
+          <p className="text-muted-foreground">Cargando resumen…</p>
         </div>
       </div>
     );
@@ -57,7 +57,7 @@ export default function AdminAssistantOverviewPage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Support & Ops Overview</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Soporte y operaciones</h1>
           <p className="text-muted-foreground mt-2">
             Live snapshot of orders, support, and users across the platform.
             {lastUpdated && (
@@ -69,7 +69,7 @@ export default function AdminAssistantOverviewPage() {
         </div>
         <Button variant="outline" size="sm" onClick={() => fetchOverview()} disabled={loading}>
           <RefreshCw size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          Actualizar
         </Button>
       </div>
 
@@ -78,12 +78,12 @@ export default function AdminAssistantOverviewPage() {
           <Card className="hover:shadow-md transition h-full">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <List className="h-4 w-4" /> Orders
+                <List className="h-4 w-4" /> Pedidos
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">{stats?.ordersNeedingAttention ?? '—'}</p>
-              <p className="text-xs text-muted-foreground mt-1">Pending, paid, or in progress</p>
+              <p className="text-xs text-muted-foreground mt-1">Pendientes, pagados o en progreso</p>
             </CardContent>
           </Card>
         </Link>
@@ -92,12 +92,12 @@ export default function AdminAssistantOverviewPage() {
           <Card className="hover:shadow-md transition h-full">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <MessageCircle className="h-4 w-4" /> Support
+                <MessageCircle className="h-4 w-4" /> Soporte
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">{stats?.openSupportTickets ?? '—'}</p>
-              <p className="text-xs text-muted-foreground mt-1">Open support tickets</p>
+              <p className="text-xs text-muted-foreground mt-1">Tickets de soporte abiertos</p>
             </CardContent>
           </Card>
         </Link>
@@ -106,15 +106,15 @@ export default function AdminAssistantOverviewPage() {
           <Card className="hover:shadow-md transition h-full">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Users className="h-4 w-4" /> Users
+                <Users className="h-4 w-4" /> Usuarios
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">{stats?.totalUsers ?? '—'}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Registered users
+                Usuarios registrados
                 {typeof stats?.onlineUsers === 'number' && stats.onlineUsers > 0 && (
-                  <> · {stats.onlineUsers} online now</>
+                  <> · {stats.onlineUsers} en línea ahora</>
                 )}
               </p>
             </CardContent>
@@ -124,7 +124,7 @@ export default function AdminAssistantOverviewPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Quick links</CardTitle>
+          <CardTitle>Accesos rápidos</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-2 sm:grid-cols-2">
