@@ -35,7 +35,7 @@ export function DisputesPage() {
       const data = await res.json();
       setTickets(data.tickets || []);
     } catch {
-      toast.error('Error loading payment disputes');
+      toast.error('Error al cargar disputas de pago');
     } finally {
       setLoading(false);
     }
@@ -86,19 +86,19 @@ export function DisputesPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Payment Disputes</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Disputas de pago</h1>
           <p className="text-muted-foreground mt-2">
-            Support tickets in the payments & Wompi category · {tickets.length} total
+            Tickets de soporte de pagos y Wompi · {tickets.length} total
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchTickets} disabled={loading}>
           <RefreshCw size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          Actualizar
         </Button>
       </div>
 
       {loading ? (
-        <p className="text-muted-foreground">Loading disputes…</p>
+        <p className="text-muted-foreground">Cargando disputas…</p>
       ) : tickets.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
@@ -140,27 +140,27 @@ export function DisputesPage() {
                 </div>
                 <p className="text-sm whitespace-pre-wrap bg-muted/40 rounded-lg p-3">{selected.message}</p>
                 <div>
-                  <Label htmlFor="dispute-status">Status</Label>
+                  <Label htmlFor="dispute-status">Estado</Label>
                   <select
                     id="dispute-status"
                     value={newStatus}
                     onChange={(e) => setNewStatus(e.target.value)}
                     className="mt-1 w-full bg-card border border-border rounded-lg px-3 py-2 text-sm"
                   >
-                    <option value="open">Open</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="closed">Closed</option>
+                    <option value="open">Abierta</option>
+                    <option value="in_progress">En progreso</option>
+                    <option value="resolved">Resuelta</option>
+                    <option value="closed">Cerrada</option>
                   </select>
                 </div>
                 <div>
-                  <Label htmlFor="dispute-reply">Reply to user</Label>
+                  <Label htmlFor="dispute-reply">Respuesta al usuario</Label>
                   <Textarea
                     id="dispute-reply"
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     className="mt-1 min-h-[120px]"
-                    placeholder="Your response to the user..."
+                    placeholder="Su respuesta al usuario..."
                   />
                 </div>
                 <div className="flex gap-2">
