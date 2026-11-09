@@ -42,7 +42,7 @@ export default function LoginPage() {
     if (urlError) {
       const friendlyMessage =
         urlError === 'OAuthSignin'
-          ? 'Google sign-in failed. This is common in temporary dev environments (changing URLs). Try the email/password form instead.'
+          ? 'No se pudo iniciar sesión con Google. Use el formulario de correo y contraseña.'
           : urlError === 'CredentialsSignin'
             ? 'Correo o contraseña incorrectos.'
             : 'Hubo un problema al iniciar sesión. Intenta de nuevo.';
@@ -222,7 +222,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="you@email.com"
+                placeholder="usted@correo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -246,7 +246,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
