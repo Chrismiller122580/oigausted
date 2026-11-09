@@ -228,7 +228,7 @@ export default function NotificationPreferences() {
             onChange={() => handleToggle('inAppEnabled')}
           />
           <PreferenceRow
-            label="Email"
+            label="Correo"
             description="Recibe actualizaciones por correo electrónico"
             checked={prefs.emailEnabled}
             onChange={() => handleToggle('emailEnabled')}
