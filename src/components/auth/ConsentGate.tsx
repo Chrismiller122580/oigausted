@@ -18,14 +18,15 @@ export default function ConsentGate() {
     if (status !== 'authenticated' || !session?.user) return;
     if (!pathname) return;
 
-    // Do not interrupt the consent page or pure auth screens
     if (
       pathname.startsWith('/consent') ||
       pathname.startsWith('/login') ||
       pathname.startsWith('/signup') ||
       pathname.startsWith('/api/') ||
       pathname.startsWith('/privacy') ||
-      pathname.startsWith('/terms')
+      pathname.startsWith('/terms') ||
+      pathname.startsWith('/forgot-password') ||
+      pathname.startsWith('/reset-password')
     ) {
       return;
     }
@@ -33,16 +34,38 @@ export default function ConsentGate() {
     let cancelled = false;
 
     (async () => {
-      try {
-        const res = await fetch('/api/auth/consent', { method: 'GET' });
-        if (!res.ok || cancelled) return;
-        const data = await res.json();
-        if (data?.needsConsent && !cancelled) {
-          const callback = encodeURIComponent(pathname + (window.location.search || ''));
-          router.replace(`/consent?callbackUrl=${callback}`);
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (cancelled) return;
+        try {
+          const res = await fetch('/api/auth/consent', {
+            method: 'GET',
+            cache: 'no-store',
+            credentials: 'include',
+          });
+          if (cancelled) return;
+          if (!res.ok) {
+            if (attempt < 2) {
+              await new Promise((r) => setTimeout(r, 400));
+              continue;
+            }
+            router.replace(`/consent?callbackUrl=${encodeURIComponent(pathname)}`);
+            return;
+          }
+          const data = await res.json();
+          if (data?.needsConsent && !cancelled) {
+            const callback = encodeURIComponent(pathname + (window.location.search || ''));
+            router.replace(`/consent?callbackUrl=${callback}`);
+          }
+          return;
+        } catch {
+          if (attempt < 2) {
+            await new Promise((r) => setTimeout(r, 400));
+            continue;
+          }
+          if (!cancelled) {
+            router.replace(`/consent?callbackUrl=${encodeURIComponent(pathname)}`);
+          }
         }
-      } catch {
-        // Non-blocking: do not trap the user if the check fails
       }
     })();
 

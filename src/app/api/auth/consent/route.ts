@@ -55,10 +55,21 @@ export async function GET() {
       select: { dataProcessingConsentAt: true },
     });
 
+    // Logged-in user with no consent timestamp must see the checkbox.
     return NextResponse.json({
       needsConsent: !user?.dataProcessingConsentAt,
     });
-  } catch {
+  } catch (error) {
+    // Fail closed for authenticated users: a broken check must not skip Ley 1581 consent.
+    console.error("[consent] GET failed, requiring consent:", error);
+    try {
+      const session = await getServerSession(authOptions);
+      if (session?.user?.email) {
+        return NextResponse.json({ needsConsent: true });
+      }
+    } catch {
+      /* ignore */
+    }
     return NextResponse.json({ needsConsent: false });
   }
 }
