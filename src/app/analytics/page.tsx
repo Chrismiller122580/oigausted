@@ -75,7 +75,7 @@ export default function AnalyticsOverviewPage() {
       <div className="flex items-center justify-center py-24">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading analytics overview…</p>
+          <p className="text-muted-foreground">Cargando analíticas…</p>
         </div>
       </div>
     );
@@ -85,19 +85,19 @@ export default function AnalyticsOverviewPage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Analytics Overview</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Resumen de analíticas</h1>
           <p className="text-muted-foreground mt-2">
-            Site performance, market trends, and growth insights.
+            Rendimiento del sitio, tendencias y crecimiento.
             {lastUpdated && (
               <span className="block text-xs mt-1">
-                Updated {lastUpdated.toLocaleTimeString('es-CO')}
+                Actualizado {lastUpdated.toLocaleTimeString('es-CO')}
               </span>
             )}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => fetchOverview()} disabled={loading}>
           <RefreshCw size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          Actualizar
         </Button>
       </div>
 
@@ -105,39 +105,39 @@ export default function AnalyticsOverviewPage() {
         <Card>
           <CardContent className="p-6">
             <Users className="h-8 w-8 text-blue-400 mb-3" />
-            <p className="text-sm text-muted-foreground">Total Users</p>
+            <p className="text-sm text-muted-foreground">Usuarios totales</p>
             <p className="text-3xl font-bold mt-1 tabular-nums">{stats?.users?.toLocaleString() ?? 0}</p>
-            <p className="text-xs text-emerald-400 mt-1">{stats?.sellers ?? 0} sellers</p>
+            <p className="text-xs text-emerald-400 mt-1">{stats?.sellers ?? 0} vendedores</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-6">
             <Package className="h-8 w-8 text-orange-400 mb-3" />
-            <p className="text-sm text-muted-foreground">Published Gigs</p>
+            <p className="text-sm text-muted-foreground">Servicios publicados</p>
             <p className="text-3xl font-bold mt-1 tabular-nums">{stats?.gigs ?? 0}</p>
-            <p className="text-xs text-emerald-400 mt-1">{stats?.activeGigs ?? 0} active</p>
+            <p className="text-xs text-emerald-400 mt-1">{stats?.activeGigs ?? 0} activos</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-6">
             <TrendingUp className="h-8 w-8 text-purple-400 mb-3" />
-            <p className="text-sm text-muted-foreground">Orders</p>
+            <p className="text-sm text-muted-foreground">Pedidos</p>
             <p className="text-3xl font-bold mt-1 tabular-nums">{stats?.orders ?? 0}</p>
-            <p className="text-xs text-emerald-400 mt-1">{stats?.completedOrders ?? 0} completed</p>
+            <p className="text-xs text-emerald-400 mt-1">{stats?.completedOrders ?? 0} completados</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-6">
             <DollarSign className="h-8 w-8 text-green-400 mb-3" />
-            <p className="text-sm text-muted-foreground">Gross Revenue</p>
+            <p className="text-sm text-muted-foreground">Ingresos brutos</p>
             <p className="text-3xl font-bold mt-1 tabular-nums">
               ${(stats?.totalRevenue ?? 0).toLocaleString('es-CO')}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Platform: ${(stats?.platformRevenue ?? 0).toLocaleString('es-CO')}
+              Plataforma: ${(stats?.platformRevenue ?? 0).toLocaleString('es-CO')}
             </p>
           </CardContent>
         </Card>
@@ -148,7 +148,7 @@ export default function AnalyticsOverviewPage() {
       )}
 
       <div>
-        <h2 className="text-lg font-semibold mb-4">Explore insights</h2>
+        <h2 className="text-lg font-semibold mb-4">Explorar</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           {QUICK_LINKS.map((item) => {
             const Icon = item.icon;
@@ -174,7 +174,7 @@ export default function AnalyticsOverviewPage() {
           <div className="flex items-start gap-3">
             <Activity className="h-5 w-5 text-orange-500 mt-0.5" />
             <div>
-              <p className="font-medium">Daily trends & conversion funnel</p>
+              <p className="font-medium">Tendencias diarias y embudo de conversión</p>
               <p className="text-sm text-muted-foreground">
                 30-day signups, orders, revenue, and drop-off analysis.
               </p>
@@ -193,7 +193,7 @@ export default function AnalyticsOverviewPage() {
           <div className="flex items-start gap-3">
             <Megaphone className="h-5 w-5 text-orange-500 mt-0.5" />
             <div>
-              <p className="font-medium">Ads & audience insights</p>
+              <p className="font-medium">Anuncios y audiencia</p>
               <p className="text-sm text-muted-foreground">
                 Buyer funnel, segment sizes, and campaign history (read-only).
               </p>
