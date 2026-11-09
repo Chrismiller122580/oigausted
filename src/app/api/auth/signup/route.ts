@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     })
     if (!rateLimit.allowed) {
       return NextResponse.json(
-        { error: `Too many signup attempts. Please try again in ${rateLimit.retryAfter} seconds.` },
+        { error: `Demasiados intentos de registro. Intente de nuevo en ${rateLimit.retryAfter} seconds.` },
         { status: 429 }
       )
     }
