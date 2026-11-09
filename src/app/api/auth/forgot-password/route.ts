@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     const { email, turnstileToken } = await request.json()
 
     if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
+      return NextResponse.json({ error: 'El correo es obligatorio' }, { status: 400 })
     }
 
     const ip = getRequestIp(request.headers)
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (!rateLimit.allowed) {
       return NextResponse.json(
         {
-          error: `Too many reset requests. Please try again in ${rateLimit.retryAfter} seconds.`,
+          error: `Demasiados intentos. Intente de nuevo en ${rateLimit.retryAfter} segundos.`,
         },
         { status: 429 }
       )
@@ -72,7 +72,6 @@ export async function POST(request: NextRequest) {
 
     const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://oigagig.com'}/reset-password?token=${token}`
 
-    // Send real password reset email (now uses rich passwordResetEmail template + full tracking/resendEmailId)
     await notifications.sendEmail(
       user.id,
       'Restablece tu contraseña en OigaGIG',
@@ -81,12 +80,12 @@ export async function POST(request: NextRequest) {
       { resetLink }
     )
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      message: "If an account exists, password reset instructions have been sent to your email."
+      message: 'Si la cuenta existe, enviamos las instrucciones a su correo.',
     })
   } catch (error) {
     console.error('Forgot password error:', error)
-    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
+    return NextResponse.json({ error: 'Algo salió mal. Intente de nuevo.' }, { status: 500 })
   }
 }

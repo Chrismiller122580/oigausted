@@ -28,19 +28,19 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
-      toast.error('Please enter your email address');
+      toast.error('Ingrese su correo electrónico');
       return;
     }
 
     if (turnstileEnabled && !turnstileToken) {
-      toast.error('Completa la verificación anti-bot antes de continuar.');
+      toast.error('Complete la verificación anti-bot antes de continuar.');
       return;
     }
 
     setSubmitted(true);
-    
+
     try {
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
@@ -50,13 +50,13 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
 
       if (data.devToken) {
-        toast.success('Dev mode: Token generated. Check the response or console for the token to test reset.');
+        toast.success('Modo desarrollo: token generado. Revise la respuesta o la consola.');
         console.log('[DEV] Use this token to reset:', data.devToken);
       } else {
-        toast.success('If an account exists, reset instructions were sent (or contact support).');
+        toast.success('Si la cuenta existe, enviamos las instrucciones (o contacte soporte).');
       }
-    } catch (err) {
-      toast.success('Request received. For beta, contact support to reset your password.');
+    } catch {
+      toast.success('Solicitud recibida. Si necesita ayuda inmediata, contacte a soporte.');
     }
   };
 
@@ -69,9 +69,9 @@ export default function ForgotPasswordPage() {
               O
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold">Forgot your password?</CardTitle>
+          <CardTitle className="text-3xl font-bold">¿Olvidó su contraseña?</CardTitle>
           <p className="text-gray-600 mt-2">
-            No worries. Enter your email and we’ll send you reset instructions.
+            No se preocupe. Ingrese su correo y le enviaremos las instrucciones para restablecerla.
           </p>
         </CardHeader>
 
@@ -79,10 +79,10 @@ export default function ForgotPasswordPage() {
           {!submitted ? (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium mb-2">Email address</label>
+                <label className="block text-sm font-medium mb-2">Correo electrónico</label>
                 <Input
                   type="email"
-                  placeholder="you@email.com"
+                  placeholder="usted@correo.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -104,13 +104,13 @@ export default function ForgotPasswordPage() {
                 className="w-full py-6 text-lg bg-orange-600 hover:bg-orange-700"
                 disabled={turnstileEnabled && !turnstileToken}
               >
-                Send reset instructions
+                Enviar instrucciones
               </Button>
 
               <div className="text-center text-sm text-gray-500">
-                Remember your password?{' '}
+                ¿Recuerda su contraseña?{' '}
                 <Link href="/login" className="text-orange-600 hover:underline">
-                  Back to login
+                  Volver a iniciar sesión
                 </Link>
               </div>
             </form>
@@ -119,20 +119,20 @@ export default function ForgotPasswordPage() {
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Mail className="h-8 w-8 text-green-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Check your email</h3>
+              <h3 className="text-xl font-semibold mb-2">Revise su correo</h3>
               <p className="text-gray-600 mb-6">
-                If an account with <strong>{email}</strong> exists, you will receive password reset instructions shortly.
+                Si existe una cuenta con <strong>{email}</strong>, recibirá las instrucciones para restablecer su contraseña en breve.
               </p>
               <Link href="/login">
                 <Button variant="outline" className="w-full">
-                  Back to Login
+                  Volver a iniciar sesión
                 </Button>
               </Link>
             </div>
           )}
 
           <div className="mt-8 pt-6 border-t text-xs text-center text-gray-500">
-            Password reset by email is in beta. Contact support@oigagig.com for immediate help.
+            El restablecimiento por correo está en beta. Para ayuda inmediata, escriba a support@oigagig.com.
           </div>
         </CardContent>
       </Card>
