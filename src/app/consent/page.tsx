@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
@@ -13,12 +14,24 @@ function ConsentClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const { status } = useSession();
   const [accepted, setAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      const next = `/consent?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+      router.replace(`/login?callbackUrl=${encodeURIComponent(next)}`);
+    }
+  }, [status, callbackUrl, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (status !== "authenticated") {
+      setError("Debe iniciar sesión para autorizar el tratamiento de sus datos.");
+      return;
+    }
     if (!accepted) {
       setError("Debe autorizar el tratamiento de sus datos personales para continuar.");
       return;
@@ -29,10 +42,16 @@ function ConsentClient() {
     try {
       const res = await fetch("/api/auth/consent", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ version: POLICY_VERSION }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        const next = `/consent?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+        router.replace(`/login?callbackUrl=${encodeURIComponent(next)}`);
+        return;
+      }
       if (!res.ok) {
         setError(data.error || "No se pudo registrar su autorización.");
         setLoading(false);
@@ -46,6 +65,17 @@ function ConsentClient() {
       setLoading(false);
     }
   };
+
+  if (status === "loading" || status === "unauthenticated") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 flex items-center justify-center p-4">
+        <div className="bg-card rounded-3xl max-w-md w-full shadow-2xl p-8 text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-muted-foreground">Verificando su sesión…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 flex items-center justify-center p-4">
