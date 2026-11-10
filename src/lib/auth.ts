@@ -293,13 +293,13 @@ export const authOptions: NextAuthOptions = {
               )
               .catch((e) => devLog('[auth] Admin signup email failed (non-fatal):', e))
 
-            // New Google users have not given express data-processing consent.
-            return '/consent?callbackUrl=/'
+            // Session must finish first. ConsentGate sends users without consent to /consent.
+            return true
           } else if (!existing.dataProcessingConsentAt) {
             user.id = existing.id
             user.role = shouldBeAdmin ? 'admin' : existing.role
             ;(user as { staffRole?: string | null }).staffRole = existing.staffRole
-            return '/consent?callbackUrl=/'
+            return true
           } else {
             // If this Gmail is listed as admin, upgrade the role on login
             const finalRole = shouldBeAdmin ? 'admin' : existing.role
