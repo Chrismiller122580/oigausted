@@ -57,6 +57,13 @@ function getBuyerFields(categoryName: string) {
         { key: 'address', label: 'Dirección del servicio (si es a domicilio)', type: 'text' },
         { key: 'notes', label: 'Notas adicionales (garantía previa, accesorios, etc.)', type: 'text' },
       ];
+    case 'Zapatos y Calzado':
+      return [
+        { key: 'size', label: 'Talla que necesitas', type: 'text' },
+        { key: 'preferredDate', label: 'Fecha preferida de entrega', type: 'date' },
+        { key: 'deliveryAddress', label: 'Dirección de entrega', type: 'text' },
+        { key: 'notes', label: 'Notas (color, marca, detalles)', type: 'text' },
+      ];
     default:
       // For newly created admin categories (or any not explicitly configured),
       // provide a sensible generic set of buyer fields.
@@ -154,6 +161,13 @@ function getUpgrades(categoryName: string) {
       { name: 'Entrega prioritaria', price: 80000, description: 'Traslado del vehículo en menos tiempo' },
       { name: 'Documentación incluida', price: 50000, description: 'Apoyo con papeles y trámite de traspaso' },
       { name: 'Peritaje completo', price: 90000, description: 'Inspección técnica profesional' },
+      ...base,
+    ];
+  }
+  if (name.includes('zapato') || name.includes('calzado')) {
+    return [
+      { name: 'Entrega exprés', price: 12000, description: 'Entrega prioritaria del calzado' },
+      { name: 'Envoltura para regalo', price: 8000, description: 'Presentación lista para regalar' },
       ...base,
     ];
   }
