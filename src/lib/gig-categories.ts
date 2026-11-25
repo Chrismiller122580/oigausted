@@ -362,6 +362,52 @@ export const gigCategories = [
       { key: "urgency", label: "Urgencia (mismo día)", type: "checkbox", extraPrice: 50000 },
       { key: "partsIncluded", label: "Repuestos incluidos por el técnico", type: "checkbox", extraPrice: 60000 }
     ]
+  },
+  {
+    name: "Zapatos y Calzado",
+    icon: "👟",
+    fields: [
+      {
+        key: "productType",
+        label: "Tipo de calzado",
+        type: "select",
+        options: [
+          { label: "Tenis / deportivos", extraPrice: 0 },
+          { label: "Zapatos formales", extraPrice: 0 },
+          { label: "Botas", extraPrice: 0 },
+          { label: "Sandalias / chanclas", extraPrice: 0 },
+          { label: "Tacones", extraPrice: 0 },
+          { label: "Infantiles", extraPrice: 0 },
+          { label: "Otro", extraPrice: 0 }
+        ]
+      },
+      {
+        key: "gender",
+        label: "Para quién",
+        type: "select",
+        options: [
+          { label: "Mujer", extraPrice: 0 },
+          { label: "Hombre", extraPrice: 0 },
+          { label: "Niño", extraPrice: 0 },
+          { label: "Niña", extraPrice: 0 },
+          { label: "Unisex", extraPrice: 0 }
+        ]
+      },
+      { key: "size", label: "Talla", type: "text" },
+      { key: "quantity", label: "Cantidad de pares", type: "number" },
+      {
+        key: "condition",
+        label: "Condición",
+        type: "select",
+        options: [
+          { label: "Nuevo / sellado", extraPrice: 0 },
+          { label: "Como nuevo", extraPrice: 0 },
+          { label: "Usado en buen estado", extraPrice: 0 }
+        ]
+      },
+      { key: "delivery", label: "Entrega a domicilio", type: "checkbox", extraPrice: 8000 },
+      { key: "giftWrap", label: "Envoltura para regalo", type: "checkbox", extraPrice: 5000 }
+    ]
   }
 ];
 
